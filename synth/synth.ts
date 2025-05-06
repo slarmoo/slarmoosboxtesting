@@ -7848,6 +7848,7 @@ class EnvelopeComputer {
     public nextSlideRatioEnd: number = 0.0;
 
     public startPinTickAbsolute: number | null = null;
+    private startPinTickDefaultPitch: number | null = null;
     private startPinTickPitch: number | null = null;
 
     public readonly envelopeStarts: number[] = [];
@@ -7882,7 +7883,8 @@ class EnvelopeComputer {
         this.drumsetFilterEnvelopeStart = 0.0;
         this.drumsetFilterEnvelopeEnd = 0.0;
         this.startPinTickAbsolute = null;
-        this.startPinTickPitch = null;
+        this.startPinTickDefaultPitch = null;
+        this.startPinTickPitch = null
     }
 
     public computeEnvelopes(instrument: Instrument, currentPart: number, tickTimeStart: number[], tickTimeStartReal: number, secondsPerTick: number, tone: Tone | null, timeScale: number[], instrumentState: InstrumentState, synth: Synth, channelIndex: number, instrumentIndex: number): void {
@@ -7939,7 +7941,7 @@ class EnvelopeComputer {
         let nextSlideRatioEnd: number = 0.0;
         if (tone == null) {
             this.startPinTickAbsolute = null;
-            this.startPinTickPitch = null;
+            this.startPinTickDefaultPitch = null;
         }
         if (tone != null && tone.note != null && !tone.passedEndOfNote) {
             const endPinIndex: number = tone.note.getEndPinIndex(currentPart);
@@ -7947,7 +7949,8 @@ class EnvelopeComputer {
             const endPin: NotePin = tone.note.pins[endPinIndex];
             const startPinTick = (tone.note.start + startPin.time) * Config.ticksPerPart;
             if (this.startPinTickAbsolute == null || (!(transition.continues || transition.slides)) && tone.passedEndOfNote) this.startPinTickAbsolute = startPinTick + synth.computeTicksSinceStart(true); //for random per note
-            if (this.startPinTickPitch == null ||/* (!(transition.continues || transition.slides)) &&*/ tone.passedEndOfNote) this.startPinTickPitch = this.getPitchValue(instrument, tone, instrumentState, false);
+            if (this.startPinTickDefaultPitch == null ||/* (!(transition.continues || transition.slides)) &&*/ tone.passedEndOfNote) this.startPinTickDefaultPitch = this.getPitchValue(instrument, tone, instrumentState, false);
+            if (!tone.passedEndOfNote) this.startPinTickPitch = this.getPitchValue(instrument, tone, instrumentState, true);
             const endPinTick: number = (tone.note.start + endPin.time) * Config.ticksPerPart;
             const ratioStart: number = (tickTimeStartReal - startPinTick) / (endPinTick - startPinTick);
             const ratioEnd: number = (tickTimeEndReal - startPinTick) / (endPinTick - startPinTick);
@@ -8003,7 +8006,7 @@ class EnvelopeComputer {
             let seed: number = 2;
             let waveform: number = LFOEnvelopeTypes.sine;
             let startPinTickAbsolute: number = this.startPinTickAbsolute || 0.0;
-            let defaultPitch: number = this.startPinTickPitch || 0.0;
+            let defaultPitch: number = this.startPinTickDefaultPitch || 0.0;
             if (envelopeIndex == instrument.envelopeCount) {
                 if (usedNoteSize /*|| !this._perNote*/) break;
                 // Special case: if no other envelopes used note size, default to applying it to note volume.
@@ -8058,7 +8061,7 @@ class EnvelopeComputer {
                 if (envelope.type == EnvelopeType.noteSize) usedNoteSize = true;
             }
             //only calculate pitch if needed
-            const pitch: number = (envelope.type == EnvelopeType.pitch) ? this.computePitchEnvelope(instrument, envelopeIndex, this.getPitchValue(instrument, tone, instrumentState, true)) : 0;
+            const pitch: number = (envelope.type == EnvelopeType.pitch) ? this.computePitchEnvelope(instrument, envelopeIndex, (this.startPinTickPitch || 0)) : 0;
             
             //calculate envelope values if target isn't null
             if (automationTarget.computeIndex != null) {
@@ -11074,20 +11077,21 @@ export class Synth {
                             }
                         }
 
-                        let tone: Tone = new Tone;
                         if (instrumentState.activeTones.count() > 0) {
-                            tone = instrumentState.activeTones.peakBack();
-                        } else {
-                            tone = new Tone;
+                            const tone: Tone = instrumentState.activeTones.get(0);
+                            envelopeComputer.computeEnvelopes(instrument, currentPart, instrumentState.envelopeTime, tickTimeStart, secondsPerTick, tone, envelopeSpeeds, instrumentState, this, channel, instrumentIdx);
                         }
-                        envelopeComputer.computeEnvelopes(instrument, currentPart, instrumentState.envelopeTime, tickTimeStart, secondsPerTick, tone, envelopeSpeeds, instrumentState, this, channel, instrumentIdx);
+                        
                         const envelopeStarts: number[] = envelopeComputer.envelopeStarts;
                         //const envelopeEnds: number[] = envelopeComputer.envelopeEnds;
 
                         // Update arpeggio time, which is used to calculate arpeggio position
+
+                        const arpEnvelopeStart: number = envelopeStarts[EnvelopeComputeIndex.arpeggioSpeed]; //only discrete for now
+                        //const arpEnvelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.arpeggioSpeed];
                         let useArpeggioSpeed: number = instrument.arpeggioSpeed;
                         if (this.isModActive(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx)) {
-                            useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, this.getModValue(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx, false));
+                            useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, arpEnvelopeStart * this.getModValue(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx, false));
                             if (Number.isInteger(useArpeggioSpeed)) {
                                 instrumentState.arpTime += Config.arpSpeedScale[useArpeggioSpeed];
                             } else {
@@ -11096,9 +11100,7 @@ export class Synth {
                             }
                         }
                         else {
-                            const envelopeStart: number = envelopeStarts[EnvelopeComputeIndex.arpeggioSpeed]; //only discrete for now
-                            //const envelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.arpeggioSpeed];
-                            useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, envelopeStart*useArpeggioSpeed);
+                            useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, arpEnvelopeStart *useArpeggioSpeed);
                             if (Number.isInteger(useArpeggioSpeed)) {
                                 instrumentState.arpTime += Config.arpSpeedScale[useArpeggioSpeed];
                             } else {
@@ -11282,6 +11284,10 @@ export class Synth {
         const channelState: ChannelState = this.channels[channelIndex];
         const pitches: number[] = this.liveInputPitches;
         const bassPitches: number[] = this.liveBassInputPitches;
+
+        if (this.liveInputPitches.length > 0 || this.liveBassInputPitches.length > 0) {
+            this.computeLatestModValues();
+        }
 
         for (let instrumentIndex: number = 0; instrumentIndex < channel.instruments.length; instrumentIndex++) {
             const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];

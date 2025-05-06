@@ -85,8 +85,6 @@ export class EnvelopeEditor {
 		const endSliderIndex: number = this._pitchEndSliders.indexOf(<any>event.target);
 		const lowerBoundBoxIndex: number = this.perEnvelopeLowerBoundBoxes.indexOf(<any>event.target);
 		const upperBoundBoxIndex: number = this.perEnvelopeUpperBoundBoxes.indexOf(<any>event.target);
-		// const lowerBoundSliderIndex: number = this.perEnvelopeLowerBoundSliders.indexOf(<any>event.target);
-		// const upperBoundSliderIndex: number = this.perEnvelopeUpperBoundSliders.indexOf(<any>event.target);
 		const randomStepsBoxIndex: number = this.randomStepsBoxes.indexOf(<any>event.target);
 		const randomSeedBoxIndex: number = this.randomSeedBoxes.indexOf(<any>event.target);
 		const randomStepsSliderIndex: number = this._randomStepsSliders.indexOf(<any>event.target);
