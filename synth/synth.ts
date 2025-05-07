@@ -220,7 +220,7 @@ const enum SongTagCode {
 	patternCount        = CharCode.j, // added in BeepBox URL version 3
 	key                 = CharCode.k, // added in BeepBox URL version 2
 	loopStart           = CharCode.l, // added in BeepBox URL version 2
-	reverb              = CharCode.m, // added in BeepBox URL version 5, DEPRECATED
+	advSettings         = CharCode.m, // added in BeepBox URL version 5 for reverb, switched to advanced instrument settings in Slarmoo's Box 1.5
 	channelCount        = CharCode.n, // added in BeepBox URL version 6
 	channelOctave       = CharCode.o, // added in BeepBox URL version 3
 	patterns            = CharCode.p, // added in BeepBox URL version 2
@@ -1567,6 +1567,68 @@ export class EnvelopeSettings {
     }
 }
 
+export class AdvancedInstrumentSettings {
+    public perToneEffects: boolean;
+    public seededRandomization: boolean;
+    public randomSeed: number;
+    public affectedBySongDetune: boolean;
+    public affectedBySongEq: boolean;
+
+    constructor() {
+        this.resetToDefault();
+    }
+
+    public resetToDefault() {
+        this.perToneEffects = false;
+        this.seededRandomization = false;
+        this.randomSeed = 2;
+        this.affectedBySongDetune = true;
+        this.affectedBySongEq = true;
+    }
+
+    public toJsonObject() {
+        const advancedSettingsObject: any = {
+            perToneEffects: this.perToneEffects,
+            seededRandomization: this.seededRandomization,
+            randomSeed: this.randomSeed,
+            affectedBySongDetune: this.affectedBySongDetune,
+            affectedBySongEq: this.affectedBySongEq
+        }
+        return advancedSettingsObject;
+    }
+
+    public fromJsonObject(advancedSettingsObject: any) {
+        this.perToneEffects = advancedSettingsObject["perToneEffects"];
+        this.seededRandomization = advancedSettingsObject["seededRandomization"];
+        this.randomSeed = advancedSettingsObject["randomSeed"];
+        this.affectedBySongDetune = advancedSettingsObject["affectedBySongDetune"];
+        this.affectedBySongEq = advancedSettingsObject["affectedBySongEq"];
+    }
+
+    public writeBitfieldChar(): number {
+        let bitfield = 0;
+        bitfield += +this.perToneEffects;
+        bitfield = bitfield << 1;
+        bitfield += +this.seededRandomization;
+        bitfield = bitfield << 1;
+        bitfield += +this.affectedBySongDetune;
+        bitfield = bitfield << 1;
+        bitfield += +this.affectedBySongEq;
+        return bitfield;
+    }
+
+    public readBitfieldChar(bitfield: number): void {
+        this.affectedBySongEq = Boolean(bitfield & 1);
+        bitfield = bitfield >> 1;
+        this.affectedBySongDetune = Boolean(bitfield & 1);
+        bitfield = bitfield >> 1;
+        this.seededRandomization = Boolean(bitfield & 1);
+        bitfield = bitfield >> 1;
+        this.perToneEffects = Boolean(bitfield & 1);
+        //randomSeed handled outside
+    }
+}
+
 
 
 // Settings that were available to old versions of BeepBox but are no longer available in the
@@ -1602,6 +1664,7 @@ export class Instrument {
     public chipWaveStartOffset: number = 0;
     // advloop addition
     public chipNoise: number = 1;
+    public advancedSettings: AdvancedInstrumentSettings = new AdvancedInstrumentSettings();
     public eqFilter: FilterSettings = new FilterSettings();
     public eqFilterType: boolean = false;
     public eqFilterSimpleCut: number = Config.filterSimpleCutRange - 1;
@@ -1811,6 +1874,7 @@ export class Instrument {
         this.transition = Config.transitions.dictionary["normal"].index;
         this.envelopeCount = 0;
         this.isNoiseInstrument = isNoiseChannel;
+        this.advancedSettings.resetToDefault();
         switch (type) {
             case InstrumentType.chip:
                 this.chipWave = 2;
@@ -2042,7 +2106,8 @@ export class Instrument {
             "eqFilterType": this.eqFilterType,
             "eqSimpleCut": this.eqFilterSimpleCut,
             "eqSimplePeak": this.eqFilterSimplePeak,
-            "envelopeSpeed": this.envelopeSpeed
+            "envelopeSpeed": this.envelopeSpeed,
+            "advancedSettings": this.advancedSettings.toJsonObject()
         };
 
         if (this.preset != this.type) {
@@ -2361,6 +2426,12 @@ export class Instrument {
 
         //These can probably be condensed with ternary operators
         this.envelopeSpeed = instrumentObject["envelopeSpeed"] != undefined ? clamp(0, Config.modulators.dictionary["envelope speed"].maxRawVol + 1, instrumentObject["envelopeSpeed"] | 0) : 12;
+
+        if (instrumentObject["advancedSettings"] != undefined) {
+            this.advancedSettings.fromJsonObject(instrumentObject["advancedSettings"]);
+        } else {
+            this.advancedSettings.resetToDefault();
+        }
 
         if (Array.isArray(instrumentObject["effects"])) {
             let effects: number = 0;
@@ -3206,7 +3277,7 @@ export class Song {
     private static readonly _oldestUltraBoxVersion: number = 1;
     private static readonly _latestUltraBoxVersion: number = 5;
     private static readonly _oldestSlarmoosBoxVersion: number = 1;
-    private static readonly _latestSlarmoosBoxVersion: number = 5;
+    private static readonly _latestSlarmoosBoxVersion: number = 6;
     // One-character variant detection at the start of URL to distinguish variants such as JummBox, Or Goldbox. "j" and "g" respectively
     //also "u" is ultrabox lol
     private static readonly _variant = 0x73; //"s" ~ slarmoo's box
@@ -3647,6 +3718,8 @@ export class Song {
                 buffer.push(SongTagCode.startInstrument, base64IntToCharCode[instrument.type]);
                 buffer.push(SongTagCode.volume, base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) >> 6], base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) & 0x3f]);
                 buffer.push(SongTagCode.preset, base64IntToCharCode[instrument.preset >> 6], base64IntToCharCode[instrument.preset & 63]);
+
+                buffer.push(SongTagCode.advSettings, base64IntToCharCode[instrument.advancedSettings.writeBitfieldChar()], base64IntToCharCode[instrument.advancedSettings.randomSeed]);
 
                 buffer.push(SongTagCode.eqFilter);
                 buffer.push(base64IntToCharCode[+instrument.eqFilterType]);
@@ -4558,7 +4631,7 @@ export class Song {
                 }
                 this.tempo = clamp(Config.tempoMin, Config.tempoMax + 1, this.tempo);
             } break;
-            case SongTagCode.reverb: {
+            case SongTagCode.advSettings: { //deprecated song reverb tag repurposed for advanced instrument settings
                 lastViewedSetting = "Song Reverb (legacy)";
                 if (beforeNine && fromBeepBox) {
                     legacyGlobalReverb = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 12;
@@ -4566,8 +4639,13 @@ export class Song {
                 } else if ((fromJummBox && beforeFive) || (beforeFour && fromGoldBox)) {
                     legacyGlobalReverb = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                     legacyGlobalReverb = clamp(0, Config.reverbRange, legacyGlobalReverb);
+                } else if (fromSlarmoosBox && !beforeSix) {
+                    lastViewedSetting = "Advanced Instrument Settings";
+                    const AdvancedSettings: AdvancedInstrumentSettings = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].advancedSettings;
+                    AdvancedSettings.readBitfieldChar(base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                    AdvancedSettings.randomSeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 } else {
-                    // Do nothing, BeepBox v9+ do not support song-wide reverb - JummBox still does via modulator.
+                    //do noting
                 }
             } break;
             case SongTagCode.beatCount: {
@@ -10731,6 +10809,8 @@ export class Synth {
             this.deactivateAudio();
             return;
         }
+        const outputDataLEqless: Float32Array = outputDataL.slice();
+        const outputDataREqless: Float32Array = outputDataR.slice();
 
         const song: Song = this.song;
         this.song.inVolumeCap = 0.0 // Reset volume cap for this run
@@ -10923,7 +11003,11 @@ export class Synth {
                     }
 
                     if (instrumentState.awake) {
-                        Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                        if (instrument.advancedSettings.affectedBySongEq) {
+                            Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                        } else {
+                            Synth.effectsSynth(this, outputDataLEqless, outputDataREqless, bufferIndex, runLength, instrumentState.effectsComputer);
+                        }
                     }
 
                     // Update LFO time for instruments (used to be deterministic based on bar position but now vibrato/arp speed messes that up!)
@@ -10976,8 +11060,8 @@ export class Synth {
                         const stopIndex: number = Math.min(runEnd, bufferIndex + this.metronomeSamplesRemaining);
                         this.metronomeSamplesRemaining -= stopIndex - bufferIndex;
                         for (let i: number = bufferIndex; i < stopIndex; i++) {
-                            outputDataL[i] += this.metronomeAmplitude;
-                            outputDataR[i] += this.metronomeAmplitude;
+                            outputDataLEqless[i] += this.metronomeAmplitude;
+                            outputDataREqless[i] += this.metronomeAmplitude;
                             const tempAmplitude: number = this.metronomeFilter * this.metronomeAmplitude - this.metronomePrevAmplitude;
                             this.metronomePrevAmplitude = this.metronomeAmplitude;
                             this.metronomeAmplitude = tempAmplitude;
@@ -11037,6 +11121,9 @@ export class Synth {
                     if (Math.abs(initialFilterInput2R) < epsilon) initialFilterInput2R = 0.0;
                     this.initialSongEqFilterInput1R = initialFilterInput1R;
                     this.initialSongEqFilterInput2R = initialFilterInput2R;
+
+                    outputDataL[i] += outputDataLEqless[i];
+                    outputDataR[i] += outputDataREqless[i];
                 }
 
                 // A compressor/limiter.
@@ -12279,7 +12366,7 @@ export class Synth {
                 modDetuneStart = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, false) + Config.detuneCenter;
                 modDetuneEnd = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, true) + Config.detuneCenter;
             }
-            if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
+            if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex) && instrument.advancedSettings.affectedBySongDetune) {
                 modDetuneStart += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
                 modDetuneEnd += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
             }
@@ -15408,7 +15495,6 @@ export class Synth {
                 if (tgtInstrument.envelopeCount > envelopeTarget) {
                     tgtInstrument.envelopes[envelopeTarget].tempEnvelopeUpperBound = bound / 10;
                 }
-                console.log(tgtInstrument.envelopes[envelopeTarget]);
             }
         }
     }

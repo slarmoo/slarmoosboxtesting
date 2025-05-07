@@ -10494,6 +10494,55 @@ var beepbox = (function (exports) {
             }
         }
     }
+    class AdvancedInstrumentSettings {
+        constructor() {
+            this.resetToDefault();
+        }
+        resetToDefault() {
+            this.perToneEffects = false;
+            this.seededRandomization = false;
+            this.randomSeed = 2;
+            this.affectedBySongDetune = true;
+            this.affectedBySongEq = true;
+        }
+        toJsonObject() {
+            const advancedSettingsObject = {
+                perToneEffects: this.perToneEffects,
+                seededRandomization: this.seededRandomization,
+                randomSeed: this.randomSeed,
+                affectedBySongDetune: this.affectedBySongDetune,
+                affectedBySongEq: this.affectedBySongEq
+            };
+            return advancedSettingsObject;
+        }
+        fromJsonObject(advancedSettingsObject) {
+            this.perToneEffects = advancedSettingsObject["perToneEffects"];
+            this.seededRandomization = advancedSettingsObject["seededRandomization"];
+            this.randomSeed = advancedSettingsObject["randomSeed"];
+            this.affectedBySongDetune = advancedSettingsObject["affectedBySongDetune"];
+            this.affectedBySongEq = advancedSettingsObject["affectedBySongEq"];
+        }
+        writeBitfieldChar() {
+            let bitfield = 0;
+            bitfield += +this.perToneEffects;
+            bitfield = bitfield << 1;
+            bitfield += +this.seededRandomization;
+            bitfield = bitfield << 1;
+            bitfield += +this.affectedBySongDetune;
+            bitfield = bitfield << 1;
+            bitfield += +this.affectedBySongEq;
+            return bitfield;
+        }
+        readBitfieldChar(bitfield) {
+            this.affectedBySongEq = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.affectedBySongDetune = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.seededRandomization = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.perToneEffects = Boolean(bitfield & 1);
+        }
+    }
     class Instrument {
         ;
         constructor(isNoiseChannel, isModChannel) {
@@ -10507,6 +10556,7 @@ var beepbox = (function (exports) {
             this.chipWavePlayBackwards = false;
             this.chipWaveStartOffset = 0;
             this.chipNoise = 1;
+            this.advancedSettings = new AdvancedInstrumentSettings();
             this.eqFilter = new FilterSettings();
             this.eqFilterType = false;
             this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -10678,6 +10728,7 @@ var beepbox = (function (exports) {
             this.transition = Config.transitions.dictionary["normal"].index;
             this.envelopeCount = 0;
             this.isNoiseInstrument = isNoiseChannel;
+            this.advancedSettings.resetToDefault();
             switch (type) {
                 case 0:
                     this.chipWave = 2;
@@ -10895,7 +10946,8 @@ var beepbox = (function (exports) {
                 "eqFilterType": this.eqFilterType,
                 "eqSimpleCut": this.eqFilterSimpleCut,
                 "eqSimplePeak": this.eqFilterSimplePeak,
-                "envelopeSpeed": this.envelopeSpeed
+                "envelopeSpeed": this.envelopeSpeed,
+                "advancedSettings": this.advancedSettings.toJsonObject()
             };
             if (this.preset != this.type) {
                 instrumentObject["preset"] = this.preset;
@@ -11203,6 +11255,12 @@ var beepbox = (function (exports) {
                 this.volume = 0;
             }
             this.envelopeSpeed = instrumentObject["envelopeSpeed"] != undefined ? clamp(0, Config.modulators.dictionary["envelope speed"].maxRawVol + 1, instrumentObject["envelopeSpeed"] | 0) : 12;
+            if (instrumentObject["advancedSettings"] != undefined) {
+                this.advancedSettings.fromJsonObject(instrumentObject["advancedSettings"]);
+            }
+            else {
+                this.advancedSettings.resetToDefault();
+            }
             if (Array.isArray(instrumentObject["effects"])) {
                 let effects = 0;
                 for (let i = 0; i < instrumentObject["effects"].length; i++) {
@@ -12361,6 +12419,7 @@ var beepbox = (function (exports) {
                     buffer.push(84, base64IntToCharCode[instrument.type]);
                     buffer.push(118, base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) >> 6], base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) & 0x3f]);
                     buffer.push(117, base64IntToCharCode[instrument.preset >> 6], base64IntToCharCode[instrument.preset & 63]);
+                    buffer.push(109, base64IntToCharCode[instrument.advancedSettings.writeBitfieldChar()], base64IntToCharCode[instrument.advancedSettings.randomSeed]);
                     buffer.push(102);
                     buffer.push(base64IntToCharCode[+instrument.eqFilterType]);
                     if (instrument.eqFilterType) {
@@ -13210,6 +13269,12 @@ var beepbox = (function (exports) {
                             else if ((fromJummBox && beforeFive) || (beforeFour && fromGoldBox)) {
                                 legacyGlobalReverb = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                 legacyGlobalReverb = clamp(0, Config.reverbRange, legacyGlobalReverb);
+                            }
+                            else if (fromSlarmoosBox && !beforeSix) {
+                                lastViewedSetting = "Advanced Instrument Settings";
+                                const AdvancedSettings = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].advancedSettings;
+                                AdvancedSettings.readBitfieldChar(base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                AdvancedSettings.randomSeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                             }
                             else ;
                         }
@@ -16101,7 +16166,7 @@ var beepbox = (function (exports) {
     Song._oldestUltraBoxVersion = 1;
     Song._latestUltraBoxVersion = 5;
     Song._oldestSlarmoosBoxVersion = 1;
-    Song._latestSlarmoosBoxVersion = 5;
+    Song._latestSlarmoosBoxVersion = 6;
     Song._variant = 0x73;
     class PickedString {
         constructor() {
@@ -18803,6 +18868,8 @@ var beepbox = (function (exports) {
                 this.deactivateAudio();
                 return;
             }
+            const outputDataLEqless = outputDataL.slice();
+            const outputDataREqless = outputDataR.slice();
             const song = this.song;
             this.song.inVolumeCap = 0.0;
             this.song.outVolumeCap = 0.0;
@@ -18953,7 +19020,12 @@ var beepbox = (function (exports) {
                             this.playTone(channelIndex, bufferIndex, runLength, tone);
                         }
                         if (instrumentState.awake) {
-                            Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                            if (instrument.advancedSettings.affectedBySongEq) {
+                                Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                            }
+                            else {
+                                Synth.effectsSynth(this, outputDataLEqless, outputDataREqless, bufferIndex, runLength, instrumentState.effectsComputer);
+                            }
                         }
                         const tickSampleCountdown = this.tickSampleCountdown;
                         const startRatio = 1.0 - (tickSampleCountdown) / samplesPerTick;
@@ -18996,8 +19068,8 @@ var beepbox = (function (exports) {
                             const stopIndex = Math.min(runEnd, bufferIndex + this.metronomeSamplesRemaining);
                             this.metronomeSamplesRemaining -= stopIndex - bufferIndex;
                             for (let i = bufferIndex; i < stopIndex; i++) {
-                                outputDataL[i] += this.metronomeAmplitude;
-                                outputDataR[i] += this.metronomeAmplitude;
+                                outputDataLEqless[i] += this.metronomeAmplitude;
+                                outputDataREqless[i] += this.metronomeAmplitude;
                                 const tempAmplitude = this.metronomeFilter * this.metronomeAmplitude - this.metronomePrevAmplitude;
                                 this.metronomePrevAmplitude = this.metronomeAmplitude;
                                 this.metronomeAmplitude = tempAmplitude;
@@ -19057,6 +19129,8 @@ var beepbox = (function (exports) {
                             initialFilterInput2R = 0.0;
                         this.initialSongEqFilterInput1R = initialFilterInput1R;
                         this.initialSongEqFilterInput2R = initialFilterInput2R;
+                        outputDataL[i] += outputDataLEqless[i];
+                        outputDataR[i] += outputDataREqless[i];
                     }
                     const sampleL = outputDataL[i] * song.masterGain * song.masterGain;
                     const sampleR = outputDataR[i] * song.masterGain * song.masterGain;
@@ -20166,7 +20240,7 @@ var beepbox = (function (exports) {
                     modDetuneStart = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, false) + Config.detuneCenter;
                     modDetuneEnd = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, true) + Config.detuneCenter;
                 }
-                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
+                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex) && instrument.advancedSettings.affectedBySongDetune) {
                     modDetuneStart += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
                     modDetuneEnd += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
                 }
@@ -22858,7 +22932,6 @@ var beepbox = (function (exports) {
                     if (tgtInstrument.envelopeCount > envelopeTarget) {
                         tgtInstrument.envelopes[envelopeTarget].tempEnvelopeUpperBound = bound / 10;
                     }
-                    console.log(tgtInstrument.envelopes[envelopeTarget]);
                 }
             }
         }

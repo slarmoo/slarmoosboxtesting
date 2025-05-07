@@ -10387,201 +10387,6 @@ li.select2-results__option[role=group] > strong:hover {
 
 `));
 
-    class BarScrollBar {
-        constructor(_doc) {
-            this._doc = _doc;
-            this._editorWidth = 512;
-            this._editorHeight = 20;
-            this._playhead = SVG.rect("rect", { fill: ColorConfig.playhead, x: 0, y: 0, width: 2, height: this._editorHeight });
-            this._notches = SVG.svg({ "pointer-events": "none" });
-            this._handle = SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: 0, y: 2, width: 10, height: this._editorHeight - 4 });
-            this._handleHighlight = SVG.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 0, y: 1, width: 10, height: this._editorHeight - 2 });
-            this._leftHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._rightHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._renderedPlayhead = -1;
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: pan-y; position: absolute;`, width: this._editorWidth, height: this._editorHeight }, this._notches, this._handle, this._handleHighlight, this._leftHighlight, this._rightHighlight, this._playhead);
-            this.container = HTML.div({ class: "barScrollBar", style: "width: 512px; height: 20px; overflow: hidden; position: relative;" }, this._svg);
-            this._mouseX = 0;
-            this._mouseDown = false;
-            this._mouseOver = false;
-            this._dragging = false;
-            this._renderedNotchCount = -1;
-            this._renderedScrollBarPos = -1;
-            this.animatePlayhead = () => {
-                const playhead = Math.min(512, Math.max(0, (this._notchSpace * this._doc.synth.playhead - 2)));
-                if (this._renderedPlayhead != playhead) {
-                    this._renderedPlayhead = playhead;
-                    this._playhead.setAttribute("x", "" + playhead);
-                }
-            };
-            this._whenMouseOver = (event) => {
-                if (this._mouseOver)
-                    return;
-                this._mouseOver = true;
-                this._updatePreview();
-            };
-            this._whenMouseOut = (event) => {
-                if (!this._mouseOver)
-                    return;
-                this._mouseOver = false;
-                this._updatePreview();
-            };
-            this._whenMousePressed = (event) => {
-                event.preventDefault();
-                this._mouseDown = true;
-                const boundingRect = this._svg.getBoundingClientRect();
-                this._mouseX = (event.clientX || event.pageX) - boundingRect.left;
-                this._updatePreview();
-                if (this._mouseX >= this._doc.barScrollPos * this._notchSpace && this._mouseX <= (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
-                    this._dragging = true;
-                    this._dragStart = this._mouseX;
-                }
-            };
-            this._whenTouchPressed = (event) => {
-                event.preventDefault();
-                this._mouseDown = true;
-                const boundingRect = this._svg.getBoundingClientRect();
-                this._mouseX = event.touches[0].clientX - boundingRect.left;
-                this._updatePreview();
-                if (this._mouseX >= this._doc.barScrollPos * this._notchSpace && this._mouseX <= (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
-                    this._dragging = true;
-                    this._dragStart = this._mouseX;
-                }
-            };
-            this._whenMouseMoved = (event) => {
-                const boundingRect = this._svg.getBoundingClientRect();
-                this._mouseX = (event.clientX || event.pageX) - boundingRect.left;
-                this._whenCursorMoved();
-            };
-            this._whenTouchMoved = (event) => {
-                if (!this._mouseDown)
-                    return;
-                event.preventDefault();
-                const boundingRect = this._svg.getBoundingClientRect();
-                this._mouseX = event.touches[0].clientX - boundingRect.left;
-                this._whenCursorMoved();
-            };
-            this._whenCursorReleased = (event) => {
-                if (!this._dragging && this._mouseDown) {
-                    if (this._mouseX < (this._doc.barScrollPos + 8) * this._notchSpace) {
-                        if (this._doc.barScrollPos > 0)
-                            this._doc.barScrollPos--;
-                        this._doc.notifier.changed();
-                    }
-                    else {
-                        if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars)
-                            this._doc.barScrollPos++;
-                        this._doc.notifier.changed();
-                    }
-                }
-                this._mouseDown = false;
-                this._dragging = false;
-                this._updatePreview();
-            };
-            const center = this._editorHeight * 0.5;
-            const base = 20;
-            const tip = 9;
-            const arrowHeight = 6;
-            this._leftHighlight.setAttribute("d", `M ${tip} ${center} L ${base} ${center + arrowHeight} L ${base} ${center - arrowHeight} z`);
-            this._rightHighlight.setAttribute("d", `M ${this._editorWidth - tip} ${center} L ${this._editorWidth - base} ${center + arrowHeight} L ${this._editorWidth - base} ${center - arrowHeight} z`);
-            this.container.addEventListener("mousedown", this._whenMousePressed);
-            document.addEventListener("mousemove", this._whenMouseMoved);
-            document.addEventListener("mouseup", this._whenCursorReleased);
-            this.container.addEventListener("mouseover", this._whenMouseOver);
-            this.container.addEventListener("mouseout", this._whenMouseOut);
-            this.container.addEventListener("touchstart", this._whenTouchPressed);
-            this.container.addEventListener("touchmove", this._whenTouchMoved);
-            this.container.addEventListener("touchend", this._whenCursorReleased);
-            this.container.addEventListener("touchcancel", this._whenCursorReleased);
-        }
-        _whenCursorMoved() {
-            if (this._dragging) {
-                while (this._mouseX - this._dragStart < -this._notchSpace * 0.5) {
-                    if (this._doc.barScrollPos > 0) {
-                        this._doc.barScrollPos--;
-                        this._dragStart -= this._notchSpace;
-                        this._doc.notifier.changed();
-                    }
-                    else {
-                        break;
-                    }
-                }
-                while (this._mouseX - this._dragStart > this._notchSpace * 0.5) {
-                    if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars) {
-                        this._doc.barScrollPos++;
-                        this._dragStart += this._notchSpace;
-                        this._doc.notifier.changed();
-                    }
-                    else {
-                        break;
-                    }
-                }
-            }
-            if (this._mouseOver)
-                this._updatePreview();
-        }
-        changePos(offset) {
-            while (Math.abs(offset) >= 1) {
-                if (offset < 0) {
-                    if (this._doc.barScrollPos > 0) {
-                        this._doc.barScrollPos--;
-                        this._dragStart += this._notchSpace;
-                        this._doc.notifier.changed();
-                    }
-                }
-                else {
-                    if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars) {
-                        this._doc.barScrollPos++;
-                        this._dragStart += this._notchSpace;
-                        this._doc.notifier.changed();
-                    }
-                }
-                offset += (offset > 0) ? -1 : 1;
-            }
-        }
-        _updatePreview() {
-            const showHighlight = this._mouseOver && !this._mouseDown;
-            let showleftHighlight = false;
-            let showRightHighlight = false;
-            let showHandleHighlight = false;
-            if (showHighlight) {
-                if (this._mouseX < this._doc.barScrollPos * this._notchSpace) {
-                    showleftHighlight = true;
-                }
-                else if (this._mouseX > (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
-                    showRightHighlight = true;
-                }
-                else {
-                    showHandleHighlight = true;
-                }
-            }
-            this._leftHighlight.style.visibility = showleftHighlight ? "visible" : "hidden";
-            this._rightHighlight.style.visibility = showRightHighlight ? "visible" : "hidden";
-            this._handleHighlight.style.visibility = showHandleHighlight ? "visible" : "hidden";
-        }
-        render() {
-            this._notchSpace = (this._editorWidth - 1) / Math.max(this._doc.trackVisibleBars, this._doc.song.barCount);
-            const resized = this._renderedNotchCount != this._doc.song.barCount;
-            if (resized) {
-                this._renderedNotchCount = this._doc.song.barCount;
-                while (this._notches.firstChild)
-                    this._notches.removeChild(this._notches.firstChild);
-                for (let i = 0; i <= this._doc.song.barCount; i++) {
-                    const lineHeight = (i % 16 == 0) ? 0 : ((i % 4 == 0) ? this._editorHeight / 8 : this._editorHeight / 3);
-                    this._notches.appendChild(SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: i * this._notchSpace - 1, y: lineHeight, width: 2, height: this._editorHeight - lineHeight * 2 }));
-                }
-            }
-            if (resized || this._renderedScrollBarPos != this._doc.barScrollPos) {
-                this._renderedScrollBarPos = this._doc.barScrollPos;
-                this._handle.setAttribute("x", String(this._notchSpace * this._doc.barScrollPos));
-                this._handle.setAttribute("width", String(this._notchSpace * this._doc.trackVisibleBars));
-                this._handleHighlight.setAttribute("x", String(this._notchSpace * this._doc.barScrollPos));
-                this._handleHighlight.setAttribute("width", String(this._notchSpace * this._doc.trackVisibleBars));
-            }
-            this._updatePreview();
-        }
-    }
-
     function scaleElementsByFactor(array, factor) {
         for (let i = 0; i < array.length; i++) {
             array[i] *= factor;
@@ -12387,6 +12192,55 @@ li.select2-results__option[role=group] > strong:hover {
             }
         }
     }
+    class AdvancedInstrumentSettings {
+        constructor() {
+            this.resetToDefault();
+        }
+        resetToDefault() {
+            this.perToneEffects = false;
+            this.seededRandomization = false;
+            this.randomSeed = 2;
+            this.affectedBySongDetune = true;
+            this.affectedBySongEq = true;
+        }
+        toJsonObject() {
+            const advancedSettingsObject = {
+                perToneEffects: this.perToneEffects,
+                seededRandomization: this.seededRandomization,
+                randomSeed: this.randomSeed,
+                affectedBySongDetune: this.affectedBySongDetune,
+                affectedBySongEq: this.affectedBySongEq
+            };
+            return advancedSettingsObject;
+        }
+        fromJsonObject(advancedSettingsObject) {
+            this.perToneEffects = advancedSettingsObject["perToneEffects"];
+            this.seededRandomization = advancedSettingsObject["seededRandomization"];
+            this.randomSeed = advancedSettingsObject["randomSeed"];
+            this.affectedBySongDetune = advancedSettingsObject["affectedBySongDetune"];
+            this.affectedBySongEq = advancedSettingsObject["affectedBySongEq"];
+        }
+        writeBitfieldChar() {
+            let bitfield = 0;
+            bitfield += +this.perToneEffects;
+            bitfield = bitfield << 1;
+            bitfield += +this.seededRandomization;
+            bitfield = bitfield << 1;
+            bitfield += +this.affectedBySongDetune;
+            bitfield = bitfield << 1;
+            bitfield += +this.affectedBySongEq;
+            return bitfield;
+        }
+        readBitfieldChar(bitfield) {
+            this.affectedBySongEq = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.affectedBySongDetune = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.seededRandomization = Boolean(bitfield & 1);
+            bitfield = bitfield >> 1;
+            this.perToneEffects = Boolean(bitfield & 1);
+        }
+    }
     class Instrument {
         ;
         constructor(isNoiseChannel, isModChannel) {
@@ -12400,6 +12254,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.chipWavePlayBackwards = false;
             this.chipWaveStartOffset = 0;
             this.chipNoise = 1;
+            this.advancedSettings = new AdvancedInstrumentSettings();
             this.eqFilter = new FilterSettings();
             this.eqFilterType = false;
             this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -12571,6 +12426,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.transition = Config.transitions.dictionary["normal"].index;
             this.envelopeCount = 0;
             this.isNoiseInstrument = isNoiseChannel;
+            this.advancedSettings.resetToDefault();
             switch (type) {
                 case 0:
                     this.chipWave = 2;
@@ -12788,7 +12644,8 @@ li.select2-results__option[role=group] > strong:hover {
                 "eqFilterType": this.eqFilterType,
                 "eqSimpleCut": this.eqFilterSimpleCut,
                 "eqSimplePeak": this.eqFilterSimplePeak,
-                "envelopeSpeed": this.envelopeSpeed
+                "envelopeSpeed": this.envelopeSpeed,
+                "advancedSettings": this.advancedSettings.toJsonObject()
             };
             if (this.preset != this.type) {
                 instrumentObject["preset"] = this.preset;
@@ -13096,6 +12953,12 @@ li.select2-results__option[role=group] > strong:hover {
                 this.volume = 0;
             }
             this.envelopeSpeed = instrumentObject["envelopeSpeed"] != undefined ? clamp(0, Config.modulators.dictionary["envelope speed"].maxRawVol + 1, instrumentObject["envelopeSpeed"] | 0) : 12;
+            if (instrumentObject["advancedSettings"] != undefined) {
+                this.advancedSettings.fromJsonObject(instrumentObject["advancedSettings"]);
+            }
+            else {
+                this.advancedSettings.resetToDefault();
+            }
             if (Array.isArray(instrumentObject["effects"])) {
                 let effects = 0;
                 for (let i = 0; i < instrumentObject["effects"].length; i++) {
@@ -14254,6 +14117,7 @@ li.select2-results__option[role=group] > strong:hover {
                     buffer.push(84, base64IntToCharCode[instrument.type]);
                     buffer.push(118, base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) >> 6], base64IntToCharCode[(instrument.volume + Config.volumeRange / 2) & 0x3f]);
                     buffer.push(117, base64IntToCharCode[instrument.preset >> 6], base64IntToCharCode[instrument.preset & 63]);
+                    buffer.push(109, base64IntToCharCode[instrument.advancedSettings.writeBitfieldChar()], base64IntToCharCode[instrument.advancedSettings.randomSeed]);
                     buffer.push(102);
                     buffer.push(base64IntToCharCode[+instrument.eqFilterType]);
                     if (instrument.eqFilterType) {
@@ -15103,6 +14967,12 @@ li.select2-results__option[role=group] > strong:hover {
                             else if ((fromJummBox && beforeFive) || (beforeFour && fromGoldBox)) {
                                 legacyGlobalReverb = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                 legacyGlobalReverb = clamp(0, Config.reverbRange, legacyGlobalReverb);
+                            }
+                            else if (fromSlarmoosBox && !beforeSix) {
+                                lastViewedSetting = "Advanced Instrument Settings";
+                                const AdvancedSettings = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].advancedSettings;
+                                AdvancedSettings.readBitfieldChar(base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                AdvancedSettings.randomSeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                             }
                             else ;
                         }
@@ -17994,7 +17864,7 @@ li.select2-results__option[role=group] > strong:hover {
     Song._oldestUltraBoxVersion = 1;
     Song._latestUltraBoxVersion = 5;
     Song._oldestSlarmoosBoxVersion = 1;
-    Song._latestSlarmoosBoxVersion = 5;
+    Song._latestSlarmoosBoxVersion = 6;
     Song._variant = 0x73;
     class PickedString {
         constructor() {
@@ -20696,6 +20566,8 @@ li.select2-results__option[role=group] > strong:hover {
                 this.deactivateAudio();
                 return;
             }
+            const outputDataLEqless = outputDataL.slice();
+            const outputDataREqless = outputDataR.slice();
             const song = this.song;
             this.song.inVolumeCap = 0.0;
             this.song.outVolumeCap = 0.0;
@@ -20846,7 +20718,12 @@ li.select2-results__option[role=group] > strong:hover {
                             this.playTone(channelIndex, bufferIndex, runLength, tone);
                         }
                         if (instrumentState.awake) {
-                            Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                            if (instrument.advancedSettings.affectedBySongEq) {
+                                Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState.effectsComputer);
+                            }
+                            else {
+                                Synth.effectsSynth(this, outputDataLEqless, outputDataREqless, bufferIndex, runLength, instrumentState.effectsComputer);
+                            }
                         }
                         const tickSampleCountdown = this.tickSampleCountdown;
                         const startRatio = 1.0 - (tickSampleCountdown) / samplesPerTick;
@@ -20889,8 +20766,8 @@ li.select2-results__option[role=group] > strong:hover {
                             const stopIndex = Math.min(runEnd, bufferIndex + this.metronomeSamplesRemaining);
                             this.metronomeSamplesRemaining -= stopIndex - bufferIndex;
                             for (let i = bufferIndex; i < stopIndex; i++) {
-                                outputDataL[i] += this.metronomeAmplitude;
-                                outputDataR[i] += this.metronomeAmplitude;
+                                outputDataLEqless[i] += this.metronomeAmplitude;
+                                outputDataREqless[i] += this.metronomeAmplitude;
                                 const tempAmplitude = this.metronomeFilter * this.metronomeAmplitude - this.metronomePrevAmplitude;
                                 this.metronomePrevAmplitude = this.metronomeAmplitude;
                                 this.metronomeAmplitude = tempAmplitude;
@@ -20950,6 +20827,8 @@ li.select2-results__option[role=group] > strong:hover {
                             initialFilterInput2R = 0.0;
                         this.initialSongEqFilterInput1R = initialFilterInput1R;
                         this.initialSongEqFilterInput2R = initialFilterInput2R;
+                        outputDataL[i] += outputDataLEqless[i];
+                        outputDataR[i] += outputDataREqless[i];
                     }
                     const sampleL = outputDataL[i] * song.masterGain * song.masterGain;
                     const sampleR = outputDataR[i] * song.masterGain * song.masterGain;
@@ -22059,7 +21938,7 @@ li.select2-results__option[role=group] > strong:hover {
                     modDetuneStart = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, false) + Config.detuneCenter;
                     modDetuneEnd = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, true) + Config.detuneCenter;
                 }
-                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
+                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex) && instrument.advancedSettings.affectedBySongDetune) {
                     modDetuneStart += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
                     modDetuneEnd += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
                 }
@@ -24751,7 +24630,6 @@ li.select2-results__option[role=group] > strong:hover {
                     if (tgtInstrument.envelopeCount > envelopeTarget) {
                         tgtInstrument.envelopes[envelopeTarget].tempEnvelopeUpperBound = bound / 10;
                     }
-                    console.log(tgtInstrument.envelopes[envelopeTarget]);
                 }
             }
         }
@@ -25004,671 +24882,6 @@ li.select2-results__option[role=group] > strong:hover {
                 operator#Output         = operator#Sample + (operator#Wave[operator#Index + 1] - operator#Sample) * (operator#PhaseMix - operator#PhaseInt);
 				const operator#Scaled   = operator#OutputMult * operator#Output;
 		`).split("\n");
-
-    const versionPrefix = "songVersion: ";
-    const maximumSongCount = 8;
-    const maximumWorkPerVersion = 3 * 60 * 1000;
-    const minimumWorkPerSpan = 1 * 60 * 1000;
-    function keyIsVersion(key) {
-        return key.indexOf(versionPrefix) == 0;
-    }
-    function keyToVersion(key) {
-        return JSON.parse(key.substring(versionPrefix.length));
-    }
-    function versionToKey(version) {
-        return versionPrefix + JSON.stringify(version);
-    }
-    function generateUid() {
-        return ((Math.random() * (-1 >>> 0)) >>> 0).toString(32);
-    }
-    function compareSongs(a, b) {
-        return b.versions[0].time - a.versions[0].time;
-    }
-    function errorAlert(error) {
-        console.warn(error);
-        window.alert("Whoops, the song data appears to have been corrupted! Please try to recover the last working version of the song from the \"Recover Recent Song...\" option in BeepBox's \"File\" menu.");
-    }
-    function compareVersions(a, b) {
-        return b.time - a.time;
-    }
-    class SongRecovery {
-        constructor() {
-            this._song = new Song();
-        }
-        static getAllRecoveredSongs() {
-            const songs = [];
-            const songsByUid = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const itemKey = localStorage.key(i);
-                if (keyIsVersion(itemKey)) {
-                    const version = keyToVersion(itemKey);
-                    let song = songsByUid[version.uid];
-                    if (song == undefined) {
-                        song = { versions: [] };
-                        songsByUid[version.uid] = song;
-                        songs.push(song);
-                    }
-                    song.versions.push(version);
-                }
-            }
-            for (const song of songs) {
-                song.versions.sort(compareVersions);
-            }
-            songs.sort(compareSongs);
-            return songs;
-        }
-        saveVersion(uid, name, songData) {
-            const newName = name;
-            const newTime = Math.round(Date.now());
-            clearTimeout(this._saveVersionTimeoutHandle);
-            this._saveVersionTimeoutHandle = setTimeout(() => {
-                try {
-                    this._song.fromBase64String(songData);
-                }
-                catch (error) {
-                    errorAlert(error);
-                    return;
-                }
-                const songs = SongRecovery.getAllRecoveredSongs();
-                let currentSong = null;
-                for (const song of songs) {
-                    if (song.versions[0].uid == uid) {
-                        currentSong = song;
-                    }
-                }
-                if (currentSong == null) {
-                    currentSong = { versions: [] };
-                    songs.unshift(currentSong);
-                }
-                let versions = currentSong.versions;
-                let newWork = 1000;
-                if (versions.length > 0) {
-                    const mostRecentTime = versions[0].time;
-                    const mostRecentWork = versions[0].work;
-                    newWork = mostRecentWork + Math.min(maximumWorkPerVersion, newTime - mostRecentTime);
-                }
-                const newVersion = { uid: uid, name: newName, time: newTime, work: newWork };
-                const newKey = versionToKey(newVersion);
-                versions.unshift(newVersion);
-                localStorage.setItem(newKey, songData);
-                let minSpan = minimumWorkPerSpan;
-                const spanMult = Math.pow(2, 1 / 2);
-                for (var i = 1; i < versions.length; i++) {
-                    const currentWork = versions[i].work;
-                    const olderWork = (i == versions.length - 1) ? 0.0 : versions[i + 1].work;
-                    if (currentWork - olderWork < minSpan) {
-                        let indexToDiscard = i;
-                        if (i < versions.length - 1) {
-                            const currentTime = versions[i].time;
-                            const newerTime = versions[i - 1].time;
-                            const olderTime = versions[i + 1].time;
-                            if ((currentTime - olderTime) < 0.5 * (newerTime - currentTime)) {
-                                indexToDiscard = i + 1;
-                            }
-                        }
-                        localStorage.removeItem(versionToKey(versions[indexToDiscard]));
-                        break;
-                    }
-                    minSpan *= spanMult;
-                }
-                while (songs.length > maximumSongCount) {
-                    let leastImportantSong = null;
-                    let leastImportance = Number.POSITIVE_INFINITY;
-                    for (let i = Math.round(maximumSongCount / 2); i < songs.length; i++) {
-                        const song = songs[i];
-                        const timePassed = newTime - song.versions[0].time;
-                        const timeScale = 1.0 / ((timePassed / (12 * 60 * 60 * 1000)) + 1.0);
-                        const adjustedWork = song.versions[0].work + 5 * 60 * 1000;
-                        const weight = adjustedWork * timeScale;
-                        if (leastImportance > weight) {
-                            leastImportance = weight;
-                            leastImportantSong = song;
-                        }
-                    }
-                    for (const version of leastImportantSong.versions) {
-                        localStorage.removeItem(versionToKey(version));
-                    }
-                    songs.splice(songs.indexOf(leastImportantSong), 1);
-                }
-            }, 750);
-        }
-    }
-
-    class Layout {
-        static setLayout(layout) {
-            this._styleElement.textContent = this._layoutMap[layout];
-        }
-    }
-    Layout._layoutMap = {
-        "small": "",
-        "long": `\
-
-			/* long layout */
-			@media (min-width: 711px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: minmax(0, 1fr) 390px; /* minmax(0, 1fr) min-content; Chrome 80 grid layout regression. https://bugs.chromium.org/p/chromium/issues/detail?id=1050307 */
-					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
-					grid-template-areas: "pattern-area settings-area" "track-area track-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					width: 100%;
-					display: flex;
-					flex-direction: column;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					min-height: 0;
-					flex: 1;
-					overflow: auto;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area {
-					overflow-y: auto;
-					position: relative;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				.beepboxEditor .song-settings-area {
-					overflow-y: auto;
-				}
-				
-				.beepboxEditor .settings-area {
-					width: 390px;
-					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-					grid-template-rows: auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"instrument-settings-area version-area"
-						"instrument-settings-area play-pause-area"
-						"instrument-settings-area menu-area"
-						"instrument-settings-area song-settings-area";
-				}
-				
-				.beepboxEditor .barScrollBar {
-					display: none;
-				}
-				.beepboxEditor.selectRow {
-					height: 2em;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					max-height: 446px;
-				}
-
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					scrollbar-width: auto;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
-					width: 20px;
-					height: 20px;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
-					background-color: ${ColorConfig.uiWidgetBackground};
-					border: 3px solid ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
-					background-color: ${ColorConfig.editorBackground};
-				}
-			}
-		`,
-        "tall": `\
-			/* tall layout */
-			@media (min-width: 711px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 192px;
-					grid-template-rows: 1fr;
-					grid-template-areas: "track-area pattern-area settings-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					width: 100%;
-					height: 100%;
-					display: flex;
-					flex-direction: column;
-					justify-content: center;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					min-height: 0;
-					flex: 0;
-					overflow: auto;
-					flex-basis: initial;
-					flex-grow: 0;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				
-				.beepboxEditor .settings-area {
-					width: 192px;
-					position: relative;
-					overflow-y: auto;
-					grid-template-columns: minmax(0, 1fr);
-					grid-template-rows: auto auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"version-area"
-						"play-pause-area"
-						"menu-area"
-						"song-settings-area"
-						"instrument-settings-area";
-				}
-				.beepboxEditor .version-area {
-					position: sticky;
-					top: 0;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .play-pause-area {
-					position: sticky;
-					top: 22px;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .menu-area {
-					position: sticky;
-					top: 82px;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				
-				.beepboxEditor .barScrollBar {
-					display: none;
-				}
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					scrollbar-width: auto;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
-					width: 20px;
-					height: 20px;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
-					background-color: ${ColorConfig.uiWidgetBackground};
-					border: 3px solid ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
-					background-color: ${ColorConfig.editorBackground};
-				}
-			}
-		`,
-        "wide": `\
-			/* wide (JB) layout */
-			@media (min-width: 1001px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: 512px minmax(0, 1fr) 30em;
-					grid-template-rows: minmax(481px, 1fr) min-content;
-					grid-template-areas: "track-area pattern-area settings-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					width: 100%;
-					height: 100%;
-					max-height: 100%
-				}
-				.beepboxEditor .editor-widget-column {
-					flex: 0;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					flex: 0;
-					flex-basis: initial;
-					flex-grow: 0;
-					overflow-y: auto;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area {
-					overflow-y: auto;
-					position: relative;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				
-				.beepboxEditor .song-settings-area {
-					overflow-y: auto;
-				}
-				
-				.beepboxEditor .settings-area {
-					width: 30em;
-					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-					grid-template-rows: auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"instrument-settings-area version-area"
-						"instrument-settings-area play-pause-area"
-						"instrument-settings-area menu-area"
-						"instrument-settings-area song-settings-area";
-				}
-				.beepboxEditor .version-area {
-					position: sticky;
-					top: 0;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .play-pause-area {
-					position: sticky;
-					top: 22px;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .menu-area {
-					position: sticky;
-					top: 82px;
-					z-index: 1;
-					background: ${ColorConfig.editorBackground};
-				}
-				
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-			}
-		`,
-        "flipped long": `\
-
-            	/* AB Special layout */
-			@media (min-width: 711px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: 390px minmax(0, 1fr);
-					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
-					grid-template-areas: "settings-area pattern-area" "track-area track-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					width: 100%;
-					display: flex;
-					flex-direction: column;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					min-height: 0;
-					flex: 1;
-					overflow: auto;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area {
-					overflow-y: auto;
-					position: relative;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				.beepboxEditor .song-settings-area {
-					overflow-y: auto;
-				}
-				
-				.beepboxEditor .settings-area {
-					width: 30em;
-					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-					grid-template-rows: auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"version-area instrument-settings-area"
-						"play-pause-area instrument-settings-area"
-						"menu-area instrument-settings-area"
-						"song-settings-area instrument-settings-area";
-				}
-				
-				.beepboxEditor .barScrollBar {
-					display: none;
-				}
-				.beepboxEditor.selectRow {
-					height: 2em;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					max-height: 446px;
-				}
-
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					scrollbar-width: auto;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
-					width: 20px;
-					height: 20px;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
-					background-color: ${ColorConfig.uiWidgetBackground};
-					border: 3px solid ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
-					background-color: ${ColorConfig.editorBackground};
-				}
-			}
-		`,
-        "wide long": `\
-
-			@media (min-width: 711px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: minmax(0, 1fr) 390px; /* minmax(0, 1fr) min-content; Chrome 80 grid layout regression. https://bugs.chromium.org/p/chromium/issues/detail?id=1050307 */
-					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
-					grid-template-areas: "pattern-area settings-area" "track-area settings-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					display: flex;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					min-height: 0;
-					flex: 1;
-					overflow: auto;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area {
-					overflow-y: auto;
-					position: relative;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				
-				.beepboxEditor .song-settings-area {
-					overflow-y: auto;
-				}
-				
-				.beepboxEditor .settings-area {
-					width: 30em;
-					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-					grid-template-rows: auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"instrument-settings-area version-area"
-						"instrument-settings-area play-pause-area"
-						"instrument-settings-area menu-area"
-						"instrument-settings-area song-settings-area";
-				}				
-				.beepboxEditor .barScrollBar {
-					display: none;
-				}
-				.beepboxEditor.selectRow {
-					height: 2em;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					max-height: 446px;
-				}
-
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					scrollbar-width: auto;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
-					width: 20px;
-					height: 20px;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
-					background-color: ${ColorConfig.uiWidgetBackground};
-					border: 3px solid ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
-					background-color: ${ColorConfig.editorBackground};
-				}
-			}
-		`,
-        "focused long": `\
-
-			/* focused long layout */
-			@media (min-width: 711px) {
-				#beepboxEditorContainer {
-					max-width: initial;
-					height: 100vh;
-					padding-top: 0px;
-				}
-				.beepboxEditor {
-					width: 100%;
-					height: 100vh;
-					grid-template-columns: minmax(0, 1fr) 190px; 
-					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
-					grid-template-areas: "pattern-area settings-area" "track-area settings-area";
-				}
-				.beepboxEditor .pattern-area {
-					width: 100%;
-					height: 100%;
-				}
-				.beepboxEditor .track-area {
-					display: flex;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					width: 100%;
-					min-height: 0;
-					flex: 1;
-					overflow: auto;
-					max-height: 97.5vh;
-				}
-				.beepboxEditor .instrument-settings-area {
-					overflow-y: auto;
-					position: relative;
-				}
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-				
-				.beepboxEditor .instrument-settings-area > .editor-controls {
-					position: absolute;
-					width: 100%;
-				}
-
-				.beepboxEditor .settings-area {
-					width: 100%;
-					position: relative;
-					overflow-y: auto;
-					grid-template-columns: minmax(0, 1fr);
-					grid-template-rows: auto auto auto auto minmax(0, 1fr);
-					grid-template-areas:
-						"version-area"
-						"play-pause-area"
-						"menu-area"
-						"song-settings-area"
-						"instrument-settings-area";
-				}
-				.beepboxEditor .barScrollBar {
-					display: none;
-				}
-				.beepboxEditor.selectRow {
-					height: 2em;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					max-height: 446px;
-				}
-
-				.beepboxEditor .trackContainer {
-					overflow: visible;
-				}
-				.beepboxEditor .trackAndMuteContainer {
-					scrollbar-width: auto;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
-					width: 20px;
-					height: 20px;
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
-					background: ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
-					background-color: ${ColorConfig.uiWidgetBackground};
-					border: 3px solid ${ColorConfig.editorBackground};
-				}
-				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
-					background-color: ${ColorConfig.editorBackground};
-				}
-			}
-		`,
-    };
-    Layout._styleElement = document.head.appendChild(HTML.style({ type: "text/css" }));
 
     class Change {
         constructor() {
@@ -27443,6 +26656,15 @@ li.select2-results__option[role=group] > strong:hover {
             doc.notifier.changed();
         }
     }
+    class ChangeAdvancedInstrumentSettings extends Change {
+        constructor(doc, newSettings) {
+            super();
+            const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+            instrument.advancedSettings.fromJsonObject(newSettings.toJsonObject());
+            this._didSomething();
+            doc.notifier.changed();
+        }
+    }
     class ChangePatternNumbers extends Change {
         constructor(doc, value, startBar, startChannel, width, height) {
             super();
@@ -28077,7 +27299,7 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(doc, oldValue, newValue) {
             super(doc);
             this._instrument.decimalOffset = newValue;
-            doc.synth.unsetMod(Config.modulators.dictionary["decimalOffset"].index, doc.channel, doc.getCurrentInstrument());
+            doc.synth.unsetMod(Config.modulators.dictionary["decimal offset"].index, doc.channel, doc.getCurrentInstrument());
             doc.notifier.changed();
             if (oldValue != newValue)
                 this._didSomething();
@@ -30740,6 +29962,920 @@ li.select2-results__option[role=group] > strong:hover {
             }
         }
     }
+
+    const { h2: h2$o, div: div$p, span: span$7, br: br$5, button: button$p, input: input$i } = HTML;
+    class AdvancedInstrumentSettingsPrompt {
+        constructor(_doc) {
+            this._doc = _doc;
+            this._cancelButton = button$p({ class: "cancelButton" });
+            this._okayButton = button$p({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._perToneEffectsBox = input$i({ type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "perToneEffectsCheckbox" });
+            this._seededRandomizationBox = input$i({ type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "seededRandomizationCheckbox" });
+            this._affectedBySongDetuneBox = input$i({ type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "affectedBySongDetuneCheckbox" });
+            this._affectedBySongEqBox = input$i({ type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "affectedBySongEqCheckbox" });
+            this._seedSlider = input$i({ type: "range", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 113px; margin-left: 0px;" });
+            this._perToneEffectsDiv = div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, span$7("Per Pitch Effects: "), this._perToneEffectsBox);
+            this._seededRandomizationDiv = div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, span$7("Seeded Randomization", br$5(), "(for instrument calculations): "), this._seededRandomizationBox);
+            this._affectedBySongDetuneDiv = div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, span$7("Affected by Song Detune: "), this._affectedBySongDetuneBox);
+            this._affectedBySongEqDiv = div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, span$7("Affected by Song EQ: "), this._affectedBySongEqBox);
+            this.container = div$p({ class: "prompt noSelection", style: "width: 300px;" }, h2$o("Edit Advanced Instrument Settings"), div$p({ style: "display: flex; flex-direction: column; align-items: center; justify-content: center;" }, this._perToneEffectsDiv, this._seededRandomizationDiv, this._seedSlider, this._affectedBySongDetuneDiv, this._affectedBySongEqDiv), div$p({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._close = () => {
+                this._doc.prompt = null;
+                this._doc.undo();
+            };
+            this.cleanUp = () => {
+                this._okayButton.removeEventListener("click", this._saveChanges);
+                this._cancelButton.removeEventListener("click", this._close);
+                this.container.removeEventListener("keydown", this.whenKeyPressed);
+            };
+            this.whenKeyPressed = (event) => {
+                if (event.target.tagName != "BUTTON" && event.keyCode == 13) {
+                    this._saveChanges();
+                }
+            };
+            this._saveChanges = () => {
+                this._doc.prompt = null;
+                const newAdvancedSettings = new AdvancedInstrumentSettings();
+                newAdvancedSettings.perToneEffects = this._perToneEffectsBox.checked;
+                newAdvancedSettings.seededRandomization = this._seededRandomizationBox.checked;
+                newAdvancedSettings.randomSeed = parseInt(this._seedSlider.value);
+                newAdvancedSettings.affectedBySongDetune = this._affectedBySongDetuneBox.checked;
+                newAdvancedSettings.affectedBySongEq = this._affectedBySongEqBox.checked;
+                this._doc.record(new ChangeAdvancedInstrumentSettings(this._doc, newAdvancedSettings), true);
+                this._doc.prompt = null;
+            };
+            const instrument = this._doc.song.channels[_doc.channel].instruments[_doc.getCurrentInstrument()];
+            const instAdvSettings = instrument.advancedSettings;
+            this._perToneEffectsBox.checked = instAdvSettings.perToneEffects;
+            this._seededRandomizationBox.checked = instAdvSettings.seededRandomization;
+            this._seedSlider.value = instAdvSettings.randomSeed + "";
+            this._affectedBySongDetuneBox.checked = instAdvSettings.affectedBySongDetune;
+            this._affectedBySongEqBox.checked = instAdvSettings.affectedBySongEq;
+            this._okayButton.addEventListener("click", this._saveChanges);
+            this._cancelButton.addEventListener("click", this._close);
+            this.container.addEventListener("keydown", this.whenKeyPressed);
+        }
+    }
+
+    class BarScrollBar {
+        constructor(_doc) {
+            this._doc = _doc;
+            this._editorWidth = 512;
+            this._editorHeight = 20;
+            this._playhead = SVG.rect("rect", { fill: ColorConfig.playhead, x: 0, y: 0, width: 2, height: this._editorHeight });
+            this._notches = SVG.svg({ "pointer-events": "none" });
+            this._handle = SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: 0, y: 2, width: 10, height: this._editorHeight - 4 });
+            this._handleHighlight = SVG.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 0, y: 1, width: 10, height: this._editorHeight - 2 });
+            this._leftHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._rightHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._renderedPlayhead = -1;
+            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: pan-y; position: absolute;`, width: this._editorWidth, height: this._editorHeight }, this._notches, this._handle, this._handleHighlight, this._leftHighlight, this._rightHighlight, this._playhead);
+            this.container = HTML.div({ class: "barScrollBar", style: "width: 512px; height: 20px; overflow: hidden; position: relative;" }, this._svg);
+            this._mouseX = 0;
+            this._mouseDown = false;
+            this._mouseOver = false;
+            this._dragging = false;
+            this._renderedNotchCount = -1;
+            this._renderedScrollBarPos = -1;
+            this.animatePlayhead = () => {
+                const playhead = Math.min(512, Math.max(0, (this._notchSpace * this._doc.synth.playhead - 2)));
+                if (this._renderedPlayhead != playhead) {
+                    this._renderedPlayhead = playhead;
+                    this._playhead.setAttribute("x", "" + playhead);
+                }
+            };
+            this._whenMouseOver = (event) => {
+                if (this._mouseOver)
+                    return;
+                this._mouseOver = true;
+                this._updatePreview();
+            };
+            this._whenMouseOut = (event) => {
+                if (!this._mouseOver)
+                    return;
+                this._mouseOver = false;
+                this._updatePreview();
+            };
+            this._whenMousePressed = (event) => {
+                event.preventDefault();
+                this._mouseDown = true;
+                const boundingRect = this._svg.getBoundingClientRect();
+                this._mouseX = (event.clientX || event.pageX) - boundingRect.left;
+                this._updatePreview();
+                if (this._mouseX >= this._doc.barScrollPos * this._notchSpace && this._mouseX <= (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
+                    this._dragging = true;
+                    this._dragStart = this._mouseX;
+                }
+            };
+            this._whenTouchPressed = (event) => {
+                event.preventDefault();
+                this._mouseDown = true;
+                const boundingRect = this._svg.getBoundingClientRect();
+                this._mouseX = event.touches[0].clientX - boundingRect.left;
+                this._updatePreview();
+                if (this._mouseX >= this._doc.barScrollPos * this._notchSpace && this._mouseX <= (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
+                    this._dragging = true;
+                    this._dragStart = this._mouseX;
+                }
+            };
+            this._whenMouseMoved = (event) => {
+                const boundingRect = this._svg.getBoundingClientRect();
+                this._mouseX = (event.clientX || event.pageX) - boundingRect.left;
+                this._whenCursorMoved();
+            };
+            this._whenTouchMoved = (event) => {
+                if (!this._mouseDown)
+                    return;
+                event.preventDefault();
+                const boundingRect = this._svg.getBoundingClientRect();
+                this._mouseX = event.touches[0].clientX - boundingRect.left;
+                this._whenCursorMoved();
+            };
+            this._whenCursorReleased = (event) => {
+                if (!this._dragging && this._mouseDown) {
+                    if (this._mouseX < (this._doc.barScrollPos + 8) * this._notchSpace) {
+                        if (this._doc.barScrollPos > 0)
+                            this._doc.barScrollPos--;
+                        this._doc.notifier.changed();
+                    }
+                    else {
+                        if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars)
+                            this._doc.barScrollPos++;
+                        this._doc.notifier.changed();
+                    }
+                }
+                this._mouseDown = false;
+                this._dragging = false;
+                this._updatePreview();
+            };
+            const center = this._editorHeight * 0.5;
+            const base = 20;
+            const tip = 9;
+            const arrowHeight = 6;
+            this._leftHighlight.setAttribute("d", `M ${tip} ${center} L ${base} ${center + arrowHeight} L ${base} ${center - arrowHeight} z`);
+            this._rightHighlight.setAttribute("d", `M ${this._editorWidth - tip} ${center} L ${this._editorWidth - base} ${center + arrowHeight} L ${this._editorWidth - base} ${center - arrowHeight} z`);
+            this.container.addEventListener("mousedown", this._whenMousePressed);
+            document.addEventListener("mousemove", this._whenMouseMoved);
+            document.addEventListener("mouseup", this._whenCursorReleased);
+            this.container.addEventListener("mouseover", this._whenMouseOver);
+            this.container.addEventListener("mouseout", this._whenMouseOut);
+            this.container.addEventListener("touchstart", this._whenTouchPressed);
+            this.container.addEventListener("touchmove", this._whenTouchMoved);
+            this.container.addEventListener("touchend", this._whenCursorReleased);
+            this.container.addEventListener("touchcancel", this._whenCursorReleased);
+        }
+        _whenCursorMoved() {
+            if (this._dragging) {
+                while (this._mouseX - this._dragStart < -this._notchSpace * 0.5) {
+                    if (this._doc.barScrollPos > 0) {
+                        this._doc.barScrollPos--;
+                        this._dragStart -= this._notchSpace;
+                        this._doc.notifier.changed();
+                    }
+                    else {
+                        break;
+                    }
+                }
+                while (this._mouseX - this._dragStart > this._notchSpace * 0.5) {
+                    if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars) {
+                        this._doc.barScrollPos++;
+                        this._dragStart += this._notchSpace;
+                        this._doc.notifier.changed();
+                    }
+                    else {
+                        break;
+                    }
+                }
+            }
+            if (this._mouseOver)
+                this._updatePreview();
+        }
+        changePos(offset) {
+            while (Math.abs(offset) >= 1) {
+                if (offset < 0) {
+                    if (this._doc.barScrollPos > 0) {
+                        this._doc.barScrollPos--;
+                        this._dragStart += this._notchSpace;
+                        this._doc.notifier.changed();
+                    }
+                }
+                else {
+                    if (this._doc.barScrollPos < this._doc.song.barCount - this._doc.trackVisibleBars) {
+                        this._doc.barScrollPos++;
+                        this._dragStart += this._notchSpace;
+                        this._doc.notifier.changed();
+                    }
+                }
+                offset += (offset > 0) ? -1 : 1;
+            }
+        }
+        _updatePreview() {
+            const showHighlight = this._mouseOver && !this._mouseDown;
+            let showleftHighlight = false;
+            let showRightHighlight = false;
+            let showHandleHighlight = false;
+            if (showHighlight) {
+                if (this._mouseX < this._doc.barScrollPos * this._notchSpace) {
+                    showleftHighlight = true;
+                }
+                else if (this._mouseX > (this._doc.barScrollPos + this._doc.trackVisibleBars) * this._notchSpace) {
+                    showRightHighlight = true;
+                }
+                else {
+                    showHandleHighlight = true;
+                }
+            }
+            this._leftHighlight.style.visibility = showleftHighlight ? "visible" : "hidden";
+            this._rightHighlight.style.visibility = showRightHighlight ? "visible" : "hidden";
+            this._handleHighlight.style.visibility = showHandleHighlight ? "visible" : "hidden";
+        }
+        render() {
+            this._notchSpace = (this._editorWidth - 1) / Math.max(this._doc.trackVisibleBars, this._doc.song.barCount);
+            const resized = this._renderedNotchCount != this._doc.song.barCount;
+            if (resized) {
+                this._renderedNotchCount = this._doc.song.barCount;
+                while (this._notches.firstChild)
+                    this._notches.removeChild(this._notches.firstChild);
+                for (let i = 0; i <= this._doc.song.barCount; i++) {
+                    const lineHeight = (i % 16 == 0) ? 0 : ((i % 4 == 0) ? this._editorHeight / 8 : this._editorHeight / 3);
+                    this._notches.appendChild(SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: i * this._notchSpace - 1, y: lineHeight, width: 2, height: this._editorHeight - lineHeight * 2 }));
+                }
+            }
+            if (resized || this._renderedScrollBarPos != this._doc.barScrollPos) {
+                this._renderedScrollBarPos = this._doc.barScrollPos;
+                this._handle.setAttribute("x", String(this._notchSpace * this._doc.barScrollPos));
+                this._handle.setAttribute("width", String(this._notchSpace * this._doc.trackVisibleBars));
+                this._handleHighlight.setAttribute("x", String(this._notchSpace * this._doc.barScrollPos));
+                this._handleHighlight.setAttribute("width", String(this._notchSpace * this._doc.trackVisibleBars));
+            }
+            this._updatePreview();
+        }
+    }
+
+    const versionPrefix = "songVersion: ";
+    const maximumSongCount = 8;
+    const maximumWorkPerVersion = 3 * 60 * 1000;
+    const minimumWorkPerSpan = 1 * 60 * 1000;
+    function keyIsVersion(key) {
+        return key.indexOf(versionPrefix) == 0;
+    }
+    function keyToVersion(key) {
+        return JSON.parse(key.substring(versionPrefix.length));
+    }
+    function versionToKey(version) {
+        return versionPrefix + JSON.stringify(version);
+    }
+    function generateUid() {
+        return ((Math.random() * (-1 >>> 0)) >>> 0).toString(32);
+    }
+    function compareSongs(a, b) {
+        return b.versions[0].time - a.versions[0].time;
+    }
+    function errorAlert(error) {
+        console.warn(error);
+        window.alert("Whoops, the song data appears to have been corrupted! Please try to recover the last working version of the song from the \"Recover Recent Song...\" option in BeepBox's \"File\" menu.");
+    }
+    function compareVersions(a, b) {
+        return b.time - a.time;
+    }
+    class SongRecovery {
+        constructor() {
+            this._song = new Song();
+        }
+        static getAllRecoveredSongs() {
+            const songs = [];
+            const songsByUid = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const itemKey = localStorage.key(i);
+                if (keyIsVersion(itemKey)) {
+                    const version = keyToVersion(itemKey);
+                    let song = songsByUid[version.uid];
+                    if (song == undefined) {
+                        song = { versions: [] };
+                        songsByUid[version.uid] = song;
+                        songs.push(song);
+                    }
+                    song.versions.push(version);
+                }
+            }
+            for (const song of songs) {
+                song.versions.sort(compareVersions);
+            }
+            songs.sort(compareSongs);
+            return songs;
+        }
+        saveVersion(uid, name, songData) {
+            const newName = name;
+            const newTime = Math.round(Date.now());
+            clearTimeout(this._saveVersionTimeoutHandle);
+            this._saveVersionTimeoutHandle = setTimeout(() => {
+                try {
+                    this._song.fromBase64String(songData);
+                }
+                catch (error) {
+                    errorAlert(error);
+                    return;
+                }
+                const songs = SongRecovery.getAllRecoveredSongs();
+                let currentSong = null;
+                for (const song of songs) {
+                    if (song.versions[0].uid == uid) {
+                        currentSong = song;
+                    }
+                }
+                if (currentSong == null) {
+                    currentSong = { versions: [] };
+                    songs.unshift(currentSong);
+                }
+                let versions = currentSong.versions;
+                let newWork = 1000;
+                if (versions.length > 0) {
+                    const mostRecentTime = versions[0].time;
+                    const mostRecentWork = versions[0].work;
+                    newWork = mostRecentWork + Math.min(maximumWorkPerVersion, newTime - mostRecentTime);
+                }
+                const newVersion = { uid: uid, name: newName, time: newTime, work: newWork };
+                const newKey = versionToKey(newVersion);
+                versions.unshift(newVersion);
+                localStorage.setItem(newKey, songData);
+                let minSpan = minimumWorkPerSpan;
+                const spanMult = Math.pow(2, 1 / 2);
+                for (var i = 1; i < versions.length; i++) {
+                    const currentWork = versions[i].work;
+                    const olderWork = (i == versions.length - 1) ? 0.0 : versions[i + 1].work;
+                    if (currentWork - olderWork < minSpan) {
+                        let indexToDiscard = i;
+                        if (i < versions.length - 1) {
+                            const currentTime = versions[i].time;
+                            const newerTime = versions[i - 1].time;
+                            const olderTime = versions[i + 1].time;
+                            if ((currentTime - olderTime) < 0.5 * (newerTime - currentTime)) {
+                                indexToDiscard = i + 1;
+                            }
+                        }
+                        localStorage.removeItem(versionToKey(versions[indexToDiscard]));
+                        break;
+                    }
+                    minSpan *= spanMult;
+                }
+                while (songs.length > maximumSongCount) {
+                    let leastImportantSong = null;
+                    let leastImportance = Number.POSITIVE_INFINITY;
+                    for (let i = Math.round(maximumSongCount / 2); i < songs.length; i++) {
+                        const song = songs[i];
+                        const timePassed = newTime - song.versions[0].time;
+                        const timeScale = 1.0 / ((timePassed / (12 * 60 * 60 * 1000)) + 1.0);
+                        const adjustedWork = song.versions[0].work + 5 * 60 * 1000;
+                        const weight = adjustedWork * timeScale;
+                        if (leastImportance > weight) {
+                            leastImportance = weight;
+                            leastImportantSong = song;
+                        }
+                    }
+                    for (const version of leastImportantSong.versions) {
+                        localStorage.removeItem(versionToKey(version));
+                    }
+                    songs.splice(songs.indexOf(leastImportantSong), 1);
+                }
+            }, 750);
+        }
+    }
+
+    class Layout {
+        static setLayout(layout) {
+            this._styleElement.textContent = this._layoutMap[layout];
+        }
+    }
+    Layout._layoutMap = {
+        "small": "",
+        "long": `\
+
+			/* long layout */
+			@media (min-width: 711px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: minmax(0, 1fr) 390px; /* minmax(0, 1fr) min-content; Chrome 80 grid layout regression. https://bugs.chromium.org/p/chromium/issues/detail?id=1050307 */
+					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
+					grid-template-areas: "pattern-area settings-area" "track-area track-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					width: 100%;
+					display: flex;
+					flex-direction: column;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					min-height: 0;
+					flex: 1;
+					overflow: auto;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area {
+					overflow-y: auto;
+					position: relative;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				.beepboxEditor .song-settings-area {
+					overflow-y: auto;
+				}
+				
+				.beepboxEditor .settings-area {
+					width: 390px;
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+					grid-template-rows: auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"instrument-settings-area version-area"
+						"instrument-settings-area play-pause-area"
+						"instrument-settings-area menu-area"
+						"instrument-settings-area song-settings-area";
+				}
+				
+				.beepboxEditor .barScrollBar {
+					display: none;
+				}
+				.beepboxEditor.selectRow {
+					height: 2em;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					max-height: 446px;
+				}
+
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					scrollbar-width: auto;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
+					width: 20px;
+					height: 20px;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
+					background-color: ${ColorConfig.uiWidgetBackground};
+					border: 3px solid ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
+					background-color: ${ColorConfig.editorBackground};
+				}
+			}
+		`,
+        "tall": `\
+			/* tall layout */
+			@media (min-width: 711px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 192px;
+					grid-template-rows: 1fr;
+					grid-template-areas: "track-area pattern-area settings-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					width: 100%;
+					height: 100%;
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					min-height: 0;
+					flex: 0;
+					overflow: auto;
+					flex-basis: initial;
+					flex-grow: 0;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				
+				.beepboxEditor .settings-area {
+					width: 192px;
+					position: relative;
+					overflow-y: auto;
+					grid-template-columns: minmax(0, 1fr);
+					grid-template-rows: auto auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"version-area"
+						"play-pause-area"
+						"menu-area"
+						"song-settings-area"
+						"instrument-settings-area";
+				}
+				.beepboxEditor .version-area {
+					position: sticky;
+					top: 0;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .play-pause-area {
+					position: sticky;
+					top: 22px;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .menu-area {
+					position: sticky;
+					top: 82px;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				
+				.beepboxEditor .barScrollBar {
+					display: none;
+				}
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					scrollbar-width: auto;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
+					width: 20px;
+					height: 20px;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
+					background-color: ${ColorConfig.uiWidgetBackground};
+					border: 3px solid ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
+					background-color: ${ColorConfig.editorBackground};
+				}
+			}
+		`,
+        "wide": `\
+			/* wide (JB) layout */
+			@media (min-width: 1001px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: 512px minmax(0, 1fr) 30em;
+					grid-template-rows: minmax(481px, 1fr) min-content;
+					grid-template-areas: "track-area pattern-area settings-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					width: 100%;
+					height: 100%;
+					max-height: 100%
+				}
+				.beepboxEditor .editor-widget-column {
+					flex: 0;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					flex: 0;
+					flex-basis: initial;
+					flex-grow: 0;
+					overflow-y: auto;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area {
+					overflow-y: auto;
+					position: relative;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				
+				.beepboxEditor .song-settings-area {
+					overflow-y: auto;
+				}
+				
+				.beepboxEditor .settings-area {
+					width: 30em;
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+					grid-template-rows: auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"instrument-settings-area version-area"
+						"instrument-settings-area play-pause-area"
+						"instrument-settings-area menu-area"
+						"instrument-settings-area song-settings-area";
+				}
+				.beepboxEditor .version-area {
+					position: sticky;
+					top: 0;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .play-pause-area {
+					position: sticky;
+					top: 22px;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .menu-area {
+					position: sticky;
+					top: 82px;
+					z-index: 1;
+					background: ${ColorConfig.editorBackground};
+				}
+				
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+			}
+		`,
+        "flipped long": `\
+
+            	/* AB Special layout */
+			@media (min-width: 711px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: 390px minmax(0, 1fr);
+					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
+					grid-template-areas: "settings-area pattern-area" "track-area track-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					width: 100%;
+					display: flex;
+					flex-direction: column;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					min-height: 0;
+					flex: 1;
+					overflow: auto;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area {
+					overflow-y: auto;
+					position: relative;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				.beepboxEditor .song-settings-area {
+					overflow-y: auto;
+				}
+				
+				.beepboxEditor .settings-area {
+					width: 30em;
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+					grid-template-rows: auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"version-area instrument-settings-area"
+						"play-pause-area instrument-settings-area"
+						"menu-area instrument-settings-area"
+						"song-settings-area instrument-settings-area";
+				}
+				
+				.beepboxEditor .barScrollBar {
+					display: none;
+				}
+				.beepboxEditor.selectRow {
+					height: 2em;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					max-height: 446px;
+				}
+
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					scrollbar-width: auto;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
+					width: 20px;
+					height: 20px;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
+					background-color: ${ColorConfig.uiWidgetBackground};
+					border: 3px solid ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
+					background-color: ${ColorConfig.editorBackground};
+				}
+			}
+		`,
+        "wide long": `\
+
+			@media (min-width: 711px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: minmax(0, 1fr) 390px; /* minmax(0, 1fr) min-content; Chrome 80 grid layout regression. https://bugs.chromium.org/p/chromium/issues/detail?id=1050307 */
+					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
+					grid-template-areas: "pattern-area settings-area" "track-area settings-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					display: flex;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					min-height: 0;
+					flex: 1;
+					overflow: auto;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area {
+					overflow-y: auto;
+					position: relative;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				
+				.beepboxEditor .song-settings-area {
+					overflow-y: auto;
+				}
+				
+				.beepboxEditor .settings-area {
+					width: 30em;
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+					grid-template-rows: auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"instrument-settings-area version-area"
+						"instrument-settings-area play-pause-area"
+						"instrument-settings-area menu-area"
+						"instrument-settings-area song-settings-area";
+				}				
+				.beepboxEditor .barScrollBar {
+					display: none;
+				}
+				.beepboxEditor.selectRow {
+					height: 2em;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					max-height: 446px;
+				}
+
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					scrollbar-width: auto;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
+					width: 20px;
+					height: 20px;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
+					background-color: ${ColorConfig.uiWidgetBackground};
+					border: 3px solid ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
+					background-color: ${ColorConfig.editorBackground};
+				}
+			}
+		`,
+        "focused long": `\
+
+			/* focused long layout */
+			@media (min-width: 711px) {
+				#beepboxEditorContainer {
+					max-width: initial;
+					height: 100vh;
+					padding-top: 0px;
+				}
+				.beepboxEditor {
+					width: 100%;
+					height: 100vh;
+					grid-template-columns: minmax(0, 1fr) 190px; 
+					grid-template-rows: minmax(481px, 1fr) minmax(0, min-content);
+					grid-template-areas: "pattern-area settings-area" "track-area settings-area";
+				}
+				.beepboxEditor .pattern-area {
+					width: 100%;
+					height: 100%;
+				}
+				.beepboxEditor .track-area {
+					display: flex;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					width: 100%;
+					min-height: 0;
+					flex: 1;
+					overflow: auto;
+					max-height: 97.5vh;
+				}
+				.beepboxEditor .instrument-settings-area {
+					overflow-y: auto;
+					position: relative;
+				}
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+				
+				.beepboxEditor .instrument-settings-area > .editor-controls {
+					position: absolute;
+					width: 100%;
+				}
+
+				.beepboxEditor .settings-area {
+					width: 100%;
+					position: relative;
+					overflow-y: auto;
+					grid-template-columns: minmax(0, 1fr);
+					grid-template-rows: auto auto auto auto minmax(0, 1fr);
+					grid-template-areas:
+						"version-area"
+						"play-pause-area"
+						"menu-area"
+						"song-settings-area"
+						"instrument-settings-area";
+				}
+				.beepboxEditor .barScrollBar {
+					display: none;
+				}
+				.beepboxEditor.selectRow {
+					height: 2em;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					max-height: 446px;
+				}
+
+				.beepboxEditor .trackContainer {
+					overflow: visible;
+				}
+				.beepboxEditor .trackAndMuteContainer {
+					scrollbar-width: auto;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar {
+					width: 20px;
+					height: 20px;
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-track {
+					background: ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-thumb {
+					background-color: ${ColorConfig.uiWidgetBackground};
+					border: 3px solid ${ColorConfig.editorBackground};
+				}
+				.beepboxEditor .trackAndMuteContainer::-webkit-scrollbar-corner {
+					background-color: ${ColorConfig.editorBackground};
+				}
+			}
+		`,
+    };
+    Layout._styleElement = document.head.appendChild(HTML.style({ type: "text/css" }));
 
     class Piano {
         forceRender() {
@@ -46656,6 +46792,7 @@ You should be redirected to the song at:<br /><br />
             this._instrumentVolumeSliderInputBox = input({ style: "width: 4em; font-size: 80%", id: "volumeSliderInputBox", type: "number", step: "1", min: Math.floor(-Config.volumeRange / 2), max: Math.floor(Config.volumeRange / 2), value: "0" });
             this._instrumentVolumeSliderTip = div({ class: "selectRow", style: "height: 1em" }, span({ class: "tip", style: "font-size: smaller;", onclick: () => this._openPrompt("instrumentVolume") }, "Volume: "));
             this._instrumentVolumeSliderRow = div({ class: "selectRow" }, div({}, div({ style: `color: ${ColorConfig.secondaryText};` }, span({ class: "tip" }, this._instrumentVolumeSliderTip)), div({ style: `color: ${ColorConfig.secondaryText}; margin-top: -3px;` }, this._instrumentVolumeSliderInputBox)), this._instrumentVolumeSlider.container);
+            this._advancedSettingsZoom = button({ style: "padding-left:0.2em; height:1.5em; max-width: 12px;;", onclick: () => this._openPrompt("advancedSettings") }, "+");
             this._panSlider = new Slider(input({ style: "margin: 0; position: sticky;", type: "range", min: "0", max: Config.panMax, value: Config.panCenter, step: "1" }), this._doc, (oldValue, newValue) => new ChangePan(this._doc, oldValue, newValue), true);
             this._panDropdown = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(1) }, "▼");
             this._panSliderInputBox = input({ style: "width: 4em; font-size: 80%; ", id: "panSliderInputBox", type: "number", step: "1", min: "0", max: "100", value: "0" });
@@ -46846,7 +46983,7 @@ You should be redirected to the song at:<br /><br />
             this._instrumentCopyGroup = div({ class: "editor-controls" }, div({ class: "selectRow" }, this._instrumentCopyButton, this._instrumentPasteButton));
             this._instrumentExportGroup = div({ class: "editor-controls" }, div({ class: "selectRow" }, this._instrumentExportButton, this._instrumentImportButton));
             this._instrumentSettingsTextRow = div({ id: "instrumentSettingsText", style: `padding: 3px 0; max-width: 15em; text-align: center; color: ${ColorConfig.secondaryText};` }, "Instrument Settings");
-            this._instrumentTypeSelectRow = div({ class: "selectRow", id: "typeSelectRow" }, span({ class: "tip", onclick: () => this._openPrompt("instrumentType") }, "Type:"), div(div({ class: "pitchSelect" }, this._pitchedPresetSelect), div({ class: "drumSelect" }, this._drumPresetSelect)));
+            this._instrumentTypeSelectRow = div({ class: "selectRow", id: "typeSelectRow" }, span({ class: "tip", onclick: () => this._openPrompt("instrumentType") }, "Type:"), this._advancedSettingsZoom, div(div({ class: "pitchSelect" }, this._pitchedPresetSelect), div({ class: "drumSelect" }, this._drumPresetSelect)));
             this._instrumentSettingsGroup = div({ class: "editor-controls" }, this._instrumentSettingsTextRow, this._instrumentsButtonRow, this._instrumentTypeSelectRow, this._instrumentVolumeSliderRow, this._customInstrumentSettingsGroup);
             this._usedPatternIndicator = SVG.path({ d: "M -6 -6 H 6 V 6 H -6 V -6 M -2 -3 L -2 -3 L -1 -4 H 1 V 4 H -1 V -1.2 L -1.2 -1 H -2 V -3 z", fill: ColorConfig.indicatorSecondary, "fill-rule": "evenodd" });
             this._usedInstrumentIndicator = SVG.path({ d: "M -6 -0.8 H -3.8 V -6 H 0.8 V 4.4 H 2.2 V -0.8 H 6 V 0.8 H 3.8 V 6 H -0.8 V -4.4 H -2.2 V 0.8 H -6 z", fill: ColorConfig.indicatorSecondary });
@@ -50315,6 +50452,9 @@ You should be redirected to the song at:<br /><br />
                         break;
                     case "drumsetSettings":
                         this.prompt = new SpectrumEditorPrompt(this._doc, this, true);
+                        break;
+                    case "advancedSettings":
+                        this.prompt = new AdvancedInstrumentSettingsPrompt(this._doc);
                         break;
                     default:
                         this.prompt = new TipPrompt(this._doc, promptName);
