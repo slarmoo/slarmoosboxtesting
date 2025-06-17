@@ -3902,6 +3902,9 @@ export class Song {
                             buffer.push(base64IntToCharCode[instrument.operators[o].pulseWidth]);
                         }
                     }
+
+                    buffer.push(SongTagCode.unison, base64IntToCharCode[instrument.unison]);
+                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign);
                 } else if (instrument.type == InstrumentType.customChipWave) {
                     if (instrument.chipWave > 186) {
                         buffer.push(119, base64IntToCharCode[instrument.chipWave - 186]);
@@ -8403,8 +8406,6 @@ class Tone {
     public ticksSinceReleased: number = 0;
     public liveInputSamplesHeld: number = 0;
     public lastInterval: number = 0;
-    // public noiseSample: number = 0.0;
-    // public noiseSampleB: number = 0.0;
     public stringSustainStart: number = 0;
     public stringSustainEnd: number = 0;
     public readonly noiseSamples: number[] = [];
@@ -10763,6 +10764,7 @@ export class Synth {
                 // In this case processing will return before the designated number of samples are processed. In other words, silence will be generated.
                 let barVisited: boolean = skippedBars.includes(this.bar);
                 if (barVisited && bufferIndex == firstSkippedBufferIndex) {
+                    this.resetEffects();
                     this.pause();
                     return;
                 }
@@ -12395,8 +12397,29 @@ export class Synth {
                     freqStart = targetFreqStart;
                     freqEnd = targetFreqEnd;
                 }
-                tone.phaseDeltas[i] = freqStart * sampleTime;
-                tone.phaseDeltaScales[i] = Math.pow(freqEnd / freqStart, 1.0 / roundedSamplesPerTick);
+
+                const unisonVoices: number = instrument.unisonVoices;
+                const unisonSpread: number = instrument.unisonSpread;
+                const unisonOffset: number = instrument.unisonOffset;
+                const unisonExpression: number = instrument.unisonExpression * unisonVoices;
+                const unisonEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.unison];
+                const unisonEnvelopeEnd = envelopeEnds[EnvelopeComputeIndex.unison];
+
+                const basePhaseDeltaScale: number = Math.pow(freqEnd / freqStart, 1.0 / roundedSamplesPerTick);
+                
+                const unisonStartA: number = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeStart / 12.0);
+                const unisonEndA: number = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeEnd / 12.0);
+                tone.phaseDeltas[i * unisonVoices + 0] = freqStart * sampleTime * unisonStartA;
+                tone.phaseDeltaScales[i * unisonVoices + 0] = basePhaseDeltaScale * Math.pow(unisonEndA / unisonStartA, 1.0 / roundedSamplesPerTick);
+
+                const divisor = (unisonVoices == 1) ? 1 : (unisonVoices - 1);
+                for (let voice: number = 1; voice < unisonVoices; voice++) {
+                    const unisonStart: number = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeStart / 12.0) * (specialIntervalMult);
+                    const unisonEnd: number = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeEnd / 12.0) * (specialIntervalMult);
+                    tone.phaseDeltas[i * unisonVoices + voice] = freqStart * sampleTime * unisonStart;
+                    tone.phaseDeltaScales[i * unisonVoices + voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
+                }
+                // console.log(tone.phaseDeltas, unisonVoices, carrierCount)
 
                 let amplitudeStart: number = instrument.operators[i].amplitude;
                 let amplitudeEnd: number = instrument.operators[i].amplitude;
@@ -12417,8 +12440,8 @@ export class Synth {
                 const amplitudeMultStart: number = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                 const amplitudeMultEnd: number = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
 
-                let expressionStart: number = amplitudeMultStart;
-                let expressionEnd: number = amplitudeMultEnd;
+                let expressionStart: number = amplitudeMultStart * unisonExpression;
+                let expressionEnd: number = amplitudeMultEnd * unisonExpression;
 
 
                 if (i < carrierCount) {
@@ -12865,7 +12888,8 @@ export class Synth {
 
     public static getInstrumentSynthFunction(instrument: Instrument): Function {
         if (instrument.type == InstrumentType.fm) {
-            const fingerprint: string = instrument.algorithm + "_" + instrument.feedbackType;
+            const voiceCount: number = instrument.unisonVoices;
+            const fingerprint: string = instrument.algorithm + "_" + instrument.feedbackType + "_" + voiceCount;
             if (Synth.fmSynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
 
@@ -12873,36 +12897,45 @@ export class Synth {
                     if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                         const outputs: string[] = [];
                         for (let j: number = 0; j < Config.algorithms[instrument.algorithm].carrierCount; j++) {
-                            outputs.push("operator" + j + "Scaled");
+                            for (let voice = 0; voice < voiceCount; voice++) {
+                                outputs.push("operator" + j + "Scaled" + voice);
+                            }
                         }
+                        console.log(outputs)
                         synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount - 1; j >= 0; j--) {
-                            for (const operatorLine of Synth.operatorSourceTemplate) {
-                                if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
-                                    let modulators = "";
-                                    for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
-                                        modulators += " + operator" + (modulatorNumber - 1) + "Scaled";
-                                    }
-
-                                    const feedbackIndices: ReadonlyArray<number> = Config.feedbacks[instrument.feedbackType].indices[j];
-                                    if (feedbackIndices.length > 0) {
-                                        modulators += " + feedbackMult * (";
-                                        const feedbacks: string[] = [];
-                                        for (const modulatorNumber of feedbackIndices) {
-                                            feedbacks.push("operator" + (modulatorNumber - 1) + "Output");
+                            const vc: number = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                            for (let voice = 0; voice < vc; voice++) {
+                                for (const operatorLine of Synth.operatorSourceTemplate) {
+                                    if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
+                                        let modulators = "";
+                                        for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
+                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled0"; //fm modulators only have one
                                         }
-                                        modulators += feedbacks.join(" + ") + ")";
+
+                                        const feedbackIndices: ReadonlyArray<number> = Config.feedbacks[instrument.feedbackType].indices[j];
+                                        if (feedbackIndices.length > 0) {
+                                            modulators += " + feedbackMult * (";
+                                            const feedbacks: string[] = [];
+                                            for (const modulatorNumber of feedbackIndices) {
+                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output0"); //only use the first output value for feedback
+                                            }
+                                            modulators += feedbacks.join(" + ") + ")";
+                                        }
+                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + "").replace("/* + operator@Scaled*/", modulators));
+                                    } else {
+                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                                     }
-                                    synthSource.push(operatorLine.replace(/\#/g, j + "").replace("/* + operator@Scaled*/", modulators));
-                                } else {
-                                    synthSource.push(operatorLine.replace(/\#/g, j + ""));
                                 }
                             }
                         }
-                    } else if (line.indexOf("#") != -1) {
-                        for (let j: number = 0; j < Config.operatorCount; j++) {
-                            synthSource.push(line.replace(/\#/g, j + ""));
+                    } else if (line.indexOf("#") != -1 || line.indexOf("~") != -1) {
+                        for (let j = 0; j < Config.operatorCount; j++) {
+                            const vc: number = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                            for (let voice = 0; voice < vc; voice++) {
+                                synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                            }
                         }
                     } else {
                         synthSource.push(line);
@@ -14719,17 +14752,18 @@ export class Synth {
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }
 
+    // # denotes operator number, ~ denotes voice number for unison
     private static fmSourceTemplate: string[] = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
-		const sineWave = Config.sineWave;
+        const voiceCount = instrument.unisonVoices;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase       = +((tone.phases[#] % 1) + 1000) * ` + Config.sineWaveLength + `;
-		let operator#PhaseDelta  = +tone.phaseDeltas[#] * ` + Config.sineWaveLength + `;
-		let operator#PhaseDeltaScale = +tone.phaseDeltaScales[#];
+		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * ` + Config.sineWaveLength + `;
+		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * ` + Config.sineWaveLength + `;
+		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
 		const operator#OutputDelta = +tone.operatorExpressionDeltas[#];
-		let operator#Output      = +tone.feedbackOutputs[#];
+		let operator#Output~      = +tone.feedbackOutputs[# * voiceCount + ~];
         const operator#Wave      = tone.operatorWaves[#].samples;
 		let feedbackMult         = +tone.feedbackMult;
 		const feedbackDelta        = +tone.feedbackDelta;
@@ -14754,8 +14788,8 @@ export class Synth {
 				
 				feedbackMult += feedbackDelta;
 				operator#OutputMult += operator#OutputDelta;
-				operator#Phase += operator#PhaseDelta;
-			operator#PhaseDelta *= operator#PhaseDeltaScale;
+				operator#Phase~ += operator#PhaseDelta~;
+			operator#PhaseDelta~ *= operator#PhaseDeltaScale~;
 			
 			const output = sample * expression;
 			expression += expressionDelta;
@@ -14763,10 +14797,10 @@ export class Synth {
 			data[sampleIndex] += output;
 			}
 			
-			tone.phases[#] = operator#Phase / ` + Config.sineWaveLength + `;
-			tone.phaseDeltas[#] = operator#PhaseDelta / ` + Config.sineWaveLength + `;
+			tone.phases[# * voiceCount + ~] = operator#Phase~ / ` + Config.sineWaveLength + `;
+			tone.phaseDeltas[# * voiceCount + ~] = operator#PhaseDelta~ / ` + Config.sineWaveLength + `;
 			tone.operatorExpressions[#] = operator#OutputMult;
-		    tone.feedbackOutputs[#] = operator#Output;
+		    tone.feedbackOutputs[# * voiceCount + ~] = operator#Output~;
 		    tone.feedbackMult = feedbackMult;
 		    tone.expression = expression;
 			
@@ -14776,12 +14810,12 @@ export class Synth {
 		`).split("\n");
 
     private static operatorSourceTemplate: string[] = (`
-				const operator#PhaseMix = operator#Phase/* + operator@Scaled*/;
-				const operator#PhaseInt = operator#PhaseMix|0;
-				const operator#Index    = operator#PhaseInt & ` + Config.sineWaveMask + `;
-                const operator#Sample   = operator#Wave[operator#Index];
-                operator#Output         = operator#Sample + (operator#Wave[operator#Index + 1] - operator#Sample) * (operator#PhaseMix - operator#PhaseInt);
-				const operator#Scaled   = operator#OutputMult * operator#Output;
+				const operator#PhaseMix~ = operator#Phase~/* + operator@Scaled*/;
+				const operator#PhaseInt~ = operator#PhaseMix~|0;
+				const operator#Index~    = operator#PhaseInt~ & ` + Config.sineWaveMask + `;
+                const operator#Sample~   = operator#Wave[operator#Index~];
+                operator#Output~         = operator#Sample~ + (operator#Wave[operator#Index~ + 1] - operator#Sample~) * (operator#PhaseMix~ - operator#PhaseInt~);
+				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
 
     private static noiseSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
