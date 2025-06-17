@@ -1551,6 +1551,13 @@ var beepbox = (() => {
       // 256
       this.sineWaveMask = _Config.sineWaveLength - 1;
     }
+    static {
+      this.noiseWaveLength = 1 << 16;
+    }
+    static {
+      // 65536
+      this.noiseWaveMask = _Config.noiseWaveLength - 1;
+    }
     static generateSineWave() {
       const wave = new Float32Array(_Config.sineWaveLength + 1);
       for (let i = 0; i < _Config.sineWaveLength + 1; i++) {
@@ -1588,20 +1595,20 @@ var beepbox = (() => {
       }
       return wave;
     }
-    // public static generateWhiteNoiseFmWave() {
-    // const wave = new Float32Array(Config.sineWaveLength + 1);
-    // for (let i = 0; i < Config.sineWaveLength + 1; i++) {
-    // wave[i] = Math.random() * 2.0 - 1.0;
-    // }
-    // return wave;
-    // }
-    // pupblic static generateOneBitWhiteNoiseFmWave() {
-    // const wave = new Float32Array(Config.sineWaveLength + 1);
-    // for (let i = 0; i < Config.sineWaveLength + 1; i++) {
-    // wave[i] = Math.round(Math.random());
-    // }
-    // return wave;
-    // }
+    static generateWhiteNoiseFmWave() {
+      const wave = new Float32Array(_Config.noiseWaveLength + 1);
+      for (let i = 0; i < _Config.noiseWaveLength + 1; i++) {
+        wave[i] = Math.random() * 2 - 1;
+      }
+      return wave;
+    }
+    static generateOneBitWhiteNoiseFmWave() {
+      const wave = new Float32Array(_Config.noiseWaveLength + 1);
+      for (let i = 0; i < _Config.noiseWaveLength + 1; i++) {
+        wave[i] = Math.round(Math.random());
+      }
+      return wave;
+    }
     static generateQuasiSineWave() {
       const wave = new Float32Array(_Config.sineWaveLength + 1);
       for (let i = 0; i < _Config.sineWaveLength + 1; i++) {
@@ -2076,9 +2083,9 @@ var beepbox = (() => {
         { name: "sawtooth", samples: _Config.generateSawWave() },
         { name: "ramp", samples: _Config.generateSawWave(true) },
         { name: "trapezoid", samples: _Config.generateTrapezoidWave(2) },
-        { name: "quasi-sine", samples: _Config.generateQuasiSineWave() }
-        //{ name: "white noise", samples: Config.generateWhiteNoiseFmWave() },
-        //{ name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
+        { name: "quasi-sine", samples: _Config.generateQuasiSineWave() },
+        { name: "white noise", samples: _Config.generateWhiteNoiseFmWave() },
+        { name: "1-bit white noise", samples: _Config.generateOneBitWhiteNoiseFmWave() }
       ]);
     }
     static {

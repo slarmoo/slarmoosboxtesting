@@ -12901,7 +12901,6 @@ export class Synth {
                                 outputs.push("operator" + j + "Scaled" + voice);
                             }
                         }
-                        console.log(outputs)
                         synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount - 1; j >= 0; j--) {
@@ -12976,7 +12975,8 @@ export class Synth {
         } else if (instrument.type == InstrumentType.mod) {
             return Synth.modSynth;
         } else if (instrument.type == InstrumentType.fm6op) {
-            const fingerprint: string = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name;
+            const voiceCount: number = instrument.unisonVoices;
+            const fingerprint: string = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
             if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
 
@@ -12984,36 +12984,44 @@ export class Synth {
                     if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                         const outputs: string[] = [];
                         for (let j: number = 0; j < instrument.customAlgorithm.carrierCount; j++) {
-                            outputs.push("operator" + j + "Scaled");
+                            for (let voice = 0; voice < voiceCount; voice++) {
+                                outputs.push("operator" + j + "Scaled" + voice);
+                            }
                         }
                         synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount + 2 - 1; j >= 0; j--) {
                             for (const operatorLine of Synth.operatorSourceTemplate) {
-                                if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
-                                    let modulators = "";
-                                    for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
-                                        modulators += " + operator" + (modulatorNumber - 1) + "Scaled";
-                                    }
-
-                                    const feedbackIndices: ReadonlyArray<number> = instrument.customFeedbackType.indices[j];
-                                    if (feedbackIndices.length > 0) {
-                                        modulators += " + feedbackMult * (";
-                                        const feedbacks: string[] = [];
-                                        for (const modulatorNumber of feedbackIndices) {
-                                            feedbacks.push("operator" + (modulatorNumber - 1) + "Output");
+                                const vc: number = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                                for (let voice = 0; voice < vc; voice++) {
+                                    if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
+                                        let modulators = "";
+                                        for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
+                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
                                         }
-                                        modulators += feedbacks.join(" + ") + ")";
+
+                                        const feedbackIndices: ReadonlyArray<number> = instrument.customFeedbackType.indices[j];
+                                        if (feedbackIndices.length > 0) {
+                                            modulators += " + feedbackMult * (";
+                                            const feedbacks: string[] = [];
+                                            for (const modulatorNumber of feedbackIndices) {
+                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                            }
+                                            modulators += feedbacks.join(" + ") + ")";
+                                        }
+                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + "").replace("/* + operator@Scaled*/", modulators));
+                                    } else {
+                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                                     }
-                                    synthSource.push(operatorLine.replace(/\#/g, j + "").replace("/* + operator@Scaled*/", modulators));
-                                } else {
-                                    synthSource.push(operatorLine.replace(/\#/g, j + ""));
                                 }
                             }
                         }
                     } else if (line.indexOf("#") != -1) {
                         for (let j = 0; j < Config.operatorCount + 2; j++) {
-                            synthSource.push(line.replace(/\#/g, j + ""));
+                            const vc: number = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                            for (let voice = 0; voice < vc; voice++) {
+                                synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                            }
                         }
                     } else {
                         synthSource.push(line);
@@ -14756,15 +14764,19 @@ export class Synth {
     private static fmSourceTemplate: string[] = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
         const voiceCount = instrument.unisonVoices;
+
+        const operator#Wave = tone.operatorWaves[#].samples;
+        const waveLength# = operator#Wave.length - 1;
+        const waveMask# = operator#Wave.length - 2;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * ` + Config.sineWaveLength + `;
-		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * ` + Config.sineWaveLength + `;
+		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
+		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
 		const operator#OutputDelta = +tone.operatorExpressionDeltas[#];
 		let operator#Output~      = +tone.feedbackOutputs[# * voiceCount + ~];
-        const operator#Wave      = tone.operatorWaves[#].samples;
+        
 		let feedbackMult         = +tone.feedbackMult;
 		const feedbackDelta        = +tone.feedbackDelta;
         let expression = +tone.expression;
@@ -14797,8 +14809,8 @@ export class Synth {
 			data[sampleIndex] += output;
 			}
 			
-			tone.phases[# * voiceCount + ~] = operator#Phase~ / ` + Config.sineWaveLength + `;
-			tone.phaseDeltas[# * voiceCount + ~] = operator#PhaseDelta~ / ` + Config.sineWaveLength + `;
+			tone.phases[# * voiceCount + ~] = operator#Phase~ / waveLength#;
+			tone.phaseDeltas[# * voiceCount + ~] = operator#PhaseDelta~ / waveLength#;
 			tone.operatorExpressions[#] = operator#OutputMult;
 		    tone.feedbackOutputs[# * voiceCount + ~] = operator#Output~;
 		    tone.feedbackMult = feedbackMult;
@@ -14812,7 +14824,7 @@ export class Synth {
     private static operatorSourceTemplate: string[] = (`
 				const operator#PhaseMix~ = operator#Phase~/* + operator@Scaled*/;
 				const operator#PhaseInt~ = operator#PhaseMix~|0;
-				const operator#Index~    = operator#PhaseInt~ & ` + Config.sineWaveMask + `;
+				const operator#Index~    = operator#PhaseInt~ & waveMask#;
                 const operator#Sample~   = operator#Wave[operator#Index~];
                 operator#Output~         = operator#Sample~ + (operator#Wave[operator#Index~ + 1] - operator#Sample~) * (operator#PhaseMix~ - operator#PhaseInt~);
 				const operator#Scaled~   = operator#OutputMult * operator#Output~;
