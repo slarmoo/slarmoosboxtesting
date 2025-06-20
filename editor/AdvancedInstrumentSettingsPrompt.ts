@@ -4,7 +4,7 @@ import { Prompt } from "./Prompt";
 import { ChangeAdvancedInstrumentSettings } from "./changes";
 import { AdvancedInstrumentSettings, Instrument } from "../synth/synth";
 import { SongDocument } from "./SongDocument";
-import { Config } from "../synth/SynthConfig";
+import { Config, InstrumentType } from "../synth/SynthConfig";
 
 const { h2, div, span, br, button, input } = HTML;
 
@@ -57,9 +57,20 @@ export class AdvancedInstrumentSettingsPrompt implements Prompt {
         this._affectedBySongDetuneBox.checked = instAdvSettings.affectedBySongDetune;
         this._affectedBySongEqBox.checked = instAdvSettings.affectedBySongEq;
 
+        //hide unapplicable settings
+        if (instrument.type == InstrumentType.noise || instrument.type == InstrumentType.spectrum
+        || instrument.type == InstrumentType.drumset || instrument.type == InstrumentType.supersaw) {
+            this._seededRandomizationDiv.style.display = "";
+            this._seedSlider.style.display = this._seededRandomizationBox.checked ? "" : "none";
+        } else {
+            this._seededRandomizationDiv.style.display = "none";
+            this._seedSlider.style.display = "none";
+        }
+
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);
         this.container.addEventListener("keydown", this.whenKeyPressed);
+        this._seededRandomizationBox.addEventListener("input", () => this._seedSlider.style.display = this._seededRandomizationBox.checked ? "" : "none");
 
     }
 
