@@ -2560,7 +2560,7 @@ export class ChangeDecimalOffset extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number) {
         super(doc);
         this._instrument.decimalOffset = newValue;
-        doc.synth.unsetMod(Config.modulators.dictionary["decimalOffset"].index, doc.channel, doc.getCurrentInstrument());
+        doc.synth.unsetMod(Config.modulators.dictionary["decimal offset"].index, doc.channel, doc.getCurrentInstrument());
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
     }
@@ -2642,6 +2642,15 @@ export class ChangeRingModChipWave extends Change {
             doc.notifier.changed();
             this._didSomething();
         }
+    }
+}
+
+export class ChangeRingModPulseWidth extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number) {
+        super(doc);
+        this._instrument.ringModPulseWidth = newValue;
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
     }
 }
 
@@ -5394,6 +5403,9 @@ export class ChangeSetEnvelopeType extends Change {
         if (oldValue != newValue) {
             instrument.envelopes[envelopeIndex].envelope = newValue;
             instrument.preset = instrument.type;
+            if (oldValue == Config.newEnvelopes.dictionary["none"].index) {
+                instrument.envelopes[envelopeIndex].perEnvelopeSpeed = Config.newEnvelopes[newValue].speed;
+            }
             doc.notifier.changed();
             this._didSomething();
         }

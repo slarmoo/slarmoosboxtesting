@@ -69,13 +69,65 @@
         a {
             color: var(--link-accent, #98f);
         }
+
+        p {
+            color: var(--secondary-text, rgb(193, 193, 193));
+            margin-top: -1em;
+        }
+
+        a.link {
+            color: var(--secondary-text, rgb(193, 193, 193));
+            margin-left: 2em
+        }
+
+        a.link:hover {
+            color: var(--secondary-text, rgb(233, 233, 233));
+        }
+
+        @media (min-width: 1100px) {
+            body {
+                width: 1100px;
+                align-items: start;
+                align-content: start;
+            }
+            h2 {
+                border-left: white solid 4px;
+                padding-left: 8px;
+            }
+        }
     </style>
     </body>
     <h1>
         <font color="#247d1d">Patch Notes (in reverse chronological order);</font>
     </h1>
+<h2>Version 1.4.5 (Patch)<a name="1.4.5" class="link" onClick="linkTo('1.4.5')">⤳</a></h2>
+<h3>
+    <ul>
+        <li> Granular freq and ring mod hertz now better compute fractional values </li>
+        <li> Increased max filter points to 12 </li>
+        <li> Increased max envelope steps to 32 </li>
+        <li> Removed default panning settings from all presets </li>
+        <li> Arp Speed now no longer displays as an envelope target when chord type isn't arpeggio </li>
+        <li> Cleaned up patch notes CSS slightly </li>
+        <!-- Live Editor support added -->
+    </ul>
+</h3>
+<p>6/11/2025</p>
 
-<h2>Version 1.4.3 (Patch)</h2>
+<h2>Version 1.4.4 (Ring Mod Pulse Width)<a name="1.4.4" class="link" onClick="linkTo('1.4.4')">⤳</a></h2>
+<h3>
+    <ul>
+        <li> Added ring mod pulse width slider </li>
+        <li> Adjusted ring mod default values </li>
+        <li> New envelopes will now have different default speeds based on the selected envelope type </li>
+        <li> Reverted to Ultrabox behavior for spread on single voice unisons </li>
+        <li> Fixed sample buzziness </li>
+        <li> Adjusted the ring mod waveform tip prompt </li>
+    </ul>
+</h3>
+<p>5/26/2025</p>
+
+<h2>Version 1.4.3 (Patch)<a name="1.4.3" class="link" onClick="linkTo('1.4.3')">⤳</a></h2>
 <h3>
     <ul>
         <li> Piano-notes now correctly use last mod values </li>
@@ -87,7 +139,7 @@
 </h3>
 <p>5/5/2025</p>
 
-<h2>Version 1.4.2 (Presets and Randomization)</h2>
+<h2>Version 1.4.2 (Presets and Randomization)<a name="1.4.2" class="link" onClick="linkTo('1.4.2')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added a new keybind: alt r </li>
@@ -104,7 +156,7 @@
 </h3>
 <p>4/18/2025</p>
 
-<h2>Version 1.4.1 (Patch)</h2>
+<h2>Version 1.4.1 (Patch)<a name="1.4.1" class="link" onClick="linkTo('1.4.1')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added an <a href="../archive/">Archives page</a> </li>
@@ -119,7 +171,7 @@
 </h3>
 <p>4/3/2025</p>
 
-<h2>Version 1.4 (Better Unison + new effects)</h2>
+<h2>Version 1.4 (Better Unison + new effects)<a name="1.4" class="link" onClick="linkTo('1.4')">⤳</a></h2>
 <h3>
     <ul>
         <li> Increased max unison voices to 9 </li>
@@ -130,7 +182,7 @@
         <li> Added a new chord type (monophonic) </li>
         <li> Added "reset envelope" and envelope bounds modulators </li>
         <li> Echo delay is now envelopeable and modulateable </li>
-        <li> Made discrete per envelope instead of per instrument </li> <!-- This change actually makes song urls from older versions smaller by 1 char per instrument -->
+        <li> Made discrete per envelope instead of per instrument </li> <!-- This change actually makes song urls from older versions smaller by 1 char per instrument, which makes up for the one char per instrument I added to support new effects lol -->
         <li> Added a song length predictor to the song duration and beats per bar prompts </li>
         <li> Added 1 new preset group + 7 new presets </li>
         <li> Aligned the phase of the square lfo envelope </li>
@@ -142,7 +194,7 @@
 </h3>
 <p>3/31/2025</p>
 
-<h2>Version 1.3.9 (patch)</h2>
+<h2>Version 1.3.9 (patch)<a name="1.3.9" class="link" onClick="linkTo('1.3.9')">⤳</a></h2>
 <h3>
     <ul>
         <li> Ported Ultrbox 2.2.15 </li>
@@ -155,7 +207,7 @@
 </h3>
 <p>2/17/2025</p>
 
-<h2>Version 1.3.8 (new lfo waveforms)</h2>
+<h2>Version 1.3.8 (new lfo waveforms)<a name="1.3.8" class="link" onClick="linkTo('1.3.8')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added the trapezoid, stepped saw, and stepped triangle waveforms to lfo </li>
@@ -166,7 +218,7 @@
 </h3>
 <p>1/29/2025 🐍</p>
 
-<h2>Version 1.3.7 (patch)</h2>
+<h2>Version 1.3.7 (patch)<a name="1.3.7" class="link" onClick="linkTo('1.3.7')">⤳</a></h2>
 <h3>
     <ul>
         <li> Ported Ultrabox 2.2.14 </li>
@@ -178,7 +230,7 @@
 </h3>
 <p>1/18/2025</p>
 
-<h2>Version 1.3.6 (patch)</h2>
+<h2>Version 1.3.6 (patch)<a name="1.3.6" class="link" onClick="linkTo('1.3.6')">⤳</a></h2>
 <h3>
     <ul>
         <li> Fixed pitch envelopes and slides </li>
@@ -187,7 +239,7 @@
 </h3>
 <p>1/9/2025</p>
 
-<h2>Version 1.3.5 (better random envelopes)</h2>
+<h2>Version 1.3.5 (better random envelopes)<a name="1.3.5" class="link" onClick="linkTo('1.3.5')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added two new types to random envelopes (per note and time smooth) </li>
@@ -203,7 +255,7 @@
 </h3>
 <p>1/2/2025</p>
 
-<h2>Version 1.3.4 (patch)</h2>
+<h2>Version 1.3.4 (patch)<a name="1.3.4" class="link" onClick="linkTo('1.3.4')">⤳</a></h2>
 <h3>
     <ul>
         <li> Oops some sample files were missing for the song player.. That's been fixed </li>
@@ -211,7 +263,7 @@
 </h3>
 <p>12/14/2024</p>
 
-<h2>Version 1.3.3 (updated faq)</h2>
+<h2>Version 1.3.3 (updated faq)<a name="1.3.3" class="link" onClick="linkTo('1.3.3')">⤳</a></h2>
 <h3>
     <ul>
         <li> Ported Ultrabox 2.2.12 </li>
@@ -222,7 +274,7 @@
 </h3>
 <p>12/1/2024</p>
 
-<h2>Version 1.3.2 (Even better randomization)</h2>
+<h2>Version 1.3.2 (Even better randomization)<a name="1.3.2" class="link" onClick="linkTo('1.3.2')">⤳</a></h2>
 <h3>
     <ul>
         <li> Adjusted random instruments again </li>
@@ -233,7 +285,7 @@
 </h3>
 <p>11/13/2024</p>
 
-<h2>Version 1.3.1 (Better random envelopes)</h2>
+<h2>Version 1.3.1 (Better random envelopes)<a name="1.3.1" class="link" onClick="linkTo('1.3.1')">⤳</a></h2>
 <h3>
     <ul>
         <li> Random instrument envelopes now utilize the new envelope settings </li>
@@ -244,7 +296,7 @@
 </h3>
 <p>11/10/2024</p>
 
-<h2>Version 1.3 (Random Envelope, LFO, Envelope Modulation, and Song EQ)</h2>
+<h2>Version 1.3 (Random Envelope, LFO, Envelope Modulation, and Song EQ)<a name="1.3" class="link" onClick="linkTo('1.3')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added a new random envelope type! This one will output a random value based on the seed and time in the song or pitch of the note </li>
@@ -277,7 +329,7 @@
 </h3>
 <p>11/9/2024</p>
 
-<h2>Version 1.2.3 (Patch)</h2>
+<h2>Version 1.2.3 (Patch)<a name="1.2.3" class="link" onClick="linkTo('1.2.3')">⤳</a></h2>
 <h3>
     <ul>
         <li> Fixed bounds not properly saving with json imports. </li>
@@ -286,7 +338,7 @@
 </h3>
 <p>9/5/2024</p>
 
-<h2>Version 1.2.2 (Patch)</h2>
+<h2>Version 1.2.2 (Patch)<a name="1.2.2" class="link" onClick="linkTo('1.2.2')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added the "slarmoo's box" json import type. </li>
@@ -297,7 +349,7 @@
 </h3>
 <p>9/3/2024</p>
 
-<h2>Version 1.2.1 (Patch)</h2>
+<h2>Version 1.2.1 (Patch)<a name="1.2.1" class="link" onClick="linkTo('1.2.1')">⤳</a></h2>
 <h3>
     <ul>
         <li> Fixed blip, flare, and punch </li>
@@ -312,7 +364,7 @@
 </h3>
 <p>8/31/2024</p>
 
-<h2>Version 1.2 (Envelope Speed and Spectrum Editor)</h2>
+<h2>Version 1.2 (Envelope Speed and Spectrum Editor)<a name="1.2" class="link" onClick="linkTo('1.2')">⤳</a></h2>
 <h3>
     <ul>
         <li> Added individual envelope speeds and bounds </li>
@@ -338,7 +390,8 @@
     </ul>
 </h3>
 <p>8/30/2024</p>
-    <h2>Version 1.1.2 (Ultrabox 2.2.10)</h2>
+
+    <h2>Version 1.1.2 (Ultrabox 2.2.10)<a name="1.1.2" class="link" onClick="linkTo('1.1.2')">⤳</a></h2>
     <h3>
         <ul>
             <li> Updated to Ultrabox version 2.2.10 </li>
@@ -352,7 +405,7 @@
     </h3>
     <p>8/11/2024</p>
 
-    <h2>Version 1.1.1 (Pitch Envelope Minor Update / fixes)</h2>
+    <h2>Version 1.1.1 (Pitch Envelope Minor Update / fixes)<a name="1.1.1" class="link" onClick="linkTo('1.1.1')">⤳</a></h2>
     <h3>
         <ul>
             <li> Pitch envelopes are now properly affected by / calculating arpeggiation and pitch bends </li>
@@ -367,7 +420,7 @@
     </h3>
     <p>6/17/2024</p>
 
-    <h2>Version 1.1 (Keyboard Shortcuts)</h2>
+    <h2>Version 1.1 (Keyboard Shortcuts)<a name="1.1" class="link" onClick="linkTo('1.1')">⤳</a></h2>
     <h3>
         <ul>
             <li> Added a new theme (Slarmoo's Box) </li>
@@ -387,7 +440,7 @@
     </h3>
     <p>6/4/2024</p>
 
-    <h2>Version 1.0.1 (Patch)</h2>
+    <h2>Version 1.0.1 (Patch)<a name="1.0.1" class="link" onClick="linkTo('1.0.1')">⤳</a></h2>
     <h3>
         <ul>
             <li> Did a purge of every mention of Ultrabox where needed </li>
@@ -403,7 +456,7 @@
     </h3>
     <p>5/30/2024</p>
 
-    <h2>Version 1.0 (Official Release)</h2>
+    <h2>Version 1.0 (Official Release)<a name="1.0" class="link" onClick="linkTo('1.0')">⤳</a></h2>
     <h3>
         <ul>
             <li> Added 3 new presets: Slarmoo's Pulse, spectral cry, and walrus wuh</li>
@@ -420,7 +473,7 @@
     </h3>
     <p>5/29/2024</p>
 
-    <h2>Version 0.9 (built on Ultrabox 2.2.7)</h2>
+    <h2>Version 0.9 (built on Ultrabox 2.2.7)<a name="0.9" class="link" onClick="linkTo('0.9')">⤳</a></h2>
     <h3>
         <ul>
             <li> Added more envelope options! These include: </li>
@@ -439,6 +492,12 @@
         </ul>
     </h3>
     <p>5/13/2024</p>
+    <script>
+        function linkTo(update) {
+            window.history.replaceState(null, "", location.pathname + "#" + update);
+            navigator.clipboard.writeText(window.location);
+            window.alert("copied!");
+        }
+    </script>
     </body>
-
 </html>

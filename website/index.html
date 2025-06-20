@@ -11,8 +11,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Slarmoo's Box</title>
-    <meta name="application-name" content="Slarmoo's Box Testing" />
-    <meta name="apple-mobile-web-app-title" content="Slarmoo's Box Testing">
+    <meta name="application-name" content="Slarmoo's Box" />
+    <meta name="apple-mobile-web-app-title" content="Slarmoo's Box">
     <meta name="description" content="Slarmoo's Box is a mod of Ultrabox that aims to advance Beepbox's capabilities." />
     <meta name="keywords" content="chiptune, instrumental, music, song, melody, composition, tool, free, online, square wave, NES, NSF, slarmoosbox, ultrabox, beepbox, jummbox, pandorasbox, modbox, sandbox, goldbox, wackybox, todbox, slarmoo, slarmoos" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -22,7 +22,7 @@
     <meta name="msapplication-TileColor" content="#247d1d" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     <meta name="format-detection" content="telephone=no" />
-    <meta property="og:image" content="./icon_shadow_192.png">
+    <meta property="og:image" content="https://slarmoo.github.io/slarmoosbox/website/icon_shadow_192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="./icon_32.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -173,7 +173,7 @@
         <section>
 
             <h1>
-                <font>Slarmoo's Box Testing</font>
+                <font>Slarmoo's Box</font>
                 <span id="goldboxPlant" style="display: inline; color:#62a13b"></span>
                 <!-- <span id="goldboxPlant" style="display: inline; color: var(--plant-color, var(--link-accent, #62a13b));"></span> -->
             </h1>
@@ -336,7 +336,7 @@
                         Slarmoo's Box does not collect, track, or share any user data.
                     </p>
                     <p>
-                        You can download and use <a href="https://github.com/slarmoo/slarmoosboxtesting" target="_blank">the source code</a> under the MIT license.
+                        You can download and use <a href="https://github.com/slarmoo/slarmoosbox" target="_blank">the source code</a> under the MIT license.
                         The original BeepBox source code by John Nesky can be found <a href="https://github.com/johnnesky/beepbox" target="_blank">here</a>.
                     </p>
                     <p>
@@ -406,9 +406,9 @@
         // blubox desktop plants 
         "⚡","🔵","💫",
         // Slarmoo's Box plants
-        "✨","🌈","🌧️","🪨","🐍","🌲","🌳","𓆏","🦀","🍄‍🟫","🌵",
+        "✨","🌈","🌧️","🪨","🐍","🌲","🌳","𓆏","🦀","🍄‍🟫","🌵","and Bobby","🥚",
         //Current version
-        "1.4.3"
+        "1.4.5"
         ];
         const date = new Date();
         if (Math.floor(Math.random() * 3) == 0) { //more than doubled chance for a plant to show up
@@ -442,6 +442,15 @@
             const years = date.getFullYear() - 2024;
             const birthdayPlants = [years + " year" + (years != 1 ? "s" : "") + "!", "🎂", "🎉", "Happy Birthday!", "Anniversary"];
             document.getElementById("goldboxPlant").innerHTML = "  " + birthdayPlants[(Math.floor(Math.random() * birthdayPlants.length))];
+        }
+
+        if(Math.random() * 10000 < 1) {
+            document.getElementById("goldboxPlant").addEventListener("click", function (event) {
+                window.open("./macandcheese.html", "_blank");
+            })
+            const a = document.createElement("a");
+            document.getElementById("goldboxPlant").innerHTML = " macaroni and cheese";
+            document.getElementById("goldboxPlant").style.color = "#bb8822";
         }
 
         if(document.getElementById("goldboxPlant").innerText.includes("🐲")) {
