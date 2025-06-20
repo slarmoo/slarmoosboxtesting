@@ -430,9 +430,10 @@ export function getLocalStorageItem<T>(key: string, defaultValue: T): T | string
 // @HACK: This just assumes these exist, regardless of whether they actually do
 // or not.
 declare global {
-    const OFFLINE: boolean; // for UB offline
-    const getDirname: () => Promise<string>; // for UB offline
-    const pathJoin: (...parts: string[]) => Promise<string>; // for UB offline
+    const OFFLINE: boolean; // for SB offline
+    const TESTING: boolean; // for SB testing
+    const getDirname: () => Promise<string>; // for SB offline
+    const pathJoin: (...parts: string[]) => Promise<string>; // for SB offline
     const kicksample: number[];
     const snaresample: number[];
     const pianosample: number[];

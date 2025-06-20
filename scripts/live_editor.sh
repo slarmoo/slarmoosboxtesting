@@ -24,5 +24,5 @@ done
 # You may need to wait for tsc to compile once before editing any source files.
 npx concurrently \
 	"npx tsc -p scripts/tsconfig_editor.json --watch --preserveWatchOutput" \
-	"npx rollup build/editor/main.js --file website/beepbox_editor.js --format iife --output.name beepbox --context exports --sourcemap --plugin rollup-plugin-sourcemaps --plugin @rollup/plugin-node-resolve --watch.buildDelay 200 -w" \
+	"npx rollup build/editor/main.js --file website/beepbox_editor.js --define TESTING=true --format iife --output.name beepbox --context exports --sourcemap --plugin rollup-plugin-sourcemaps --plugin @rollup/plugin-node-resolve --watch.buildDelay 200 -w" \
   "npx five-server --wait=200 --watch=website --port=4000 --open=$open_browser_path website/"

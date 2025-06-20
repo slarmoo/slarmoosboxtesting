@@ -14,6 +14,11 @@ import { ChangePreset } from "./changes";
 //namespace beepbox {
 const editor: SongEditor = new SongEditor();//same as above
 
+const sbtitle: HTMLElement | null = document.getElementById("sbtitle");
+if (sbtitle != null) {
+    sbtitle.innerHTML = TESTING ? "Slarmoo's Box Testing" : "Slarmoo's Box";
+}
+
 const beepboxEditorContainer: HTMLElement = document.getElementById("beepboxEditorContainer")!;
 beepboxEditorContainer.appendChild(editor.mainLayer);
 editor.whenUpdated();

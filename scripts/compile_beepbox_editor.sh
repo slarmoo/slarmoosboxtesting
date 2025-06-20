@@ -20,5 +20,6 @@ npx terser \
 	-o ./website/beepbox_editor.min.js \
 	--compress \
 	--define OFFLINE=false \
+	--define TESTING=true \
 	--mangle \
 	--mangle-props regex="/^_.+/;"
