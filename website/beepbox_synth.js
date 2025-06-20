@@ -1169,7 +1169,7 @@ var beepbox = (function (exports) {
         { name: "noteVolume", computeIndex: 0, displayName: "note volume", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
         { name: "pulseWidth", computeIndex: 2, displayName: "pulse width", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [6, 8] },
         { name: "stringSustain", computeIndex: 3, displayName: "sustain", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [7] },
-        { name: "unison", computeIndex: 4, displayName: "unison", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [0, 5, 7, 9, 6, 2, 3, 4] },
+        { name: "unison", computeIndex: 4, displayName: "unison", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [0, 5, 7, 9, 6, 2, 3, 4, 1, 11] },
         { name: "operatorFrequency", computeIndex: 5, displayName: "fm# freq", interleave: true, isFilter: false, maxCount: _a.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
         { name: "operatorAmplitude", computeIndex: 11, displayName: "fm# volume", interleave: false, isFilter: false, maxCount: _a.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
         { name: "feedbackAmplitude", computeIndex: 17, displayName: "fm feedback", interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [1, 11] },
@@ -5482,10 +5482,10 @@ var beepbox = (function (exports) {
                                 vol = Config.perEnvelopeSpeedToIndices[this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeSpeed] - Config.modulators[perEnvSpeedIndex].convertRealFactor;
                                 break;
                             case perEnvLowerIndex:
-                                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeLowerBound - Config.modulators[perEnvLowerIndex].convertRealFactor;
+                                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeLowerBound * 10 - Config.modulators[perEnvLowerIndex].convertRealFactor;
                                 break;
                             case perEnvUpperIndex:
-                                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeUpperBound - Config.modulators[perEnvUpperIndex].convertRealFactor;
+                                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeUpperBound * 10 - Config.modulators[perEnvUpperIndex].convertRealFactor;
                                 break;
                         }
                     }
@@ -14012,20 +14012,19 @@ var beepbox = (function (exports) {
                         }
                         else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                             for (let j = Config.operatorCount - 1; j >= 0; j--) {
-                                const vc = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
-                                for (let voice = 0; voice < vc; voice++) {
+                                for (let voice = 0; voice < voiceCount; voice++) {
                                     for (const operatorLine of Synth.operatorSourceTemplate) {
                                         if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                             let modulators = "";
                                             for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
-                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
+                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice;
                                             }
                                             const feedbackIndices = Config.feedbacks[instrument.feedbackType].indices[j];
                                             if (feedbackIndices.length > 0) {
                                                 modulators += " + feedbackMult * (";
                                                 const feedbacks = [];
                                                 for (const modulatorNumber of feedbackIndices) {
-                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output" + voice);
                                                 }
                                                 modulators += feedbacks.join(" + ") + ")";
                                             }
@@ -14040,7 +14039,7 @@ var beepbox = (function (exports) {
                         }
                         else if (line.indexOf("#") != -1 || line.indexOf("~") != -1) {
                             for (let j = 0; j < Config.operatorCount; j++) {
-                                const vc = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                const vc = line.indexOf("~") != -1 ? voiceCount : 1;
                                 for (let voice = 0; voice < vc; voice++) {
                                     synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                                 }

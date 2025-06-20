@@ -3373,10 +3373,10 @@ export class Song {
                         vol = Config.perEnvelopeSpeedToIndices[this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeSpeed] - Config.modulators[perEnvSpeedIndex].convertRealFactor;
                         break;
                     case perEnvLowerIndex:
-                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeLowerBound - Config.modulators[perEnvLowerIndex].convertRealFactor;
+                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeLowerBound * 10 - Config.modulators[perEnvLowerIndex].convertRealFactor;
                         break;
                     case perEnvUpperIndex:
-                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeUpperBound - Config.modulators[perEnvUpperIndex].convertRealFactor;
+                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].envelopes[instrument.modEnvelopeNumbers[modCount]].perEnvelopeUpperBound * 10 - Config.modulators[perEnvUpperIndex].convertRealFactor;
                         break;
                 }
             }
@@ -12884,8 +12884,6 @@ export class Synth {
         return effect;
     }
 
-    //TODO: offset fm modulators by an equivalent amount of "semitones" so that they sound the same
-
     public static getInstrumentSynthFunction(instrument: Instrument): Function {
         if (instrument.type == InstrumentType.fm) {
             const voiceCount: number = instrument.unisonVoices;
@@ -12904,13 +12902,12 @@ export class Synth {
                         synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount - 1; j >= 0; j--) {
-                            const vc: number = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
-                            for (let voice = 0; voice < vc; voice++) {
+                            for (let voice = 0; voice < voiceCount; voice++) {
                                 for (const operatorLine of Synth.operatorSourceTemplate) {
                                     if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                         let modulators = "";
                                         for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
-                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled0"; //fm modulators only have one
+                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice; //use the corresponding fm modulator unison value
                                         }
 
                                         const feedbackIndices: ReadonlyArray<number> = Config.feedbacks[instrument.feedbackType].indices[j];
@@ -12918,7 +12915,7 @@ export class Synth {
                                             modulators += " + feedbackMult * (";
                                             const feedbacks: string[] = [];
                                             for (const modulatorNumber of feedbackIndices) {
-                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output0"); //only use the first output value for feedback
+                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output" + voice); //use the corresponding unison output value for feedback
                                             }
                                             modulators += feedbacks.join(" + ") + ")";
                                         }
@@ -12931,7 +12928,7 @@ export class Synth {
                         }
                     } else if (line.indexOf("#") != -1 || line.indexOf("~") != -1) {
                         for (let j = 0; j < Config.operatorCount; j++) {
-                            const vc: number = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                            const vc: number = line.indexOf("~") != -1 ? voiceCount : 1;
                             for (let voice = 0; voice < vc; voice++) {
                                 synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                             }
