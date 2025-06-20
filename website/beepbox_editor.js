@@ -18816,7 +18816,7 @@ li.select2-results__option[role=group] > strong:hover {
             for (let i = 0; i < Config.unisonVoicesMax; i++) {
                 this.noiseSamples[i] = 0.0;
             }
-            for (let i = 0; i < Config.maxPitchOrOperatorCount; i++) {
+            for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
                 this.phases[i] = 0.0;
                 this.directions[i] = 1;
                 this.chipWaveCompletions[i] = 0;
@@ -19133,6 +19133,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.type = instrument.type;
             this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
             this.unison = Config.unisons[instrument.unison];
+            this.unisonVoices = instrument.unisonVoices;
             this.chord = instrument.getChord();
             this.noisePitchFilterMult = Config.chipNoises[instrument.chipNoise].pitchFilterMult;
             this.effects = instrument.effects;
@@ -21818,7 +21819,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const chipWaveLength = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
                     const firstOffset = instrument.chipWaveStartOffset / chipWaveLength;
                     const lastOffset = 0.999999999999999;
-                    for (let i = 0; i < Config.maxPitchOrOperatorCount; i++) {
+                    for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
                         tone.phases[i] = instrument.chipWavePlayBackwards ? Math.max(0, Math.min(lastOffset, firstOffset)) : Math.max(0, firstOffset);
                         tone.directions[i] = instrument.chipWavePlayBackwards ? -1 : 1;
                         tone.chipWaveCompletions[i] = 0;
@@ -24977,7 +24978,7 @@ li.select2-results__option[role=group] > strong:hover {
         const waveMask# = operator#Wave.length - 2;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
+		let operator#Phase~       = +((+tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
 		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];

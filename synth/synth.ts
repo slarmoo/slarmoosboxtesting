@@ -8473,7 +8473,7 @@ class Tone {
         for (let i: number = 0; i < Config.unisonVoicesMax; i++) {
             this.noiseSamples[i] = 0.0;
         }
-        for (let i: number = 0; i < Config.maxPitchOrOperatorCount; i++) {
+        for (let i: number = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
             this.phases[i] = 0.0;
             // advloop addition
             this.directions[i] = 1;
@@ -8824,6 +8824,7 @@ class InstrumentState {
         this.type = instrument.type;
         this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
         this.unison = Config.unisons[instrument.unison];
+        this.unisonVoices = instrument.unisonVoices;
         this.chord = instrument.getChord();
         this.noisePitchFilterMult = Config.chipNoises[instrument.chipNoise].pitchFilterMult;
         this.effects = instrument.effects;
@@ -11980,7 +11981,7 @@ export class Synth {
                 // properly keep lastOffset as 1.0 and not get it wrapped back
                 // to 0 once it's in `Synth.loopableChipSynth`.
                 const lastOffset = 0.999999999999999;
-                for (let i = 0; i < Config.maxPitchOrOperatorCount; i++) {
+                for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
                     tone.phases[i] = instrument.chipWavePlayBackwards ? Math.max(0, Math.min(lastOffset, firstOffset)) : Math.max(0, firstOffset);
                     tone.directions[i] = instrument.chipWavePlayBackwards ? -1 : 1;
                     tone.chipWaveCompletions[i] = 0;
@@ -12883,6 +12884,7 @@ export class Synth {
         return effect;
     }
 
+    //TODO: offset fm modulators by an equivalent amount of "semitones" so that they sound the same
 
     public static getInstrumentSynthFunction(instrument: Instrument): Function {
         if (instrument.type == InstrumentType.fm) {
@@ -14767,7 +14769,7 @@ export class Synth {
         const waveMask# = operator#Wave.length - 2;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
+		let operator#Phase~       = +((+tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
 		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
