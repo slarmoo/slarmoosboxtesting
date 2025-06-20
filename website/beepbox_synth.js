@@ -450,6 +450,20 @@ var beepbox = (function (exports) {
             }
             return wave;
         }
+        static generateWhiteNoiseFmWave() {
+            const wave = new Float32Array(_a.noiseWaveLength + 1);
+            for (let i = 0; i < _a.noiseWaveLength + 1; i++) {
+                wave[i] = Math.random() * 2.0 - 1.0;
+            }
+            return wave;
+        }
+        static generateOneBitWhiteNoiseFmWave() {
+            const wave = new Float32Array(_a.noiseWaveLength + 1);
+            for (let i = 0; i < _a.noiseWaveLength + 1; i++) {
+                wave[i] = Math.round(Math.random());
+            }
+            return wave;
+        }
         static generateQuasiSineWave() {
             const wave = new Float32Array(_a.sineWaveLength + 1);
             for (let i = 0; i < _a.sineWaveLength + 1; i++) {
@@ -1062,6 +1076,8 @@ var beepbox = (function (exports) {
     Config.unisonSignMax = 2;
     Config.sineWaveLength = 1 << 8;
     Config.sineWaveMask = _a.sineWaveLength - 1;
+    Config.noiseWaveLength = 1 << 16;
+    Config.noiseWaveMask = _a.noiseWaveLength - 1;
     Config.sineWave = _a.generateSineWave();
     Config.perEnvelopeSpeedIndices = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.25, 0.3, 0.3333, 0.4, 0.5, 0.6, 0.6667, 0.7, 0.75, 0.8, 0.9, 1, 1.25, 1.3333, 1.5, 1.6667, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 24, 32, 40, 64, 128, 256];
     Config.perEnvelopeSpeedToIndices = {
@@ -1190,6 +1206,8 @@ var beepbox = (function (exports) {
         { name: "ramp", samples: _a.generateSawWave(true) },
         { name: "trapezoid", samples: _a.generateTrapezoidWave(2) },
         { name: "quasi-sine", samples: _a.generateQuasiSineWave() },
+        { name: "white noise", samples: _a.generateWhiteNoiseFmWave() },
+        { name: "1-bit white noise", samples: _a.generateOneBitWhiteNoiseFmWave() },
     ]);
     Config.pwmOperatorWaves = toNameMap([
         { name: "1%", samples: _a.generateSquareWave(0.01) },
@@ -5913,6 +5931,9 @@ var beepbox = (function (exports) {
                                 buffer.push(base64IntToCharCode[instrument.operators[o].pulseWidth]);
                             }
                         }
+                        buffer.push(104, base64IntToCharCode[instrument.unison]);
+                        if (instrument.unison == Config.unisons.length)
+                            encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign);
                     }
                     else if (instrument.type == 9) {
                         if (instrument.chipWave > 186) {
@@ -12155,6 +12176,7 @@ var beepbox = (function (exports) {
                 if (this.wantToSkip) {
                     let barVisited = skippedBars.includes(this.bar);
                     if (barVisited && bufferIndex == firstSkippedBufferIndex) {
+                        this.resetEffects();
                         this.pause();
                         return;
                     }
@@ -13592,8 +13614,24 @@ var beepbox = (function (exports) {
                         freqStart = targetFreqStart;
                         freqEnd = targetFreqEnd;
                     }
-                    tone.phaseDeltas[i] = freqStart * sampleTime;
-                    tone.phaseDeltaScales[i] = Math.pow(freqEnd / freqStart, 1.0 / roundedSamplesPerTick);
+                    const unisonVoices = instrument.unisonVoices;
+                    const unisonSpread = instrument.unisonSpread;
+                    const unisonOffset = instrument.unisonOffset;
+                    const unisonExpression = instrument.unisonExpression * unisonVoices;
+                    const unisonEnvelopeStart = envelopeStarts[4];
+                    const unisonEnvelopeEnd = envelopeEnds[4];
+                    const basePhaseDeltaScale = Math.pow(freqEnd / freqStart, 1.0 / roundedSamplesPerTick);
+                    const unisonStartA = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeStart / 12.0);
+                    const unisonEndA = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeEnd / 12.0);
+                    tone.phaseDeltas[i * unisonVoices + 0] = freqStart * sampleTime * unisonStartA;
+                    tone.phaseDeltaScales[i * unisonVoices + 0] = basePhaseDeltaScale * Math.pow(unisonEndA / unisonStartA, 1.0 / roundedSamplesPerTick);
+                    const divisor = (unisonVoices == 1) ? 1 : (unisonVoices - 1);
+                    for (let voice = 1; voice < unisonVoices; voice++) {
+                        const unisonStart = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeStart / 12.0) * (specialIntervalMult);
+                        const unisonEnd = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeEnd / 12.0) * (specialIntervalMult);
+                        tone.phaseDeltas[i * unisonVoices + voice] = freqStart * sampleTime * unisonStart;
+                        tone.phaseDeltaScales[i * unisonVoices + voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
+                    }
                     let amplitudeStart = instrument.operators[i].amplitude;
                     let amplitudeEnd = instrument.operators[i].amplitude;
                     if (i < 4) {
@@ -13612,8 +13650,8 @@ var beepbox = (function (exports) {
                     const amplitudeCurveEnd = Synth.operatorAmplitudeCurve(amplitudeEnd);
                     const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                     const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-                    let expressionStart = amplitudeMultStart;
-                    let expressionEnd = amplitudeMultEnd;
+                    let expressionStart = amplitudeMultStart * unisonExpression;
+                    let expressionEnd = amplitudeMultEnd * unisonExpression;
                     if (i < carrierCount) {
                         let pitchExpressionStart;
                         if (tone.prevPitchExpressions[i] != null) {
@@ -13957,45 +13995,54 @@ var beepbox = (function (exports) {
         }
         static getInstrumentSynthFunction(instrument) {
             if (instrument.type == 1) {
-                const fingerprint = instrument.algorithm + "_" + instrument.feedbackType;
+                const voiceCount = instrument.unisonVoices;
+                const fingerprint = instrument.algorithm + "_" + instrument.feedbackType + "_" + voiceCount;
                 if (Synth.fmSynthFunctionCache[fingerprint] == undefined) {
                     const synthSource = [];
                     for (const line of Synth.fmSourceTemplate) {
                         if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                             const outputs = [];
                             for (let j = 0; j < Config.algorithms[instrument.algorithm].carrierCount; j++) {
-                                outputs.push("operator" + j + "Scaled");
+                                for (let voice = 0; voice < voiceCount; voice++) {
+                                    outputs.push("operator" + j + "Scaled" + voice);
+                                }
                             }
                             synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                         }
                         else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                             for (let j = Config.operatorCount - 1; j >= 0; j--) {
-                                for (const operatorLine of Synth.operatorSourceTemplate) {
-                                    if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
-                                        let modulators = "";
-                                        for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
-                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled";
-                                        }
-                                        const feedbackIndices = Config.feedbacks[instrument.feedbackType].indices[j];
-                                        if (feedbackIndices.length > 0) {
-                                            modulators += " + feedbackMult * (";
-                                            const feedbacks = [];
-                                            for (const modulatorNumber of feedbackIndices) {
-                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output");
+                                const vc = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                for (let voice = 0; voice < vc; voice++) {
+                                    for (const operatorLine of Synth.operatorSourceTemplate) {
+                                        if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
+                                            let modulators = "";
+                                            for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
+                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
                                             }
-                                            modulators += feedbacks.join(" + ") + ")";
+                                            const feedbackIndices = Config.feedbacks[instrument.feedbackType].indices[j];
+                                            if (feedbackIndices.length > 0) {
+                                                modulators += " + feedbackMult * (";
+                                                const feedbacks = [];
+                                                for (const modulatorNumber of feedbackIndices) {
+                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                                }
+                                                modulators += feedbacks.join(" + ") + ")";
+                                            }
+                                            synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + "").replace("/* + operator@Scaled*/", modulators));
                                         }
-                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace("/* + operator@Scaled*/", modulators));
-                                    }
-                                    else {
-                                        synthSource.push(operatorLine.replace(/\#/g, j + ""));
+                                        else {
+                                            synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                                        }
                                     }
                                 }
                             }
                         }
-                        else if (line.indexOf("#") != -1) {
+                        else if (line.indexOf("#") != -1 || line.indexOf("~") != -1) {
                             for (let j = 0; j < Config.operatorCount; j++) {
-                                synthSource.push(line.replace(/\#/g, j + ""));
+                                const vc = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                for (let voice = 0; voice < vc; voice++) {
+                                    synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                                }
                             }
                         }
                         else {
@@ -14041,45 +14088,54 @@ var beepbox = (function (exports) {
                 return Synth.modSynth;
             }
             else if (instrument.type == 11) {
-                const fingerprint = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name;
+                const voiceCount = instrument.unisonVoices;
+                const fingerprint = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
                 if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                     const synthSource = [];
                     for (const line of Synth.fmSourceTemplate) {
                         if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                             const outputs = [];
                             for (let j = 0; j < instrument.customAlgorithm.carrierCount; j++) {
-                                outputs.push("operator" + j + "Scaled");
+                                for (let voice = 0; voice < voiceCount; voice++) {
+                                    outputs.push("operator" + j + "Scaled" + voice);
+                                }
                             }
                             synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                         }
                         else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                             for (let j = Config.operatorCount + 2 - 1; j >= 0; j--) {
                                 for (const operatorLine of Synth.operatorSourceTemplate) {
-                                    if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
-                                        let modulators = "";
-                                        for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
-                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled";
-                                        }
-                                        const feedbackIndices = instrument.customFeedbackType.indices[j];
-                                        if (feedbackIndices.length > 0) {
-                                            modulators += " + feedbackMult * (";
-                                            const feedbacks = [];
-                                            for (const modulatorNumber of feedbackIndices) {
-                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output");
+                                    const vc = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                    for (let voice = 0; voice < vc; voice++) {
+                                        if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
+                                            let modulators = "";
+                                            for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
+                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
                                             }
-                                            modulators += feedbacks.join(" + ") + ")";
+                                            const feedbackIndices = instrument.customFeedbackType.indices[j];
+                                            if (feedbackIndices.length > 0) {
+                                                modulators += " + feedbackMult * (";
+                                                const feedbacks = [];
+                                                for (const modulatorNumber of feedbackIndices) {
+                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                                }
+                                                modulators += feedbacks.join(" + ") + ")";
+                                            }
+                                            synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + "").replace("/* + operator@Scaled*/", modulators));
                                         }
-                                        synthSource.push(operatorLine.replace(/\#/g, j + "").replace("/* + operator@Scaled*/", modulators));
-                                    }
-                                    else {
-                                        synthSource.push(operatorLine.replace(/\#/g, j + ""));
+                                        else {
+                                            synthSource.push(operatorLine.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                                        }
                                     }
                                 }
                             }
                         }
                         else if (line.indexOf("#") != -1) {
                             for (let j = 0; j < Config.operatorCount + 2; j++) {
-                                synthSource.push(line.replace(/\#/g, j + ""));
+                                const vc = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                for (let voice = 0; voice < vc; voice++) {
+                                    synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
+                                }
                             }
                         }
                         else {
@@ -16353,16 +16409,20 @@ var beepbox = (function (exports) {
     Synth.loopableChipFunctionCache = Array(Config.unisonVoicesMax + 1).fill(undefined);
     Synth.fmSourceTemplate = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
-		const sineWave = Config.sineWave;
+        const voiceCount = instrument.unisonVoices;
+
+        const operator#Wave = tone.operatorWaves[#].samples;
+        const waveLength# = operator#Wave.length - 1;
+        const waveMask# = operator#Wave.length - 2;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase       = +((tone.phases[#] % 1) + 1000) * ` + Config.sineWaveLength + `;
-		let operator#PhaseDelta  = +tone.phaseDeltas[#] * ` + Config.sineWaveLength + `;
-		let operator#PhaseDeltaScale = +tone.phaseDeltaScales[#];
+		let operator#Phase~       = +((tone.phases[# * voiceCount + ~] % 1) + 1000) * waveLength#;
+		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
+		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
 		const operator#OutputDelta = +tone.operatorExpressionDeltas[#];
-		let operator#Output      = +tone.feedbackOutputs[#];
-        const operator#Wave      = tone.operatorWaves[#].samples;
+		let operator#Output~      = +tone.feedbackOutputs[# * voiceCount + ~];
+        
 		let feedbackMult         = +tone.feedbackMult;
 		const feedbackDelta        = +tone.feedbackDelta;
         let expression = +tone.expression;
@@ -16386,8 +16446,8 @@ var beepbox = (function (exports) {
 				
 				feedbackMult += feedbackDelta;
 				operator#OutputMult += operator#OutputDelta;
-				operator#Phase += operator#PhaseDelta;
-			operator#PhaseDelta *= operator#PhaseDeltaScale;
+				operator#Phase~ += operator#PhaseDelta~;
+			operator#PhaseDelta~ *= operator#PhaseDeltaScale~;
 			
 			const output = sample * expression;
 			expression += expressionDelta;
@@ -16395,10 +16455,10 @@ var beepbox = (function (exports) {
 			data[sampleIndex] += output;
 			}
 			
-			tone.phases[#] = operator#Phase / ` + Config.sineWaveLength + `;
-			tone.phaseDeltas[#] = operator#PhaseDelta / ` + Config.sineWaveLength + `;
+			tone.phases[# * voiceCount + ~] = operator#Phase~ / waveLength#;
+			tone.phaseDeltas[# * voiceCount + ~] = operator#PhaseDelta~ / waveLength#;
 			tone.operatorExpressions[#] = operator#OutputMult;
-		    tone.feedbackOutputs[#] = operator#Output;
+		    tone.feedbackOutputs[# * voiceCount + ~] = operator#Output~;
 		    tone.feedbackMult = feedbackMult;
 		    tone.expression = expression;
 			
@@ -16407,12 +16467,12 @@ var beepbox = (function (exports) {
 		tone.initialNoteFilterInput2 = initialFilterInput2;
 		`).split("\n");
     Synth.operatorSourceTemplate = (`
-				const operator#PhaseMix = operator#Phase/* + operator@Scaled*/;
-				const operator#PhaseInt = operator#PhaseMix|0;
-				const operator#Index    = operator#PhaseInt & ` + Config.sineWaveMask + `;
-                const operator#Sample   = operator#Wave[operator#Index];
-                operator#Output         = operator#Sample + (operator#Wave[operator#Index + 1] - operator#Sample) * (operator#PhaseMix - operator#PhaseInt);
-				const operator#Scaled   = operator#OutputMult * operator#Output;
+				const operator#PhaseMix~ = operator#Phase~/* + operator@Scaled*/;
+				const operator#PhaseInt~ = operator#PhaseMix~|0;
+				const operator#Index~    = operator#PhaseInt~ & waveMask#;
+                const operator#Sample~   = operator#Wave[operator#Index~];
+                operator#Output~         = operator#Sample~ + (operator#Wave[operator#Index~ + 1] - operator#Sample~) * (operator#PhaseMix~ - operator#PhaseInt~);
+				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
 
     exports.Channel = Channel;

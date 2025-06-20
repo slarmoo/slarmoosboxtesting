@@ -1553,6 +1553,8 @@ export class Config {
     public static readonly unisonSignMax: number = 2; 
     public static readonly sineWaveLength: number = 1 << 8; // 256
     public static readonly sineWaveMask: number = Config.sineWaveLength - 1;
+    public static readonly noiseWaveLength: number = 1 << 16 // 65536
+    public static readonly noiseWaveMask: number = Config.noiseWaveLength - 1;
 
     public static generateSineWave(): Float32Array {
         const wave: Float32Array = new Float32Array(Config.sineWaveLength + 1);
@@ -1597,20 +1599,20 @@ export class Config {
         return wave;
     }
 
-    // public static generateWhiteNoiseFmWave() {
-    // const wave = new Float32Array(Config.sineWaveLength + 1);
-    // for (let i = 0; i < Config.sineWaveLength + 1; i++) {
-    // wave[i] = Math.random() * 2.0 - 1.0;
-    // }
-    // return wave;
-    // }
-    // pupblic static generateOneBitWhiteNoiseFmWave() {
-    // const wave = new Float32Array(Config.sineWaveLength + 1);
-    // for (let i = 0; i < Config.sineWaveLength + 1; i++) {
-    // wave[i] = Math.round(Math.random());
-    // }
-    // return wave;
-    // }
+    public static generateWhiteNoiseFmWave() {
+        const wave = new Float32Array(Config.noiseWaveLength + 1);
+        for (let i = 0; i < Config.noiseWaveLength + 1; i++) {
+            wave[i] = Math.random() * 2.0 - 1.0;
+        }
+        return wave;
+    }
+    public static generateOneBitWhiteNoiseFmWave() {
+        const wave = new Float32Array(Config.noiseWaveLength + 1);
+        for (let i = 0; i < Config.noiseWaveLength + 1; i++) {
+            wave[i] = Math.round(Math.random());
+        }
+        return wave;
+    }
     
     public static generateQuasiSineWave() {
         const wave = new Float32Array(Config.sineWaveLength + 1);
@@ -1766,8 +1768,8 @@ export class Config {
         { name: "ramp", samples: Config.generateSawWave(true) },
         { name: "trapezoid", samples: Config.generateTrapezoidWave(2) },
         { name: "quasi-sine", samples: Config.generateQuasiSineWave() },
-		//{ name: "white noise", samples: Config.generateWhiteNoiseFmWave() },
-		//{ name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
+		{ name: "white noise", samples: Config.generateWhiteNoiseFmWave() },
+		{ name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
     ]);
     public static readonly pwmOperatorWaves: DictionaryArray<OperatorWave> = toNameMap([
         { name: "1%", samples: Config.generateSquareWave(0.01) },
