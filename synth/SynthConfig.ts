@@ -1606,10 +1606,24 @@ export class Config {
         }
         return wave;
     }
-    public static generateOneBitWhiteNoiseFmWave() {
+    // public static generateOneBitWhiteNoiseFmWave() {
+    //     const wave = new Float32Array(Config.noiseWaveLength + 1);
+    //     for (let i = 0; i < Config.noiseWaveLength + 1; i++) {
+    //         wave[i] = Math.round(Math.random());
+    //     }
+    //     return wave;
+    // }
+
+    public static generateMetallicNoiseFMWave() {
         const wave = new Float32Array(Config.noiseWaveLength + 1);
-        for (let i = 0; i < Config.noiseWaveLength + 1; i++) {
-            wave[i] = Math.round(Math.random());
+        var drumBuffer = 1;
+        for (var i = 0; i < Config.noiseWaveLength + 1; i++) {
+            wave[i] = Math.round((drumBuffer & 1));
+            var newBuffer = drumBuffer >> 1;
+            if (((drumBuffer + newBuffer) & 1) == 1) {
+                newBuffer -= 10 << 2;
+            }
+            drumBuffer = newBuffer;
         }
         return wave;
     }
@@ -1769,7 +1783,8 @@ export class Config {
         { name: "trapezoid", samples: Config.generateTrapezoidWave(2) },
         { name: "quasi-sine", samples: Config.generateQuasiSineWave() },
 		{ name: "white noise", samples: Config.generateWhiteNoiseFmWave() },
-		{ name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
+        // { name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
+        { name: "metallic noise", samples: Config.generateMetallicNoiseFMWave() },
     ]);
     public static readonly pwmOperatorWaves: DictionaryArray<OperatorWave> = toNameMap([
         { name: "1%", samples: Config.generateSquareWave(0.01) },
@@ -2071,12 +2086,12 @@ export function getDrumWave(index: number, inverseRealFourierTransform: Function
                 drumBuffer = newBuffer;
             }
 		}
-        else if (index == 10) {
+        else if (index == 10) { //1 bit white
             for (let i = 0; i < Config.chipNoiseLength; i++) {
                 wave[i] = Math.round(Math.random());
             }
         }
-        else if (index == 11) {
+        else if (index == 11) { //1 bit metallic
             var drumBuffer = 1;
             for (var i = 0; i < Config.chipNoiseLength; i++) {
                 wave[i] = Math.round((drumBuffer & 1));
@@ -2087,13 +2102,13 @@ export function getDrumWave(index: number, inverseRealFourierTransform: Function
                 drumBuffer = newBuffer;
             }
         }
-        else if (index == 12) {
+        else if (index == 12) { //crackling
             for (let i = 0; i < Config.chipNoiseLength; i++) {
                 var ultraboxnewchipnoiserand = Math.random();
                 wave[i] = Math.pow(ultraboxnewchipnoiserand, Math.clz32(ultraboxnewchipnoiserand));
             }
         }
-        else if (index == 13) {
+        else if (index == 13) { //pink
             // https://noisehack.com/generate-noise-web-audio-api/
             var b0 = 0, b1 = 0, b2 = 0, b3, b4, b5, b6;
             b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
@@ -2111,7 +2126,7 @@ export function getDrumWave(index: number, inverseRealFourierTransform: Function
                 b6 = white * 0.115926;
             }
         }
-        else if (index == 14) {
+        else if (index == 14) { //brownian
             var lastOut = 0.0;
             
             for (let i = 0; i < Config.chipNoiseLength; i++) {

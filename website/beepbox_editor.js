@@ -471,10 +471,16 @@ var beepbox = (function (exports) {
             }
             return wave;
         }
-        static generateOneBitWhiteNoiseFmWave() {
+        static generateMetallicNoiseFMWave() {
             const wave = new Float32Array(_a$1.noiseWaveLength + 1);
-            for (let i = 0; i < _a$1.noiseWaveLength + 1; i++) {
-                wave[i] = Math.round(Math.random());
+            var drumBuffer = 1;
+            for (var i = 0; i < _a$1.noiseWaveLength + 1; i++) {
+                wave[i] = Math.round((drumBuffer & 1));
+                var newBuffer = drumBuffer >> 1;
+                if (((drumBuffer + newBuffer) & 1) == 1) {
+                    newBuffer -= 10 << 2;
+                }
+                drumBuffer = newBuffer;
             }
             return wave;
         }
@@ -1221,7 +1227,7 @@ var beepbox = (function (exports) {
         { name: "trapezoid", samples: _a$1.generateTrapezoidWave(2) },
         { name: "quasi-sine", samples: _a$1.generateQuasiSineWave() },
         { name: "white noise", samples: _a$1.generateWhiteNoiseFmWave() },
-        { name: "1-bit white noise", samples: _a$1.generateOneBitWhiteNoiseFmWave() },
+        { name: "metallic noise", samples: _a$1.generateMetallicNoiseFMWave() },
     ]);
     Config.pwmOperatorWaves = toNameMap([
         { name: "1%", samples: _a$1.generateSquareWave(0.01) },
