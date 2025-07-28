@@ -5501,7 +5501,340 @@ export class ColorConfig {
 			--oscilloscope-line-R: white;
 			--oscilloscope-line-L: var(--secondary-text);
 		}`,
-		"azur lane":`
+		"voxonium":
+			`:root {
+			--page-margin: #02070D;
+			--editor-background: #02070D;
+			--hover-preview: white;
+			--playhead: white;
+			--primary-text: #9bd1ee;
+			--secondary-text: #5a6da8;
+			--inverted-text: black;
+			--text-selection: rgb(68 68 255 / 99%);
+			--box-selection-fill: rgb(0 0 255 / 30%);
+			--loop-accent: #024aca;
+			--link-accent: #024aca;
+			--ui-widget-background: #161c2e;
+			--ui-widget-focus: #262c3e;
+			--pitch-background: #22272D;
+			--tonic: #1b3056;
+			--fifth-note: #344051;
+			--white-piano-key: #a6c6ed;
+			--black-piano-key: #2f4687;
+			--use-color-formula: false;
+			--track-editor-bg-pitch: #25284c;
+			--track-editor-bg-pitch-dim: #211c26;
+			--track-editor-bg-noise: #261f42;
+			--track-editor-bg-noise-dim: #1a152d;
+			--track-editor-bg-mod: #183049;
+			--track-editor-bg-mod-dim: #102132;
+			--multiplicative-mod-slider: #344a7f;
+			--overwriting-mod-slider: #344a7f;
+			--indicator-primary: #024aca;
+			--indicator-secondary: #00177d;
+			--select2-opt-group: #141e34;
+			--input-box-outline: #141e34;
+			--mute-button-normal: #273b9d;
+			--mute-button-mod: #27989d;
+			--pitch1-secondary-channel: hsl(200, 100%, 40%);
+			--pitch1-primary-channel: #6ecfff;
+			--pitch1-secondary-note: hsl(200, 100%, 40%);
+			--pitch1-primary-note: #6ecfff;
+			--pitch2-secondary-channel: 	hsl(212, 100%, 34%);
+			--pitch2-primary-channel: #5BA8FF;
+			--pitch2-secondary-note: hsl(212, 100%, 34%);
+			--pitch2-primary-note: #5BA8FF;
+			--pitch3-secondary-channel: #024ACA;
+			--pitch3-primary-channel: #0A89FF;
+			--pitch3-secondary-note: #024ACA;
+			--pitch3-primary-note: #0A89FF;
+			--pitch4-secondary-channel: #00177D;
+			--pitch4-primary-channel: #024ACA;
+			--pitch4-secondary-note: #00177D;
+			--pitch4-primary-note: #024ACA;
+			--pitch5-secondary-channel: #000e4e;
+			--pitch5-primary-channel: #0023bf;
+			--pitch5-secondary-note: #000e4e;
+			--pitch5-primary-note: #0023bf;
+			--pitch6-secondary-channel: #8990FE;
+			--pitch6-primary-channel: #C2C6FF;
+			--pitch6-secondary-note: #8990FE;
+			--pitch6-primary-note: #C2C6FF;
+			--pitch7-secondary-channel: #5E65D3;
+			--pitch7-primary-channel: #8990FE;
+			--pitch7-secondary-note: #5E65D3;
+			--pitch7-primary-note: #8990FE;
+			--pitch8-secondary-channel: #3138A6;
+			--pitch8-primary-channel: #5E65D3;
+			--pitch8-secondary-note: #3138A6;
+			--pitch8-primary-note: #5E65D3;
+			--pitch9-secondary-channel: #1B0B7F;
+			--pitch9-primary-channel: #3138A6;
+			--pitch9-secondary-note: #1B0B7F;
+			--pitch9-primary-note: #3138A6;
+			--pitch10-secondary-channel: #13015D;
+			--pitch10-primary-channel: #1c02bd;
+			--pitch10-secondary-note: #13015D;
+			--pitch10-primary-note: #1c02bd;
+			--noise1-secondary-channel: #A675FE;
+			--noise1-primary-channel: #E2C9FF;
+			--noise1-secondary-note: #A675FE;
+			--noise1-primary-note: #E2C9FF;
+			--noise2-secondary-channel: #6A31CA;
+			--noise2-primary-channel: #A675FE;
+			--noise2-secondary-note: #6A31CA;
+			--noise2-primary-note: #A675FE;
+			--noise3-secondary-channel: #5A1991;
+			--noise3-primary-channel: #6A31CA;
+			--noise3-secondary-note: #5A1991;
+			--noise3-primary-note: #6A31CA;
+			--noise4-secondary-channel: #2f1a68;
+			--noise4-primary-channel: #5A1991;
+			--noise4-secondary-note: #2f1a68;
+			--noise4-primary-note: #5A1991;
+			--noise5-secondary-channel: #211640;
+			--noise5-primary-channel: #391b8d;
+			--noise5-secondary-note: #211640;
+			--noise5-primary-note: #391b8d;
+			--mod1-secondary-channel: #25E2CD;
+			--mod1-primary-channel: #BDFFCA;
+			--mod1-secondary-note: #25E2CD;
+			--mod1-primary-note: #BDFFCA;
+			--mod2-secondary-channel: #0A98AC;
+			--mod2-primary-channel: #25E2CD;
+			--mod2-secondary-note: #0A98AC;
+			--mod2-primary-note: #25E2CC;
+			--mod3-secondary-channel: #005280;
+			--mod3-primary-channel: #0A98AC;
+			--mod3-secondary-note: #005280;
+			--mod3-primary-note: #0A98AC;
+			--mod4-secondary-channel: #0f3670;
+			--mod4-primary-channel: #1369c1;
+			--mod4-secondary-note: #0f3670;
+			--mod4-primary-note: #1369c1;
+			--mod-label-primary: #191d26;
+			--mod-label-secondary-text: #024aca;
+			--mod-label-primary-text: #ffffffa6;
+			--disabled-note-primary: #c9c9c9;
+			--disabled-note-secondary: #616161;
+	}`,
+	"axobox": `
+		:root {
+			--page-margin: #000e1c;
+			--editor-background: #000e1c;
+			--playhead: rgba(255, 255, 255, 0.9);
+			--secondary-text: #84859a;
+			--box-selection-fill: #044b94;
+			--ui-widget-background: #2a3045;
+			--ui-widget-focus: #4f4a68;
+			--pitch-background: #3c5773;
+			--tonic: #453e80;
+			--fifth-note: #545498;
+			--white-piano-key: #eee;
+			--black-piano-key: #666;
+			--use-color-formula: true;
+			--track-editor-bg-pitch: #393e4f;
+			--track-editor-bg-pitch-dim: #1c1d28;
+			--track-editor-bg-noise: #3d3535;
+			--track-editor-bg-noise-dim: #161313;
+			--track-editor-bg-mod: #283560;
+			--track-editor-bg-mod-dim: #0a101f;
+			--multiplicative-mod-slider: #606c9f;
+			--overwriting-mod-slider: #6850b5;
+			--indicator-primary: #1E90FF;
+			--indicator-secondary: #1560BD;
+			--select2-opt-group: #3f3951;
+			--input-box-outline: #222;
+			--mute-button-normal: #dda85d;
+			--mute-button-mod: #886eae;
+			--mod-label-primary: #282840;
+			--mod-label-secondary-text: rgb(87, 86, 120);
+			--mod-label-primary-text: white;
+			--pitch-secondary-channel-hue: 210;
+			--pitch-secondary-channel-hue-scale: 6.5;
+			--pitch-secondary-channel-sat: 100;
+			--pitch-secondary-channel-sat-scale: 0.1;
+			--pitch-secondary-channel-lum: 50;
+			--pitch-secondary-channel-lum-scale: 0.05;
+			--pitch-primary-channel-hue: 205;
+			--pitch-primary-channel-hue-scale: 6.5;
+			--pitch-primary-channel-sat: 39;
+			--pitch-primary-channel-sat-scale: 0.1;
+			--pitch-primary-channel-lum: 60;
+			--pitch-primary-channel-lum-scale: 0.05;
+			--pitch-secondary-note-hue: 225;
+			--pitch-secondary-note-hue-scale: 6.5;
+			--pitch-secondary-note-sat: 55;
+			--pitch-secondary-note-sat-scale: 0.1;
+			--pitch-secondary-note-lum: 37;
+			--pitch-secondary-note-lum-scale: 0.05;
+			--pitch-primary-note-hue: 204;
+			--pitch-primary-note-hue-scale: 6.5;
+			--pitch-primary-note-sat: 100;
+			--pitch-primary-note-sat-scale: 0.05;
+			--pitch-primary-note-lum: 37;
+			--pitch-primary-note-lum-scale: 0.025;
+			--noise-secondary-channel-hue: 138;
+			--noise-secondary-channel-hue-scale: 2;
+			--noise-secondary-channel-sat: 97;
+			--noise-secondary-channel-sat-scale: 0;
+			--noise-secondary-channel-lum: 38;
+			--noise-secondary-channel-lum-scale: 0;
+			--noise-primary-channel-hue: 74;
+			--noise-primary-channel-hue-scale: 2;
+			--noise-primary-channel-sat: 100;
+			--noise-primary-channel-sat-scale: 0;
+			--noise-primary-channel-lum: 36;
+			--noise-primary-channel-lum-scale: 0;
+			--noise-secondary-note-hue: 175;
+			--noise-secondary-note-hue-scale: 2;
+			--noise-secondary-note-sat: 98;
+			--noise-secondary-note-sat-scale: 0;
+			--noise-secondary-note-lum: 24;
+			--noise-secondary-note-lum-scale: 0;
+			--noise-primary-note-hue: 149;
+			--noise-primary-note-hue-scale: 2;
+			--noise-primary-note-sat: 100;
+			--noise-primary-note-sat-scale: 0;
+			--noise-primary-note-lum: 32;
+			--noise-primary-note-lum-scale: 0;
+			--mod-secondary-channel-hue: 44;
+			--mod-secondary-channel-hue-scale: 1.5;
+			--mod-secondary-channel-sat: 100;
+			--mod-secondary-channel-sat-scale: 0;
+			--mod-secondary-channel-lum: 50;
+			--mod-secondary-channel-lum-scale: 0;
+			--mod-primary-channel-hue: 45;
+			--mod-primary-channel-hue-scale: 1.5;
+			--mod-primary-channel-sat: 90;
+			--mod-primary-channel-sat-scale: 0;
+			--mod-primary-channel-lum: 57;
+			--mod-primary-channel-lum-scale: 0;
+			--mod-secondary-note-hue: 33;
+			--mod-secondary-note-hue-scale: 1.5;
+			--mod-secondary-note-sat: 100;
+			--mod-secondary-note-sat-scale: 0;
+			--mod-secondary-note-lum: 47;
+			--mod-secondary-note-lum-scale: 0;
+			--mod-primary-note-hue: 45;
+			--mod-primary-note-hue-scale: 1.5;
+			--mod-primary-note-sat: 100;
+			--mod-primary-note-sat-scale: 0;
+			--mod-primary-note-lum: 60;
+			--mod-primary-note-lum-scale: 0;
+			--disabled-note-primary:    #9187d1;
+			--disabled-note-secondary:  #6a67ac;
+		}`,
+	"lemmbox dark": `
+		:root {
+			--page-margin: #020009;
+			--editor-background: #020009;
+			--secondary-text: white;
+			--text-selection: #c2a855;
+			--loop-accent: #fff570;
+			--link-accent: #fff570;
+			--ui-widget-background: #191721;
+			--ui-widget-focus: #2d293b;
+			--pitch-background: #44444A;
+			--tonic: #c2a855;
+			--white-piano-key-text: #131200;
+			--black-piano-key-text: #fff;
+			--use-color-formula: false;
+			--pitch-channel-limit: 10;
+			--track-editor-bg-pitch: #444;
+			--track-editor-bg-pitch-dim: #333;
+			--track-editor-bg-noise: #444;
+			--track-editor-bg-noise-dim: #333;
+			--track-editor-bg-mod: #234;
+			--track-editor-bg-mod-dim: #123;
+			--multiplicative-mod-slider: #456;
+			--overwriting-mod-slider: #654;
+			--indicator-primary: #6a38ff;
+			--indicator-secondary: #444;
+			--select2-opt-group: #585858;
+			--input-box-outline: #403b4f;
+			--mute-button-normal: #ffa033;
+			--mute-button-mod: #8066cc;
+
+			--pitch1-secondary-channel: #e64951;
+			--pitch1-primary-channel: #f0565e;
+			--pitch1-secondary-note: #f34149;
+			--pitch1-primary-note: #f99ca9;
+
+			--pitch2-secondary-channel: #de6f2f;
+			--pitch2-primary-channel: #f18e55;
+			--pitch2-secondary-note: #ef7d3b;
+			--pitch2-primary-note: #f6ad92;
+
+			--pitch3-secondary-channel: #e1d30e;
+			--pitch3-primary-channel: #faec29;
+			--pitch3-secondary-note: #d9cd23;
+			--pitch3-primary-note: #fff570;
+
+			--pitch4-secondary-channel: #78c25a;
+			--pitch4-primary-channel: #85d947;
+			--pitch4-secondary-note: #8de02d;
+			--pitch4-primary-note: #bdff70;
+
+			--pitch5-secondary-channel: #2190eb;
+			--pitch5-primary-channel: #45a5f5;
+			--pitch5-secondary-note: #399bea;
+			--pitch5-primary-note: #70bfff;
+
+			--pitch6-secondary-channel: #7e3af2;
+			--pitch6-primary-channel: #8b4df7;
+			--pitch6-secondary-note: #752fed;
+			--pitch6-primary-note: #965cfa;
+
+			--pitch7-secondary-channel: #7e05f7;
+			--pitch7-primary-channel: #922df7;
+			--pitch7-secondary-note: #7c29cf;
+			--pitch7-primary-note: #9443e6;
+
+			--pitch8-secondary-channel: #94249e;
+			--pitch8-primary-channel: #cf2cde;
+			--pitch8-secondary-note: #b326bf;
+			--pitch8-primary-note: #c53fd1;
+
+			--pitch9-secondary-channel: #c42f6b;
+			--pitch9-primary-channel: #fc5d9d;
+			--pitch9-secondary-note: #cf3b77;
+			--pitch9-primary-note: #e36f9e;
+
+			--pitch10-secondary-channel: #d53c5e;
+			--pitch10-primary-channel: #f65a7e;
+			--pitch10-secondary-note: #e13e60;
+			--pitch10-primary-note: #ed8090;
+
+			--mod1-secondary-channel: #339955;
+			--mod1-primary-channel: #77fc55;
+			--mod1-secondary-note: #77ff8a;
+			--mod1-primary-note: #cdffee;
+
+			--mod2-secondary-channel: #993355;
+			--mod2-primary-channel: #f04960;
+			--mod2-secondary-note: #f057a0;
+			--mod2-primary-note: #ffb8de;
+
+			--mod3-secondary-channel: #553399;
+			--mod3-primary-channel: #8855fc;
+			--mod3-secondary-note: #aa64ff;
+			--mod3-primary-note: #f8ddff;
+
+			--mod4-secondary-channel: #a86436;
+			--mod4-primary-channel: #c8a825;
+			--mod4-secondary-note: #e8ba46;
+			--mod4-primary-note: #fff6d3;
+
+			--mod-label-primary: #999;
+			--mod-label-secondary-text: #333;
+			--mod-label-primary-text: black;
+			--disabled-note-primary: #999;
+			--disabled-note-secondary: #666;
+
+			--pitch1-background: #777;
+		}`,
+	"azur lane":`
 		:root {
 			--page-margin: #19337e;
 			--editor-background: #000333cf;
@@ -5646,7 +5979,7 @@ export class ColorConfig {
 		.promptContainerBG::before {
 			box-shadow: inset 0 0 2000px rgba(255, 255, 255, .5);
 		}
-	}`,
+		}`,
 	"custom": `${localStorage.getItem("customColors") || `:root {  }`}`,
     };
 

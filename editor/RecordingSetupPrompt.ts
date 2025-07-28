@@ -19,10 +19,10 @@ export class RecordingSetupPrompt implements Prompt {
     private readonly _keyboardLayout: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ value: "wickiHayden" }, "Wicki-Hayden"),
         option({ value: "songScale" }, "selected song scale"),
-        option({ value: "pianoAtC" }, "piano starting at C :)"),
-        option({ value: "pianoAtA" }, "piano starting at A :("),
-        option({ value: "pianoTransposingC" }, "piano transposing C :) to song key"),
-        option({ value: "pianoTransposingA" }, "piano transposing A :( to song key"),
+        option({ value: "pianoAtC" }, "piano starting at C"),
+        option({ value: "pianoAtA" }, "piano starting at A"),
+        option({ value: "pianoTransposingC" }, "piano transposing C to song key"),
+        option({ value: "pianoTransposingA" }, "piano transposing A to song key"),
     );
     private readonly _bassOffset: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ value: "0" }, "disabled"),
@@ -42,7 +42,7 @@ export class RecordingSetupPrompt implements Prompt {
     public readonly container: HTMLDivElement = div({ class: "prompt noSelection recordingSetupPrompt", style: "width: 600px; text-align: right; max-height: 90%;" },
         h2({ style: "align-self: center;" }, "Note Recording Setup"),
         div({ style: "display: grid; overflow-y: auto; overflow-x: hidden; flex-shrink: 1;" },
-            p("Slarmoo's Box can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + EditorConfig.ctrlSymbol + "P)."),
+            p("UltraBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + EditorConfig.ctrlSymbol + "P)."),
             label({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: center;" },
                 "Add ● record button next to ▶ play button:",
                 this._showRecordButton,
@@ -74,7 +74,7 @@ export class RecordingSetupPrompt implements Prompt {
                 "Count-in 1 bar of metronome before recording:",
                 this._metronomeCountIn,
             ),
-            p("If you have a ", a({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in Slarmoo's Box! (Or you could buy ", a({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"),
+            p("If you have a ", a({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in UltraBox! (Or you could buy ", a({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"),
             label({ style: "display: flex; flex-direction: row; align-items: center; margin-top: 0.5em; height: 2em; justify-content: center;" },
                 "Enable MIDI performance:",
                 this._enableMidi,
@@ -86,7 +86,7 @@ export class RecordingSetupPrompt implements Prompt {
                 div({ class: "selectContainer", style: "width: 50%; margin-left: 1em;" }, this._bassOffset),
             ),
             p("Once you enable the setting, the keyboard layout above will darken to denote the new bass notes. The notes will be recorded with independent timing and this works with MIDI devices, too. Be aware that the octave offset of both used channels will impact how high/low the bass/lead are relative to one another."),
-            p("Recorded notes often overlap such that one note ends after the next note already started. In Slarmoo's Box, these notes get split into multiple notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the \"transition type\" effect on the instrument and setting it to \"continue\"."),
+            p("Recorded notes often overlap such that one note ends after the next note already started. In UltraBox, these notes get split into multiple notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the \"transition type\" effect on the instrument and setting it to \"continue\"."),
             div({ style: `width: 100%; height: 80px; background: linear-gradient(rgba(0,0,0,0), ${ColorConfig.editorBackground}); position: sticky; bottom: 0; pointer-events: none;` }),
         ),
         div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
@@ -152,7 +152,7 @@ export class RecordingSetupPrompt implements Prompt {
             this._keyboardLayoutPreview.removeChild(this._keyboardLayoutPreview.firstChild);
         }
         const rowLengths: number[] = [12, 12, 11, 10];
-        const scale: ReadonlyArray<boolean> = Config.scales[this._doc.song.scale].flags;
+        const scale: ReadonlyArray<boolean> = this._doc.song.scale == Config.scales.dictionary["Custom"].index ? this._doc.song.scaleCustom : Config.scales[this._doc.song.scale].flags;
         for (let rowIndex: number = 0; rowIndex < 4; rowIndex++) {
             const row: HTMLDivElement = div({ style: "display: flex;" });
             this._keyboardLayoutPreview.appendChild(row);
