@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
@@ -1670,6 +1670,7 @@ export class Instrument {
     public reverb: number = 0;
     public echoSustain: number = 0;
     public echoDelay: number = 0;
+    public pluginValues: number[] = new Array(64);
     public algorithm: number = 0;
     public feedbackType: number = 0;
     public algorithm6Op: number = 1;
@@ -1768,6 +1769,7 @@ export class Instrument {
         this.reverb = 0;
         this.echoSustain = Math.floor((Config.echoSustainRange - 1) * 0.5);
         this.echoDelay = Math.floor((Config.echoDelayRange - 1) * 0.5);
+        this.pluginValues.fill(0);
         this.eqFilter.reset();
         this.eqFilterType = false;
         this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -2138,6 +2140,10 @@ export class Instrument {
         }
         if (effectsIncludeReverb(this.effects)) {
             instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
+        }
+
+        if (effectsIncludePlugin(this.effects)) {
+            instrumentObject["plugin"] = this.pluginValues.slice(0, EditorConfig.pluginSliders.length - 1);
         }
 
         if (this.type != InstrumentType.drumset) {
@@ -2603,6 +2609,10 @@ export class Instrument {
             this.reverb = clamp(0, Config.reverbRange, Math.round((Config.reverbRange - 1) * (instrumentObject["reverb"] | 0) / 100));
         } else {
             this.reverb = legacyGlobalReverb;
+        }
+
+        if (Array.isArray(instrumentObject["plugin"])) {
+            this.pluginValues = instrumentObject["plugin"];
         }
 
         if (instrumentObject["pulseWidth"] != undefined) {
@@ -3249,6 +3259,7 @@ export class Song {
     public eqSubFilters: (FilterSettings | null)[] = [];
     public tmpEqFilterStart: FilterSettings | null;
     public tmpEqFilterEnd: FilterSettings | null;
+    public pluginurl: string | null = null;
 
     constructor(string?: string) {
         if (string != undefined) {
@@ -3795,6 +3806,12 @@ export class Song {
                     buffer.push(base64IntToCharCode[(instrument.ringModPulseWidth)]);
                     buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                 }
+                if (effectsIncludePlugin(instrument.effects)) {
+                    buffer.push(base64IntToCharCode[EditorConfig.pluginSliders.length]);
+                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
+                        buffer.push(base64IntToCharCode[instrument.pluginValues[i]]);
+                    }
+                }
 
                 if (instrument.type != InstrumentType.drumset) {
                     buffer.push(SongTagCode.fadeInOut, base64IntToCharCode[instrument.fadeIn], base64IntToCharCode[instrument.fadeOut]);
@@ -4259,10 +4276,13 @@ export class Song {
         bits.encodeBase64(buffer);
 
         const maxApplyArgs: number = 64000;
-        let customSamplesStr = "";
+        let customSamplesStr: string = "";
         if (EditorConfig.customSamples != undefined && EditorConfig.customSamples.length > 0) {
             customSamplesStr = "|" + EditorConfig.customSamples.join("|")
 
+        }
+        if (this.pluginurl != null) {
+            customSamplesStr += "||" + this.pluginurl;
         }
         //samplemark
         if (buffer.length < maxApplyArgs) {
@@ -4359,8 +4379,10 @@ export class Song {
         let willLoadLegacySamplesForOldSongs: boolean = false;
 
         if (fromSlarmoosBox || fromUltraBox || fromGoldBox) {
-            compressed = compressed.replaceAll("%7C", "|")
-            var compressed_array = compressed.split("|");
+            compressed = compressed.replaceAll("%7C", "|");
+            var compressed_array = compressed.split("||");
+            const pluginurl: string | null = compressed_array.length < 2 ? null : compressed_array[1];
+            compressed_array = compressed_array[0].split("|");
             compressed = compressed_array.shift()!;
             if (EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) {
 
@@ -4432,6 +4454,12 @@ export class Song {
 
             }
             //samplemark
+
+            //set the pluginurl
+            if (this.pluginurl != pluginurl) {
+                this.pluginurl = pluginurl;
+                if(pluginurl) this.fetchPlugin(pluginurl);
+            }
         }
 
         if (beforeThree && fromBeepBox) {
@@ -5413,7 +5441,7 @@ export class Song {
                     instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                 } else {
                     // BeepBox currently uses three base64 characters at 6 bits each for a bitfield representing all the enabled effects.
-                    if (EffectType.length > 15) throw new Error();
+                    if (EffectType.length > 16) throw new Error();
                     if (fromSlarmoosBox && !beforeFive) {
                         instrument.effects = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 12) | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                     } else {
@@ -5572,6 +5600,12 @@ export class Song {
                         instrument.ringModWaveformIndex = clamp(0, Config.operatorWaves.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         instrument.ringModPulseWidth = clamp(0, Config.pulseWidthRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         instrument.ringModHzOffset = clamp(Config.rmHzOffsetMin, Config.rmHzOffsetMax + 1, (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                    }
+                    if (effectsIncludePlugin(instrument.effects)) {
+                        const pluginValueCount = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        for (let i: number = 0; i < pluginValueCount; i++) {
+                            instrument.pluginValues[i] = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        }
                     }
                 }
                 // Clamp the range.
@@ -6539,6 +6573,29 @@ export class Song {
         }
     }
 
+    private fetchPlugin(pluginurl: string) {
+        if (pluginurl != null) {
+            fetch(pluginurl).then((response) => {
+                if (!response.ok) {
+                    // @TODO: Be specific with the error handling.
+                    throw new Error("Couldn't load plugin");
+                }
+                return response;
+            }).then((response) => {
+                return response.json();
+            }).then((plugin) => {
+                Synth.pluginValueNames = plugin.variableNames;
+                Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction;
+                Synth.pluginFunction = plugin.synthFunction;
+                Synth.PluginDelayLineSize = plugin.delayLineSize;
+                EditorConfig.pluginSliders = plugin.sliders;
+                EditorConfig.pluginName = plugin.pluginName;
+            }).catch(() => {
+                window.alert("couldn't load plugin");
+            })
+        }
+    }
+
     private static _isProperUrl(string: string): boolean {
         try {
             if (OFFLINE) {
@@ -6909,6 +6966,10 @@ export class Song {
             result["customSamples"] = EditorConfig.customSamples;
         }
 
+        if (this.pluginurl != null) {
+            result["pluginurl"] = this.pluginurl;
+        }
+
         return result;
     }
 
@@ -6939,6 +7000,11 @@ export class Song {
 
         if (jsonObject["name"] != undefined) {
             this.title = jsonObject["name"];
+        }
+
+        if (jsonObject["pluginurl"] != undefined) {
+            this.pluginurl = jsonObject["pluginurl"];
+            this.fetchPlugin(jsonObject["pluginurl"]);
         }
 
         if (jsonObject["customSamples"] != undefined) {
@@ -8657,6 +8723,10 @@ class InstrumentState {
     public reverbShelfPrevInput2: number = 0.0;
     public reverbShelfPrevInput3: number = 0.0;
 
+    public pluginValues: number[] = [];
+    public pluginDelayLine: Float32Array | null = null;
+    public pluginDelayLineDirty: boolean = false
+
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
     public readonly harmonicsWave: HarmonicsWaveState = new HarmonicsWaveState();
     public readonly drumsetSpectrumWaves: SpectrumWaveState[] = [];
@@ -8717,6 +8787,12 @@ class InstrumentState {
             }
             if (this.granularMaximumGrains < this.granularGrainsLength) {
                 this.granularGrainsLength = Math.round(this.granularMaximumGrains);
+            }
+        }
+        if (effectsIncludePlugin(instrument.effects)) {
+            //figure out plugin delay line
+            if (this.pluginDelayLine == null || this.pluginDelayLine.length < Synth.PluginDelayLineSize) {
+                this.pluginDelayLine = new Float32Array(Synth.PluginDelayLineSize);
             }
         }
     }
@@ -8813,6 +8889,9 @@ class InstrumentState {
         if (this.granularDelayLineDirty) {
             for (let i: number = 0; i < this.granularDelayLine!.length; i++) this.granularDelayLine![i] = 0.0;
         }
+        if (this.pluginDelayLineDirty) {
+            for (let i: number = 0; i < this.pluginDelayLine!.length; i++) this.pluginDelayLine![i] = 0.0;
+        }
 
         this.chorusPhase = 0.0;
         this.ringModPhase = 0.0;
@@ -8884,6 +8963,7 @@ class InstrumentState {
         const usesChorus: boolean = effectsIncludeChorus(this.effects);
         const usesEcho: boolean = effectsIncludeEcho(this.effects);
         const usesReverb: boolean = effectsIncludeReverb(this.effects);
+        const usesPlugin: boolean = effectsIncludePlugin(this.effects);
 
         let granularChance: number = 0;
         if (usesGranular) { //has to happen before buffer allocation
@@ -9337,6 +9417,10 @@ class InstrumentState {
             this.reverbShelfA1 = Synth.tempFilterStartCoefficients.a[1];
             this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
             this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
+        }
+        if (usesPlugin && Synth.pluginInstrumentStateFunction) {
+            //fill plugin array
+            new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -9905,6 +9989,11 @@ export class Synth {
     private static readonly supersawFunctionCache: Function[] = [];
     private static readonly harmonicsFunctionCache: Function[] = [];
     private static readonly loopableChipFunctionCache: Function[] = Array(Config.unisonVoicesMax + 1).fill(undefined); //For loopable chips, we have a matrix where the rows represent voices and the columns represent loop types
+
+    public static pluginFunction: string | null = null;
+    public static pluginValueNames: string[] = [];
+    public static pluginInstrumentStateFunction: string | null = null;
+    public static PluginDelayLineSize: number = 0;
 
     public readonly channels: ChannelState[] = [];
     private readonly tonePool: Deque<Tone> = new Deque<Tone>();
@@ -13848,6 +13937,7 @@ export class Synth {
         const usesReverb: boolean = effectsIncludeReverb(instrumentState.effects);
         const usesGranular: boolean = effectsIncludeGranular(instrumentState.effects);
         const usesRingModulation: boolean = effectsIncludeRingModulation(instrumentState.effects);
+        const usesPlugin: boolean = effectsIncludePlugin(instrumentState.effects);
         let signature: number = 0; if (usesDistortion) signature = signature | 1;
         signature = signature << 1; if (usesBitcrusher) signature = signature | 1;
         signature = signature << 1; if (usesEqFilter) signature = signature | 1;
@@ -13857,6 +13947,7 @@ export class Synth {
         signature = signature << 1; if (usesReverb) signature = signature | 1;
         signature = signature << 1; if (usesGranular) signature = signature | 1;
         signature = signature << 1; if (usesRingModulation) signature = signature | 1;
+        signature = signature << 1; if (usesPlugin) signature = signature | 1;
 
         let effectsFunction: Function = Synth.effectsFunctionCache[signature];
         if (effectsFunction == undefined) {
@@ -14099,14 +14190,30 @@ export class Synth {
 				let reverbShelfPrevInput3 = +instrumentState.reverbShelfPrevInput3;`
             }
 
+            if (usesPlugin) {
+                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
+                    effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
+                }
+                // effectsSource += "instrumentState.pluginDelayLineDirty = Synth.PluginDelayLineSize ? true : false;"
+            }
+
             effectsSource += `
 				
 				const stopIndex = bufferIndex + runLength;
             for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
-                    `
+                let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
+                tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;
+                `
+            
+            if (usesPlugin && Synth.pluginFunction) {
+                effectsSource += Synth.pluginFunction;
+                effectsSource += `
+                    console.log(corruptionAmount, corruptionType, corruptionTime);
+                `
+            }
+            
             if (usesGranular) {
                 effectsSource += `
-                let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
                 let granularOutput = 0;
                 for (let grainIndex = 0; grainIndex < granularGrainCount; grainIndex++) {
                     const grain = granularGrains[grainIndex];
@@ -14178,12 +14285,8 @@ export class Synth {
                 granularDelayLine[granularDelayLineIndex] = sample;
                 granularDelayLineIndex = (granularDelayLineIndex + 1) & granularDelayLineMask;
                 sample = sample * granularDry + granularOutput * granularWet;
-                tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;
                 `
-            } else {
-                effectsSource += `let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
-                tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;`
-            }
+            } 
 
 
             if (usesDistortion) {
@@ -14565,6 +14668,12 @@ export class Synth {
 				instrumentState.reverbShelfPrevInput1 = reverbShelfPrevInput1;
 				instrumentState.reverbShelfPrevInput2 = reverbShelfPrevInput2;
 				instrumentState.reverbShelfPrevInput3 = reverbShelfPrevInput3;`
+            }
+
+            if (usesPlugin) {
+                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
+                    effectsSource += "instrumentState.pluginValues[" + i + "] = " + Synth.pluginValueNames[i] + "; \n";
+                }
             }
 
             effectsSource += "}";

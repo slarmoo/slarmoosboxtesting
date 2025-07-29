@@ -2724,6 +2724,16 @@ export class ChangeBitcrusherQuantization extends ChangeInstrumentSlider {
     }
 }
 
+export class ChangePluginValue extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number, index: number) {
+        super(doc);
+        // doc.synth.unsetMod(Config.modulators.dictionary[""].index, doc.channel, doc.getCurrentInstrument());
+        this._instrument.pluginValues[index] = newValue;
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
+    }
+}
+
 export class ChangeStringSustain extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number) {
         super(doc);

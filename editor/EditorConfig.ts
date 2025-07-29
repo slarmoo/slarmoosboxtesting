@@ -16,6 +16,11 @@ export interface Preset extends BeepBoxOption {
     readonly settings?: any;
 }
 
+interface Slider {
+    max: number, //max 64
+    name: string
+}
+
 export const isMobile: boolean = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|android|ipad|playbook|silk/i.test(navigator.userAgent);
 
 export function prettyNumber(value: number): string {
@@ -413,6 +418,9 @@ export class EditorConfig {
             ])
         }
     ]);
+
+    public static pluginName: string = "";
+    public static pluginSliders: Slider[] = [];
 
     public static valueToPreset(presetValue: number): Preset | null {
         const categoryIndex: number = presetValue >> 6;

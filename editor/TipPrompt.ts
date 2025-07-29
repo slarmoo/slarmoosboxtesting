@@ -676,7 +676,12 @@ export class TipPrompt implements Prompt {
 					p(`This setting controls the range of randomization for grain sizes. `),
 				);
 			} break;
-			
+			case "plugin": {
+				message = div(
+					h2("Plugins"),
+					p(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `),
+				);
+			} break;
 
 			default:
 				// Check for modSetinfo#
