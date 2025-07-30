@@ -12603,6 +12603,13 @@ var beepbox = (function (exports) {
             this.layeredInstruments = false;
             this.patternInstruments = false;
             this.eqFilter.reset();
+            this.pluginurl = null;
+            Synth.pluginValueNames = [];
+            Synth.pluginInstrumentStateFunction = null;
+            Synth.pluginFunction = null;
+            Synth.PluginDelayLineSize = 0;
+            EditorConfig.pluginSliders = [];
+            EditorConfig.pluginName = "";
             for (let i = 0; i < Config.filterMorphCount - 1; i++) {
                 this.eqSubFilters[i] = null;
             }
@@ -18092,6 +18099,9 @@ var beepbox = (function (exports) {
                 if (usesGranular) {
                     this.computeGrains = false;
                 }
+                if (usesPlugin) {
+                    delayDuration += Synth.PluginDelayLineSize;
+                }
                 const secondsInTick = samplesPerTick / samplesPerSecond;
                 const progressInTick = secondsInTick / delayDuration;
                 const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -18117,6 +18127,8 @@ var beepbox = (function (exports) {
                     totalDelaySamples += Config.reverbDelayBufferSize;
                 if (usesGranular)
                     totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+                if (usesPlugin)
+                    totalDelaySamples += Synth.PluginDelayLineSize;
                 this.flushedSamples += roundedSamplesPerTick;
                 if (this.flushedSamples >= totalDelaySamples) {
                     this.deactivateAfterThisTick = true;
@@ -22207,9 +22219,6 @@ var beepbox = (function (exports) {
                 `;
                 if (usesPlugin && Synth.pluginFunction) {
                     effectsSource += Synth.pluginFunction;
-                    effectsSource += `
-                    console.log(corruptionAmount, corruptionType, corruptionTime);
-                `;
                 }
                 if (usesGranular) {
                     effectsSource += `

@@ -3502,6 +3502,15 @@ export class Song {
         this.layeredInstruments = false;
         this.patternInstruments = false;
         this.eqFilter.reset();
+        //clear plugin data
+        this.pluginurl = null;
+        Synth.pluginValueNames = [];
+        Synth.pluginInstrumentStateFunction = null;
+        Synth.pluginFunction = null;
+        Synth.PluginDelayLineSize = 0;
+        EditorConfig.pluginSliders = [];
+        EditorConfig.pluginName = "";
+        
         for (let i: number = 0; i < Config.filterMorphCount - 1; i++) {
             this.eqSubFilters[i] = null;
         }
@@ -9467,6 +9476,10 @@ class InstrumentState {
                 this.computeGrains = false;
             }
 
+            if (usesPlugin) {
+                delayDuration += Synth.PluginDelayLineSize;
+            }
+
             const secondsInTick: number = samplesPerTick / samplesPerSecond;
             const progressInTick: number = secondsInTick / delayDuration;
             const progressAtEndOfTick: number = this.attentuationProgress + progressInTick;
@@ -9490,6 +9503,7 @@ class InstrumentState {
             if (usesEcho) totalDelaySamples += this.echoDelayLineL!.length;
             if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
             if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+            if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
 
             this.flushedSamples += roundedSamplesPerTick;
             if (this.flushedSamples >= totalDelaySamples) {
@@ -14207,9 +14221,6 @@ export class Synth {
             
             if (usesPlugin && Synth.pluginFunction) {
                 effectsSource += Synth.pluginFunction;
-                effectsSource += `
-                    console.log(corruptionAmount, corruptionType, corruptionTime);
-                `
             }
             
             if (usesGranular) {

@@ -36,6 +36,7 @@ import { MidiInputHandler } from "./MidiInput";
 import { KeyboardLayout } from "./KeyboardLayout";
 import { PatternEditor } from "./PatternEditor";
 import { Piano } from "./Piano";
+import { PluginPrompt } from "./PluginPrompt";
 import { Prompt } from "./Prompt";
 import { SongDocument } from "./SongDocument";
 import { SongDurationPrompt } from "./SongDurationPrompt";
@@ -795,6 +796,7 @@ export class SongEditor {
         option({ value: "channelSettings" }, "Channel Settings... (Q)"),
         option({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"),
         option({ value: "addExternal" }, "Add Custom Samples... (⇧Q)"),
+        option({ value: "addPlugin" }, "Add Custom Plugin... "),
     );
     private readonly _optionsMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "Preferences"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
@@ -2242,6 +2244,9 @@ export class SongEditor {
                 case "addExternal":
                     this.prompt = new AddSamplesPrompt(this.doc);
                     break;
+                case "addPlugin":
+                    this.prompt = new PluginPrompt(this.doc);
+                    break;
                 case "generateEuclideanRhythm":
                     this.prompt = new EuclideanRhythmPrompt(this.doc);
                     break;
@@ -2455,16 +2460,29 @@ export class SongEditor {
         const activeElement: Element | null = document.activeElement;
         const colors: ChannelColors = ColorConfig.getChannelColor(this.doc.song, this.doc.channel);
 
-        for (let i: number = this._effectsSelect.childElementCount - 1; i < Config.effectOrder.length; i++) {
+        for (let i: number = this._effectsSelect.childElementCount - 1; i < Config.effectOrder.length - 1; i++) {
             this._effectsSelect.appendChild(option({ value: i }));
         }
+        if (this._pluginurl && this._effectsSelect.childElementCount - 1 < Config.effectOrder.length) {
+            this._effectsSelect.appendChild(option({ value: Config.effectOrder.length - 1 }));
+        } else if (!this._pluginurl && this._effectsSelect.childElementCount - 1 == Config.effectOrder.length) {
+            this._effectsSelect.removeChild(this._effectsSelect.lastChild!);
+        }
         this._effectsSelect.selectedIndex = -1;
-        for (let i: number = 0; i < Config.effectOrder.length; i++) {
+        for (let i: number = 0; i < Config.effectOrder.length - 1; i++) {
             let effectFlag: number = Config.effectOrder[i];
             const selected: boolean = ((instrument.effects & (1 << effectFlag)) != 0);
             const label: string = (selected ? textOnIcon : textOffIcon) + Config.effectNames[effectFlag];
-            const option: HTMLOptionElement = <HTMLOptionElement>this._effectsSelect.children[i + 1];
-            if (option.textContent != label) option.textContent = label;
+            const effectOption: HTMLOptionElement = <HTMLOptionElement>this._effectsSelect.children[i + 1];
+            if (effectOption.textContent != label) effectOption.textContent = label;
+        }
+        //specific plugin case
+        if (this._pluginurl) {
+            let effectFlag: number = Config.effectOrder[Config.effectOrder.length - 1];
+            const selected: boolean = ((instrument.effects & (1 << effectFlag)) != 0);
+            const label: string = (selected ? textOnIcon : textOffIcon) + EditorConfig.pluginName;
+            const pluginOption: HTMLOptionElement = <HTMLOptionElement>this._effectsSelect.children[Config.effectOrder.length];
+            if (pluginOption.textContent != label) pluginOption.textContent = label;
         }
 
         setSelectedValue(this._scaleSelect, this.doc.song.scale);
@@ -2970,16 +2988,16 @@ export class SongEditor {
                 this._granularContainerRow.style.display = "none";
             }
 
-            if (effectsIncludePlugin(instrument.effects)) {
-                if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length != EditorConfig.pluginSliders.length) {
-                    this._pluginurl = this.doc.song.pluginurl;
-                    this._pluginContainerRow.innerHTML = "";
-                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                        this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
-                        this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
-                        this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                    }
+            if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length != EditorConfig.pluginSliders.length) {
+                this._pluginurl = this.doc.song.pluginurl;
+                this._pluginContainerRow.innerHTML = "";
+                for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
+                    this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
+                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
+                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
                 }
+            }
+            if (effectsIncludePlugin(instrument.effects)) {
                 this._pluginContainerRow.style.display = "";
                 for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
                     this._pluginSliders[i].updateValue(instrument.pluginValues[i]);
@@ -5512,6 +5530,9 @@ export class SongEditor {
             case "addExternal":
                 this._openPrompt("addExternal");
                 break;
+            case "addPlugin":
+                this._openPrompt("addPlugin");
+                    break;
         }
         this._editMenu.selectedIndex = 0;
     }

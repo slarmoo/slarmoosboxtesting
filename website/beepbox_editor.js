@@ -31,7 +31,7 @@ var beepbox = (function (exports) {
             step((generator = generator.apply(thisArg, _arguments || [])).next());
         });
     };
-    var _a$1;
+    var _a$2;
     const TypePresets = ["chip", "FM", "noise", "spectrum", "drumset", "harmonics", "pulse width", "picked string", "supersaw", "chip (custom)", "mod", "FM (6-op)"];
     function getSampleLoadingStatusName(status) {
         switch (status) {
@@ -427,54 +427,54 @@ var beepbox = (function (exports) {
     }
     class Config {
         static generateSineWave() {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = Math.sin(i * Math.PI * 2.0 / _a$1.sineWaveLength);
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = Math.sin(i * Math.PI * 2.0 / _a$2.sineWaveLength);
             }
             return wave;
         }
         static generateTriWave() {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = Math.asin(Math.sin(i * Math.PI * 2.0 / _a$1.sineWaveLength)) / (Math.PI / 2);
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = Math.asin(Math.sin(i * Math.PI * 2.0 / _a$2.sineWaveLength)) / (Math.PI / 2);
             }
             return wave;
         }
         static generateTrapezoidWave(drive = 2) {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = Math.max(-1.0, Math.min(1.0, Math.asin(Math.sin(i * Math.PI * 2.0 / _a$1.sineWaveLength)) * drive));
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = Math.max(-1.0, Math.min(1.0, Math.asin(Math.sin(i * Math.PI * 2.0 / _a$2.sineWaveLength)) * drive));
             }
             return wave;
         }
         static generateSquareWave(phaseWidth = 0) {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            const centerPoint = _a$1.sineWaveLength / 4;
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = +((Math.abs(i - centerPoint) < phaseWidth * _a$1.sineWaveLength / 2)
-                    || ((Math.abs(i - _a$1.sineWaveLength - centerPoint) < phaseWidth * _a$1.sineWaveLength / 2))) * 2 - 1;
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            const centerPoint = _a$2.sineWaveLength / 4;
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = +((Math.abs(i - centerPoint) < phaseWidth * _a$2.sineWaveLength / 2)
+                    || ((Math.abs(i - _a$2.sineWaveLength - centerPoint) < phaseWidth * _a$2.sineWaveLength / 2))) * 2 - 1;
             }
             return wave;
         }
         static generateSawWave(inverse = false) {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = ((i + (_a$1.sineWaveLength / 4.0)) * 2.0 / _a$1.sineWaveLength) % 2 - 1;
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = ((i + (_a$2.sineWaveLength / 4.0)) * 2.0 / _a$2.sineWaveLength) % 2 - 1;
                 wave[i] = inverse ? -wave[i] : wave[i];
             }
             return wave;
         }
         static generateWhiteNoiseFmWave() {
-            const wave = new Float32Array(_a$1.noiseWaveLength + 1);
-            for (let i = 0; i < _a$1.noiseWaveLength + 1; i++) {
+            const wave = new Float32Array(_a$2.noiseWaveLength + 1);
+            for (let i = 0; i < _a$2.noiseWaveLength + 1; i++) {
                 wave[i] = Math.random() * 2.0 - 1.0;
             }
             return wave;
         }
         static generateMetallicNoiseFMWave() {
-            const wave = new Float32Array(_a$1.noiseWaveLength + 1);
+            const wave = new Float32Array(_a$2.noiseWaveLength + 1);
             var drumBuffer = 1;
-            for (var i = 0; i < _a$1.noiseWaveLength + 1; i++) {
+            for (var i = 0; i < _a$2.noiseWaveLength + 1; i++) {
                 wave[i] = Math.round((drumBuffer & 1));
                 var newBuffer = drumBuffer >> 1;
                 if (((drumBuffer + newBuffer) & 1) == 1) {
@@ -485,14 +485,14 @@ var beepbox = (function (exports) {
             return wave;
         }
         static generateQuasiSineWave() {
-            const wave = new Float32Array(_a$1.sineWaveLength + 1);
-            for (let i = 0; i < _a$1.sineWaveLength + 1; i++) {
-                wave[i] = Math.round(Math.sin(i * Math.PI * 2.0 / _a$1.sineWaveLength));
+            const wave = new Float32Array(_a$2.sineWaveLength + 1);
+            for (let i = 0; i < _a$2.sineWaveLength + 1; i++) {
+                wave[i] = Math.round(Math.sin(i * Math.PI * 2.0 / _a$2.sineWaveLength));
             }
             return wave;
         }
     }
-    _a$1 = Config;
+    _a$2 = Config;
     Config.thresholdVal = -10;
     Config.kneeVal = 40;
     Config.ratioVal = 12;
@@ -555,7 +555,7 @@ var beepbox = (function (exports) {
     Config.reverbShelfGain = Math.pow(2.0, -1.5);
     Config.reverbRange = 32;
     Config.reverbDelayBufferSize = 16384;
-    Config.reverbDelayBufferMask = _a$1.reverbDelayBufferSize - 1;
+    Config.reverbDelayBufferMask = _a$2.reverbDelayBufferSize - 1;
     Config.beatsPerBarMin = 1;
     Config.beatsPerBarMax = 64;
     Config.barCountMin = 1;
@@ -678,9 +678,9 @@ var beepbox = (function (exports) {
         { name: "todbox beta real snare", expression: 1.0, samples: centerAndNormalizeWave([0.00000, -0.01208, -0.02997, -0.04382, -0.06042, -0.07529, -0.09116, -0.10654, -0.12189, -0.13751, -0.15289, -0.16849, -0.18387, -0.19974, -0.21484, -0.23071, -0.24557, -0.26144, -0.27731, -0.29141, -0.30350, -0.32416, -0.34406, -0.32947, -0.31158, -0.33725, -0.37579, -0.39746, -0.40201, -0.40906, -0.44180, -0.47229, -0.47379, -0.47733, -0.45239, -0.33954, -0.22894, -0.22443, -0.32138, -0.46371, -0.57178, -0.61081, -0.59998, -0.61459, -0.62189, -0.43979, -0.19217, -0.12643, -0.17252, -0.20956, -0.20981, -0.19217, -0.22845, -0.34332, -0.50629, -0.64307, -0.72922, -0.81384, -0.87857, -0.90149, -0.88687, -0.86169, -0.87781, -0.80478, -0.52493, -0.31308, -0.33249, -0.39395, -0.39017, -0.30301, -0.19949, -0.13071, -0.02493, 0.14307, 0.34961, 0.52542, 0.63223, 0.68613, 0.74710, 0.87305, 0.98184, 0.98889, 0.97052, 0.99066, 0.99747, 0.99344, 0.99469, 0.99393, 0.99570, 0.99393, 0.99521, 0.99469, 0.99420, 0.99521, 0.99420, 0.99521, 0.99469, 0.99469, 0.99521, 0.99420, 0.99545, 0.99445, 0.99469, 0.99493, 0.99420, 0.99521, 0.99393, 0.99493, 0.99469, 0.99445, 0.99570, 0.99445, 0.99521, 0.99469, 0.99469, 0.99521, 0.99420, 0.99545, 0.99445, 0.99445, 0.99493, 0.99420, 0.99545, 0.99420, 0.99493, 0.99493, 0.99420, 0.99545, 0.99445, 0.99521, 0.99469, 0.99445, 0.99545, 0.99368, 0.99393, 0.99445, 0.99268, 0.97983, 0.97229, 0.95944, 0.88486, 0.76773, 0.64481, 0.53098, 0.39847, 0.19318, -0.03827, -0.20325, -0.39319, -0.68765, -0.88461, -0.93448, -0.96069, -0.97681, -0.98715, -0.99042, -0.99142, -0.99091, -0.99142, -0.99219, -0.99091, -0.99219, -0.99066, -0.99142, -0.99142, -0.99118, -0.99191, -0.99066, -0.99191, -0.99142, -0.99142, -0.99191, -0.99091, -0.99219, -0.99118, -0.99142, -0.99167, -0.99091, -0.99219, -0.99091, -0.99167, -0.99142, -0.99091, -0.99191, -0.99091, -0.99191, -0.99142, -0.99118, -0.99191, -0.99066, -0.99191, -0.99118, -0.99142, -0.99191, -0.99066, -0.99191, -0.99091, -0.99167, -0.99191, -0.99118, -0.99219, -0.99091, -0.99191, -0.99142, -0.99142, -0.99243, -0.98865, -0.98764, -0.99219, -0.98083, -0.92517, -0.92770, -0.91486, -0.59042, -0.15189, 0.02945, 0.05667, 0.06195, 0.00629, -0.18008, -0.56497, -0.88010, -0.92770, -0.92871, -0.97705, -0.99167, -0.98663, -0.99118, -0.99042, -0.99219, -0.99142, -0.99118, -0.98941, -0.99219, -1.00000, -0.97580, -0.95993, -0.99948, -0.98236, -0.84659, -0.74860, -0.70679, -0.59747, -0.48035, -0.41687, -0.36826, -0.29745, -0.18185, -0.06219, 0.02164, 0.07907, 0.13123, 0.18033, 0.19620, 0.15692, 0.14053, 0.20251, 0.27530, 0.30905, 0.29092, 0.27252, 0.30402, 0.32416, 0.32214, 0.35239, 0.39670, 0.43198, 0.49420, 0.58487, 0.64154, 0.65967, 0.67050, 0.67026, 0.66522, 0.65540, 0.66119, 0.70627, 0.75842, 0.78738, 0.78940, 0.78763, 0.80402, 0.85944, 0.94559, 0.98990, 0.98160, 0.98007, 0.99368, 0.99393, 0.98538, 0.97580, 0.97101, 0.93802, 0.81812, 0.64633, 0.46649, 0.28613, 0.14685, 0.08966, 0.12543, 0.20325, 0.24557, 0.18866, 0.02795, -0.20175, -0.44205, -0.58713, -0.57629, -0.41385, -0.14255, 0.18033, 0.47882, 0.68311, 0.72314, 0.62064, 0.48309, 0.43073, 0.53577, 0.72794, 0.90250, 0.97354, 0.97000, 0.98083, 0.99191, 0.99319, 0.99493, 0.99393, 0.99521, 0.99393, 0.99545, 0.99420, 0.99493, 0.99493, 0.99445, 0.99545, 0.99420, 0.99545, 0.99243, 0.98917, 0.98386, 0.97781, 0.95844, 0.89066, 0.81561, 0.78134, 0.77277, 0.75995, 0.73022, 0.67126, 0.57178, 0.47000, 0.38361, 0.29419, 0.20703, 0.14734, 0.15866, 0.25162, 0.35818, 0.45062, 0.56750, 0.69748, 0.81232, 0.89697, 0.95062, 0.97656, 0.98615, 0.99191, 0.99219, 0.99243, 0.99368, 0.99368, 0.97028, 0.95566, 0.94559, 0.82617, 0.59973, 0.38361, 0.23901, 0.15338, 0.12921, 0.11206, 0.04382, -0.12946, -0.43552, -0.72644, -0.89847, -0.95465, -0.95541, -0.97229, -0.99268, -0.99319, -0.98840, -0.99142, -0.99167, -0.99091, -0.98840, -0.98965, -0.99368, -0.97455, -0.95010, -0.94684, -0.96219, -0.98514, -0.99243, -0.98889, -0.98917, -0.99142, -0.99219, -0.99091, -0.99191, -0.99142, -0.99142, -0.99191, -0.99066, -0.99167, -0.99091, -0.99142, -0.99191, -0.99091, -0.99191, -0.99091, -0.99167, -0.99167, -0.99091, -0.99219, -0.99091, -0.99191, -0.99142, -0.99118, -0.99191, -0.99066, -0.99191, -0.99091, -0.99118, -0.99243, -0.98941, -0.98462, -0.96976, -0.96320, -0.96194, -0.87305, -0.66196, -0.44809, -0.29495, -0.18085, -0.11813, -0.11334, -0.18564, -0.34885, -0.58237, -0.80450, -0.93726, -0.97806, -0.97354, -0.97531, -0.98990, -0.99368, -0.98941, -0.99219, -0.99091, -0.99142, -0.99167, -0.99091, -0.99191, -0.99118, -0.99219, -0.98236, -0.97781, -0.97656, -0.95135, -0.87204, -0.71335, -0.52139, -0.34232, -0.17783, -0.00906, 0.14886, 0.30450, 0.48889, 0.67404, 0.84030, 0.94128, 0.97681, 0.98462, 0.98337, 0.99142, 0.99521, 0.99493, 0.99420, 0.99445, 0.99521, 0.99393, 0.99545, 0.99445, 0.99521, 0.99521, 0.99445, 0.99570, 0.99445, 0.99521, 0.99469, 0.99445, 0.99521, 0.99420, 0.99521, 0.99445, 0.99445, 0.99521, 0.99445, 0.99545, 0.99445, 0.99469, 0.99493, 0.99393, 0.99493, 0.99445, 0.99393, 0.98285, 0.97781, 0.97479, 0.92844, 0.82114, 0.66095, 0.52417, 0.46826, 0.46722, 0.47934, 0.47379, 0.47076, 0.48209, 0.42014, 0.25439, 0.10074, -0.00302, -0.08966, -0.16068, -0.21436, -0.22040, -0.15137, -0.00476, 0.18536, 0.37631, 0.52292, 0.62164, 0.70425, 0.74835, 0.72366, 0.63928, 0.52567, 0.40805, 0.35666, 0.42896, 0.60175, 0.80200, 0.92743, 0.96548, 0.97632, 0.98337, 0.99066, 0.99521, 0.99420, 0.99368, 0.99292, 0.98840, 0.98083, 0.96774, 0.93323, 0.85440, 0.69470, 0.47202, 0.20425, -0.08890, -0.36423, -0.60025, -0.77481, -0.90173, -0.96017, -0.97028, -0.98108, -0.98840, -0.99219, -0.98990, -0.99219, -0.99142, -0.99142, -0.99219, -0.99091, -0.99243, -0.99066, -0.99142, -0.99142, -0.99118, -0.99191, -0.99066, -0.99167, -0.99142, -0.99142, -0.99219, -0.99091, -0.99191, -0.99118, -0.99142, -0.99191, -0.99091, -0.99191, -0.99091, -0.99167, -0.99191, -0.99118, -0.99219, -0.99091, -0.99167, -0.99142, -0.99142, -0.99219, -0.99091, -0.99191, -0.99142, -0.99118, -0.98917, -0.99042, -0.99445, -0.97330, -0.95590, -0.96219, -0.89670, -0.72241, -0.55112, -0.44809, -0.39319, -0.37833, -0.35641, -0.26270, -0.14230, -0.11282, -0.13525, -0.11536, -0.09671, -0.11511, -0.18060, -0.26874, -0.33374, -0.42215, -0.51358, -0.44785, -0.30450, -0.28613, -0.30527, -0.25037, -0.15390, -0.08286, -0.11157, -0.12592, -0.00327, 0.13803, 0.19141, 0.12820, 0.01788, -0.03952, -0.12592, -0.26773, -0.34634, -0.31384, -0.18060, -0.01080, 0.13574, 0.26120, 0.36975, 0.46573, 0.55087, 0.63626, 0.73022, 0.83072, 0.92014, 0.97177, 0.98587, 0.98413, 0.99167, 0.99445, 0.99292, 0.99219, 0.98740, 0.98007, 0.96472, 0.92239, 0.82166, 0.69067, 0.57959, 0.54962, 0.59695, 0.64255, 0.64633, 0.60629, 0.55942, 0.54910, 0.58966, 0.61887, 0.56952, 0.54181, 0.59518, 0.63248, 0.63876, 0.65463, 0.73398, 0.88312, 0.96927, 0.97101, 0.97958, 0.99344, 0.99420, 0.99268, 0.99493, 0.99469, 0.99445, 0.99521, 0.99445, 0.99545, 0.99420, 0.99493, 0.99493, 0.99420, 0.99545, 0.99420, 0.99493, 0.99420, 0.99393, 0.99420, 0.98840, 0.98309, 0.98309, 0.96069, 0.88461, 0.79370, 0.72064, 0.65765, 0.59998, 0.53247, 0.49268, 0.48615, 0.44205, 0.38034, 0.36447, 0.38715, 0.39294, 0.32645, 0.19595, 0.07782, -0.05893, -0.27832, -0.48309, -0.62619, -0.72995, -0.79999, -0.84583, -0.82166, -0.73575, -0.67227, -0.65491, -0.64960, -0.66397, -0.70175, -0.72894, -0.74658, -0.76724, -0.79520, -0.82846, -0.86523, -0.90527, -0.94382, -0.89948, -0.69849, -0.47479, -0.31662, -0.15414, -0.00729, 0.07077, 0.08237, 0.04431, -0.02292, -0.11761, -0.24307, -0.36926, -0.45087, -0.46170, -0.40250, -0.30679, -0.17529, 0.00000, 0.14331, 0.24179, 0.36774, 0.49545, 0.56522, 0.57907, 0.56775, 0.53851, 0.51132, 0.48688, 0.41913, 0.26044, 0.00955, -0.26297, -0.46396, -0.62341, -0.82214, -0.94684, -0.96774, -0.97531, -0.98413, -0.99017, -0.98990, -0.99219, -0.99066, -0.99142, -0.99167, -0.99118, -0.99219, -0.98990, -0.99118, -0.99368, -0.99142, -0.97757, -0.97403, -0.98007, -0.96170, -0.86826, -0.67783, -0.52719, -0.48788, -0.45490, -0.43146, -0.47681, -0.54105, -0.57983, -0.60904, -0.62317, -0.59949, -0.55566, -0.52063, -0.52115, -0.55112, -0.56244, -0.58337, -0.65540, -0.73373, -0.77228, -0.74759, -0.68890, -0.64609, -0.61887, -0.58060, -0.50351, -0.40729, -0.33929, -0.35110, -0.42944, -0.47028, -0.42267, -0.32718, -0.20224, -0.05640, 0.04556, 0.10529, 0.17630, 0.26169, 0.33197, 0.32138, 0.23776, 0.20956, 0.23148, 0.20352, 0.23325, 0.39267, 0.52719, 0.58438, 0.62289, 0.66345, 0.70023, 0.66296, 0.54330, 0.42618, 0.33475, 0.24533, 0.14105, 0.03851, 0.01358, 0.09143, 0.22845, 0.34961, 0.41711, 0.48740, 0.58914, 0.69519, 0.78186, 0.84357, 0.89822, 0.95389, 0.98135, 0.98615, 0.99167, 0.99243, 0.99445, 0.99420, 0.99469, 0.99493, 0.99393, 0.99545, 0.99445, 0.99521, 0.99469, 0.99445, 0.99521, 0.99420, 0.99469, 0.98965, 0.98715, 0.98563, 0.96295, 0.91736, 0.86624, 0.82367, 0.77554, 0.68411, 0.53549, 0.38916, 0.26120, 0.11435, -0.04053, -0.18161, -0.23172, -0.19394, -0.15237, -0.10730, -0.02997, 0.08588, 0.22620, 0.34305, 0.44104, 0.55740, 0.65765, 0.71259, 0.69217, 0.65363, 0.69748, 0.79572, 0.89368, 0.95514, 0.97733, 0.98413, 0.98816, 0.99243, 0.99445, 0.99243, 0.97302, 0.96674, 0.97983, 0.90378, 0.71005, 0.51056, 0.40451, 0.40982, 0.41559, 0.32996, 0.24356, 0.18866, 0.11411, 0.05365, 0.01157, -0.03247, -0.09216, -0.16095, -0.23248, -0.31662, -0.39771, -0.48663, -0.59647, -0.71536, -0.82013, -0.85287, -0.82947, -0.84937, -0.92215, -0.97177, -0.98663, -0.98816, -0.98438, -0.99091, -0.99219, -0.99091, -0.99191, -0.99042, -0.99191, -0.99091, -0.99142, -0.99191, -0.99091, -0.99191, -0.99091, -0.99167, -0.99142]) },
         { name: "ultrabox shortened od guitar", expression: 0.5, samples: centerAndNormalizeWave([-0.82785, -0.67621, -0.40268, -0.43817, -0.45468, -0.22531, -0.18329, 0.24750, 0.71246, 0.52155, 0.56082, 0.48395, 0.33990, 0.46957, 0.27744, 0.42313, 0.47104, 0.18796, 0.12930, -0.13901, -0.07431, -0.16348, -0.74857, -0.73206, -0.35181, -0.26227, -0.41882, -0.27786, -0.19806, -0.19867, 0.18643, 0.24808, 0.08847, -0.06964, 0.06912, 0.20474, -0.05304, 0.29416, 0.31967, 0.14243, 0.27521, -0.23932, -0.14752, 0.12360, -0.26123, -0.26111, 0.06616, 0.26520, 0.08090, 0.15240, 0.16254, -0.12061, 0.04562, 0.00131, 0.04050, 0.08182, -0.21729, -0.17041, -0.16312, -0.08563, 0.06390, 0.05099, 0.05627, 0.02728, 0.00726, -0.13028, -0.05673, -0.14969, -0.17645, 0.35492, 0.16766, -0.00897, 0.24326, -0.00461, -0.04456, 0.01776, -0.04950, -0.01221, 0.02039, 0.07684, 0.13397, 0.39850, 0.35962, 0.13754, 0.42310, 0.27161, -0.17609, 0.03659, 0.10635, -0.21909, -0.22046, -0.20258, -0.40973, -0.40280, -0.40521, -0.66284]) },
     ]);
-    Config.chipWaves = rawChipToIntegrated(_a$1.rawChipWaves);
-    Config.rawRawChipWaves = _a$1.rawChipWaves;
-    Config.firstIndexForSamplesInChipWaveList = _a$1.chipWaves.length;
+    Config.chipWaves = rawChipToIntegrated(_a$2.rawChipWaves);
+    Config.rawRawChipWaves = _a$2.rawChipWaves;
+    Config.firstIndexForSamplesInChipWaveList = _a$2.chipWaves.length;
     Config.chipNoises = toNameMap([
         { name: "retro", expression: 0.25, basePitch: 69, pitchFilterMult: 1024.0, isSoft: false, samples: null },
         { name: "white", expression: 1.0, basePitch: 69, pitchFilterMult: 8.0, isSoft: true, samples: null },
@@ -702,7 +702,7 @@ var beepbox = (function (exports) {
     Config.filterFreqRange = 34;
     Config.filterFreqReferenceSetting = 28;
     Config.filterFreqReferenceHz = 8000.0;
-    Config.filterFreqMaxHz = _a$1.filterFreqReferenceHz * Math.pow(2.0, _a$1.filterFreqStep * (_a$1.filterFreqRange - 1 - _a$1.filterFreqReferenceSetting));
+    Config.filterFreqMaxHz = _a$2.filterFreqReferenceHz * Math.pow(2.0, _a$2.filterFreqStep * (_a$2.filterFreqRange - 1 - _a$2.filterFreqReferenceSetting));
     Config.filterFreqMinHz = 8.0;
     Config.filterGainRange = 15;
     Config.filterGainCenter = 7;
@@ -776,7 +776,7 @@ var beepbox = (function (exports) {
     Config.volumeRange = 50;
     Config.volumeLogScale = 0.1428;
     Config.panCenter = 50;
-    Config.panMax = _a$1.panCenter * 2;
+    Config.panMax = _a$2.panCenter * 2;
     Config.panDelaySecondsMax = 0.001;
     Config.ringModRange = 8;
     Config.ringModHzRange = 64;
@@ -797,7 +797,7 @@ var beepbox = (function (exports) {
     Config.chorusDelayRange = 0.0034;
     Config.chorusDelayOffsets = [[1.51, 2.10, 3.35], [1.47, 2.15, 3.25]];
     Config.chorusPhaseOffsets = [[0.0, 2.1, 4.2], [3.2, 5.3, 1.0]];
-    Config.chorusMaxDelay = _a$1.chorusDelayRange * (1.0 + _a$1.chorusDelayOffsets[0].concat(_a$1.chorusDelayOffsets[1]).reduce((x, y) => Math.max(x, y)));
+    Config.chorusMaxDelay = _a$2.chorusDelayRange * (1.0 + _a$2.chorusDelayOffsets[0].concat(_a$2.chorusDelayOffsets[1]).reduce((x, y) => Math.max(x, y)));
     Config.chords = toNameMap([
         { name: "simultaneous", customInterval: false, arpeggiates: false, strumParts: 0, singleTone: false },
         { name: "strum", customInterval: false, arpeggiates: false, strumParts: 1, singleTone: false },
@@ -807,7 +807,7 @@ var beepbox = (function (exports) {
     ]);
     Config.maxChordSize = 9;
     Config.operatorCount = 4;
-    Config.maxPitchOrOperatorCount = Math.max(_a$1.maxChordSize, _a$1.operatorCount + 2);
+    Config.maxPitchOrOperatorCount = Math.max(_a$2.maxChordSize, _a$2.operatorCount + 2);
     Config.algorithms = toNameMap([
         { name: "1←(2 3 4)", carrierCount: 1, associatedCarrier: [1, 1, 1, 1], modulatedBy: [[2, 3, 4], [], [], []] },
         { name: "1←(2 3←4)", carrierCount: 1, associatedCarrier: [1, 1, 1, 1], modulatedBy: [[2, 3], [], [4], []] },
@@ -1050,12 +1050,12 @@ var beepbox = (function (exports) {
     Config.spectrumControlPoints = 30;
     Config.spectrumControlPointsPerOctave = 7;
     Config.spectrumControlPointBits = 3;
-    Config.spectrumMax = (1 << _a$1.spectrumControlPointBits) - 1;
+    Config.spectrumMax = (1 << _a$2.spectrumControlPointBits) - 1;
     Config.harmonicsControlPoints = 28;
     Config.harmonicsRendered = 64;
     Config.harmonicsRenderedForPickedString = 1 << 8;
     Config.harmonicsControlPointBits = 3;
-    Config.harmonicsMax = (1 << _a$1.harmonicsControlPointBits) - 1;
+    Config.harmonicsMax = (1 << _a$2.harmonicsControlPointBits) - 1;
     Config.harmonicsWavelength = 1 << 11;
     Config.pulseWidthRange = 50;
     Config.pulseWidthStepPower = 0.5;
@@ -1074,11 +1074,11 @@ var beepbox = (function (exports) {
     Config.drumCount = 12;
     Config.pitchOctaves = 8;
     Config.modCount = 6;
-    Config.maxPitch = _a$1.pitchOctaves * _a$1.pitchesPerOctave;
-    Config.maximumTonesPerChannel = _a$1.maxChordSize * 2;
-    Config.justIntonationSemitones = [1.0 / 2.0, 8.0 / 15.0, 9.0 / 16.0, 3.0 / 5.0, 5.0 / 8.0, 2.0 / 3.0, 32.0 / 45.0, 3.0 / 4.0, 4.0 / 5.0, 5.0 / 6.0, 8.0 / 9.0, 15.0 / 16.0, 1.0, 16.0 / 15.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 45.0 / 32.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 16.0 / 9.0, 15.0 / 8.0, 2.0].map(x => Math.log2(x) * _a$1.pitchesPerOctave);
-    Config.pitchShiftRange = _a$1.justIntonationSemitones.length;
-    Config.pitchShiftCenter = _a$1.pitchShiftRange >> 1;
+    Config.maxPitch = _a$2.pitchOctaves * _a$2.pitchesPerOctave;
+    Config.maximumTonesPerChannel = _a$2.maxChordSize * 2;
+    Config.justIntonationSemitones = [1.0 / 2.0, 8.0 / 15.0, 9.0 / 16.0, 3.0 / 5.0, 5.0 / 8.0, 2.0 / 3.0, 32.0 / 45.0, 3.0 / 4.0, 4.0 / 5.0, 5.0 / 6.0, 8.0 / 9.0, 15.0 / 16.0, 1.0, 16.0 / 15.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 45.0 / 32.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 16.0 / 9.0, 15.0 / 8.0, 2.0].map(x => Math.log2(x) * _a$2.pitchesPerOctave);
+    Config.pitchShiftRange = _a$2.justIntonationSemitones.length;
+    Config.pitchShiftCenter = _a$2.pitchShiftRange >> 1;
     Config.detuneCenter = 200;
     Config.detuneMax = 400;
     Config.detuneMin = 0;
@@ -1095,10 +1095,10 @@ var beepbox = (function (exports) {
     Config.unisonSignMin = -2;
     Config.unisonSignMax = 2;
     Config.sineWaveLength = 1 << 8;
-    Config.sineWaveMask = _a$1.sineWaveLength - 1;
+    Config.sineWaveMask = _a$2.sineWaveLength - 1;
     Config.noiseWaveLength = 1 << 16;
-    Config.noiseWaveMask = _a$1.noiseWaveLength - 1;
-    Config.sineWave = _a$1.generateSineWave();
+    Config.noiseWaveMask = _a$2.noiseWaveLength - 1;
+    Config.sineWave = _a$2.generateSineWave();
     Config.perEnvelopeSpeedIndices = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.25, 0.3, 0.3333, 0.4, 0.5, 0.6, 0.6667, 0.7, 0.75, 0.8, 0.9, 1, 1.25, 1.3333, 1.5, 1.6667, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 24, 32, 40, 64, 128, 256];
     Config.perEnvelopeSpeedToIndices = {
         0: 0,
@@ -1190,14 +1190,14 @@ var beepbox = (function (exports) {
         { name: "pulseWidth", computeIndex: 2, displayName: "pulse width", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [6, 8] },
         { name: "stringSustain", computeIndex: 3, displayName: "sustain", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [7] },
         { name: "unison", computeIndex: 4, displayName: "unison", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [0, 5, 7, 9, 6, 2, 3, 4, 1, 11] },
-        { name: "operatorFrequency", computeIndex: 5, displayName: "fm# freq", perNote: true, interleave: true, isFilter: false, maxCount: _a$1.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
-        { name: "operatorAmplitude", computeIndex: 11, displayName: "fm# volume", perNote: true, interleave: false, isFilter: false, maxCount: _a$1.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
+        { name: "operatorFrequency", computeIndex: 5, displayName: "fm# freq", perNote: true, interleave: true, isFilter: false, maxCount: _a$2.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
+        { name: "operatorAmplitude", computeIndex: 11, displayName: "fm# volume", perNote: true, interleave: false, isFilter: false, maxCount: _a$2.operatorCount + 2, effect: null, compatibleInstruments: [1, 11] },
         { name: "feedbackAmplitude", computeIndex: 17, displayName: "fm feedback", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [1, 11] },
         { name: "pitchShift", computeIndex: 18, displayName: "pitch shift", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 7, compatibleInstruments: null },
         { name: "detune", computeIndex: 19, displayName: "detune", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 8, compatibleInstruments: null },
         { name: "vibratoDepth", computeIndex: 20, displayName: "vibrato depth", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 9, compatibleInstruments: null },
         { name: "noteFilterAllFreqs", computeIndex: 1, displayName: "n. filter freqs", perNote: true, interleave: false, isFilter: true, maxCount: 1, effect: 5, compatibleInstruments: null },
-        { name: "noteFilterFreq", computeIndex: 21, displayName: "n. filter # freq", perNote: true, interleave: false, isFilter: true, maxCount: _a$1.filterMaxPoints, effect: 5, compatibleInstruments: null },
+        { name: "noteFilterFreq", computeIndex: 21, displayName: "n. filter # freq", perNote: true, interleave: false, isFilter: true, maxCount: _a$2.filterMaxPoints, effect: 5, compatibleInstruments: null },
         { name: "decimalOffset", computeIndex: 37, displayName: "decimal offset", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [6, 8] },
         { name: "supersawDynamism", computeIndex: 38, displayName: "dynamism", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [8] },
         { name: "supersawSpread", computeIndex: 39, displayName: "spread", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [8] },
@@ -1219,28 +1219,28 @@ var beepbox = (function (exports) {
         { name: "echoDelay", computeIndex: 55, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6, compatibleInstruments: null },
     ]);
     Config.operatorWaves = toNameMap([
-        { name: "sine", samples: _a$1.sineWave },
-        { name: "triangle", samples: _a$1.generateTriWave() },
-        { name: "pulse width", samples: _a$1.generateSquareWave(0.5) },
-        { name: "sawtooth", samples: _a$1.generateSawWave() },
-        { name: "ramp", samples: _a$1.generateSawWave(true) },
-        { name: "trapezoid", samples: _a$1.generateTrapezoidWave(2) },
-        { name: "quasi-sine", samples: _a$1.generateQuasiSineWave() },
-        { name: "white noise", samples: _a$1.generateWhiteNoiseFmWave() },
-        { name: "metallic noise", samples: _a$1.generateMetallicNoiseFMWave() },
+        { name: "sine", samples: _a$2.sineWave },
+        { name: "triangle", samples: _a$2.generateTriWave() },
+        { name: "pulse width", samples: _a$2.generateSquareWave(0.5) },
+        { name: "sawtooth", samples: _a$2.generateSawWave() },
+        { name: "ramp", samples: _a$2.generateSawWave(true) },
+        { name: "trapezoid", samples: _a$2.generateTrapezoidWave(2) },
+        { name: "quasi-sine", samples: _a$2.generateQuasiSineWave() },
+        { name: "white noise", samples: _a$2.generateWhiteNoiseFmWave() },
+        { name: "metallic noise", samples: _a$2.generateMetallicNoiseFMWave() },
     ]);
     Config.pwmOperatorWaves = toNameMap([
-        { name: "1%", samples: _a$1.generateSquareWave(0.01) },
-        { name: "5%", samples: _a$1.generateSquareWave(0.05) },
-        { name: "12.5%", samples: _a$1.generateSquareWave(0.125) },
-        { name: "25%", samples: _a$1.generateSquareWave(0.25) },
-        { name: "33%", samples: _a$1.generateSquareWave(1 / 3) },
-        { name: "50%", samples: _a$1.generateSquareWave(0.5) },
-        { name: "66%", samples: _a$1.generateSquareWave(2 / 3) },
-        { name: "75%", samples: _a$1.generateSquareWave(0.75) },
-        { name: "87.5%", samples: _a$1.generateSquareWave(0.875) },
-        { name: "95%", samples: _a$1.generateSquareWave(0.95) },
-        { name: "99%", samples: _a$1.generateSquareWave(0.99) },
+        { name: "1%", samples: _a$2.generateSquareWave(0.01) },
+        { name: "5%", samples: _a$2.generateSquareWave(0.05) },
+        { name: "12.5%", samples: _a$2.generateSquareWave(0.125) },
+        { name: "25%", samples: _a$2.generateSquareWave(0.25) },
+        { name: "33%", samples: _a$2.generateSquareWave(1 / 3) },
+        { name: "50%", samples: _a$2.generateSquareWave(0.5) },
+        { name: "66%", samples: _a$2.generateSquareWave(2 / 3) },
+        { name: "75%", samples: _a$2.generateSquareWave(0.75) },
+        { name: "87.5%", samples: _a$2.generateSquareWave(0.875) },
+        { name: "95%", samples: _a$2.generateSquareWave(0.95) },
+        { name: "99%", samples: _a$2.generateSquareWave(0.99) },
     ]);
     Config.barEditorHeight = 10;
     Config.modulators = toNameMap([
@@ -1248,19 +1248,19 @@ var beepbox = (function (exports) {
             promptName: "No Mod Setting", promptDesc: ["No setting has been chosen yet, so this modulator will have no effect. Try choosing a setting with the dropdown, then click this '?' again for more info.", "[$LO - $HI]"] },
         { name: "song volume", pianoName: "Volume", maxRawVol: 100, newNoteVol: 100, forSong: true, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Song Volume", promptDesc: ["This setting affects the overall volume of the song, just like the main volume slider.", "At $HI, the volume will be unchanged from default, and it will get gradually quieter down to $LO.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "tempo", pianoName: "Tempo", maxRawVol: _a$1.tempoMax - _a$1.tempoMin, newNoteVol: Math.ceil((_a$1.tempoMax - _a$1.tempoMin) / 2), forSong: true, convertRealFactor: _a$1.tempoMin, associatedEffect: 16, maxIndex: 0,
+        { name: "tempo", pianoName: "Tempo", maxRawVol: _a$2.tempoMax - _a$2.tempoMin, newNoteVol: Math.ceil((_a$2.tempoMax - _a$2.tempoMin) / 2), forSong: true, convertRealFactor: _a$2.tempoMin, associatedEffect: 16, maxIndex: 0,
             promptName: "Song Tempo", promptDesc: ["This setting controls the speed your song plays at, just like the tempo slider.", "When you first make a note for this setting, it will default to your current tempo. Raising it speeds up the song, up to $HI BPM, and lowering it slows it down, to a minimum of $LO BPM.", "Note that you can make a 'swing' effect by rapidly changing between two tempo values.", "[OVERWRITING] [$LO - $HI] [BPM]"] },
-        { name: "song reverb", pianoName: "Reverb", maxRawVol: _a$1.reverbRange * 2, newNoteVol: _a$1.reverbRange, forSong: true, convertRealFactor: -_a$1.reverbRange, associatedEffect: 16, maxIndex: 0,
+        { name: "song reverb", pianoName: "Reverb", maxRawVol: _a$2.reverbRange * 2, newNoteVol: _a$2.reverbRange, forSong: true, convertRealFactor: -_a$2.reverbRange, associatedEffect: 16, maxIndex: 0,
             promptName: "Song Reverb", promptDesc: ["This setting affects the overall reverb of your song. It works by multiplying existing reverb for instruments, so those with no reverb set will be unaffected.", "At $MID, all instruments' reverb will be unchanged from default. This increases up to double the reverb value at $HI, or down to no reverb at $LO.", "[MULTIPLICATIVE] [$LO - $HI]"] },
         { name: "next bar", pianoName: "Next Bar", maxRawVol: 1, newNoteVol: 1, forSong: true, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Go To Next Bar", promptDesc: ["This setting functions a little different from most. Wherever a note is placed, the song will jump immediately to the next bar when it is encountered.", "This jump happens at the very start of the note, so the length of a next-bar note is irrelevant. Also, the note can be value 0 or 1, but the value is also irrelevant - wherever you place a note, the song will jump.", "You can make mixed-meter songs or intro sections by cutting off unneeded beats with a next-bar modulator.", "[$LO - $HI]"] },
-        { name: "note volume", pianoName: "Note Vol.", maxRawVol: _a$1.volumeRange, newNoteVol: Math.ceil(_a$1.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-_a$1.volumeRange / 2.0), associatedEffect: 16, maxIndex: 0,
+        { name: "note volume", pianoName: "Note Vol.", maxRawVol: _a$2.volumeRange, newNoteVol: Math.ceil(_a$2.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-_a$2.volumeRange / 2.0), associatedEffect: 16, maxIndex: 0,
             promptName: "Note Volume", promptDesc: ["This setting affects the volume of your instrument as if its note size had been scaled.", "At $MID, an instrument's volume will be unchanged from default. This means you can still use the volume sliders to mix the base volume of instruments. The volume gradually increases up to $HI, or decreases down to mute at $LO.", "This setting was the default for volume modulation in JummBox for a long time. Due to some new effects like distortion and bitcrush, note volume doesn't always allow fine volume control. Also, this modulator affects the value of FM modulator waves instead of just carriers. This can distort the sound which may be useful, but also may be undesirable. In those cases, use the 'mix volume' modulator instead, which will always just scale the volume with no added effects.", "For display purposes, this mod will show up on the instrument volume slider, as long as there is not also an active 'mix volume' modulator anyhow. However, as mentioned, it works more like changing note volume.", "[MULTIPLICATIVE] [$LO - $HI]"] },
-        { name: "pan", pianoName: "Pan", maxRawVol: _a$1.panMax, newNoteVol: Math.ceil(_a$1.panMax / 2), forSong: false, convertRealFactor: 0, associatedEffect: 2, maxIndex: 0,
+        { name: "pan", pianoName: "Pan", maxRawVol: _a$2.panMax, newNoteVol: Math.ceil(_a$2.panMax / 2), forSong: false, convertRealFactor: 0, associatedEffect: 2, maxIndex: 0,
             promptName: "Instrument Panning", promptDesc: ["This setting controls the panning of your instrument, just like the panning slider.", "At $LO, your instrument will sound like it is coming fully from the left-ear side. At $MID it will be right in the middle, and at $HI, it will sound like it's on the right.", "[OVERWRITING] [$LO - $HI] [L-R]"] },
-        { name: "reverb", pianoName: "Reverb", maxRawVol: _a$1.reverbRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 0, maxIndex: 0,
+        { name: "reverb", pianoName: "Reverb", maxRawVol: _a$2.reverbRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 0, maxIndex: 0,
             promptName: "Instrument Reverb", promptDesc: ["This setting controls the reverb of your insturment, just like the reverb slider.", "At $LO, your instrument will have no reverb. At $HI, it will be at maximum.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "distortion", pianoName: "Distortion", maxRawVol: _a$1.distortionRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 3, maxIndex: 0,
+        { name: "distortion", pianoName: "Distortion", maxRawVol: _a$2.distortionRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 3, maxIndex: 0,
             promptName: "Instrument Distortion", promptDesc: ["This setting controls the amount of distortion for your instrument, just like the distortion slider.", "At $LO, your instrument will have no distortion. At $HI, it will be at maximum.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "fm slider 1", pianoName: "FM 1", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "FM Slider 1", promptDesc: ["This setting affects the strength of the first FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
@@ -1272,13 +1272,13 @@ var beepbox = (function (exports) {
             promptName: "FM Slider 4", promptDesc: ["This setting affects the strength of the fourth FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
         { name: "fm feedback", pianoName: "FM Feedbck", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "FM Feedback", promptDesc: ["This setting affects the strength of the FM feedback slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
-        { name: "pulse width", pianoName: "Pulse Width", maxRawVol: _a$1.pulseWidthRange, newNoteVol: _a$1.pulseWidthRange, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "pulse width", pianoName: "Pulse Width", maxRawVol: _a$2.pulseWidthRange, newNoteVol: _a$2.pulseWidthRange, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Pulse Width", promptDesc: ["This setting controls the width of this instrument's pulse wave, just like the pulse width slider.", "At $HI, your instrument will sound like a pure square wave (on 50% of the time). It will gradually sound narrower down to $LO, where it will be inaudible (as it is on 0% of the time).", "Changing pulse width randomly between a few values is a common strategy in chiptune music to lend some personality to a lead instrument.", "[OVERWRITING] [$LO - $HI] [%Duty]"] },
-        { name: "detune", pianoName: "Detune", maxRawVol: _a$1.detuneMax - _a$1.detuneMin, newNoteVol: _a$1.detuneCenter, forSong: false, convertRealFactor: -_a$1.detuneCenter, associatedEffect: 8, maxIndex: 0,
+        { name: "detune", pianoName: "Detune", maxRawVol: _a$2.detuneMax - _a$2.detuneMin, newNoteVol: _a$2.detuneCenter, forSong: false, convertRealFactor: -_a$2.detuneCenter, associatedEffect: 8, maxIndex: 0,
             promptName: "Instrument Detune", promptDesc: ["This setting controls the detune for this instrument, just like the detune slider.", "At $MID, your instrument will have no detune applied. Each tick corresponds to one cent, or one-hundredth of a pitch. Thus, each change of 100 ticks corresponds to one half-step of detune, up to two half-steps up at $HI, or two half-steps down at $LO.", "[OVERWRITING] [$LO - $HI] [cents]"] },
         { name: "vibrato depth", pianoName: "Vibrato Depth", maxRawVol: 50, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 9, maxIndex: 0,
             promptName: "Vibrato Depth", promptDesc: ["This setting controls the amount that your pitch moves up and down by during vibrato, just like the vibrato depth slider.", "At $LO, your instrument will have no vibrato depth so its vibrato would be inaudible. This increases up to $HI, where an extreme pitch change will be noticeable.", "[OVERWRITING] [$LO - $HI] [pitch ÷25]"] },
-        { name: "song detune", pianoName: "Detune", maxRawVol: _a$1.songDetuneMax - _a$1.songDetuneMin, newNoteVol: Math.ceil((_a$1.songDetuneMax - _a$1.songDetuneMin) / 2), forSong: true, convertRealFactor: -250, associatedEffect: 16, maxIndex: 0,
+        { name: "song detune", pianoName: "Detune", maxRawVol: _a$2.songDetuneMax - _a$2.songDetuneMin, newNoteVol: Math.ceil((_a$2.songDetuneMax - _a$2.songDetuneMin) / 2), forSong: true, convertRealFactor: -250, associatedEffect: 16, maxIndex: 0,
             promptName: "Song Detune", promptDesc: ["This setting controls the overall detune of the entire song. There is no associated slider.", "At $MID, your song will have no extra detune applied and sound unchanged from default. Each tick corresponds to four cents, or four hundredths of a pitch. Thus, each change of 25 ticks corresponds to one half-step of detune, up to 10 half-steps up at $HI, or 10 half-steps down at $LO.", "[MULTIPLICATIVE] [$LO - $HI] [cents x4]"] },
         { name: "vibrato speed", pianoName: "Vibrato Speed", maxRawVol: 30, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 9, maxIndex: 0,
             promptName: "Vibrato Speed", promptDesc: ["This setting controls the speed your instrument will vibrato at, just like the slider.", "A setting of $LO means there will be no oscillation, and vibrato will be disabled. Higher settings will increase the speed, up to a dramatic trill at the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
@@ -1295,30 +1295,30 @@ var beepbox = (function (exports) {
             promptName: "EQ Filter", promptDesc: ["This setting controls a few separate things for your instrument's EQ filter.", "When the option 'morph' is selected, your modulator values will indicate a sub-filter index of your EQ filter to 'morph' to over time. For example, a change from 0 to 1 means your main filter (default) will morph to sub-filter 1 over the specified duration. You can shape the main filter and sub-filters in the large filter editor ('+' button). If your two filters' number, type, and order of filter dots all match up, the morph will happen smoothly and you'll be able to hear them changing. If they do not match up, the filters will simply jump between each other.", "Note that filters will morph based on endpoints in the pattern editor. So, if you specify a morph from sub-filter 1 to 4 but do not specifically drag in new endpoints for 2 and 3, it will morph directly between 1 and 4 without going through the others.", "If you target Dot X or Dot Y, you can finely tune the coordinates of a single dot for your filter. The number of available dots to choose is dependent on your main filter's dot count.", "[OVERWRITING] [$LO - $HI]"] },
         { name: "note filter", pianoName: "N.Flt", maxRawVol: 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 5, maxIndex: 0,
             promptName: "Note Filter", promptDesc: ["This setting controls a few separate things for your instrument's note filter.", "When the option 'morph' is selected, your modulator values will indicate a sub-filter index of your note filter to 'morph' to over time. For example, a change from 0 to 1 means your main filter (default) will morph to sub-filter 1 over the specified duration. You can shape the main filter and sub-filters in the large filter editor ('+' button). If your two filters' number, type, and order of filter dots all match up, the morph will happen smoothly and you'll be able to hear them changing. If they do not match up, the filters will simply jump between each other.", "Note that filters will morph based on endpoints in the pattern editor. So, if you specify a morph from sub-filter 1 to 4 but do not specifically drag in new endpoints for 2 and 3, it will morph directly between 1 and 4 without going through the others.", "If you target Dot X or Dot Y, you can finely tune the coordinates of a single dot for your filter. The number of available dots to choose is dependent on your main filter's dot count.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "bit crush", pianoName: "Bitcrush", maxRawVol: _a$1.bitcrusherQuantizationRange - 1, newNoteVol: Math.round(_a$1.bitcrusherQuantizationRange / 2), forSong: false, convertRealFactor: 0, associatedEffect: 4, maxIndex: 0,
+        { name: "bit crush", pianoName: "Bitcrush", maxRawVol: _a$2.bitcrusherQuantizationRange - 1, newNoteVol: Math.round(_a$2.bitcrusherQuantizationRange / 2), forSong: false, convertRealFactor: 0, associatedEffect: 4, maxIndex: 0,
             promptName: "Instrument Bit Crush", promptDesc: ["This setting controls the bit crush of your instrument, just like the bit crush slider.", "At a value of $LO, no bit crush will be applied. This increases and the bit crush effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "freq crush", pianoName: "Freq Crush", maxRawVol: _a$1.bitcrusherFreqRange - 1, newNoteVol: Math.round(_a$1.bitcrusherFreqRange / 2), forSong: false, convertRealFactor: 0, associatedEffect: 4, maxIndex: 0,
+        { name: "freq crush", pianoName: "Freq Crush", maxRawVol: _a$2.bitcrusherFreqRange - 1, newNoteVol: Math.round(_a$2.bitcrusherFreqRange / 2), forSong: false, convertRealFactor: 0, associatedEffect: 4, maxIndex: 0,
             promptName: "Instrument Frequency Crush", promptDesc: ["This setting controls the frequency crush of your instrument, just like the freq crush slider.", "At a value of $LO, no frequency crush will be applied. This increases and the frequency crush effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "echo", pianoName: "Echo", maxRawVol: _a$1.echoSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 6, maxIndex: 0,
+        { name: "echo", pianoName: "Echo", maxRawVol: _a$2.echoSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 6, maxIndex: 0,
             promptName: "Instrument Echo Sustain", promptDesc: ["This setting controls the echo sustain (echo loudness) of your instrument, just like the echo slider.", "At $LO, your instrument will have no echo sustain and echo will not be audible. Echo sustain increases and the echo effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "echo delay", pianoName: "Echo Delay", maxRawVol: _a$1.echoDelayRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 6, maxIndex: 0,
+        { name: "echo delay", pianoName: "Echo Delay", maxRawVol: _a$2.echoDelayRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 6, maxIndex: 0,
             promptName: "Instrument Echo Delay", promptDesc: ["This setting controls the echo delay of your instrument, just like the echo delay slider.", "At $LO, your instrument will have very little echo delay, and this increases up to 2 beats of delay at $HI.", "[OVERWRITING] [$LO - $HI] [~beats ÷12]"]
         },
-        { name: "chorus", pianoName: "Chorus", maxRawVol: _a$1.chorusRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 1, maxIndex: 0,
+        { name: "chorus", pianoName: "Chorus", maxRawVol: _a$2.chorusRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 1, maxIndex: 0,
             promptName: "Instrument Chorus", promptDesc: ["This setting controls the chorus strength of your instrument, just like the chorus slider.", "At $LO, the chorus effect will be disabled. The strength of the chorus effect increases up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "eq filt cut", pianoName: "EQFlt Cut", maxRawVol: _a$1.filterSimpleCutRange - 1, newNoteVol: _a$1.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "eq filt cut", pianoName: "EQFlt Cut", maxRawVol: _a$2.filterSimpleCutRange - 1, newNoteVol: _a$2.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "EQ Filter Cutoff Frequency", promptDesc: ["This setting controls the filter cut position of your instrument, just like the filter cut slider.", "This setting is roughly analagous to the horizontal position of a single low-pass dot on the advanced filter editor. At lower values, a wider range of frequencies is cut off.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "eq filt peak", pianoName: "EQFlt Peak", maxRawVol: _a$1.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "eq filt peak", pianoName: "EQFlt Peak", maxRawVol: _a$2.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "EQ Filter Peak Gain", promptDesc: ["This setting controls the filter peak position of your instrument, just like the filter peak slider.", "This setting is roughly analagous to the vertical position of a single low-pass dot on the advanced filter editor. At lower values, the cutoff frequency will not be emphasized, and at higher values you will hear emphasis on the cutoff frequency.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "note filt cut", pianoName: "N.Flt Cut", maxRawVol: _a$1.filterSimpleCutRange - 1, newNoteVol: _a$1.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 5, maxIndex: 0,
+        { name: "note filt cut", pianoName: "N.Flt Cut", maxRawVol: _a$2.filterSimpleCutRange - 1, newNoteVol: _a$2.filterSimpleCutRange - 1, forSong: false, convertRealFactor: 0, associatedEffect: 5, maxIndex: 0,
             promptName: "Note Filter Cutoff Frequency", promptDesc: ["This setting controls the filter cut position of your instrument, just like the filter cut slider.", "This setting is roughly analagous to the horizontal position of a single low-pass dot on the advanced filter editor. At lower values, a wider range of frequencies is cut off.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "note filt peak", pianoName: "N.Flt Peak", maxRawVol: _a$1.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 5, maxIndex: 0,
+        { name: "note filt peak", pianoName: "N.Flt Peak", maxRawVol: _a$2.filterSimplePeakRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 5, maxIndex: 0,
             promptName: "Note Filter Peak Gain", promptDesc: ["This setting controls the filter peak position of your instrument, just like the filter peak slider.", "This setting is roughly analagous to the vertical position of a single low-pass dot on the advanced filter editor. At lower values, the cutoff frequency will not be emphasized, and at higher values you will hear emphasis on the cutoff frequency.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "pitch shift", pianoName: "Pitch Shift", maxRawVol: _a$1.pitchShiftRange - 1, newNoteVol: _a$1.pitchShiftCenter, forSong: false, convertRealFactor: -_a$1.pitchShiftCenter, associatedEffect: 7, maxIndex: 0,
+        { name: "pitch shift", pianoName: "Pitch Shift", maxRawVol: _a$2.pitchShiftRange - 1, newNoteVol: _a$2.pitchShiftCenter, forSong: false, convertRealFactor: -_a$2.pitchShiftCenter, associatedEffect: 7, maxIndex: 0,
             promptName: "Pitch Shift", promptDesc: ["This setting controls the pitch offset of your instrument, just like the pitch shift slider.", "At $MID your instrument will have no pitch shift. This increases as you decrease toward $LO pitches (half-steps) at the low end, or increases towards +$HI pitches at the high end.", "[OVERWRITING] [$LO - $HI] [pitch]"] },
-        { name: "sustain", pianoName: "Sustain", maxRawVol: _a$1.stringSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "sustain", pianoName: "Sustain", maxRawVol: _a$2.stringSustainRange - 1, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Picked String Sustain", promptDesc: ["This setting controls the sustain of your picked string instrument, just like the sustain slider.", "At $LO, your instrument will have minimum sustain and sound 'plucky'. This increases to a more held sound as your modulator approaches the maximum, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "mix volume", pianoName: "Mix Vol.", maxRawVol: _a$1.volumeRange, newNoteVol: Math.ceil(_a$1.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-_a$1.volumeRange / 2.0), associatedEffect: 16, maxIndex: 0,
+        { name: "mix volume", pianoName: "Mix Vol.", maxRawVol: _a$2.volumeRange, newNoteVol: Math.ceil(_a$2.volumeRange / 2), forSong: false, convertRealFactor: Math.ceil(-_a$2.volumeRange / 2.0), associatedEffect: 16, maxIndex: 0,
             promptName: "Mix Volume", promptDesc: ["This setting affects the volume of your instrument as if its volume slider had been moved.", "At $MID, an instrument's volume will be unchanged from default. This means you can still use the volume sliders to mix the base volume of instruments, since this setting and the default value work multiplicatively. The volume gradually increases up to $HI, or decreases down to mute at $LO.", "Unlike the 'note volume' setting, mix volume is very straightforward and simply affects the resultant instrument volume after all effects are applied.", "[MULTIPLICATIVE] [$LO - $HI]"] },
         { name: "fm slider 5", pianoName: "FM 5", maxRawVol: 15, newNoteVol: 15, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "FM Slider 5", promptDesc: ["This setting affects the strength of the fifth FM slider, just like the corresponding slider on your instrument.", "It works in a multiplicative way, so at $HI your slider will sound the same is its default value, and at $LO it will sound like it has been moved all the way to the left.", "For the full range of control with this mod, move your underlying slider all the way to the right.", "[MULTIPLICATIVE] [$LO - $HI] [%]"] },
@@ -1329,34 +1329,34 @@ var beepbox = (function (exports) {
         { name: "envelope speed", pianoName: "EnvelopeSpd", maxRawVol: 50, newNoteVol: 12, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Envelope Speed", promptDesc: ["This setting controls how fast all of the envelopes for the instrument play.", "At $LO, your instrument's envelopes will be frozen, and at values near there they will change very slowly. At 12, the envelopes will work as usual, performing at normal speed. This increases up to $HI, where the envelopes will change very quickly. The speeds are given below:",
                 "[0-4]: x0, x1/16, x⅛, x⅕, x¼,", "[5-9]: x⅓, x⅖, x½, x⅔, x¾,", "[10-14]: x⅘, x0.9, x1, x1.1, x1.2,", "[15-19]: x1.3, x1.4, x1.5, x1.6, x1.7,", "[20-24]: x1.8, x1.9, x2, x2.1, x2.2,", "[25-29]: x2.3, x2.4, x2.5, x2.6, x2.7,", "[30-34]: x2.8, x2.9, x3, x3.1, x3.2,", "[35-39]: x3.3, x3.4, x3.5, x3.6, x3.7,", "[40-44]: x3.8, x3.9, x4, x4.15, x4.3,", "[45-50]: x4.5, x4.8, x5, x5.5, x6, x8", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "dynamism", pianoName: "Dynamism", maxRawVol: _a$1.supersawDynamismMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "dynamism", pianoName: "Dynamism", maxRawVol: _a$2.supersawDynamismMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Supersaw Dynamism", promptDesc: ["This setting controls the supersaw dynamism of your instrument, just like the dynamism slider.", "At $LO, your instrument will have only a single pulse contributing. Increasing this will raise the contribution of other waves which is similar to a chorus effect. The effect gets more noticeable up to the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "spread", pianoName: "Spread", maxRawVol: _a$1.supersawSpreadMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "spread", pianoName: "Spread", maxRawVol: _a$2.supersawSpreadMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Supersaw Spread", promptDesc: ["This setting controls the supersaw spread of your instrument, just like the spread slider.", "At $LO, all the pulses in your supersaw will be at the same frequency. Increasing this value raises the frequency spread of the contributing waves, up to a dissonant spread at the max value, $HI.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "saw shape", pianoName: "Saw Shape", maxRawVol: _a$1.supersawShapeMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
+        { name: "saw shape", pianoName: "Saw Shape", maxRawVol: _a$2.supersawShapeMax, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Supersaw Shape", promptDesc: ["This setting controls the supersaw shape of your instrument, just like the Saw↔Pulse slider.", "As the slider's name implies, this effect will give you a sawtooth wave at $LO, and a full pulse width wave at $HI. Values in between will be a blend of the two.", "[OVERWRITING] [$LO - $HI] [%]"] },
-        { name: "individual envelope speed", pianoName: "IndvEnvSpd", maxRawVol: 63, newNoteVol: 23, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$1.maxEnvelopeCount - 1,
+        { name: "individual envelope speed", pianoName: "IndvEnvSpd", maxRawVol: 63, newNoteVol: 23, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$2.maxEnvelopeCount - 1,
             promptName: "Individual Envelope Speed", promptDesc: ["This setting controls how fast the specified envelope of the instrument will play.", "At $LO, your the envelope will be frozen, and at values near there they will change very slowly. At 23, the envelope will work as usual, performing at normal speed. This increases up to $HI, where the envelope will change very quickly. The speeds are given below:",
                 "[0-4]: x0, x0.01, x0.02, x0.03, x0.04,", "[5-9]: x0.05, x0.06, x0.07, x0.08, x0.09,", "[10-14]: x0.1, x0.2, x0.25, x0.3, x0.33,", "[15-19]: x0.4, x0.5, x0.6, x0.6667, x0.7,", "[20-24]: x0.75, x0.8, x0.9, x1, x1.25,", "[25-29]: x1.3333, x1.5, x1.6667, x1.75, x2,", "[30-34]: x2.25, x2.5, x2.75, x3, x3.5,", "[35-39]: x4, x4.5, x5, x5.5, x6,", "[40-44]: x6.5, x7, x7.5, x8, x8.5,", "[45-49]: x9, x9.5, x10, x11, x12", "[50-54]: x13, x14, x15, x16, x17", "[55-59]: x18, x19, x20, x24, x32", "[60-63]: x40, x64, x128, x256", "[OVERWRITING] [$LO - $HI]"] },
         { name: "song eq", pianoName: "Song EQ", maxRawVol: 10, newNoteVol: 0, forSong: true, convertRealFactor: 0, associatedEffect: 16, maxIndex: 0,
             promptName: "Song EQ Filter", promptDesc: ["This setting overwrites every instrument's eq filter. You can do this in a few separate ways, similar to the per instrument eq filter modulator.", "When the option 'morph' is selected, your modulator values will indicate a sub-filter index of your EQ filter to 'morph' to over time. For example, a change from 0 to 1 means your main filter (default) will morph to sub-filter 1 over the specified duration. You can shape the main filter and sub-filters in the large filter editor ('+' button). If your two filters' number, type, and order of filter dots all match up, the morph will happen smoothly and you'll be able to hear them changing. If they do not match up, the filters will simply jump between each other.", "Note that filters will morph based on endpoints in the pattern editor. So, if you specify a morph from sub-filter 1 to 4 but do not specifically drag in new endpoints for 2 and 3, it will morph directly between 1 and 4 without going through the others.", "If you target Dot X or Dot Y, you can finely tune the coordinates of a single dot for your filter. The number of available dots to choose is dependent on your main filter's dot count.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "reset envelope", pianoName: "ResetEnv", maxRawVol: 1, newNoteVol: 1, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$1.maxEnvelopeCount - 1,
+        { name: "reset envelope", pianoName: "ResetEnv", maxRawVol: 1, newNoteVol: 1, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$2.maxEnvelopeCount - 1,
             promptName: "Reset Envelope", promptDesc: ["This setting functions a lot like the reset arp modulator. Wherever a note is placed, the envelope of this instrument at the specified index will reset at the very start of that note. ", "[$LO - $HI]",] },
-        { name: "ring modulation", pianoName: "Ring Mod", maxRawVol: _a$1.ringModRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 13, maxIndex: 0,
+        { name: "ring modulation", pianoName: "Ring Mod", maxRawVol: _a$2.ringModRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 13, maxIndex: 0,
             promptName: "Ring Modulation", promptDesc: ["This setting controls the Ring Modulation effect in your instrument.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "ring mod hertz", pianoName: "Ring Mod(Hz)", maxRawVol: _a$1.ringModHzRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 13, maxIndex: 0,
+        { name: "ring mod hertz", pianoName: "Ring Mod(Hz)", maxRawVol: _a$2.ringModHzRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 13, maxIndex: 0,
             promptName: "Ring Modulation (Hertz)", promptDesc: ["This setting controls the Hertz (Hz) used in the Ring Modulation effect in your instrument.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "granular", pianoName: "Granular", maxRawVol: _a$1.granularRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
+        { name: "granular", pianoName: "Granular", maxRawVol: _a$2.granularRange, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
             promptName: "Granular", promptDesc: ["This setting controls the granular effect in your instrument.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "grain freq", pianoName: "Grain #", maxRawVol: _a$1.grainAmountsMax, newNoteVol: 8, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
+        { name: "grain freq", pianoName: "Grain #", maxRawVol: _a$2.grainAmountsMax, newNoteVol: 8, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
             promptName: "Grain Count", promptDesc: ["This setting controls the density of grains for the granular effect on your instrument.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "grain size", pianoName: "Grain Size", maxRawVol: _a$1.grainSizeMax / _a$1.grainSizeStep, newNoteVol: _a$1.grainSizeMin / _a$1.grainSizeStep, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
-            promptName: "Grain Size", promptDesc: ["This setting controls the grain size of the granular effect in your instrument.", "The number shown in the mod channel is multiplied by " + _a$1.grainSizeStep + " to get the actual grain size.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "grain range", pianoName: "Grain Range", maxRawVol: _a$1.grainRangeMax / _a$1.grainSizeStep, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
-            promptName: "Grain Range", promptDesc: ["This setting controls the range of values for your grain size of the granular effect in your instrument, from no variation to a lot", "The number shown in the mod channel is multiplied by " + _a$1.grainSizeStep + " to get the actual grain size.", "[OVERWRITING] [$LO - $HI]"] },
-        { name: "individual envelope lower bound", pianoName: "IndvEnvLow", maxRawVol: _a$1.perEnvelopeBoundMax * 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$1.maxEnvelopeCount - 1,
+        { name: "grain size", pianoName: "Grain Size", maxRawVol: _a$2.grainSizeMax / _a$2.grainSizeStep, newNoteVol: _a$2.grainSizeMin / _a$2.grainSizeStep, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
+            promptName: "Grain Size", promptDesc: ["This setting controls the grain size of the granular effect in your instrument.", "The number shown in the mod channel is multiplied by " + _a$2.grainSizeStep + " to get the actual grain size.", "[OVERWRITING] [$LO - $HI]"] },
+        { name: "grain range", pianoName: "Grain Range", maxRawVol: _a$2.grainRangeMax / _a$2.grainSizeStep, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 14, maxIndex: 0,
+            promptName: "Grain Range", promptDesc: ["This setting controls the range of values for your grain size of the granular effect in your instrument, from no variation to a lot", "The number shown in the mod channel is multiplied by " + _a$2.grainSizeStep + " to get the actual grain size.", "[OVERWRITING] [$LO - $HI]"] },
+        { name: "individual envelope lower bound", pianoName: "IndvEnvLow", maxRawVol: _a$2.perEnvelopeBoundMax * 10, newNoteVol: 0, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$2.maxEnvelopeCount - 1,
             promptName: "Individual Envelope Lower Bound", promptDesc: ["This setting controls the envelope lower bound", "At $LO, your the envelope will output an upper envelope bound to 0, and at $HI your envelope will output an upper envelope bound to 2.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound",] },
-        { name: "individual envelope upper bound", pianoName: "IndvEnvUp", maxRawVol: _a$1.perEnvelopeBoundMax * 10, newNoteVol: 10, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$1.maxEnvelopeCount - 1,
+        { name: "individual envelope upper bound", pianoName: "IndvEnvUp", maxRawVol: _a$2.perEnvelopeBoundMax * 10, newNoteVol: 10, forSong: false, convertRealFactor: 0, associatedEffect: 16, maxIndex: _a$2.maxEnvelopeCount - 1,
             promptName: "Individual Envelope Upper Bound", promptDesc: ["This setting controls the envelope upper bound", "At $LO, your the envelope will output a 0 to lower envelope bound, and at $HI your envelope will output a 2 to lower envelope bound.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound",] },
     ]);
     function centerWave(wave) {
@@ -2067,7 +2067,7 @@ var beepbox = (function (exports) {
     EditorConfig.pluginName = "";
     EditorConfig.pluginSliders = [];
 
-    var __values$1 = (exports && exports.__values) || function(o) {
+    var __values$2 = (exports && exports.__values) || function(o) {
         var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
         if (m) return m.call(o);
         if (o && typeof o.length === "number") return {
@@ -2101,7 +2101,7 @@ var beepbox = (function (exports) {
     function applyElementArgs(element, args) {
         var e_1, _a, e_2, _b, e_3, _c;
         try {
-            for (var args_1 = __values$1(args), args_1_1 = args_1.next(); !args_1_1.done; args_1_1 = args_1.next()) {
+            for (var args_1 = __values$2(args), args_1_1 = args_1.next(); !args_1_1.done; args_1_1 = args_1.next()) {
                 var arg = args_1_1.value;
                 if (arg instanceof Node) {
                     element.appendChild(arg);
@@ -2120,7 +2120,7 @@ var beepbox = (function (exports) {
                 }
                 else if (arg && arg.constructor === Object && element instanceof Element) {
                     try {
-                        for (var _d = (e_2 = void 0, __values$1(Object.keys(arg))), _e = _d.next(); !_e.done; _e = _d.next()) {
+                        for (var _d = (e_2 = void 0, __values$2(Object.keys(arg))), _e = _d.next(); !_e.done; _e = _d.next()) {
                             var key = _e.value;
                             var value = arg[key];
                             if (key === "class") {
@@ -2137,7 +2137,7 @@ var beepbox = (function (exports) {
                             else if (key === "style") {
                                 if (value && value.constructor === Object) {
                                     try {
-                                        for (var _f = (e_3 = void 0, __values$1(Object.keys(value))), _g = _f.next(); !_g.done; _g = _f.next()) {
+                                        for (var _f = (e_3 = void 0, __values$2(Object.keys(value))), _g = _f.next(); !_g.done; _g = _f.next()) {
                                             var styleKey = _g.value;
                                             if (styleKey in element.style) {
                                                 element.style[styleKey] = value[styleKey];
@@ -2217,7 +2217,7 @@ var beepbox = (function (exports) {
         return fragment;
     }
 
-    var __values = (exports && exports.__values) || function(o) {
+    var __values$1 = (exports && exports.__values) || function(o) {
         var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
         if (m) return m.call(o);
         if (o && typeof o.length === "number") return {
@@ -2228,11 +2228,11 @@ var beepbox = (function (exports) {
         };
         throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
     };
-    var e_1, _a, e_2, _b;
-    var HTML = parseHTML;
-    var SVG = parseSVG;
-    var _loop_1 = function (name_1) {
-        HTML[name_1] = function () {
+    var e_1$1, _a$1, e_2$1, _b$1;
+    var HTML$1 = parseHTML;
+    var SVG$1 = parseSVG;
+    var _loop_1$1 = function (name_1) {
+        HTML$1[name_1] = function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
@@ -2241,20 +2241,20 @@ var beepbox = (function (exports) {
         };
     };
     try {
-        for (var _c = __values("a abbr address area article aside audio b base bdi bdo blockquote br button canvas caption cite code col colgroup datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hr i iframe img input ins kbd label legend li link main map mark menu menuitem meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup table tbody td template textarea tfoot th thead time title tr track u ul var video wbr".split(" ")), _d = _c.next(); !_d.done; _d = _c.next()) {
-            var name_1 = _d.value;
-            _loop_1(name_1);
+        for (var _c$1 = __values$1("a abbr address area article aside audio b base bdi bdo blockquote br button canvas caption cite code col colgroup datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hr i iframe img input ins kbd label legend li link main map mark menu menuitem meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup table tbody td template textarea tfoot th thead time title tr track u ul var video wbr".split(" ")), _d$1 = _c$1.next(); !_d$1.done; _d$1 = _c$1.next()) {
+            var name_1$1 = _d$1.value;
+            _loop_1$1(name_1$1);
         }
     }
-    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+    catch (e_1_1) { e_1$1 = { error: e_1_1 }; }
     finally {
         try {
-            if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+            if (_d$1 && !_d$1.done && (_a$1 = _c$1.return)) _a$1.call(_c$1);
         }
-        finally { if (e_1) throw e_1.error; }
+        finally { if (e_1$1) throw e_1$1.error; }
     }
-    var _loop_2 = function (name_2) {
-        SVG[name_2] = function () {
+    var _loop_2$1 = function (name_2) {
+        SVG$1[name_2] = function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
@@ -2263,7 +2263,7 @@ var beepbox = (function (exports) {
         };
         if (/-/.test(name_2)) {
             var snakeCaseName = name_2.replace(/-/g, "_");
-            SVG[snakeCaseName] = function () {
+            SVG$1[snakeCaseName] = function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i] = arguments[_i];
@@ -2273,17 +2273,17 @@ var beepbox = (function (exports) {
         }
     };
     try {
-        for (var _e = __values("a altGlyph altGlyphDef altGlyphItem animate animateMotion animateTransform circle clipPath color-profile cursor defs desc discard ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter font font-face font-face-format font-face-name font-face-src font-face-uri foreignObject g glyph glyphRef hkern image line linearGradient marker mask metadata missing-glyph mpath path pattern polygon polyline radialGradient rect script set stop style svg switch symbol text textPath title tref tspan use view vkern".split(" ")), _f = _e.next(); !_f.done; _f = _e.next()) {
-            var name_2 = _f.value;
-            _loop_2(name_2);
+        for (var _e$1 = __values$1("a altGlyph altGlyphDef altGlyphItem animate animateMotion animateTransform circle clipPath color-profile cursor defs desc discard ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter font font-face font-face-format font-face-name font-face-src font-face-uri foreignObject g glyph glyphRef hkern image line linearGradient marker mask metadata missing-glyph mpath path pattern polygon polyline radialGradient rect script set stop style svg switch symbol text textPath title tref tspan use view vkern".split(" ")), _f$1 = _e$1.next(); !_f$1.done; _f$1 = _e$1.next()) {
+            var name_2$1 = _f$1.value;
+            _loop_2$1(name_2$1);
         }
     }
-    catch (e_2_1) { e_2 = { error: e_2_1 }; }
+    catch (e_2_1) { e_2$1 = { error: e_2_1 }; }
     finally {
         try {
-            if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+            if (_f$1 && !_f$1.done && (_b$1 = _e$1.return)) _b$1.call(_e$1);
         }
-        finally { if (e_2) throw e_2.error; }
+        finally { if (e_2$1) throw e_2$1.error; }
     }
 
     class ColorConfig {
@@ -9065,14 +9065,14 @@ var beepbox = (function (exports) {
             primaryNote: "var(--mod4-primary-note, #fff6d3)",
         },
     ]);
-    ColorConfig._styleElement = document.head.appendChild(HTML.style({ type: "text/css" }));
+    ColorConfig._styleElement = document.head.appendChild(HTML$1.style({ type: "text/css" }));
 
-    const scrollBarTest = document.body.appendChild(HTML.div({ style: "width:30px; height:30px; overflow: auto;" }, HTML.div({ style: "width:100%;height:40px" })));
+    const scrollBarTest = document.body.appendChild(HTML$1.div({ style: "width:30px; height:30px; overflow: auto;" }, HTML$1.div({ style: "width:100%;height:40px" })));
     if (scrollBarTest.firstChild.clientWidth < 30) {
         document.documentElement.classList.add("obtrusive-scrollbars");
     }
     document.body.removeChild(scrollBarTest);
-    document.head.appendChild(HTML.style({ type: "text/css" }, `
+    document.head.appendChild(HTML$1.style({ type: "text/css" }, `
 
 /* Note: "#" symbols need to be encoded as "%23" in SVG data urls, otherwise they are interpreted as fragment identifiers! */
 :root {
@@ -10753,15 +10753,15 @@ li.select2-results__option[role=group] > strong:hover {
             this._doc = _doc;
             this._editorWidth = 512;
             this._editorHeight = 20;
-            this._playhead = SVG.rect("rect", { fill: ColorConfig.playhead, x: 0, y: 0, width: 2, height: this._editorHeight });
-            this._notches = SVG.svg({ "pointer-events": "none" });
-            this._handle = SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: 0, y: 2, width: 10, height: this._editorHeight - 4 });
-            this._handleHighlight = SVG.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 0, y: 1, width: 10, height: this._editorHeight - 2 });
-            this._leftHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._rightHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._playhead = SVG$1.rect("rect", { fill: ColorConfig.playhead, x: 0, y: 0, width: 2, height: this._editorHeight });
+            this._notches = SVG$1.svg({ "pointer-events": "none" });
+            this._handle = SVG$1.rect({ fill: ColorConfig.uiWidgetBackground, x: 0, y: 2, width: 10, height: this._editorHeight - 4 });
+            this._handleHighlight = SVG$1.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 0, y: 1, width: 10, height: this._editorHeight - 2 });
+            this._leftHighlight = SVG$1.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._rightHighlight = SVG$1.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
             this._renderedPlayhead = -1;
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: pan-y; position: absolute;`, width: this._editorWidth, height: this._editorHeight }, this._notches, this._handle, this._handleHighlight, this._leftHighlight, this._rightHighlight, this._playhead);
-            this.container = HTML.div({ class: "barScrollBar", style: "width: 512px; height: 20px; overflow: hidden; position: relative;" }, this._svg);
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: pan-y; position: absolute;`, width: this._editorWidth, height: this._editorHeight }, this._notches, this._handle, this._handleHighlight, this._leftHighlight, this._rightHighlight, this._playhead);
+            this.container = HTML$1.div({ class: "barScrollBar", style: "width: 512px; height: 20px; overflow: hidden; position: relative;" }, this._svg);
             this._mouseX = 0;
             this._mouseDown = false;
             this._mouseOver = false;
@@ -10929,7 +10929,7 @@ li.select2-results__option[role=group] > strong:hover {
                     this._notches.removeChild(this._notches.firstChild);
                 for (let i = 0; i <= this._doc.song.barCount; i++) {
                     const lineHeight = (i % 16 == 0) ? 0 : ((i % 4 == 0) ? this._editorHeight / 8 : this._editorHeight / 3);
-                    this._notches.appendChild(SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: i * this._notchSpace - 1, y: lineHeight, width: 2, height: this._editorHeight - lineHeight * 2 }));
+                    this._notches.appendChild(SVG$1.rect({ fill: ColorConfig.uiWidgetBackground, x: i * this._notchSpace - 1, y: lineHeight, width: 2, height: this._editorHeight - lineHeight * 2 }));
                 }
             }
             if (resized || this._renderedScrollBarPos != this._doc.barScrollPos) {
@@ -14496,6 +14496,13 @@ li.select2-results__option[role=group] > strong:hover {
             this.layeredInstruments = false;
             this.patternInstruments = false;
             this.eqFilter.reset();
+            this.pluginurl = null;
+            Synth.pluginValueNames = [];
+            Synth.pluginInstrumentStateFunction = null;
+            Synth.pluginFunction = null;
+            Synth.PluginDelayLineSize = 0;
+            EditorConfig.pluginSliders = [];
+            EditorConfig.pluginName = "";
             for (let i = 0; i < Config.filterMorphCount - 1; i++) {
                 this.eqSubFilters[i] = null;
             }
@@ -19985,6 +19992,9 @@ li.select2-results__option[role=group] > strong:hover {
                 if (usesGranular) {
                     this.computeGrains = false;
                 }
+                if (usesPlugin) {
+                    delayDuration += Synth.PluginDelayLineSize;
+                }
                 const secondsInTick = samplesPerTick / samplesPerSecond;
                 const progressInTick = secondsInTick / delayDuration;
                 const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -20010,6 +20020,8 @@ li.select2-results__option[role=group] > strong:hover {
                     totalDelaySamples += Config.reverbDelayBufferSize;
                 if (usesGranular)
                     totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+                if (usesPlugin)
+                    totalDelaySamples += Synth.PluginDelayLineSize;
                 this.flushedSamples += roundedSamplesPerTick;
                 if (this.flushedSamples >= totalDelaySamples) {
                     this.deactivateAfterThisTick = true;
@@ -24100,9 +24112,6 @@ li.select2-results__option[role=group] > strong:hover {
                 `;
                 if (usesPlugin && Synth.pluginFunction) {
                     effectsSource += Synth.pluginFunction;
-                    effectsSource += `
-                    console.log(corruptionAmount, corruptionType, corruptionTime);
-                `;
                 }
                 if (usesGranular) {
                     effectsSource += `
@@ -26208,7 +26217,7 @@ li.select2-results__option[role=group] > strong:hover {
 			}
 		`,
     };
-    Layout._styleElement = document.head.appendChild(HTML.style({ type: "text/css" }));
+    Layout._styleElement = document.head.appendChild(HTML$1.style({ type: "text/css" }));
 
     class Change {
         constructor() {
@@ -28789,6 +28798,17 @@ li.select2-results__option[role=group] > strong:hover {
                 this._didSomething();
         }
     }
+    class ChangePluginurl extends Change {
+        constructor(doc, value) {
+            super();
+            const oldValue = doc.song.pluginurl;
+            if (oldValue != value) {
+                doc.song.pluginurl = value;
+                this._didSomething();
+            }
+            doc.notifier.changed();
+        }
+    }
     class ChangeStringSustain extends ChangeInstrumentSlider {
         constructor(doc, oldValue, newValue) {
             super(doc);
@@ -31313,11 +31333,11 @@ li.select2-results__option[role=group] > strong:hover {
         }
         constructor(_doc) {
             this._doc = _doc;
-            this._pianoContainer = HTML.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
-            this._drumContainer = HTML.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
-            this._modContainer = HTML.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
-            this._preview = HTML.div({ style: `width: 100%; height: 40px; border: 2px solid ${ColorConfig.primaryText}; position: absolute; box-sizing: border-box; pointer-events: none;` });
-            this.container = HTML.div({ style: "width: 32px; height: 100%; overflow: hidden; position: relative; flex-shrink: 0; touch-action: none;" }, this._pianoContainer, this._drumContainer, this._modContainer, this._preview);
+            this._pianoContainer = HTML$1.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
+            this._drumContainer = HTML$1.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
+            this._modContainer = HTML$1.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
+            this._preview = HTML$1.div({ style: `width: 100%; height: 40px; border: 2px solid ${ColorConfig.primaryText}; position: absolute; box-sizing: border-box; pointer-events: none;` });
+            this.container = HTML$1.div({ style: "width: 32px; height: 100%; overflow: hidden; position: relative; flex-shrink: 0; touch-action: none;" }, this._pianoContainer, this._drumContainer, this._modContainer, this._preview);
             this._editorHeight = 481;
             this._pianoKeys = [];
             this._pianoLabels = [];
@@ -31453,8 +31473,8 @@ li.select2-results__option[role=group] > strong:hover {
                     if (this._renderedPitchCount != this._pitchCount) {
                         this._pianoContainer.innerHTML = "";
                         for (let i = 0; i < this._pitchCount; i++) {
-                            const pianoLabel = HTML.div({ class: "piano-label", style: "font-weight: bold; -webkit-text-stroke-width: 0; font-size: 11px; font-family: sans-serif; position: absolute; padding-left: 15px; white-space: nowrap;" });
-                            const pianoKey = HTML.div({ class: "piano-button", style: "background: gray;" }, pianoLabel);
+                            const pianoLabel = HTML$1.div({ class: "piano-label", style: "font-weight: bold; -webkit-text-stroke-width: 0; font-size: 11px; font-family: sans-serif; position: absolute; padding-left: 15px; white-space: nowrap;" });
+                            const pianoKey = HTML$1.div({ class: "piano-button", style: "background: gray;" }, pianoLabel);
                             this._pianoContainer.appendChild(pianoKey);
                             this._pianoLabels[i] = pianoLabel;
                             this._pianoKeys[i] = pianoKey;
@@ -31676,35 +31696,35 @@ li.select2-results__option[role=group] > strong:hover {
             };
             for (let i = 0; i < Config.drumCount; i++) {
                 const scale = (1.0 - (i / Config.drumCount) * 0.35) * 100;
-                this._drumContainer.appendChild(HTML.div({ class: "drum-button", style: `background-size: ${scale}% ${scale}%;` }));
+                this._drumContainer.appendChild(HTML$1.div({ class: "drum-button", style: `background-size: ${scale}% ${scale}%;` }));
             }
             for (let i = 0; i < Config.modCount; i++) {
-                const firstRowText = SVG.text({ class: "modulator-label", "text-anchor": "left", fill: ColorConfig.modLabelPrimaryText, style: "font-weight: bold; align-self: flex-start; transform-origin: center; transform: rotate(-90deg) translate(-19px, 39px); font-size: 11px; font-family: sans-serif;" });
-                const secondRowText = SVG.text({ class: "modulator-label", "text-anchor": "left", fill: ColorConfig.modLabelPrimaryText, style: "font-weight: bold; align-self: flex-end; transform-origin: center; transform: rotate(-90deg) translate(-26px, 42px); font-size: 11px; font-family: sans-serif;" });
-                const countText = SVG.text({ class: "modulator-inverse-label", fill: ColorConfig.modLabelPrimary, style: "font-weight: bold; align-self: flex-start; transform-origin: center; transform: rotate(-90deg) translate(4px, 13px); font-size: 11px; font-family: sans-serif;" });
-                const countRect = SVG.rect({ width: "12px", height: "9px", fill: ColorConfig.indicatorPrimary, style: "pointer-events: none; transform: translate(4px, 4px);" });
-                const firstRowSVG = SVG.svg({ viewBox: "0 0 16 66", width: "16px", style: "pointer-events: none; flex-grow: 1;" }, [
+                const firstRowText = SVG$1.text({ class: "modulator-label", "text-anchor": "left", fill: ColorConfig.modLabelPrimaryText, style: "font-weight: bold; align-self: flex-start; transform-origin: center; transform: rotate(-90deg) translate(-19px, 39px); font-size: 11px; font-family: sans-serif;" });
+                const secondRowText = SVG$1.text({ class: "modulator-label", "text-anchor": "left", fill: ColorConfig.modLabelPrimaryText, style: "font-weight: bold; align-self: flex-end; transform-origin: center; transform: rotate(-90deg) translate(-26px, 42px); font-size: 11px; font-family: sans-serif;" });
+                const countText = SVG$1.text({ class: "modulator-inverse-label", fill: ColorConfig.modLabelPrimary, style: "font-weight: bold; align-self: flex-start; transform-origin: center; transform: rotate(-90deg) translate(4px, 13px); font-size: 11px; font-family: sans-serif;" });
+                const countRect = SVG$1.rect({ width: "12px", height: "9px", fill: ColorConfig.indicatorPrimary, style: "pointer-events: none; transform: translate(4px, 4px);" });
+                const firstRowSVG = SVG$1.svg({ viewBox: "0 0 16 66", width: "16px", style: "pointer-events: none; flex-grow: 1;" }, [
                     firstRowText,
                 ]);
-                const countSVG = SVG.svg({ viewBox: "0 0 16 14", width: "16px", style: "pointer-events: none;" }, [
+                const countSVG = SVG$1.svg({ viewBox: "0 0 16 14", width: "16px", style: "pointer-events: none;" }, [
                     countRect,
                     countText,
                 ]);
-                const secondRowSVG = SVG.svg({ viewBox: "0 0 16 80", width: "16px", style: "pointer-events: none;" }, [
+                const secondRowSVG = SVG$1.svg({ viewBox: "0 0 16 80", width: "16px", style: "pointer-events: none;" }, [
                     secondRowText,
                 ]);
-                const flexRow1 = HTML.div({ style: "display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;" }, [
+                const flexRow1 = HTML$1.div({ style: "display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;" }, [
                     countSVG,
                     firstRowSVG,
                 ]);
-                const flexRow2 = HTML.div({ style: "display: flex; flex-direction: column-reverse; justify-content: space-between; pointer-events: none;" }, [
+                const flexRow2 = HTML$1.div({ style: "display: flex; flex-direction: column-reverse; justify-content: space-between; pointer-events: none;" }, [
                     secondRowSVG,
                 ]);
-                const flexContainer = HTML.div({ style: "display: flex; flex-direction: row; justify-content: space-between; padding: 0px; width: 32px; height: 100%; overflow: hidden; pointer-events: none;" }, [
+                const flexContainer = HTML$1.div({ style: "display: flex; flex-direction: row; justify-content: space-between; padding: 0px; width: 32px; height: 100%; overflow: hidden; pointer-events: none;" }, [
                     flexRow1,
                     flexRow2,
                 ]);
-                const modKey = HTML.div({ class: "modulator-button", style: "background: " + ColorConfig.modLabelPrimary + ";" }, flexContainer);
+                const modKey = HTML$1.div({ class: "modulator-button", style: "background: " + ColorConfig.modLabelPrimary + ";" }, flexContainer);
                 this._modContainer.appendChild(modKey);
                 this._modFirstLabels.push(firstRowText);
                 this._modSecondLabels.push(secondRowText);
@@ -33763,7 +33783,7 @@ li.select2-results__option[role=group] > strong:hover {
         return Math.pow(volumeMult, 0.25) * 127;
     }
 
-    const { button: button$o, div: div$o, h2: h2$n, input: input$h, select: select$d, option: option$d } = HTML;
+    const { button: button$o, div: div$p, h2: h2$o, input: input$i, select: select$d, option: option$d } = HTML$1;
     function lerp(low, high, t) {
         return low + t * (high - low);
     }
@@ -33791,20 +33811,20 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(_doc) {
             this._doc = _doc;
             this.outputStarted = false;
-            this._fileName = input$h({ type: "text", style: "width: 10em;", value: Config.jsonFormat + "-Song", maxlength: 250, "autofocus": "autofocus" });
-            this._computedSamplesLabel = div$o({ style: "width: 10em;" }, new Text("0:00"));
-            this._enableIntro = input$h({ type: "checkbox" });
-            this._loopDropDown = input$h({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
-            this._enableOutro = input$h({ type: "checkbox" });
+            this._fileName = input$i({ type: "text", style: "width: 10em;", value: Config.jsonFormat + "-Song", maxlength: 250, "autofocus": "autofocus" });
+            this._computedSamplesLabel = div$p({ style: "width: 10em;" }, new Text("0:00"));
+            this._enableIntro = input$i({ type: "checkbox" });
+            this._loopDropDown = input$i({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
+            this._enableOutro = input$i({ type: "checkbox" });
             this._formatSelect = select$d({ style: "width: 100%;" }, option$d({ value: "wav" }, "Export to .wav file."), option$d({ value: "mp3" }, "Export to .mp3 file."), option$d({ value: "midi" }, "Export to .mid file."), option$d({ value: "json" }, "Export to .json file."), option$d({ value: "html" }, "Export to .html file."));
-            this._removeWhitespace = input$h({ type: "checkbox" });
-            this._removeWhitespaceDiv = div$o({ style: "vertical-align: middle; align-items: center; justify-content: space-between; margin-bottom: 14px;" }, "Remove Whitespace: ", this._removeWhitespace);
+            this._removeWhitespace = input$i({ type: "checkbox" });
+            this._removeWhitespaceDiv = div$p({ style: "vertical-align: middle; align-items: center; justify-content: space-between; margin-bottom: 14px;" }, "Remove Whitespace: ", this._removeWhitespace);
             this._cancelButton = button$o({ class: "cancelButton" });
             this._exportButton = button$o({ class: "exportButton", style: "width:45%;" }, "Export");
-            this._outputProgressBar = div$o({ style: `width: 0%; background: ${ColorConfig.loopAccent}; height: 100%; position: absolute; z-index: 2;` });
-            this._outputProgressLabel = div$o({ style: `position: relative; top: -1px; z-index: 3;` }, "0%");
-            this._outputProgressContainer = div$o({ style: `height: 12px; background: ${ColorConfig.uiWidgetBackground}; display: block; position: relative; z-index: 1;` }, this._outputProgressBar, this._outputProgressLabel);
-            this.container = div$o({ class: "prompt noSelection", style: "width: 200px;" }, h2$n("Export Options"), div$o({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), div$o({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$o({ style: "display: table; width: 100%;" }, div$o({ style: "display: table-row;" }, div$o({ style: "display: table-cell;" }, "Intro:"), div$o({ style: "display: table-cell;" }, "Loop Count:"), div$o({ style: "display: table-cell;" }, "Outro:")), div$o({ style: "display: table-row;" }, div$o({ style: "display: table-cell; vertical-align: middle;" }, this._enableIntro), div$o({ style: "display: table-cell; vertical-align: middle;" }, this._loopDropDown), div$o({ style: "display: table-cell; vertical-align: middle;" }, this._enableOutro))), div$o({ class: "selectContainer", style: "width: 100%;" }, this._formatSelect), this._removeWhitespaceDiv, div$o({ style: "text-align: left;" }, "Exporting can be slow. Reloading the page or clicking the X will cancel it. Please be patient."), this._outputProgressContainer, div$o({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
+            this._outputProgressBar = div$p({ style: `width: 0%; background: ${ColorConfig.loopAccent}; height: 100%; position: absolute; z-index: 2;` });
+            this._outputProgressLabel = div$p({ style: `position: relative; top: -1px; z-index: 3;` }, "0%");
+            this._outputProgressContainer = div$p({ style: `height: 12px; background: ${ColorConfig.uiWidgetBackground}; display: block; position: relative; z-index: 1;` }, this._outputProgressBar, this._outputProgressLabel);
+            this.container = div$p({ class: "prompt noSelection", style: "width: 200px;" }, h2$o("Export Options"), div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$p({ style: "display: table; width: 100%;" }, div$p({ style: "display: table-row;" }, div$p({ style: "display: table-cell;" }, "Intro:"), div$p({ style: "display: table-cell;" }, "Loop Count:"), div$p({ style: "display: table-cell;" }, "Outro:")), div$p({ style: "display: table-row;" }, div$p({ style: "display: table-cell; vertical-align: middle;" }, this._enableIntro), div$p({ style: "display: table-cell; vertical-align: middle;" }, this._loopDropDown), div$p({ style: "display: table-cell; vertical-align: middle;" }, this._enableOutro))), div$p({ class: "selectContainer", style: "width: 100%;" }, this._formatSelect), this._removeWhitespaceDiv, div$p({ style: "text-align: left;" }, "Exporting can be slow. Reloading the page or clicking the X will cancel it. Please be patient."), this._outputProgressContainer, div$p({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
             this._close = () => {
                 if (this.synth != null)
                     this.synth.renderingSong = false;
@@ -34520,16 +34540,16 @@ You should be redirected to the song at:<br /><br />
         0x51,
     ];
 
-    const { button: button$n, div: div$n, span: span$6, h2: h2$m, input: input$g, br: br$4, select: select$c, option: option$c } = HTML;
+    const { button: button$n, div: div$o, span: span$6, h2: h2$n, input: input$h, br: br$4, select: select$c, option: option$c } = HTML$1;
     class BeatsPerBarPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._computedSamplesLabel = div$n({ style: "width: 10em;" }, new Text("0:00"));
-            this._beatsStepper = input$g({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._computedSamplesLabel = div$o({ style: "width: 10em;" }, new Text("0:00"));
+            this._beatsStepper = input$h({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
             this._conversionStrategySelect = select$c({ style: "width: 100%;" }, option$c({ value: "splice" }, "Splice beats at end of bars."), option$c({ value: "stretch" }, "Stretch notes to fit in bars."), option$c({ value: "overflow" }, "Overflow notes across bars."));
             this._cancelButton = button$n({ class: "cancelButton" });
             this._okayButton = button$n({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$n({ class: "prompt noSelection", style: "width: 250px;" }, h2$m("Beats Per Bar"), div$n({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$n({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$n({ style: "text-align: right;" }, "Beats per bar:", br$4(), span$6({ style: "font-size: smaller; color: ${ColorConfig.secondaryText};" }, "(Multiples of 3 or 4 are recommended)")), this._beatsStepper), div$n({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$n({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$n({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$o({ class: "prompt noSelection", style: "width: 250px;" }, h2$n("Beats Per Bar"), div$o({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$o({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$o({ style: "text-align: right;" }, "Beats per bar:", br$4(), span$6({ style: "font-size: smaller; color: ${ColorConfig.secondaryText};" }, "(Multiples of 3 or 4 are recommended)")), this._beatsStepper), div$o({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$o({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$o({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -34592,19 +34612,19 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$m, div: div$m, label: label$3, br: br$3, h2: h2$l, input: input$f } = HTML;
+    const { button: button$m, div: div$n, label: label$3, br: br$3, h2: h2$m, input: input$g } = HTML$1;
     class ChannelSettingsPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._patternsStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._pitchChannelStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._drumChannelStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._modChannelStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._layeredInstrumentsBox = input$f({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
-            this._patternInstrumentsBox = input$f({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._patternsStepper = input$g({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._pitchChannelStepper = input$g({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._drumChannelStepper = input$g({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._modChannelStepper = input$g({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._layeredInstrumentsBox = input$g({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._patternInstrumentsBox = input$g({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
             this._cancelButton = button$m({ class: "cancelButton" });
             this._okayButton = button$m({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$m({ class: "prompt noSelection", style: "width: 250px; text-align: right;" }, h2$l("Channel Settings"), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Pitch channels:", this._pitchChannelStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Drum channels:", this._drumChannelStepper), div$m({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Mod channels:", this._modChannelStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Available patterns per channel:", this._patternsStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Simultaneous instruments", br$3(), "per channel:", this._layeredInstrumentsBox), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Different instruments", br$3(), "per pattern:", this._patternInstrumentsBox), div$m({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$n({ class: "prompt noSelection", style: "width: 250px; text-align: right;" }, h2$m("Channel Settings"), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Pitch channels:", this._pitchChannelStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Drum channels:", this._drumChannelStepper), div$n({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Mod channels:", this._modChannelStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Available patterns per channel:", this._patternsStepper), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Simultaneous instruments", br$3(), "per channel:", this._layeredInstrumentsBox), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Different instruments", br$3(), "per pattern:", this._patternInstrumentsBox), div$n({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -34679,7 +34699,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$l, div: div$l, h2: h2$k } = HTML;
+    const { button: button$l, div: div$m, h2: h2$l } = HTML$1;
     class CustomChipPromptCanvas {
         constructor(doc) {
             this._mouseX = 0;
@@ -34693,12 +34713,12 @@ You should be redirected to the song at:<br /><br />
             this._changeQueue = [];
             this._editorWidth = 768;
             this._editorHeight = 294;
-            this._fill = SVG.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
-            this._ticks = SVG.svg({ "pointer-events": "none" });
-            this._subticks = SVG.svg({ "pointer-events": "none" });
-            this._blocks = SVG.svg({ "pointer-events": "none" });
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; overflow: visible;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fill, this._ticks, this._subticks, this._blocks);
-            this.container = HTML.div({ class: "", style: "height: 294px; width: 768px; padding-bottom: 1.5em;" }, this._svg);
+            this._fill = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
+            this._ticks = SVG$1.svg({ "pointer-events": "none" });
+            this._subticks = SVG$1.svg({ "pointer-events": "none" });
+            this._blocks = SVG$1.svg({ "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; overflow: visible;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fill, this._ticks, this._subticks, this._blocks);
+            this.container = HTML$1.div({ class: "", style: "height: 294px; width: 768px; padding-bottom: 1.5em;" }, this._svg);
             this._storeChange = () => {
                 var sameCheck = true;
                 if (this._changeQueue.length > 0) {
@@ -34803,22 +34823,22 @@ You should be redirected to the song at:<br /><br />
             };
             this._doc = doc;
             for (let i = 0; i <= 4; i += 2) {
-                this._ticks.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: (i * this._editorWidth / 4) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._ticks.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: (i * this._editorWidth / 4) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             for (let i = 1; i <= 8; i++) {
-                this._subticks.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: (i * this._editorWidth / 8) - 1, y: 0, width: 1, height: this._editorHeight }));
+                this._subticks.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: (i * this._editorWidth / 8) - 1, y: 0, width: 1, height: this._editorHeight }));
             }
-            this._ticks.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: 0, y: (this._editorHeight / 2) - 1, width: this._editorWidth, height: 2 }));
+            this._ticks.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: 0, y: (this._editorHeight / 2) - 1, width: this._editorWidth, height: 2 }));
             for (let i = 0; i < 3; i++) {
-                this._subticks.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: 0, y: i * 8 * (this._editorHeight / 49), width: this._editorWidth, height: 1 }));
-                this._subticks.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: 0, y: this._editorHeight - 1 - i * 8 * (this._editorHeight / 49), width: this._editorWidth, height: 1 }));
+                this._subticks.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: 0, y: i * 8 * (this._editorHeight / 49), width: this._editorWidth, height: 1 }));
+                this._subticks.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: 0, y: this._editorHeight - 1 - i * 8 * (this._editorHeight / 49), width: this._editorWidth, height: 1 }));
             }
             let col = ColorConfig.getChannelColor(this._doc.song, this._doc.channel).primaryNote;
             for (let i = 0; i <= 64; i++) {
                 let val = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].customChipWave[i];
                 this.chipData[i] = val;
                 this.startingChipData[i] = val;
-                this._blocks.appendChild(SVG.rect({ fill: col, x: (i * this._editorWidth / 64), y: (val + 24) * (this._editorHeight / 49), width: this._editorWidth / 64, height: this._editorHeight / 49 }));
+                this._blocks.appendChild(SVG$1.rect({ fill: col, x: (i * this._editorWidth / 64), y: (val + 24) * (this._editorHeight / 49), width: this._editorWidth / 64, height: this._editorHeight / 49 }));
             }
             this._storeChange();
             this.container.addEventListener("mousedown", this._whenMousePressed);
@@ -34877,19 +34897,19 @@ You should be redirected to the song at:<br /><br />
             this._okayButton = button$l({ class: "okayButton", style: "width:45%;" }, "Okay");
             this.copyButton = button$l({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
             this.pasteButton = button$l({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this.copyPasteContainer = div$l({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = div$l({ class: "prompt noSelection", style: "width: 600px;" }, h2$k("Edit Custom Chip Instrument"), div$l({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$l({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.customChipCanvas.container), div$l({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this.copyPasteContainer = div$m({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = div$m({ class: "prompt noSelection", style: "width: 600px;" }, h2$l("Edit Custom Chip Instrument"), div$m({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$m({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.customChipCanvas.container), div$m({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
             this._togglePlay = () => {
                 this._songEditor.togglePlay();
                 this.updatePlayButton();
@@ -34975,19 +34995,19 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._editorWidth = 120;
             this._editorHeight = 26;
-            this._responsePath = SVG.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
+            this._responsePath = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
             this._indicators = [];
             this._subFilters = [];
             this._writingMods = false;
-            this._controlPointPath = SVG.path({ fill: "currentColor", "pointer-events": "none" });
-            this._dottedLinePath = SVG.path({ fill: "none", stroke: "currentColor", "stroke-width": 1, "stroke-dasharray": "3, 2", "pointer-events": "none" });
-            this._highlight = SVG.circle({ fill: "white", stroke: "none", "pointer-events": "none", r: 4 });
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._responsePath, this._dottedLinePath, this._highlight, this._controlPointPath);
+            this._controlPointPath = SVG$1.path({ fill: "currentColor", "pointer-events": "none" });
+            this._dottedLinePath = SVG$1.path({ fill: "none", stroke: "currentColor", "stroke-width": 1, "stroke-dasharray": "3, 2", "pointer-events": "none" });
+            this._highlight = SVG$1.circle({ fill: "white", stroke: "none", "pointer-events": "none", r: 4 });
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._responsePath, this._dottedLinePath, this._highlight, this._controlPointPath);
             this.selfUndoSettings = [];
             this.selfUndoHistoryPos = 0;
-            this._label = HTML.div({ style: "position: absolute; bottom: 0; left: 2px; font-size: 8px; line-height: 1; pointer-events: none;" });
+            this._label = HTML$1.div({ style: "position: absolute; bottom: 0; left: 2px; font-size: 8px; line-height: 1; pointer-events: none;" });
             this.coordText = null;
-            this.container = HTML.div({ class: "filterEditor", style: "height: 100%; position: relative;" }, this._svg, this._label);
+            this.container = HTML$1.div({ class: "filterEditor", style: "height: 100%; position: relative;" }, this._svg, this._label);
             this._pointRadius = 2;
             this._useNoteFilter = false;
             this._larger = false;
@@ -35154,7 +35174,7 @@ You should be redirected to the song at:<br /><br />
                 this._highlight.setAttribute("r", "20");
                 this._controlPointPath.setAttribute("fill", ColorConfig.getChannelColor(this._doc.song, this._doc.channel).primaryNote);
                 for (let i = 0; i < Config.filterMaxPoints; i++) {
-                    this._indicators[i] = SVG.text();
+                    this._indicators[i] = SVG$1.text();
                     this._indicators[i].setAttribute("fill", ColorConfig.invertedText);
                     this._indicators[i].setAttribute("text-anchor", "middle");
                     this._indicators[i].setAttribute("dominant-baseline", "central");
@@ -35657,7 +35677,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$k, div: div$k, h2: h2$j, p: p$7 } = HTML;
+    const { button: button$k, div: div$l, h2: h2$k, p: p$8 } = HTML$1;
     class CustomFilterPrompt {
         constructor(_doc, _songEditor, _useNoteFilter, forSong = false) {
             this._doc = _doc;
@@ -35669,27 +35689,27 @@ You should be redirected to the song at:<br /><br />
             this._subfilterIndex = 0;
             this._playButton = button$k({ style: "width: 55%;", type: "button" });
             this._filterButtons = [];
-            this._filterButtonContainer = div$k({ class: "instrument-bar", style: "justify-content: center;" });
+            this._filterButtonContainer = div$l({ class: "instrument-bar", style: "justify-content: center;" });
             this._cancelButton = button$k({ class: "cancelButton" });
             this._okayButton = button$k({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._filterContainer = div$k({ style: "width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center;" });
-            this._editorTitle = div$k({}, h2$j("Edit Filter"));
+            this._filterContainer = div$l({ style: "width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center;" });
+            this._editorTitle = div$l({}, h2$k("Edit Filter"));
             this._filterCopyButton = button$k({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
             this._filterPasteButton = button$k({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this._filterCopyPasteContainer = div$k({ style: "width: 185px;" }, this._filterCopyButton, this._filterPasteButton);
-            this._filterCoordinateText = div$k({ style: "text-align: left; margin-bottom: 0px; font-size: x-small; height: 1.3em; color: " + ColorConfig.secondaryText + ";" }, p$7(""));
-            this.container = div$k({ class: "prompt noSelection", style: "width: 600px;" }, this._editorTitle, div$k({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._filterButtonContainer, this._filterContainer, div$k({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._filterCopyPasteContainer), this._cancelButton);
+            this._filterCopyPasteContainer = div$l({ style: "width: 185px;" }, this._filterCopyButton, this._filterPasteButton);
+            this._filterCoordinateText = div$l({ style: "text-align: left; margin-bottom: 0px; font-size: x-small; height: 1.3em; color: " + ColorConfig.secondaryText + ";" }, p$8(""));
+            this.container = div$l({ class: "prompt noSelection", style: "width: 600px;" }, this._editorTitle, div$l({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._filterButtonContainer, this._filterContainer, div$l({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._filterCopyPasteContainer), this._cancelButton);
             this._setSubfilter = (index, useHistory = true, doSwap = true) => {
                 this._filterButtons[this._subfilterIndex].classList.remove("selected-instrument");
                 if (doSwap)
@@ -35831,16 +35851,16 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$j, div: div$j, h2: h2$i, input: input$e, label: label$2, br: br$2 } = HTML;
+    const { button: button$j, div: div$k, h2: h2$j, input: input$f, label: label$2, br: br$2 } = HTML$1;
     class InstrumentExportPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._cancelButton = button$j({ class: "cancelButton" });
             this._exportButton = button$j({ class: "exportButton", style: "width:45%;" }, "Export");
-            this._exportMultipleBox = input$e({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._exportMultipleBox = input$f({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
             this._channelName = this._doc.song.channels[this._doc.channel].name == "" ? Config.jsonFormat + "-Instrument" : this._doc.song.channels[this._doc.channel].name;
-            this._fileName = input$e({ type: "text", style: "width: 10em;", value: this._channelName, maxlength: 250, "autofocus": "autofocus" });
-            this.container = div$j({ class: "prompt noSelection", style: "width: 200px;" }, h2$i("Export Instruments Options"), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), label$2({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Export all instruments", br$2(), "in channel:", this._exportMultipleBox), div$j({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
+            this._fileName = input$f({ type: "text", style: "width: 10em;", value: this._channelName, maxlength: 250, "autofocus": "autofocus" });
+            this.container = div$k({ class: "prompt noSelection", style: "width: 200px;" }, h2$j("Export Instruments Options"), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), label$2({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Export all instruments", br$2(), "in channel:", this._exportMultipleBox), div$k({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -35907,15 +35927,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$i, div: div$i, h2: h2$h, input: input$d, select: select$b, option: option$b, code: code$1 } = HTML;
+    const { button: button$i, div: div$j, h2: h2$i, input: input$e, select: select$b, option: option$b, code: code$1 } = HTML$1;
     class InstrumentImportPrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._cancelButton = button$i({ class: "cancelButton" });
             this._importStrategySelect = select$b({ style: "width: 100%;" }, option$b({ value: "append" }, "Append instruments to the end of the list."), option$b({ value: "replace" }, "Replace only the selected instrument."), option$b({ value: "all" }, "Replace all instruments in the channel."));
-            this._fileInput = input$d({ type: "file", accept: ".json,application/json" });
-            this._strategyInfoText = div$i({ style: "text-align: left;" }, "You must enable either ", code$1("Simultaneous instruments per channel"), " or ", code$1("Different instruments per pattern"), " to change the import strategy.");
-            this.container = div$i({ class: "prompt noSelection", style: "width: 300px;" }, h2$h("Import Instrument(s)"), this._strategyInfoText, div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$i({ class: "selectContainer", style: "width: 100%;" }, this._importStrategySelect)), this._fileInput, this._cancelButton);
+            this._fileInput = input$e({ type: "file", accept: ".json,application/json" });
+            this._strategyInfoText = div$j({ style: "text-align: left;" }, "You must enable either ", code$1("Simultaneous instruments per channel"), " or ", code$1("Different instruments per pattern"), " to change the import strategy.");
+            this.container = div$j({ class: "prompt noSelection", style: "width: 300px;" }, h2$i("Import Instrument(s)"), this._strategyInfoText, div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$j({ class: "selectContainer", style: "width: 100%;" }, this._importStrategySelect)), this._fileInput, this._cancelButton);
             this._whenFileSelected = () => {
                 const file = this._fileInput.files[0];
                 if (!file)
@@ -36056,7 +36076,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$h, div: div$h, h2: h2$g, input: input$c } = HTML;
+    const { button: button$h, div: div$i, h2: h2$h, input: input$d } = HTML$1;
     function gcd(x, y) {
         while (y !== 0) {
             const z = x % y;
@@ -36162,32 +36182,32 @@ You should be redirected to the song at:<br /><br />
             this._clockPadding = this._clockWidth / this._maxSteps;
             this._clockRadius = this._clockWidth / 2 - this._clockPointMaxRadius - this._clockPadding;
             this._sequenceButtons = [];
-            this._sequenceRemoveButton = button$h({ class: "no-underline", style: "flex-grow: 0; flex-basis: 30px;" }, SVG.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG.path({ d: "M -7.07 -5.66 L -5.66 -7.07 L 0 -1.4 L 5.66 -7.07 L 7.07 -5.66 L 1.4 0 L 7.07 5.66 L 5.66 7.07 L 0 1.4 L -5.66 7.07 L -7.07 5.66 L -1.4 0 z", fill: ColorConfig.primaryText })));
-            this._sequenceAddButton = button$h({ class: "no-underline last-button", style: "flex-grow: 0; flex-basis: 30px;" }, SVG.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG.path({ d: "M -8 -1 L -1 -1 L -1 -8 L 1 -8 L 1 -1 L 8 -1 L 8 1 L 1 1 L 1 8 L -1 8 L -1 1 L -8 1 z", fill: ColorConfig.primaryText })));
-            this._sequenceButtonContainer = div$h({ class: "instrument-bar", style: "justify-content: center; width: 100%;" }, this._sequenceRemoveButton, this._sequenceAddButton);
-            this._barPreviewBackground = SVG.svg({ "pointer-events": "none" });
-            this._barPreviewSteps = SVG.svg({ "pointer-events": "none" });
-            this._barPreviewLabel = div$h({ style: `flex-grow: 1; color: ${ColorConfig.secondaryText}` });
-            this._barPreviewGoToFirstButton = button$h({ style: "height: auto; min-height: var(--button-size);" }, SVG.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG.rect({ x: "-6", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoBackButton = button$h({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG.svg({ width: "24", height: "26", viewBox: "-10 -14 24 26", "pointer-events": "none" }, SVG.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoForwardButton = button$h({ style: "height: auto; min-height: var(--button-size);" }, SVG.svg({ width: "24", height: "26", viewBox: "-14 -14 24 26", "pointer-events": "none" }, SVG.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoToLastButton = button$h({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
-            this._clockWire = SVG.circle({ cx: this._clockWidth / 2, cy: this._clockHeight / 2, r: this._clockRadius, stroke: ColorConfig.primaryText, "stroke-width": "0.5", fill: "none" });
-            this._clockPoints = SVG.svg({ "pointer-events": "none" });
-            this._stepsStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: this._minSteps, max: this._maxSteps, value: "8", step: "1" });
-            this._pulsesStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: "8", value: "5", step: "1" });
-            this._rotationStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: this._maxSteps, value: "0", step: "1" });
-            this._stepSizeNumeratorStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "1", step: "1" });
-            this._stepSizeDenominatorStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "4", step: "1" });
-            this._channelStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: this._maxChannel + 1, value: "1", step: "1" });
-            this._pitchStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: Config.maxPitch, value: "0", step: "1" });
-            this._barAmountStepper = input$c({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.barCountMax, value: "1", step: "1" });
+            this._sequenceRemoveButton = button$h({ class: "no-underline", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -7.07 -5.66 L -5.66 -7.07 L 0 -1.4 L 5.66 -7.07 L 7.07 -5.66 L 1.4 0 L 7.07 5.66 L 5.66 7.07 L 0 1.4 L -5.66 7.07 L -7.07 5.66 L -1.4 0 z", fill: ColorConfig.primaryText })));
+            this._sequenceAddButton = button$h({ class: "no-underline last-button", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -8 -1 L -1 -1 L -1 -8 L 1 -8 L 1 -1 L 8 -1 L 8 1 L 1 1 L 1 8 L -1 8 L -1 1 L -8 1 z", fill: ColorConfig.primaryText })));
+            this._sequenceButtonContainer = div$i({ class: "instrument-bar", style: "justify-content: center; width: 100%;" }, this._sequenceRemoveButton, this._sequenceAddButton);
+            this._barPreviewBackground = SVG$1.svg({ "pointer-events": "none" });
+            this._barPreviewSteps = SVG$1.svg({ "pointer-events": "none" });
+            this._barPreviewLabel = div$i({ style: `flex-grow: 1; color: ${ColorConfig.secondaryText}` });
+            this._barPreviewGoToFirstButton = button$h({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "-6", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoBackButton = button$h({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-10 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoForwardButton = button$h({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-14 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoToLastButton = button$h({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
+            this._clockWire = SVG$1.circle({ cx: this._clockWidth / 2, cy: this._clockHeight / 2, r: this._clockRadius, stroke: ColorConfig.primaryText, "stroke-width": "0.5", fill: "none" });
+            this._clockPoints = SVG$1.svg({ "pointer-events": "none" });
+            this._stepsStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: this._minSteps, max: this._maxSteps, value: "8", step: "1" });
+            this._pulsesStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: "8", value: "5", step: "1" });
+            this._rotationStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: this._maxSteps, value: "0", step: "1" });
+            this._stepSizeNumeratorStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "1", step: "1" });
+            this._stepSizeDenominatorStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "4", step: "1" });
+            this._channelStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: this._maxChannel + 1, value: "1", step: "1" });
+            this._pitchStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: Config.maxPitch, value: "0", step: "1" });
+            this._barAmountStepper = input$d({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.barCountMax, value: "1", step: "1" });
             this._extendUntilLoopButton = button$h({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, "Extend until loop");
-            this._generateFadingNotesBox = input$c({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
-            this._invertBox = input$c({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
+            this._generateFadingNotesBox = input$d({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
+            this._invertBox = input$d({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
             this._okayButton = button$h({ class: "okayButton", style: "width: 45%;" }, "Okay");
             this._cancelButton = button$h({ class: "cancelButton" });
-            this.container = div$h({ class: "prompt noSelection", style: "width: 600px;" }, h2$g("Generate Euclidean Rhythm"), div$h({ style: "display: flex; flex-direction: row; align-items: center;" }, this._sequenceButtonContainer), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, div$h({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoToFirstButton, this._barPreviewGoBackButton), this._barPreviewLabel, div$h({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoForwardButton, this._barPreviewGoToLastButton)), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, SVG.svg({ "pointer-events": "none", style: "touch-action: none; overflow: hidden;", width: "100%", height: "20px", viewBox: `0 0 ${this._barPreviewWidth} ${this._barPreviewHeight}`, preserveAspectRatio: "none" }, this._barPreviewBackground, this._barPreviewSteps)), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-evenly;" }, div$h({ style: "max-width: 150px; height: 100%;" }, SVG.svg({ "pointer-events": "none", width: "100%", height: "100%", style: "touch-action: none; overflow: hidden; margin-right: 1.5em; max-width: 150px; height: 100%;", viewBox: `0 0 ${this._clockWidth} ${this._clockHeight}`, preserveAspectRatio: "none" }, this._clockWire, this._clockPoints)), div$h({ style: "display: flex; height: 100%;" }, div$h({ style: "flex-grow: 1; " }, div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Steps"), this._stepsStepper), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pulses"), this._pulsesStepper), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Rotation"), this._rotationStepper)), div$h({ style: "flex-grow: 1; margin-left: 1em;" }, div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-bottom: 1em;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Size"), div$h({ style: "display: flex; flex-direction: column;" }, this._stepSizeNumeratorStepper, this._stepSizeDenominatorStepper)), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Channel"), this._channelStepper), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$h({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pitch"), this._pitchStepper)))), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$h({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Generate fading notes"), this._generateFadingNotesBox, div$h({ style: `text-align: right; color: ${ColorConfig.primaryText}; margin-left: 1em;` }, "Invert"), this._invertBox), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$h({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Length (in bars)"), this._barAmountStepper, this._extendUntilLoopButton), div$h({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$i({ class: "prompt noSelection", style: "width: 600px;" }, h2$h("Generate Euclidean Rhythm"), div$i({ style: "display: flex; flex-direction: row; align-items: center;" }, this._sequenceButtonContainer), div$i({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, div$i({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoToFirstButton, this._barPreviewGoBackButton), this._barPreviewLabel, div$i({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoForwardButton, this._barPreviewGoToLastButton)), div$i({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, SVG$1.svg({ "pointer-events": "none", style: "touch-action: none; overflow: hidden;", width: "100%", height: "20px", viewBox: `0 0 ${this._barPreviewWidth} ${this._barPreviewHeight}`, preserveAspectRatio: "none" }, this._barPreviewBackground, this._barPreviewSteps)), div$i({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-evenly;" }, div$i({ style: "max-width: 150px; height: 100%;" }, SVG$1.svg({ "pointer-events": "none", width: "100%", height: "100%", style: "touch-action: none; overflow: hidden; margin-right: 1.5em; max-width: 150px; height: 100%;", viewBox: `0 0 ${this._clockWidth} ${this._clockHeight}`, preserveAspectRatio: "none" }, this._clockWire, this._clockPoints)), div$i({ style: "display: flex; height: 100%;" }, div$i({ style: "flex-grow: 1; " }, div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Steps"), this._stepsStepper), div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pulses"), this._pulsesStepper), div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Rotation"), this._rotationStepper)), div$i({ style: "flex-grow: 1; margin-left: 1em;" }, div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-bottom: 1em;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Size"), div$i({ style: "display: flex; flex-direction: column;" }, this._stepSizeNumeratorStepper, this._stepSizeDenominatorStepper)), div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Channel"), this._channelStepper), div$i({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$i({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pitch"), this._pitchStepper)))), div$i({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$i({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Generate fading notes"), this._generateFadingNotesBox, div$i({ style: `text-align: right; color: ${ColorConfig.primaryText}; margin-left: 1em;` }, "Invert"), this._invertBox), div$i({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$i({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Length (in bars)"), this._barAmountStepper, this._extendUntilLoopButton), div$i({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this.cleanUp = () => {
                 this._okayButton.removeEventListener("click", this._saveChanges);
                 this._cancelButton.removeEventListener("click", this._close);
@@ -36724,7 +36744,7 @@ You should be redirected to the song at:<br /><br />
                     const y = padding;
                     const w = beatWidth - padding * 2;
                     const h = beatHeight - padding * 2;
-                    const beatElement = SVG.rect({
+                    const beatElement = SVG$1.rect({
                         x: x,
                         y: y,
                         width: w,
@@ -36864,7 +36884,7 @@ You should be redirected to the song at:<br /><br />
                     const angle = (step / steps) * Math.PI * 2 - Math.PI / 2;
                     const x = centerX + Math.cos(angle) * clockRadius;
                     const y = centerY + Math.sin(angle) * clockRadius;
-                    const clockPoint = SVG.circle({
+                    const clockPoint = SVG$1.circle({
                         cx: x,
                         cy: y,
                         r: clockPointRadius,
@@ -36925,7 +36945,7 @@ You should be redirected to the song at:<br /><br />
                     const w = partAmount * partWidth - padding * 2;
                     if (hasGeneratedSequence && generatedSequence[step % steps] === on) {
                         if (generateFadingNotes) {
-                            const stepBackgroundElement = SVG.rect({
+                            const stepBackgroundElement = SVG$1.rect({
                                 x: x,
                                 y: y,
                                 width: w,
@@ -36953,14 +36973,14 @@ You should be redirected to the song at:<br /><br />
                             const y2 = y + h - (h / 2) * (1 - endSize);
                             const x3 = x;
                             const y3 = y + h - (h / 2) * (1 - startSize);
-                            const stepElement = SVG.path({
+                            const stepElement = SVG$1.path({
                                 d: `M ${x0} ${y0} L ${x1} ${y1} L ${x2} ${y2} L ${x3} ${y3} z`,
                                 style: `fill: ${color};`,
                             });
                             container.appendChild(stepElement);
                         }
                         else {
-                            const stepElement = SVG.rect({
+                            const stepElement = SVG$1.rect({
                                 x: x,
                                 y: y,
                                 width: w,
@@ -36981,7 +37001,7 @@ You should be redirected to the song at:<br /><br />
                             arrowPath += "L " + prettyNumber(partWidth * stepPartStart + indicatorOffset + 12) + " " + prettyNumber(arrowY);
                             arrowPath += "L " + prettyNumber(partWidth * stepPartStart + indicatorOffset + 4) + " " + prettyNumber(arrowY - 0.3 * arrowHeight);
                             arrowPath += "L " + prettyNumber(partWidth * stepPartStart + indicatorOffset + 4) + " " + prettyNumber(arrowY - 0.1 * arrowHeight);
-                            const arrow = SVG.path();
+                            const arrow = SVG$1.path();
                             arrow.setAttribute("d", arrowPath);
                             arrow.setAttribute("fill", ColorConfig.invertedText);
                             toPushAtTheEnd.push(arrow);
@@ -37092,13 +37112,13 @@ You should be redirected to the song at:<br /><br />
             this._isPrompt = _isPrompt;
             this._editorWidth = 120;
             this._editorHeight = 26;
-            this._octaves = SVG.svg({ "pointer-events": "none" });
-            this._fifths = SVG.svg({ "pointer-events": "none" });
-            this._curve = SVG.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
+            this._octaves = SVG$1.svg({ "pointer-events": "none" });
+            this._fifths = SVG$1.svg({ "pointer-events": "none" });
+            this._curve = SVG$1.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
             this._lastControlPoints = [];
-            this._lastControlPointContainer = SVG.svg({ "pointer-events": "none" });
-            this._svg = SVG.svg({ style: "background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;", width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._octaves, this._fifths, this._curve, this._lastControlPointContainer);
-            this.container = HTML.div({ class: "harmonics", style: "height: 100%;" }, this._svg);
+            this._lastControlPointContainer = SVG$1.svg({ "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: "background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;", width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._octaves, this._fifths, this._curve, this._lastControlPointContainer);
+            this.container = HTML$1.div({ class: "harmonics", style: "height: 100%;" }, this._svg);
             this._mouseX = 0;
             this._mouseY = 0;
             this._freqPrev = 0;
@@ -37210,13 +37230,13 @@ You should be redirected to the song at:<br /><br />
             };
             this.instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             for (let i = 1; i <= Config.harmonicsControlPoints; i = i * 2) {
-                this._octaves.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: (i - 0.5) * (this._editorWidth - 8) / (Config.harmonicsControlPoints - 1) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._octaves.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: (i - 0.5) * (this._editorWidth - 8) / (Config.harmonicsControlPoints - 1) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             for (let i = 3; i <= Config.harmonicsControlPoints; i = i * 2) {
-                this._fifths.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: (i - 0.5) * (this._editorWidth - 8) / (Config.harmonicsControlPoints - 1) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._fifths.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: (i - 0.5) * (this._editorWidth - 8) / (Config.harmonicsControlPoints - 1) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             for (let i = 0; i < 4; i++) {
-                const rect = SVG.rect({ fill: "currentColor", x: (this._editorWidth - i * 2 - 1), y: 0, width: 1, height: this._editorHeight });
+                const rect = SVG$1.rect({ fill: "currentColor", x: (this._editorWidth - i * 2 - 1), y: 0, width: 1, height: this._editorHeight });
                 this._lastControlPoints.push(rect);
                 this._lastControlPointContainer.appendChild(rect);
             }
@@ -37318,24 +37338,24 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._songEditor = _songEditor;
             this.harmonicsEditor = new HarmonicsEditor(this._doc, true);
-            this._playButton = HTML.button({ style: "width: 55%;", type: "button" });
-            this._cancelButton = HTML.button({ class: "cancelButton" });
-            this._okayButton = HTML.button({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.copyButton = HTML.button({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+            this._playButton = HTML$1.button({ style: "width: 55%;", type: "button" });
+            this._cancelButton = HTML$1.button({ class: "cancelButton" });
+            this._okayButton = HTML$1.button({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.copyButton = HTML$1.button({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
-            this.pasteButton = HTML.button({ style: "width:86px;", class: "pasteButton" }, [
+            this.pasteButton = HTML$1.button({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this.copyPasteContainer = HTML.div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = HTML.div({ class: "prompt noSelection", style: "width: 500px;" }, HTML.h2("Edit Harmonics Instrument"), HTML.div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), HTML.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.harmonicsEditor.container), HTML.div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this.copyPasteContainer = HTML$1.div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = HTML$1.div({ class: "prompt noSelection", style: "width: 500px;" }, HTML$1.h2("Edit Harmonics Instrument"), HTML$1.div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), HTML$1.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.harmonicsEditor.container), HTML$1.div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
             this._togglePlay = () => {
                 this._songEditor.togglePlay();
                 this.updatePlayButton();
@@ -37417,7 +37437,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { span: span$5 } = HTML;
+    const { span: span$5 } = HTML$1;
     class InputBox {
         constructor(input, _doc, _getChange) {
             this.input = input;
@@ -37560,14 +37580,14 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$g, p: p$6, div: div$g, h2: h2$f, input: input$b, select: select$a, option: option$a } = HTML;
+    const { button: button$g, p: p$7, div: div$h, h2: h2$g, input: input$c, select: select$a, option: option$a } = HTML$1;
     class ImportPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._fileInput = input$b({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
+            this._fileInput = input$c({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
             this._cancelButton = button$g({ class: "cancelButton" });
             this._modeImportSelect = select$a({ style: "width: 100%;" }, option$a({ value: "auto" }, "Auto-detect mode (for json)"), option$a({ value: "BeepBox" }, "BeepBox"), option$a({ value: "ModBox" }, "ModBox"), option$a({ value: "JummBox" }, "JummBox"), option$a({ value: "SynthBox" }, "SynthBox"), option$a({ value: "GoldBox" }, "GoldBox"), option$a({ value: "PaandorasBox" }, "PaandorasBox"), option$a({ value: "UltraBox" }, "UltraBox"), option$a({ value: "slarmoosbox" }, "Slarmoo's Box"));
-            this.container = div$g({ class: "prompt noSelection", style: "width: 300px;" }, h2$f("Import"), p$6({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox songs can be exported and re-imported as .json files. You could also use other means to make .json files for BeepBox as long as they follow the same structure."), p$6({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox can also (crudely) import .mid files. There are many tools available for creating .mid files. Shorter and simpler songs are more likely to work well."), this._modeImportSelect, this._fileInput, this._cancelButton);
+            this.container = div$h({ class: "prompt noSelection", style: "width: 300px;" }, h2$g("Import"), p$7({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox songs can be exported and re-imported as .json files. You could also use other means to make .json files for BeepBox as long as they follow the same structure."), p$7({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox can also (crudely) import .mid files. There are many tools available for creating .mid files. Shorter and simpler songs are more likely to work well."), this._modeImportSelect, this._fileInput, this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -38355,8 +38375,8 @@ You should be redirected to the song at:<br /><br />
     class Box {
         constructor(channel, color) {
             this._text = document.createTextNode("");
-            this._label = HTML.div({ class: "channelBoxLabel" }, this._text);
-            this.container = HTML.div({ class: "channelBox", style: `margin: 1px; height: ${ChannelRow.patternHeight - 2}px;` }, this._label);
+            this._label = HTML$1.div({ class: "channelBoxLabel" }, this._text);
+            this.container = HTML$1.div({ class: "channelBox", style: `margin: 1px; height: ${ChannelRow.patternHeight - 2}px;` }, this._label);
             this._renderedIndex = -1;
             this._renderedLabelColor = "?";
             this._renderedVisibility = "?";
@@ -38430,7 +38450,7 @@ You should be redirected to the song at:<br /><br />
             this._renderedBarWidth = -1;
             this._renderedBarHeight = -1;
             this._boxes = [];
-            this.container = HTML.div({ class: "channelRow" });
+            this.container = HTML$1.div({ class: "channelRow" });
         }
         render() {
             ChannelRow.patternHeight = this._doc.getChannelHeight();
@@ -38489,21 +38509,21 @@ You should be redirected to the song at:<br /><br />
     }
     ChannelRow.patternHeight = 28;
 
-    const { button: button$f, label: label$1, div: div$f, form, h2: h2$e, input: input$a } = HTML;
+    const { button: button$f, label: label$1, div: div$g, form, h2: h2$f, input: input$b } = HTML$1;
     class LayoutPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._fileInput = input$a({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
+            this._fileInput = input$b({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
             this._okayButton = button$f({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._cancelButton = button$f({ class: "cancelButton" });
-            this._form = form({ style: "display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;" }, label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "small" }), SVG(`\
+            this._form = form({ style: "display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;" }, label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "small" }), SVG$1(`\
 					<svg viewBox="-4 -1 28 22">
 						<rect x="0" y="0" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="11" height="10" fill="currentColor"/>
 						<rect x="14" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="11" height="5" fill="currentColor"/>
 					</svg>
-				`), div$f("Small")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "long" }), SVG(`\
+				`), div$g("Small")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="12" height="10" fill="currentColor"/>
@@ -38511,14 +38531,14 @@ You should be redirected to the song at:<br /><br />
 						<rect x="20" y="2" width="4" height="10" fill="currentColor"/>
 						<rect x="2" y="13" width="22" height="5" fill="currentColor"/>
 					</svg>
-				`), div$f("Long")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "tall" }), SVG(`\
+				`), div$g("Long")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "tall" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="11" y="2" width="8" height="16" fill="currentColor"/>
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="2" width="8" height="16" fill="currentColor"/>
 					</svg>
-				`), div$f("Tall")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "wide" }), SVG(`\
+				`), div$g("Tall")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "wide" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="4" height="16" fill="currentColor"/>
@@ -38526,7 +38546,7 @@ You should be redirected to the song at:<br /><br />
 						<rect x="21.5" y="2" width="2.5" height="16" fill="currentColor"/>
 						<rect x="7" y="2" width="10" height="16" fill="currentColor"/>
 					</svg>
-				`), div$f("Wide (JB)")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "wide long" }), SVG(`\
+				`), div$g("Wide (JB)")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "wide long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="12" height="10" fill="currentColor"/>
@@ -38534,7 +38554,7 @@ You should be redirected to the song at:<br /><br />
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="12" height="5" fill="currentColor"/>
 					</svg>
-				`), div$f("Wide Long (AB)")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "flipped long" }), SVG(`\
+				`), div$g("Wide Long (AB)")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "flipped long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="22" height="2" fill="currentColor"/>
@@ -38542,15 +38562,15 @@ You should be redirected to the song at:<br /><br />
 						<rect x="7" y="5" width="17" height="8" fill="currentColor"/>
 						<rect x="2" y="14" width="22" height="4" fill="currentColor"/>
 					</svg>
-				`), div$f("Flipped Long (AB)")), label$1({ class: "layout-option" }, input$a({ type: "radio", name: "layout", value: "focused long" }), SVG(`\
+				`), div$g("Flipped Long (AB)")), label$1({ class: "layout-option" }, input$b({ type: "radio", name: "layout", value: "focused long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="17" height="10" fill="currentColor"/>
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="17" height="5" fill="currentColor"/>
 					</svg>
-				`), div$f("Focused long (AB)")));
-            this.container = div$f({ class: "prompt noSelection", style: "width: 300px;" }, h2$e("Layout"), this._form, div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+				`), div$g("Focused long (AB)")));
+            this.container = div$g({ class: "prompt noSelection", style: "width: 300px;" }, h2$f("Layout"), this._form, div$g({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -38584,7 +38604,7 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._extraSettingsDropdown = _extraSettingsDropdown;
             this._openPrompt = _openPrompt;
-            this.container = HTML.div({ class: "envelopeEditor" });
+            this.container = HTML$1.div({ class: "envelopeEditor" });
             this._rows = [];
             this._targetSelects = [];
             this._envelopeSelects = [];
@@ -38761,7 +38781,7 @@ You should be redirected to the song at:<br /><br />
                     displayName += " " + (index + 1);
                 }
             }
-            return HTML.option({ value: target + index * Config.instrumentAutomationTargets.length }, displayName);
+            return HTML$1.option({ value: target + index * Config.instrumentAutomationTargets.length }, displayName);
         }
         _updateTargetOptionVisibility(menu, instrument) {
             for (let optionIndex = 0; optionIndex < menu.childElementCount; optionIndex++) {
@@ -38934,7 +38954,7 @@ You should be redirected to the song at:<br /><br />
         render() {
             const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             for (let envelopeIndex = this._rows.length; envelopeIndex < instrument.envelopeCount; envelopeIndex++) {
-                const targetSelect = HTML.select();
+                const targetSelect = HTML$1.select();
                 for (let target = 0; target < Config.instrumentAutomationTargets.length; target++) {
                     const interleaved = (Config.instrumentAutomationTargets[target].interleave);
                     for (let index = 0; index < Config.instrumentAutomationTargets[target].maxCount; index++) {
@@ -38946,85 +38966,85 @@ You should be redirected to the song at:<br /><br />
                     if (interleaved)
                         target++;
                 }
-                const envelopeSelect = HTML.select({ id: "envelopeSelect" });
+                const envelopeSelect = HTML$1.select({ id: "envelopeSelect" });
                 for (let envelope = 0; envelope < Config.newEnvelopes.length; envelope++) {
-                    envelopeSelect.appendChild(HTML.option({ value: envelope }, Config.newEnvelopes[envelope].name));
+                    envelopeSelect.appendChild(HTML$1.option({ value: envelope }, Config.newEnvelopes[envelope].name));
                 }
-                const deleteButton = HTML.button({ type: "button", class: "delete-envelope", style: "flex: 0.2" });
-                const pitchStartNoteSlider = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, step: "1" });
-                const pitchStartNoteBox = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 4em; font-size: 80%; ", id: "startNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
-                const pitchEndNoteSlider = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, step: "1" });
-                const pitchEndNoteBox = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, style: "width: 4em; font-size: 80%; ", id: "endNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
-                const pitchStartNoteDisplay = HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "Start " + this._pitchToNote(parseInt(pitchStartNoteBox.value), instrument.isNoiseInstrument) + ": ");
-                const pitchEndNoteDisplay = HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "End " + this._pitchToNote(parseInt(pitchEndNoteBox.value), instrument.isNoiseInstrument) + ": ");
-                const pitchStartBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, pitchStartNoteDisplay, pitchStartNoteBox);
-                const pitchEndBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, pitchEndNoteDisplay, pitchEndNoteBox);
-                const pitchStartNoteWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, pitchStartBoxWrapper, pitchStartNoteSlider);
-                const pitchEndNoteWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, pitchEndBoxWrapper, pitchEndNoteSlider);
-                const extraPitchSettingsGroup = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, pitchStartNoteWrapper, pitchEndNoteWrapper);
+                const deleteButton = HTML$1.button({ type: "button", class: "delete-envelope", style: "flex: 0.2" });
+                const pitchStartNoteSlider = HTML$1.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, step: "1" });
+                const pitchStartNoteBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 4em; font-size: 80%; ", id: "startNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
+                const pitchEndNoteSlider = HTML$1.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, step: "1" });
+                const pitchEndNoteBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch, style: "width: 4em; font-size: 80%; ", id: "endNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
+                const pitchStartNoteDisplay = HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "Start " + this._pitchToNote(parseInt(pitchStartNoteBox.value), instrument.isNoiseInstrument) + ": ");
+                const pitchEndNoteDisplay = HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "End " + this._pitchToNote(parseInt(pitchEndNoteBox.value), instrument.isNoiseInstrument) + ": ");
+                const pitchStartBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, pitchStartNoteDisplay, pitchStartNoteBox);
+                const pitchEndBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, pitchEndNoteDisplay, pitchEndNoteBox);
+                const pitchStartNoteWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, pitchStartBoxWrapper, pitchStartNoteSlider);
+                const pitchEndNoteWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, pitchEndBoxWrapper, pitchEndNoteSlider);
+                const extraPitchSettingsGroup = HTML$1.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, pitchStartNoteWrapper, pitchEndNoteWrapper);
                 extraPitchSettingsGroup.style.display = "none";
-                const randomStepsBox = HTML.input({ value: instrument.envelopes[envelopeIndex].steps, type: "number", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 4em; font-size: 80%; " });
-                const randomStepsSlider = HTML.input({ value: instrument.envelopes[envelopeIndex].steps, type: "range", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 113px; margin-left: 0px;" });
-                const randomSeedBox = HTML.input({ value: instrument.envelopes[envelopeIndex].seed, type: "number", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 4em; font-size: 80%; " });
-                const randomSeedSlider = HTML.input({ value: instrument.envelopes[envelopeIndex].seed, type: "range", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 113px; margin-left: 0px;" });
-                const randomStepsBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), randomStepsBox);
-                const randomSeedBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSeed") }, "Seed: "), randomSeedBox);
-                const randomStepsWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomStepsBoxWrapper, randomStepsSlider);
-                const randomSeedWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomSeedBoxWrapper, randomSeedSlider);
-                const randomTypeSelect = HTML.select({ style: "width: 115px;" });
+                const randomStepsBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].steps, type: "number", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 4em; font-size: 80%; " });
+                const randomStepsSlider = HTML$1.input({ value: instrument.envelopes[envelopeIndex].steps, type: "range", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 113px; margin-left: 0px;" });
+                const randomSeedBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].seed, type: "number", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 4em; font-size: 80%; " });
+                const randomSeedSlider = HTML$1.input({ value: instrument.envelopes[envelopeIndex].seed, type: "range", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 113px; margin-left: 0px;" });
+                const randomStepsBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), randomStepsBox);
+                const randomSeedBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSeed") }, "Seed: "), randomSeedBox);
+                const randomStepsWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomStepsBoxWrapper, randomStepsSlider);
+                const randomSeedWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomSeedBoxWrapper, randomSeedSlider);
+                const randomTypeSelect = HTML$1.select({ style: "width: 115px;" });
                 const randomNames = ["time", "pitch", "note", "time smooth"];
                 for (let waveform = 0; waveform < 4; waveform++) {
-                    randomTypeSelect.appendChild(HTML.option({ value: waveform }, randomNames[waveform]));
+                    randomTypeSelect.appendChild(HTML$1.option({ value: waveform }, randomNames[waveform]));
                 }
-                const randomTypeSelectWrapper = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 35px;", class: "tip", onclick: () => this._openPrompt("randomEnvelopeType") }, "Type: "), randomTypeSelect);
-                const extraRandomSettingsGroup = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, randomTypeSelectWrapper, randomStepsWrapper, randomSeedWrapper);
+                const randomTypeSelectWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 35px;", class: "tip", onclick: () => this._openPrompt("randomEnvelopeType") }, "Type: "), randomTypeSelect);
+                const extraRandomSettingsGroup = HTML$1.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, randomTypeSelectWrapper, randomStepsWrapper, randomSeedWrapper);
                 extraRandomSettingsGroup.style.display = "none";
-                const waveformSelect = HTML.select({ style: "width: 115px;" });
-                const LFOStepsBox = HTML.input({ value: instrument.envelopes[envelopeIndex].steps, type: "number", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 4em; font-size: 80%; " });
-                const LFOStepsSlider = HTML.input({ value: instrument.envelopes[envelopeIndex].steps, type: "range", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 113px; margin-left: 0px;" });
-                const LFOStepsBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), LFOStepsBox);
-                const LFOStepsWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, LFOStepsBoxWrapper, LFOStepsSlider);
+                const waveformSelect = HTML$1.select({ style: "width: 115px;" });
+                const LFOStepsBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].steps, type: "number", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 4em; font-size: 80%; " });
+                const LFOStepsSlider = HTML$1.input({ value: instrument.envelopes[envelopeIndex].steps, type: "range", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 113px; margin-left: 0px;" });
+                const LFOStepsBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), LFOStepsBox);
+                const LFOStepsWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, LFOStepsBoxWrapper, LFOStepsSlider);
                 const wavenames = ["sine", "square", "triangle", "sawtooth", "trapezoid", "stepped saw", "stepped tri"];
                 for (let waveform = 0; waveform < 7; waveform++) {
-                    waveformSelect.appendChild(HTML.option({ value: waveform }, wavenames[waveform]));
+                    waveformSelect.appendChild(HTML$1.option({ value: waveform }, wavenames[waveform]));
                 }
-                const waveformWrapper = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("lfoEnvelopeWaveform") }, "Waveform: "), waveformSelect);
-                const extraLFOSettingsGroup = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, waveformWrapper, LFOStepsWrapper);
+                const waveformWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("lfoEnvelopeWaveform") }, "Waveform: "), waveformSelect);
+                const extraLFOSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, waveformWrapper, LFOStepsWrapper);
                 extraLFOSettingsGroup.style.display = "none";
-                const perEnvelopeSpeedSlider = new Slider(HTML.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed, newSpeed) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);
-                const perEnvelopeSpeedDisplay = HTML.span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(EnvelopeEditor.convertIndexSpeed(perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
-                const perEnvelopeSpeedWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, perEnvelopeSpeedDisplay, perEnvelopeSpeedSlider.container);
-                const perEnvelopeSpeedGroup = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, perEnvelopeSpeedWrapper);
-                const lowerBoundBox = HTML.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeLowerBound, type: "number", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 4em; font-size: 80%; " });
-                const lowerBoundSlider = new Slider(HTML.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeLowerBound, type: "range", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 113px; margin-left: 0px;" }), this._doc, (oldBound, newBound) => new ChangeEnvelopeLowerBound(this._doc, oldBound, newBound, envelopeIndex), false);
-                const upperBoundBox = HTML.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeUpperBound, type: "number", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 4em; font-size: 80%; " });
-                const upperBoundSlider = new Slider(HTML.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeUpperBound, type: "range", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 113px; margin-left: 0px;" }), this._doc, (oldBound, newBound) => new ChangeEnvelopeUpperBound(this._doc, oldBound, newBound, envelopeIndex), false);
-                const lowerBoundBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Lwr bnd: "), lowerBoundBox);
-                const upperBoundBoxWrapper = HTML.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Upr bnd: "), upperBoundBox);
-                const lowerBoundWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, lowerBoundBoxWrapper, lowerBoundSlider.container);
-                const upperBoundWrapper = HTML.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, upperBoundBoxWrapper, upperBoundSlider.container);
-                const invertBox = HTML.input({ "checked": instrument.envelopes[envelopeIndex].inverse, type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "invertBox" });
-                const discreteEnvelopeBox = HTML.input({ "checked": instrument.envelopes[envelopeIndex].discrete, type: "checkbox", style: "width: 1em; padding: 0.5em;" });
-                const checkboxWrapper = HTML.div({ style: "margin: 0.1em; align-items:center; justify-content:right;" }, HTML.span({ class: "tip", onclick: () => this._openPrompt("envelopeInvert") }, "‣ Invert: "), invertBox, HTML.span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("discreteEnvelope") }, "‣ Discrete:"), discreteEnvelopeBox);
-                const envelopeCopyButton = HTML.button({ style: "margin-left:0px; max-width:86px; width: 86px; height: 26px; padding-left: 22px", class: "copyButton", title: "Copy Envelope" }, [
+                const perEnvelopeSpeedSlider = new Slider(HTML$1.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed, newSpeed) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);
+                const perEnvelopeSpeedDisplay = HTML$1.span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(EnvelopeEditor.convertIndexSpeed(perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
+                const perEnvelopeSpeedWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, perEnvelopeSpeedDisplay, perEnvelopeSpeedSlider.container);
+                const perEnvelopeSpeedGroup = HTML$1.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, perEnvelopeSpeedWrapper);
+                const lowerBoundBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeLowerBound, type: "number", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 4em; font-size: 80%; " });
+                const lowerBoundSlider = new Slider(HTML$1.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeLowerBound, type: "range", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 113px; margin-left: 0px;" }), this._doc, (oldBound, newBound) => new ChangeEnvelopeLowerBound(this._doc, oldBound, newBound, envelopeIndex), false);
+                const upperBoundBox = HTML$1.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeUpperBound, type: "number", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 4em; font-size: 80%; " });
+                const upperBoundSlider = new Slider(HTML$1.input({ value: instrument.envelopes[envelopeIndex].perEnvelopeUpperBound, type: "range", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 113px; margin-left: 0px;" }), this._doc, (oldBound, newBound) => new ChangeEnvelopeUpperBound(this._doc, oldBound, newBound, envelopeIndex), false);
+                const lowerBoundBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Lwr bnd: "), lowerBoundBox);
+                const upperBoundBoxWrapper = HTML$1.div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, HTML$1.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Upr bnd: "), upperBoundBox);
+                const lowerBoundWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, lowerBoundBoxWrapper, lowerBoundSlider.container);
+                const upperBoundWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, upperBoundBoxWrapper, upperBoundSlider.container);
+                const invertBox = HTML$1.input({ "checked": instrument.envelopes[envelopeIndex].inverse, type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "invertBox" });
+                const discreteEnvelopeBox = HTML$1.input({ "checked": instrument.envelopes[envelopeIndex].discrete, type: "checkbox", style: "width: 1em; padding: 0.5em;" });
+                const checkboxWrapper = HTML$1.div({ style: "margin: 0.1em; align-items:center; justify-content:right;" }, HTML$1.span({ class: "tip", onclick: () => this._openPrompt("envelopeInvert") }, "‣ Invert: "), invertBox, HTML$1.span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("discreteEnvelope") }, "‣ Discrete:"), discreteEnvelopeBox);
+                const envelopeCopyButton = HTML$1.button({ style: "margin-left:0px; max-width:86px; width: 86px; height: 26px; padding-left: 22px", class: "copyButton", title: "Copy Envelope" }, [
                     "Copy Env",
-                    SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "26px", height: "26px", viewBox: "-5 -21 26 26" }, [
-                        SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                    SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "26px", height: "26px", viewBox: "-5 -21 26 26" }, [
+                        SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                     ]),
                 ]);
-                const envelopePasteButton = HTML.button({ style: "margin-left:2px; max-width:89px; width: 89px; height: 26px; padding-left: 22px", class: "pasteButton", title: "Paste Envelope" }, [
+                const envelopePasteButton = HTML$1.button({ style: "margin-left:2px; max-width:89px; width: 89px; height: 26px; padding-left: 22px", class: "pasteButton", title: "Paste Envelope" }, [
                     "Paste Env",
-                    SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "26px", height: "26px", viewBox: "0 0 26 26" }, [
-                        SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                        SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                    SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "26px", height: "26px", viewBox: "0 0 26 26" }, [
+                        SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                        SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                     ]),
                 ]);
-                const copyPasteContainer = HTML.div({ class: "editor-controls", style: "margin: 0.5em; display: flex; flex-direction:row; align-items:center;" }, envelopeCopyButton, envelopePasteButton);
-                const extraSettingsDropdown = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(8, envelopeIndex, Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
+                const copyPasteContainer = HTML$1.div({ class: "editor-controls", style: "margin: 0.5em; display: flex; flex-direction:row; align-items:center;" }, envelopeCopyButton, envelopePasteButton);
+                const extraSettingsDropdown = HTML$1.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(8, envelopeIndex, Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
                 extraSettingsDropdown.style.display = "inline";
-                const extraSettingsDropdownGroup = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
+                const extraSettingsDropdownGroup = HTML$1.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
                 extraSettingsDropdownGroup.style.display = "none";
-                const row = HTML.div({ class: "envelope-row" }, extraSettingsDropdown, HTML.div({ class: "selectContainer", style: "width: 0; flex: 1;" }, targetSelect), HTML.div({ class: "selectContainer", style: "width: 0; flex: 0.85" }, envelopeSelect), deleteButton);
+                const row = HTML$1.div({ class: "envelope-row" }, extraSettingsDropdown, HTML$1.div({ class: "selectContainer", style: "width: 0; flex: 1;" }, targetSelect), HTML$1.div({ class: "selectContainer", style: "width: 0; flex: 0.85" }, envelopeSelect), deleteButton);
                 this.container.appendChild(row);
                 this.container.appendChild(extraSettingsDropdownGroup);
                 this._rows[envelopeIndex] = row;
@@ -39118,11 +39138,11 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._editorWidth = 120;
             this._editorHeight = 26;
-            this._fadeCurve = SVG.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
-            this._dottedLinePath = SVG.path({ fill: "none", stroke: "currentColor", "stroke-width": 1, "stroke-dasharray": "3, 2", "pointer-events": "none" });
-            this._controlCurve = SVG.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fadeCurve, this._dottedLinePath, this._controlCurve);
-            this.container = HTML.div({ class: "fadeInOut", style: "height: 100%;" }, this._svg);
+            this._fadeCurve = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
+            this._dottedLinePath = SVG$1.path({ fill: "none", stroke: "currentColor", "stroke-width": 1, "stroke-dasharray": "3, 2", "pointer-events": "none" });
+            this._controlCurve = SVG$1.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fadeCurve, this._dottedLinePath, this._controlCurve);
+            this.container = HTML$1.div({ class: "fadeInOut", style: "height: 100%;" }, this._svg);
             this._mouseX = 0;
             this._mouseXStart = 0;
             this._mouseDown = false;
@@ -39271,44 +39291,44 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$e, div: div$e, h2: h2$d, input: input$9 } = HTML;
+    const { button: button$e, div: div$f, h2: h2$e, input: input$a } = HTML$1;
     class LimiterCanvas {
         constructor(lim) {
             this._editorWidth = 200;
             this._editorHeight = 52;
-            this._fill = SVG.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
-            this._ticks = SVG.svg({ "pointer-events": "none" });
-            this._subticks = SVG.svg({ "pointer-events": "none" });
-            this._boostCurve = SVG.path({ fill: "none", stroke: ColorConfig.textSelection, "stroke-width": 2, "pointer-events": "none" });
-            this._boostDot = SVG.circle({ fill: ColorConfig.textSelection, stroke: "none", r: "3" });
-            this._midCurve = SVG.path({ fill: "none", stroke: ColorConfig.primaryText, "stroke-width": 2, "pointer-events": "none" });
-            this._limitCurve = SVG.path({ fill: "none", stroke: ColorConfig.linkAccent, "stroke-width": 2, "pointer-events": "none" });
-            this._limitDot = SVG.circle({ fill: ColorConfig.linkAccent, stroke: "none", r: "3" });
-            this._label0 = SVG.text({ x: "-1.5%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "0");
-            this._label1 = SVG.text({ x: "48.2%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "1");
-            this._label2 = SVG.text({ x: "98.2%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "2");
-            this._inLabel = SVG.text({ x: "-5%", y: "113.5%", "pointer-events": "none", "font-size": "6pt", fill: "var(--secondary-text)" }, "In");
-            this._outLabel = SVG.text({ x: "-9%", y: "131%", "pointer-events": "none", "font-size": "6pt", fill: "var(--secondary-text)" }, "Out");
-            this._xAxisLabel = SVG.text({ x: "42%", y: "172%", "pointer-events": "none", "font-size": "7pt", fill: "var(--primary-text)" }, "Volume");
-            this._yAxisLabel = SVG.text({ x: "55.2%", y: "160%", "pointer-events": "none", "font-size": "7pt", transform: "rotate(-90 30,120)", fill: "var(--primary-text)" }, "Gain");
-            this._inVolumeBg = SVG.rect({ "pointer-events": "none", width: "100%", height: "6px", x: "0%", y: "105%", fill: ColorConfig.uiWidgetBackground });
-            this._outVolumeBg = SVG.rect({ "pointer-events": "none", width: "100%", height: "6px", x: "0%", y: "120%", fill: ColorConfig.uiWidgetBackground });
-            this._inVolumeBar = SVG.rect({ "pointer-events": "none", height: "6px", x: "0%", y: "105%", fill: "url('#volumeGrad')" });
-            this._inVolumeCap = SVG.rect({ "pointer-events": "none", width: "2px", height: "6px", y: "105%", fill: ColorConfig.uiWidgetFocus });
-            this._outVolumeBar = SVG.rect({ "pointer-events": "none", height: "6px", x: "0%", y: "120%", fill: "url('#volumeGrad')" });
-            this._outVolumeCap = SVG.rect({ "pointer-events": "none", width: "2px", height: "6px", y: "120%", fill: ColorConfig.uiWidgetFocus });
-            this._stop1 = SVG.stop({ "stop-color": "lime", offset: "30%" });
-            this._stop2 = SVG.stop({ "stop-color": "orange", offset: "45%" });
-            this._stop3 = SVG.stop({ "stop-color": "red", offset: "50%" });
-            this._gradient = SVG.linearGradient({ id: "volumeGrad", gradientUnits: "userSpaceOnUse" }, this._stop1, this._stop2, this._stop3);
-            this._defs = SVG.defs({}, this._gradient);
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; overflow: visible;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._defs, this._fill, this._ticks, this._subticks, this._boostCurve, this._midCurve, this._limitCurve, this._boostDot, this._limitDot, this._label0, this._label1, this._label2, this._inLabel, this._outLabel, this._xAxisLabel, this._yAxisLabel, this._inVolumeBg, this._outVolumeBg, this._inVolumeBar, this._outVolumeBar, this._inVolumeCap, this._outVolumeCap);
-            this.container = HTML.div({ class: "", style: "height: 4em; width: 80%; padding-bottom: 1.5em;" }, this._svg);
+            this._fill = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
+            this._ticks = SVG$1.svg({ "pointer-events": "none" });
+            this._subticks = SVG$1.svg({ "pointer-events": "none" });
+            this._boostCurve = SVG$1.path({ fill: "none", stroke: ColorConfig.textSelection, "stroke-width": 2, "pointer-events": "none" });
+            this._boostDot = SVG$1.circle({ fill: ColorConfig.textSelection, stroke: "none", r: "3" });
+            this._midCurve = SVG$1.path({ fill: "none", stroke: ColorConfig.primaryText, "stroke-width": 2, "pointer-events": "none" });
+            this._limitCurve = SVG$1.path({ fill: "none", stroke: ColorConfig.linkAccent, "stroke-width": 2, "pointer-events": "none" });
+            this._limitDot = SVG$1.circle({ fill: ColorConfig.linkAccent, stroke: "none", r: "3" });
+            this._label0 = SVG$1.text({ x: "-1.5%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "0");
+            this._label1 = SVG$1.text({ x: "48.2%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "1");
+            this._label2 = SVG$1.text({ x: "98.2%", y: "148.5%", "pointer-events": "none", "font-size": "7pt", fill: "var(--secondary-text)" }, "2");
+            this._inLabel = SVG$1.text({ x: "-5%", y: "113.5%", "pointer-events": "none", "font-size": "6pt", fill: "var(--secondary-text)" }, "In");
+            this._outLabel = SVG$1.text({ x: "-9%", y: "131%", "pointer-events": "none", "font-size": "6pt", fill: "var(--secondary-text)" }, "Out");
+            this._xAxisLabel = SVG$1.text({ x: "42%", y: "172%", "pointer-events": "none", "font-size": "7pt", fill: "var(--primary-text)" }, "Volume");
+            this._yAxisLabel = SVG$1.text({ x: "55.2%", y: "160%", "pointer-events": "none", "font-size": "7pt", transform: "rotate(-90 30,120)", fill: "var(--primary-text)" }, "Gain");
+            this._inVolumeBg = SVG$1.rect({ "pointer-events": "none", width: "100%", height: "6px", x: "0%", y: "105%", fill: ColorConfig.uiWidgetBackground });
+            this._outVolumeBg = SVG$1.rect({ "pointer-events": "none", width: "100%", height: "6px", x: "0%", y: "120%", fill: ColorConfig.uiWidgetBackground });
+            this._inVolumeBar = SVG$1.rect({ "pointer-events": "none", height: "6px", x: "0%", y: "105%", fill: "url('#volumeGrad')" });
+            this._inVolumeCap = SVG$1.rect({ "pointer-events": "none", width: "2px", height: "6px", y: "105%", fill: ColorConfig.uiWidgetFocus });
+            this._outVolumeBar = SVG$1.rect({ "pointer-events": "none", height: "6px", x: "0%", y: "120%", fill: "url('#volumeGrad')" });
+            this._outVolumeCap = SVG$1.rect({ "pointer-events": "none", width: "2px", height: "6px", y: "120%", fill: ColorConfig.uiWidgetFocus });
+            this._stop1 = SVG$1.stop({ "stop-color": "lime", offset: "30%" });
+            this._stop2 = SVG$1.stop({ "stop-color": "orange", offset: "45%" });
+            this._stop3 = SVG$1.stop({ "stop-color": "red", offset: "50%" });
+            this._gradient = SVG$1.linearGradient({ id: "volumeGrad", gradientUnits: "userSpaceOnUse" }, this._stop1, this._stop2, this._stop3);
+            this._defs = SVG$1.defs({}, this._gradient);
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; overflow: visible;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._defs, this._fill, this._ticks, this._subticks, this._boostCurve, this._midCurve, this._limitCurve, this._boostDot, this._limitDot, this._label0, this._label1, this._label2, this._inLabel, this._outLabel, this._xAxisLabel, this._yAxisLabel, this._inVolumeBg, this._outVolumeBg, this._inVolumeBar, this._outVolumeBar, this._inVolumeCap, this._outVolumeCap);
+            this.container = HTML$1.div({ class: "", style: "height: 4em; width: 80%; padding-bottom: 1.5em;" }, this._svg);
             for (let i = 0; i <= 2; i++) {
-                this._ticks.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: (i * this._editorWidth / 2) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._ticks.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: (i * this._editorWidth / 2) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             for (let i = 1; i <= 3; i += 2) {
-                this._subticks.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: (i * this._editorWidth / 4) - 1, y: 0, width: 1, height: this._editorHeight }));
+                this._subticks.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: (i * this._editorWidth / 4) - 1, y: 0, width: 1, height: this._editorHeight }));
             }
             this._limiterPrompt = lim;
         }
@@ -39395,13 +39415,13 @@ You should be redirected to the song at:<br /><br />
             this._songEditor = _songEditor;
             this.limiterCanvas = new LimiterCanvas(this);
             this._playButton = button$e({ style: "width: 55%;", type: "button" });
-            this.limitDecaySlider = input$9({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
-            this.limitRiseSlider = input$9({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
-            this.compressionThresholdSlider = input$9({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
-            this.limitThresholdSlider = input$9({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
-            this.compressionRatioSlider = input$9({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.limitRatioSlider = input$9({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.masterGainSlider = input$9({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
+            this.limitDecaySlider = input$a({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
+            this.limitRiseSlider = input$a({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
+            this.compressionThresholdSlider = input$a({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
+            this.limitThresholdSlider = input$a({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
+            this.compressionRatioSlider = input$a({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.limitRatioSlider = input$a({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.masterGainSlider = input$a({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
             this.inVolumeHistoricTimer = 0.0;
             this.inVolumeHistoricCap = 0.0;
             this.outVolumeHistoricTimer = 0.0;
@@ -39409,7 +39429,7 @@ You should be redirected to the song at:<br /><br />
             this._cancelButton = button$e({ class: "cancelButton" });
             this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._resetButton = button$e({ style: "width:45%;" }, "Reset");
-            this.container = div$e({ class: "prompt noSelection", style: "width: 250px;" }, h2$d("Limiter Options"), div$e({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$e({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$e({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$e({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$e({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$e({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$e({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$e({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
+            this.container = div$f({ class: "prompt noSelection", style: "width: 250px;" }, h2$e("Limiter Options"), div$f({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$f({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$f({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$f({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$f({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$f({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$f({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$f({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
             this._volumeUpdate = () => {
                 this.inVolumeHistoricTimer--;
                 if (this.inVolumeHistoricTimer <= 0) {
@@ -39552,7 +39572,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$d, div: div$d, h2: h2$c, input: input$8, p: p$5 } = HTML;
+    const { button: button$d, div: div$e, h2: h2$d, input: input$9, p: p$6 } = HTML$1;
     class CustomScalePrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -39582,16 +39602,16 @@ You should be redirected to the song at:<br /><br />
                 this._doc.record(new ChangeCustomScale(this._doc, this._flags));
             };
             this._flags = _doc.song.scaleCustom.slice();
-            let scaleHolder = div$d({});
+            let scaleHolder = div$e({});
             for (var i = 1; i < Config.pitchesPerOctave; i++) {
-                this._scaleFlags[i] = input$8({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
-                this._scaleRows[i] = div$d({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
+                this._scaleFlags[i] = input$9({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
+                this._scaleRows[i] = div$e({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
                 scaleHolder.appendChild(this._scaleRows[i]);
                 console.log("new!");
             }
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
-            this.container = div$d({ class: "prompt noSelection", style: "width: 250px;" }, h2$c("Custom Scale"), p$5("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$d({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$e({ class: "prompt noSelection", style: "width: 250px;" }, h2$d("Custom Scale"), p$6("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$e({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this.container.addEventListener("keydown", this.whenKeyPressed);
         }
     }
@@ -39607,11 +39627,11 @@ You should be redirected to the song at:<br /><br />
             this._loopMode = 3;
             this._loopAtPointStart = -1;
             this._loopAtPointEnd = -1;
-            this._loop = SVG.path({ fill: "none", stroke: ColorConfig.loopAccent, "stroke-width": 4 });
-            this._barLoop = SVG.path({ fill: "none", stroke: ColorConfig.uiWidgetFocus, "stroke-width": 2 });
-            this._highlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._svg = SVG.svg({ style: `touch-action: pan-y; position: absolute;`, height: this._editorHeight }, this._loop, this._highlight, this._barLoop);
-            this.container = HTML.div({ class: "loopEditor" }, this._svg);
+            this._loop = SVG$1.path({ fill: "none", stroke: ColorConfig.loopAccent, "stroke-width": 4 });
+            this._barLoop = SVG$1.path({ fill: "none", stroke: ColorConfig.uiWidgetFocus, "stroke-width": 2 });
+            this._highlight = SVG$1.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: `touch-action: pan-y; position: absolute;`, height: this._editorHeight }, this._loop, this._highlight, this._barLoop);
+            this.container = HTML$1.div({ class: "loopEditor" }, this._svg);
             this._barWidth = 32;
             this._change = null;
             this._cursor = { startBar: -1, mode: -1 };
@@ -39903,15 +39923,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$c, div: div$c, span: span$4, h2: h2$b, input: input$7, br: br$1, select: select$9, option: option$9 } = HTML;
+    const { button: button$c, div: div$d, span: span$4, h2: h2$c, input: input$8, br: br$1, select: select$9, option: option$9 } = HTML$1;
     class MoveNotesSidewaysPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._beatsStepper = input$7({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
+            this._beatsStepper = input$8({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
             this._conversionStrategySelect = select$9({ style: "width: 100%;" }, option$9({ value: "overflow" }, "Overflow notes across bars."), option$9({ value: "wrapAround" }, "Wrap notes around within bars."));
             this._cancelButton = button$c({ class: "cancelButton" });
             this._okayButton = button$c({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$c({ class: "prompt noSelection", style: "width: 250px;" }, h2$b("Move Notes Sideways"), div$c({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$c({ style: "text-align: right;" }, "Beats to move:", br$1(), span$4({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$c({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$c({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$c({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$d({ class: "prompt noSelection", style: "width: 250px;" }, h2$c("Move Notes Sideways"), div$d({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$d({ style: "text-align: right;" }, "Beats to move:", br$1(), span$4({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$d({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$d({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -39957,13 +39977,13 @@ You should be redirected to the song at:<br /><br />
         constructor(_doc, _editor) {
             this._doc = _doc;
             this._editor = _editor;
-            this._cornerFiller = HTML.div({ style: `background: ${ColorConfig.editorBackground}; position: sticky; bottom: 0; left: 0; width: 32px; height: 30px;` });
+            this._cornerFiller = HTML$1.div({ style: `background: ${ColorConfig.editorBackground}; position: sticky; bottom: 0; left: 0; width: 32px; height: 30px;` });
             this._buttons = [];
             this._channelCounts = [];
-            this._channelNameDisplay = HTML.div({ style: `background-color: ${ColorConfig.uiWidgetFocus}; white-space:nowrap; display: none; transform:translate(20px); width: auto; pointer-events: none; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, "");
-            this._channelNameInput = new InputBox(HTML.input({ style: `color: ${ColorConfig.primaryText}; background-color: ${ColorConfig.uiWidgetFocus}; margin-top: -2px; display: none; width: 6em; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, ""), this._doc, (oldValue, newValue) => new ChangeChannelName(this._doc, oldValue, newValue));
-            this._channelDropDown = HTML.select({ style: "width: 0px; left: 19px; height: 19px; position:absolute; opacity:0" }, HTML.option({ value: "rename" }, "Rename..."), HTML.option({ value: "chnUp" }, "Move Channel Up"), HTML.option({ value: "chnDown" }, "Move Channel Down"), HTML.option({ value: "chnMute" }, "Mute Channel"), HTML.option({ value: "chnSolo" }, "Solo Channel"), HTML.option({ value: "chnInsert" }, "Insert Channel Below"), HTML.option({ value: "chnDelete" }, "Delete This Channel"));
-            this.container = HTML.div({ class: "muteEditor", style: "position: sticky; padding-top: " + Config.barEditorHeight + "px;" }, this._channelNameDisplay, this._channelNameInput.input, this._channelDropDown);
+            this._channelNameDisplay = HTML$1.div({ style: `background-color: ${ColorConfig.uiWidgetFocus}; white-space:nowrap; display: none; transform:translate(20px); width: auto; pointer-events: none; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, "");
+            this._channelNameInput = new InputBox(HTML$1.input({ style: `color: ${ColorConfig.primaryText}; background-color: ${ColorConfig.uiWidgetFocus}; margin-top: -2px; display: none; width: 6em; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, ""), this._doc, (oldValue, newValue) => new ChangeChannelName(this._doc, oldValue, newValue));
+            this._channelDropDown = HTML$1.select({ style: "width: 0px; left: 19px; height: 19px; position:absolute; opacity:0" }, HTML$1.option({ value: "rename" }, "Rename..."), HTML$1.option({ value: "chnUp" }, "Move Channel Up"), HTML$1.option({ value: "chnDown" }, "Move Channel Down"), HTML$1.option({ value: "chnMute" }, "Mute Channel"), HTML$1.option({ value: "chnSolo" }, "Solo Channel"), HTML$1.option({ value: "chnInsert" }, "Insert Channel Below"), HTML$1.option({ value: "chnDelete" }, "Delete This Channel"));
+            this.container = HTML$1.div({ class: "muteEditor", style: "position: sticky; padding-top: " + Config.barEditorHeight + "px;" }, this._channelNameDisplay, this._channelNameInput.input, this._channelDropDown);
             this._editorHeight = 128;
             this._renderedPitchChannels = 0;
             this._renderedNoiseChannels = 0;
@@ -40179,9 +40199,9 @@ You should be redirected to the song at:<br /><br />
             let startingChannelCount = this._buttons.length;
             if (this._buttons.length != this._doc.song.getChannelCount()) {
                 for (let y = this._buttons.length; y < this._doc.song.getChannelCount(); y++) {
-                    const channelCountText = HTML.div({ class: "noSelection muteButtonText", style: "display: table-cell; -webkit-text-stroke: 1.5px; vertical-align: middle; text-align: center; -webkit-user-select: none; -webkit-touch-callout: none; -moz-user-select: none; -ms-user-select: none; user-select: none; pointer-events: none; width: 12px; height: 20px; transform: translate(0px, 1px);" });
-                    const muteButton = HTML.div({ class: "mute-button", title: "Mute (M), Mute All (⇧M), Solo (S), Exclude (⇧S)", style: `display: block; pointer-events: none; width: 16px; height: 20px; transform: translate(2px, 1px);` });
-                    const muteContainer = HTML.div({ style: `align-items: center; height: 20px; margin: 0px; display: table; flex-direction: row; justify-content: space-between;` }, [
+                    const channelCountText = HTML$1.div({ class: "noSelection muteButtonText", style: "display: table-cell; -webkit-text-stroke: 1.5px; vertical-align: middle; text-align: center; -webkit-user-select: none; -webkit-touch-callout: none; -moz-user-select: none; -ms-user-select: none; user-select: none; pointer-events: none; width: 12px; height: 20px; transform: translate(0px, 1px);" });
+                    const muteButton = HTML$1.div({ class: "mute-button", title: "Mute (M), Mute All (⇧M), Solo (S), Exclude (⇧S)", style: `display: block; pointer-events: none; width: 16px; height: 20px; transform: translate(2px, 1px);` });
+                    const muteContainer = HTML$1.div({ style: `align-items: center; height: 20px; margin: 0px; display: table; flex-direction: row; justify-content: space-between;` }, [
                         muteButton,
                         channelCountText,
                     ]);
@@ -40286,12 +40306,12 @@ You should be redirected to the song at:<br /><br />
             this._notchHeight = 4.0;
             this._octaveCount = Config.pitchOctaves;
             this._octaveHeight = (this._editorHeight - this._notchHeight) / this._octaveCount;
-            this._handle = SVG.rect({ fill: ColorConfig.uiWidgetBackground, x: 2, y: 0, width: this._editorWidth - 4 });
-            this._handleHighlight = SVG.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 1, y: 0, width: this._editorWidth - 2 });
-            this._upHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._downHighlight = SVG.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
-            this._svg = SVG.svg({ style: "background-color: ${ColorConfig.editorBackground}; touch-action: pan-x; position: absolute;", width: this._editorWidth, height: "100%", viewBox: "0 0 20 " + this._editorHeight, preserveAspectRatio: "none" });
-            this.container = HTML.div({ id: "octaveScrollBarContainer", style: "width: 20px; height: 100%; overflow: hidden; position: relative; flex-shrink: 0;" }, this._svg);
+            this._handle = SVG$1.rect({ fill: ColorConfig.uiWidgetBackground, x: 2, y: 0, width: this._editorWidth - 4 });
+            this._handleHighlight = SVG$1.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 1, y: 0, width: this._editorWidth - 2 });
+            this._upHighlight = SVG$1.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._downHighlight = SVG$1.path({ fill: ColorConfig.hoverPreview, "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: "background-color: ${ColorConfig.editorBackground}; touch-action: pan-x; position: absolute;", width: this._editorWidth, height: "100%", viewBox: "0 0 20 " + this._editorHeight, preserveAspectRatio: "none" });
+            this.container = HTML$1.div({ id: "octaveScrollBarContainer", style: "width: 20px; height: 100%; overflow: hidden; position: relative; flex-shrink: 0;" }, this._svg);
             this._mouseY = 0;
             this._mouseDown = false;
             this._mouseOver = false;
@@ -40410,7 +40430,7 @@ You should be redirected to the song at:<br /><br />
             this._documentChanged();
             this._svg.appendChild(this._handle);
             for (let i = 0; i <= this._octaveCount; i++) {
-                this._svg.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: 0, y: i * this._octaveHeight, width: this._editorWidth, height: this._notchHeight }));
+                this._svg.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: 0, y: i * this._octaveHeight, width: this._editorWidth, height: this._notchHeight }));
             }
             this._svg.appendChild(this._handleHighlight);
             this._svg.appendChild(this._upHighlight);
@@ -40863,8 +40883,8 @@ You should be redirected to the song at:<br /><br />
             this.shiftMode = false;
             this._defaultModBorder = 34;
             this._backgroundPitchRows = [];
-            this._backgroundDrumRow = SVG.rect();
-            this._backgroundModRow = SVG.rect();
+            this._backgroundDrumRow = SVG$1.rect();
+            this._backgroundModRow = SVG$1.rect();
             this._modDragValueLabelLeft = 0;
             this._modDragValueLabelTop = 0;
             this._modDragValueLabelWidth = 0;
@@ -41127,19 +41147,19 @@ You should be redirected to the song at:<br /><br />
                 this._updateCursorStatus();
                 this._updatePreview();
             };
-            this._svgNoteBackground = SVG.pattern({ id: "patternEditorNoteBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
-            this._svgDrumBackground = SVG.pattern({ id: "patternEditorDrumBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
-            this._svgModBackground = SVG.pattern({ id: "patternEditorModBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
-            this._svgBackground = SVG.rect({ x: "0", y: "0", "pointer-events": "none", fill: "url(#patternEditorNoteBackground" + this._barOffset + ")" });
-            this._svgNoteContainer = SVG.svg();
-            this._svgPlayhead = SVG.rect({ x: "0", y: "0", width: "4", fill: ColorConfig.playhead, "pointer-events": "none" });
-            this._selectionRect = SVG.rect({ class: "dashed-line dash-move", fill: ColorConfig.boxSelectionFill, stroke: ColorConfig.hoverPreview, "stroke-width": 2, "stroke-dasharray": "5, 3", "fill-opacity": "0.4", "pointer-events": "none", visibility: "hidden" });
-            this._svgPreview = SVG.path({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": "2", "pointer-events": "none" });
-            this.modDragValueLabel = HTML.div({ width: "90", "text-anchor": "start", contenteditable: "true", style: "display: flex, justify-content: center; align-items:center; position:absolute; pointer-events: none;", "dominant-baseline": "central", });
-            this._svg = SVG.svg({ id: 'firstImage', style: `background-image: url(${getLocalStorageItem("customTheme", "")}); background-repeat: no-repeat; background-size: 100% 100%; background-color: ${ColorConfig.editorBackground}; touch-action: none; position: absolute;`, width: "100%", height: "100%" }, SVG.defs(this._svgNoteBackground, this._svgDrumBackground, this._svgModBackground), this._svgBackground, this._selectionRect, this._svgNoteContainer, this._svgPreview, this._svgPlayhead);
-            this.container = HTML.div({ style: "height: 100%; overflow:hidden; position: relative; flex-grow: 1;" }, this._svg, this.modDragValueLabel);
+            this._svgNoteBackground = SVG$1.pattern({ id: "patternEditorNoteBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
+            this._svgDrumBackground = SVG$1.pattern({ id: "patternEditorDrumBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
+            this._svgModBackground = SVG$1.pattern({ id: "patternEditorModBackground" + this._barOffset, x: "0", y: "0", patternUnits: "userSpaceOnUse" });
+            this._svgBackground = SVG$1.rect({ x: "0", y: "0", "pointer-events": "none", fill: "url(#patternEditorNoteBackground" + this._barOffset + ")" });
+            this._svgNoteContainer = SVG$1.svg();
+            this._svgPlayhead = SVG$1.rect({ x: "0", y: "0", width: "4", fill: ColorConfig.playhead, "pointer-events": "none" });
+            this._selectionRect = SVG$1.rect({ class: "dashed-line dash-move", fill: ColorConfig.boxSelectionFill, stroke: ColorConfig.hoverPreview, "stroke-width": 2, "stroke-dasharray": "5, 3", "fill-opacity": "0.4", "pointer-events": "none", visibility: "hidden" });
+            this._svgPreview = SVG$1.path({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": "2", "pointer-events": "none" });
+            this.modDragValueLabel = HTML$1.div({ width: "90", "text-anchor": "start", contenteditable: "true", style: "display: flex, justify-content: center; align-items:center; position:absolute; pointer-events: none;", "dominant-baseline": "central", });
+            this._svg = SVG$1.svg({ id: 'firstImage', style: `background-image: url(${getLocalStorageItem("customTheme", "")}); background-repeat: no-repeat; background-size: 100% 100%; background-color: ${ColorConfig.editorBackground}; touch-action: none; position: absolute;`, width: "100%", height: "100%" }, SVG$1.defs(this._svgNoteBackground, this._svgDrumBackground, this._svgModBackground), this._svgBackground, this._selectionRect, this._svgNoteContainer, this._svgPreview, this._svgPlayhead);
+            this.container = HTML$1.div({ style: "height: 100%; overflow:hidden; position: relative; flex-grow: 1;" }, this._svg, this.modDragValueLabel);
             for (let i = 0; i < Config.pitchesPerOctave; i++) {
-                const rectangle = SVG.rect();
+                const rectangle = SVG$1.rect();
                 rectangle.setAttribute("x", "1");
                 rectangle.setAttribute("fill", (i == 0) ? ColorConfig.tonic : ColorConfig.pitchBackground);
                 this._svgNoteBackground.appendChild(rectangle);
@@ -41168,7 +41188,7 @@ You should be redirected to the song at:<br /><br />
             }
             else {
                 this._svgPlayhead.style.display = "none";
-                this._svg.appendChild(SVG.rect({ x: 0, y: 0, width: 10000, height: 10000, fill: ColorConfig.editorBackground, style: "opacity: 0.5;" }));
+                this._svg.appendChild(SVG$1.rect({ x: 0, y: 0, width: 10000, height: 10000, fill: ColorConfig.editorBackground, style: "opacity: 0.5;" }));
             }
             this.resetCopiedPins();
         }
@@ -43112,13 +43132,13 @@ You should be redirected to the song at:<br /><br />
                         const octaveOffset = this._doc.getBaseVisibleOctave(channel) * Config.pitchesPerOctave;
                         for (const note of pattern2.notes) {
                             for (const pitch of note.pitches) {
-                                let notePath = SVG.path();
+                                let notePath = SVG$1.path();
                                 notePath.setAttribute("fill", ColorConfig.getChannelColor(this._doc.song, channel).secondaryNote);
                                 notePath.setAttribute("pointer-events", "none");
                                 this._drawNote(notePath, pitch, note.start, note.pins, this._pitchHeight * 0.19, false, octaveOffset);
                                 this._svgNoteContainer.appendChild(notePath);
                                 if (this._doc.prefs.notesFlashWhenPlayed) {
-                                    notePath = SVG.path();
+                                    notePath = SVG$1.path();
                                     notePath.setAttribute("fill", noteFlashColor);
                                     notePath.setAttribute("pointer-events", "none");
                                     this._drawNote(notePath, pitch, note.start, note.pins, this._pitchHeight * 0.19, false, octaveOffset);
@@ -43151,20 +43171,20 @@ You should be redirected to the song at:<br /><br />
                     }
                     for (let i = 0; i < note.pitches.length; i++) {
                         const pitch = note.pitches[i];
-                        let notePath = SVG.path();
+                        let notePath = SVG$1.path();
                         let colorPrimary = (disabled ? ColorConfig.disabledNotePrimary : ColorConfig.getChannelColor(this._doc.song, this._doc.channel).primaryNote);
                         let colorSecondary = (disabled ? ColorConfig.disabledNoteSecondary : ColorConfig.getChannelColor(this._doc.song, this._doc.channel).secondaryNote);
                         notePath.setAttribute("fill", colorSecondary);
                         notePath.setAttribute("pointer-events", "none");
                         this._drawNote(notePath, pitch, note.start, note.pins, (this._pitchHeight - this._pitchBorder) / 2 + 1, false, this._octaveOffset);
                         this._svgNoteContainer.appendChild(notePath);
-                        notePath = SVG.path();
+                        notePath = SVG$1.path();
                         notePath.setAttribute("fill", colorPrimary);
                         notePath.setAttribute("pointer-events", "none");
                         this._drawNote(notePath, pitch, note.start, note.pins, (this._pitchHeight - this._pitchBorder) / 2 + 1, true, this._octaveOffset);
                         this._svgNoteContainer.appendChild(notePath);
                         if (this._doc.prefs.notesFlashWhenPlayed && !disabled) {
-                            notePath = SVG.path();
+                            notePath = SVG$1.path();
                             notePath.setAttribute("fill", noteFlashColor);
                             notePath.setAttribute("pointer-events", "none");
                             this._drawNote(notePath, pitch, note.start, note.pins, (this._pitchHeight - this._pitchBorder) / 2 + 1, true, this._octaveOffset);
@@ -43185,7 +43205,7 @@ You should be redirected to the song at:<br /><br />
                             arrowPath += "L " + prettyNumber(this._partWidth * note.start + indicatorOffset + 12) + " " + prettyNumber(this._pitchToPixelHeight(pitch - this._octaveOffset));
                             arrowPath += "L " + prettyNumber(this._partWidth * note.start + indicatorOffset + 4) + " " + prettyNumber(this._pitchToPixelHeight(pitch - this._octaveOffset) - 0.3 * arrowHeight);
                             arrowPath += "L " + prettyNumber(this._partWidth * note.start + indicatorOffset + 4) + " " + prettyNumber(this._pitchToPixelHeight(pitch - this._octaveOffset) - 0.1 * arrowHeight);
-                            const arrow = SVG.path();
+                            const arrow = SVG$1.path();
                             arrow.setAttribute("d", arrowPath);
                             arrow.setAttribute("fill", ColorConfig.invertedText);
                             this._svgNoteContainer.appendChild(arrow);
@@ -43193,7 +43213,7 @@ You should be redirected to the song at:<br /><br />
                         }
                         if (note.pitches.length > 1) {
                             if (displayNumberedChords) {
-                                const oscillatorLabel = SVG.text();
+                                const oscillatorLabel = SVG$1.text();
                                 oscillatorLabel.setAttribute("x", "" + prettyNumber(this._partWidth * note.start + indicatorOffset));
                                 oscillatorLabel.setAttribute("y", "" + prettyNumber(this._pitchToPixelHeight(pitch - this._octaveOffset)));
                                 oscillatorLabel.setAttribute("width", "30");
@@ -43271,7 +43291,139 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$b, div: div$b, span: span$3, h2: h2$a, input: input$6, br, select: select$8, option: option$8 } = HTML;
+    var __values = (exports && exports.__values) || function(o) {
+        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+        if (m) return m.call(o);
+        if (o && typeof o.length === "number") return {
+            next: function () {
+                if (o && i >= o.length) o = void 0;
+                return { value: o && o[i++], done: !o };
+            }
+        };
+        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+    var e_1, _a, e_2, _b;
+    var HTML = parseHTML;
+    var SVG = parseSVG;
+    if (typeof Proxy !== "undefined") {
+        var uppercasePattern_1 = /[A-Z]/g;
+        try {
+            uppercasePattern_1 = new RegExp("\\p{Uppercase}", "ug");
+        }
+        catch (e) { }
+        HTML = new Proxy(parseHTML, {
+            get: function (target, name) {
+                var kebabCaseName = name.replace(uppercasePattern_1, function (c) { return "-" + c.toLowerCase(); }).replace(/^-/, "").replace(/_/g, "-");
+                return function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    return applyElementArgs(document.createElement(kebabCaseName), args);
+                };
+            },
+        });
+        SVG = new Proxy(parseSVG, {
+            get: function (target, name) {
+                var kebabCaseName = name.replace(/_/g, "-");
+                return function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    return applyElementArgs(document.createElementNS(svgNS, kebabCaseName), args);
+                };
+            },
+        });
+    }
+    else {
+        console.warn("imperative-html could not find a definition for Proxy, which means that custom elements won't be supported! Try a newer browser.");
+        var _loop_1 = function (name_1) {
+            HTML[name_1] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                return applyElementArgs(document.createElement(name_1), args);
+            };
+        };
+        try {
+            for (var _c = __values("a abbr address area article aside audio b base bdi bdo blockquote br button canvas caption cite code col colgroup datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hr i iframe img input ins kbd label legend li link main map mark menu menuitem meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup table tbody td template textarea tfoot th thead time title tr track u ul var video wbr".split(" ")), _d = _c.next(); !_d.done; _d = _c.next()) {
+                var name_1 = _d.value;
+                _loop_1(name_1);
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        var _loop_2 = function (name_2) {
+            SVG[name_2] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                return applyElementArgs(document.createElementNS(svgNS, name_2), args);
+            };
+            if (/-/.test(name_2)) {
+                var snakeCaseName = name_2.replace(/-/g, "_");
+                SVG[snakeCaseName] = function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    return applyElementArgs(document.createElementNS(svgNS, name_2), args);
+                };
+            }
+        };
+        try {
+            for (var _e = __values("a altGlyph altGlyphDef altGlyphItem animate animateMotion animateTransform circle clipPath color-profile cursor defs desc discard ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter font font-face font-face-format font-face-name font-face-src font-face-uri foreignObject g glyph glyphRef hkern image line linearGradient marker mask metadata missing-glyph mpath path pattern polygon polyline radialGradient rect script set stop style svg switch symbol text textPath title tref tspan use view vkern".split(" ")), _f = _e.next(); !_f.done; _f = _e.next()) {
+                var name_2 = _f.value;
+                _loop_2(name_2);
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
+    }
+
+    const { div: div$c, input: input$7, h2: h2$b, p: p$5, a: a$3 } = HTML;
+    class PluginPrompt {
+        constructor(_doc) {
+            this.urlInput = input$7({ style: "margin-left: 1em; margin-right: 1em; " });
+            this._cancelButton = HTML.button({ class: "cancelButton" });
+            this._okayButton = HTML.button({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.container = div$c({ class: "prompt noSelection", style: "width: 400px;" }, h2$b("Import Custom Effect Plugin"), p$5("Plugins are custom effects that you can import into your song like samples! They are constructed by the community."), p$5("You can find a guide on how to create a custom plugin, along with some basic plugin examples at ", a$3({ href: "https://slarmoo.github.io/beepboxplugins/", target: "_blank" }, "https://slarmoo.github.io/beepboxplugins/")), this.urlInput, div$c({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._saveChanges = () => {
+                this._doc.prompt = null;
+                this._doc.record(new ChangePluginurl(this._doc, this.urlInput.value), true);
+                this._doc.prompt = null;
+            };
+            this._doc = _doc;
+            if (this._doc.song.pluginurl)
+                this.urlInput.value = this._doc.song.pluginurl;
+            this._okayButton.addEventListener("click", this._saveChanges);
+            this._cancelButton.addEventListener("click", this._close.bind(this));
+        }
+        cleanUp() {
+            this._okayButton.removeEventListener("click", this._saveChanges);
+            this._cancelButton.removeEventListener("click", this._close);
+        }
+        ;
+        _close() {
+            this._doc.prompt = null;
+            this._doc.undo();
+        }
+    }
+
+    const { button: button$b, div: div$b, span: span$3, h2: h2$a, input: input$6, br, select: select$8, option: option$8 } = HTML$1;
     class SongDurationPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -43345,7 +43497,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$a, div: div$a, h2: h2$9, p: p$4, select: select$7, option: option$7 } = HTML;
+    const { button: button$a, div: div$a, h2: h2$9, p: p$4, select: select$7, option: option$7 } = HTML$1;
     class SustainPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -43386,7 +43538,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$9, div: div$9, h2: h2$8, p: p$3, select: select$6, option: option$6, iframe } = HTML;
+    const { button: button$9, div: div$9, h2: h2$8, p: p$3, select: select$6, option: option$6, iframe } = HTML$1;
     class SongRecoveryPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -43422,7 +43574,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$8, label, div: div$8, p: p$2, a: a$2, h2: h2$7, input: input$5, select: select$5, option: option$5 } = HTML;
+    const { button: button$8, label, div: div$8, p: p$2, a: a$2, h2: h2$7, input: input$5, select: select$5, option: option$5 } = HTML$1;
     class RecordingSetupPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -43533,13 +43685,13 @@ You should be redirected to the song at:<br /><br />
             this._isPrompt = _isPrompt;
             this._editorWidth = 120;
             this._editorHeight = 26;
-            this._fill = SVG.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
-            this._octaves = SVG.svg({ "pointer-events": "none" });
-            this._fifths = SVG.svg({ "pointer-events": "none" });
-            this._curve = SVG.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
-            this._arrow = SVG.path({ fill: "currentColor", "pointer-events": "none" });
-            this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fill, this._octaves, this._fifths, this._curve, this._arrow);
-            this.container = HTML.div({ class: "spectrum", style: "height: 100%;" }, this._svg);
+            this._fill = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, "pointer-events": "none" });
+            this._octaves = SVG$1.svg({ "pointer-events": "none" });
+            this._fifths = SVG$1.svg({ "pointer-events": "none" });
+            this._curve = SVG$1.path({ fill: "none", stroke: "currentColor", "stroke-width": 2, "pointer-events": "none" });
+            this._arrow = SVG$1.path({ fill: "currentColor", "pointer-events": "none" });
+            this._svg = SVG$1.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" }, this._fill, this._octaves, this._fifths, this._curve, this._arrow);
+            this.container = HTML$1.div({ class: "spectrum", style: "height: 100%;" }, this._svg);
             this._mouseX = 0;
             this._mouseY = 0;
             this._freqPrev = 0;
@@ -43652,10 +43804,10 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this.instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             for (let i = 0; i < Config.spectrumControlPoints; i += Config.spectrumControlPointsPerOctave) {
-                this._octaves.appendChild(SVG.rect({ fill: ColorConfig.tonic, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._octaves.appendChild(SVG$1.rect({ fill: ColorConfig.tonic, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             for (let i = 4; i <= Config.spectrumControlPoints; i += Config.spectrumControlPointsPerOctave) {
-                this._fifths.appendChild(SVG.rect({ fill: ColorConfig.fifthNote, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
+                this._fifths.appendChild(SVG$1.rect({ fill: ColorConfig.fifthNote, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
             }
             this.storeChange();
             this.container.addEventListener("mousedown", this._whenMousePressed);
@@ -43784,26 +43936,26 @@ You should be redirected to the song at:<br /><br />
             this.spectrumEditor = new SpectrumEditor(this._doc, null, true);
             this.spectrumEditors = [];
             this._drumsetSpectrumIndex = 0;
-            this._playButton = HTML.button({ style: "width: 55%;", type: "button" });
+            this._playButton = HTML$1.button({ style: "width: 55%;", type: "button" });
             this._drumsetButtons = [];
-            this._drumsetButtonContainer = HTML.div({ class: "instrument-bar", style: "justify-content: center;" });
-            this._cancelButton = HTML.button({ class: "cancelButton" });
-            this._okayButton = HTML.button({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.copyButton = HTML.button({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+            this._drumsetButtonContainer = HTML$1.div({ class: "instrument-bar", style: "justify-content: center;" });
+            this._cancelButton = HTML$1.button({ class: "cancelButton" });
+            this._okayButton = HTML$1.button({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.copyButton = HTML$1.button({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
-            this.pasteButton = HTML.button({ style: "width:86px;", class: "pasteButton" }, [
+            this.pasteButton = HTML$1.button({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this.copyPasteContainer = HTML.div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = HTML.div({ class: "prompt noSelection", style: "width: 500px;" }, HTML.h2("Edit Spectrum Instrument"), HTML.div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._drumsetButtonContainer, HTML.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 80%" }, this.spectrumEditor.container), HTML.div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this.copyPasteContainer = HTML$1.div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = HTML$1.div({ class: "prompt noSelection", style: "width: 500px;" }, HTML$1.h2("Edit Spectrum Instrument"), HTML$1.div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._drumsetButtonContainer, HTML$1.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 80%" }, this.spectrumEditor.container), HTML$1.div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
             this._setDrumSpectrum = (index) => {
                 this._drumsetButtons[this._drumsetSpectrumIndex].classList.remove("selected-instrument");
                 this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
@@ -43910,7 +44062,7 @@ You should be redirected to the song at:<br /><br />
                 }
                 let colors = ColorConfig.getChannelColor(this._doc.song, this._doc.channel);
                 for (let i = 0; i < Config.drumCount; i++) {
-                    let newSpectrumButton = HTML.button({ class: "no-underline", style: "max-width: 2em;" }, "" + (i + 1));
+                    let newSpectrumButton = HTML$1.button({ class: "no-underline", style: "max-width: 2em;" }, "" + (i + 1));
                     this._drumsetButtons.push(newSpectrumButton);
                     this._drumsetButtonContainer.appendChild(newSpectrumButton);
                     newSpectrumButton.addEventListener("click", () => { this._setDrumSpectrum(i); });
@@ -43948,7 +44100,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$7, div: div$7, h2: h2$6, input: input$4, p: p$1, a: a$1 } = HTML;
+    const { button: button$7, div: div$7, h2: h2$6, input: input$4, p: p$1, a: a$1 } = HTML$1;
     let doReload = false;
     class CustomThemePrompt {
         constructor(_doc, _pattern, _pattern2, _pattern3) {
@@ -44156,7 +44308,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$6, div: div$6, h2: h2$5, select: select$4, option: option$4, optgroup: optgroup$1 } = HTML;
+    const { button: button$6, div: div$6, h2: h2$5, select: select$4, option: option$4, optgroup: optgroup$1 } = HTML$1;
     class ThemePrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -44204,7 +44356,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$5, div: div$5, p, h2: h2$4, h3 } = HTML;
+    const { button: button$5, div: div$5, p, h2: h2$4, h3 } = HTML$1;
     class TipPrompt {
         constructor(_doc, type) {
             this._doc = _doc;
@@ -44479,7 +44631,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "perEnvelopeSpeed":
                     {
-                        message = div$5(h2$4("Individual Envelope Speed"), p("This setting is applied per envelope rather than all of them simultaneously, unlike the envelope speed in the top dropdown."), p("This controls the speed of this envelope as a multiplier of the global envelope speed and the envelope curve"), p("The speed of an envelope changes how fast its runs. In BeepBox, this is equivalent to the numbers beside each envelope type's name."), p("You can see an equivalence chart on the ", HTML.a({ href: "./faq.html", target: "_blank" }, "FAQ"), " page"), p("This setting will not appear for note size, pitch, punch, or none envelopes"));
+                        message = div$5(h2$4("Individual Envelope Speed"), p("This setting is applied per envelope rather than all of them simultaneously, unlike the envelope speed in the top dropdown."), p("This controls the speed of this envelope as a multiplier of the global envelope speed and the envelope curve"), p("The speed of an envelope changes how fast its runs. In BeepBox, this is equivalent to the numbers beside each envelope type's name."), p("You can see an equivalence chart on the ", HTML$1.a({ href: "./faq.html", target: "_blank" }, "FAQ"), " page"), p("This setting will not appear for note size, pitch, punch, or none envelopes"));
                     }
                     break;
                 case "usedInstrument":
@@ -44726,18 +44878,18 @@ You should be redirected to the song at:<br /><br />
         constructor(_doc, _songEditor) {
             this._doc = _doc;
             this._songEditor = _songEditor;
-            this._barDropDown = HTML.select({ style: "width: 32px; height: " + Config.barEditorHeight + "px; top: 0px; position: absolute; opacity: 0" }, HTML.option({ value: "barBefore" }, "Insert Bar Before"), HTML.option({ value: "barAfter" }, "Insert Bar After"), HTML.option({ value: "deleteBar" }, "Delete This Bar"));
-            this._channelRowContainer = HTML.div({ style: `display: flex; flex-direction: column; padding-top: ${Config.barEditorHeight}px` });
-            this._barNumberContainer = SVG.g();
-            this._playhead = SVG.rect({ fill: ColorConfig.playhead, x: 0, y: 0, width: 4, height: 128 });
-            this._boxHighlight = SVG.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 1, y: 1, width: 30, height: 30 });
-            this._upHighlight = SVG.path({ fill: ColorConfig.invertedText, stroke: ColorConfig.invertedText, "stroke-width": 1, "pointer-events": "none" });
-            this._downHighlight = SVG.path({ fill: ColorConfig.invertedText, stroke: ColorConfig.invertedText, "stroke-width": 1, "pointer-events": "none" });
-            this._barEditorPath = SVG.path({ fill: ColorConfig.uiWidgetBackground, stroke: ColorConfig.uiWidgetBackground, "stroke-width": 1, "pointer-events": "none" });
-            this._selectionRect = SVG.rect({ class: "dashed-line dash-move", fill: ColorConfig.boxSelectionFill, stroke: ColorConfig.hoverPreview, "stroke-width": 2, "stroke-dasharray": "5, 3", "fill-opacity": "0.4", "pointer-events": "none", visibility: "hidden", x: 1, y: 1, width: 62, height: 62 });
-            this._svg = SVG.svg({ style: `position: absolute; top: 0;` }, this._barEditorPath, this._selectionRect, this._barNumberContainer, this._boxHighlight, this._upHighlight, this._downHighlight, this._playhead);
-            this._select = HTML.select({ class: "trackSelectBox", style: "background: none; border: none; appearance: none; border-radius: initial; box-shadow: none; color: transparent; position: absolute; touch-action: none;" });
-            this.container = HTML.div({ class: "noSelection", style: `background-color: ${ColorConfig.editorBackground}; position: relative; overflow: hidden;` }, this._channelRowContainer, this._svg, this._select, this._barDropDown);
+            this._barDropDown = HTML$1.select({ style: "width: 32px; height: " + Config.barEditorHeight + "px; top: 0px; position: absolute; opacity: 0" }, HTML$1.option({ value: "barBefore" }, "Insert Bar Before"), HTML$1.option({ value: "barAfter" }, "Insert Bar After"), HTML$1.option({ value: "deleteBar" }, "Delete This Bar"));
+            this._channelRowContainer = HTML$1.div({ style: `display: flex; flex-direction: column; padding-top: ${Config.barEditorHeight}px` });
+            this._barNumberContainer = SVG$1.g();
+            this._playhead = SVG$1.rect({ fill: ColorConfig.playhead, x: 0, y: 0, width: 4, height: 128 });
+            this._boxHighlight = SVG$1.rect({ fill: "none", stroke: ColorConfig.hoverPreview, "stroke-width": 2, "pointer-events": "none", x: 1, y: 1, width: 30, height: 30 });
+            this._upHighlight = SVG$1.path({ fill: ColorConfig.invertedText, stroke: ColorConfig.invertedText, "stroke-width": 1, "pointer-events": "none" });
+            this._downHighlight = SVG$1.path({ fill: ColorConfig.invertedText, stroke: ColorConfig.invertedText, "stroke-width": 1, "pointer-events": "none" });
+            this._barEditorPath = SVG$1.path({ fill: ColorConfig.uiWidgetBackground, stroke: ColorConfig.uiWidgetBackground, "stroke-width": 1, "pointer-events": "none" });
+            this._selectionRect = SVG$1.rect({ class: "dashed-line dash-move", fill: ColorConfig.boxSelectionFill, stroke: ColorConfig.hoverPreview, "stroke-width": 2, "stroke-dasharray": "5, 3", "fill-opacity": "0.4", "pointer-events": "none", visibility: "hidden", x: 1, y: 1, width: 62, height: 62 });
+            this._svg = SVG$1.svg({ style: `position: absolute; top: 0;` }, this._barEditorPath, this._selectionRect, this._barNumberContainer, this._boxHighlight, this._upHighlight, this._downHighlight, this._playhead);
+            this._select = HTML$1.select({ class: "trackSelectBox", style: "background: none; border: none; appearance: none; border-radius: initial; box-shadow: none; color: transparent; position: absolute; touch-action: none;" });
+            this.container = HTML$1.div({ class: "noSelection", style: `background-color: ${ColorConfig.editorBackground}; position: relative; overflow: hidden;` }, this._channelRowContainer, this._svg, this._select, this._barDropDown);
             this._channels = [];
             this._barNumbers = [];
             this._mouseX = 0;
@@ -44992,7 +45144,7 @@ You should be redirected to the song at:<br /><br />
             this._barDropDown.style.left = (this._barWidth * bar) + "px";
             const patternCount = this._doc.song.patternsPerChannel + 1;
             for (let i = this._renderedPatternCount; i < patternCount; i++) {
-                this._select.appendChild(HTML.option({ value: i }, i));
+                this._select.appendChild(HTML$1.option({ value: i }, i));
             }
             for (let i = patternCount; i < this._renderedPatternCount; i++) {
                 this._select.removeChild(this._select.lastChild);
@@ -45038,7 +45190,7 @@ You should be redirected to the song at:<br /><br />
                 if (this._renderedBarCount < this._doc.song.barCount) {
                     this._barNumbers.length = this._doc.song.barCount;
                     for (var pos = this._renderedBarCount; pos < this._barNumbers.length; pos++) {
-                        this._barNumbers[pos] = SVG.text({ "font-family": "sans-serif", "font-size": "8px", "text-anchor": "middle", "font-weight": "bold", "x": (pos * this._barWidth + this._barWidth / 2) + "px", "y": "7px", fill: ColorConfig.secondaryText }, "" + (pos + 1));
+                        this._barNumbers[pos] = SVG$1.text({ "font-family": "sans-serif", "font-size": "8px", "text-anchor": "middle", "font-weight": "bold", "x": (pos * this._barWidth + this._barWidth / 2) + "px", "y": "7px", fill: ColorConfig.secondaryText }, "" + (pos + 1));
                         if (pos % 4 == 0) {
                             this._barNumbers[pos].setAttribute("fill", ColorConfig.primaryText);
                         }
@@ -45115,7 +45267,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { div: div$4, input: input$3, button: button$4, h2: h2$3, select: select$3, option: option$3, canvas: canvas$1 } = HTML;
+    const { div: div$4, input: input$3, button: button$4, h2: h2$3, select: select$3, option: option$3, canvas: canvas$1 } = HTML$1;
     const defaultShapeFunction = (cnv, ctx, x, y, w, h) => {
         ctx.fillRect(x, y, w, h);
     };
@@ -45361,8 +45513,8 @@ You should be redirected to the song at:<br /><br />
             this._overlayContext = null;
             this._waveformContainer = div$4({ style: `position: relative; margin-bottom: 0.5em; margin-left: auto; margin-right: auto; width: 100%; outline: 1px solid ${ColorConfig.uiWidgetBackground};` }, this._waveformCanvas, this._overlayCanvas);
             this._viewportOffsetSlider = input$3({ style: "width: 100%; flex-grow: 1; margin: 0;", type: "range", min: "0", max: "1", value: "0", step: "0.00001" });
-            this._zoomInButton = button$4({ type: "button", title: "Zoom In", style: "height: var(--button-size); margin-left: 0.5em;" }, SVG.svg({ width: "20", height: "20", viewBox: "-10 -10 20 20", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG.circle({ cx: -1, cy: -1, r: 6, "stroke-width": 2, stroke: ColorConfig.primaryText, fill: "none" }), SVG.path({ stroke: ColorConfig.primaryText, "stroke-width": 2, d: "M 3 3 L 7 7 M -1 -4 L -1 2 M -4 -1 L 2 -1", fill: "none" })));
-            this._zoomOutButton = button$4({ type: "button", title: "Zoom Out", style: "height: var(--button-size); margin-left: 0.5em;" }, SVG.svg({ width: "20", height: "20", viewBox: "-10 -10 20 20", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG.circle({ cx: -1, cy: -1, r: 6, "stroke-width": 2, stroke: ColorConfig.primaryText, fill: "none" }), SVG.path({ stroke: ColorConfig.primaryText, "stroke-width": 2, d: "M 3 3 L 7 7 M -4 -1 L 2 -1", fill: "none" })));
+            this._zoomInButton = button$4({ type: "button", title: "Zoom In", style: "height: var(--button-size); margin-left: 0.5em;" }, SVG$1.svg({ width: "20", height: "20", viewBox: "-10 -10 20 20", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG$1.circle({ cx: -1, cy: -1, r: 6, "stroke-width": 2, stroke: ColorConfig.primaryText, fill: "none" }), SVG$1.path({ stroke: ColorConfig.primaryText, "stroke-width": 2, d: "M 3 3 L 7 7 M -1 -4 L -1 2 M -4 -1 L 2 -1", fill: "none" })));
+            this._zoomOutButton = button$4({ type: "button", title: "Zoom Out", style: "height: var(--button-size); margin-left: 0.5em;" }, SVG$1.svg({ width: "20", height: "20", viewBox: "-10 -10 20 20", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG$1.circle({ cx: -1, cy: -1, r: 6, "stroke-width": 2, stroke: ColorConfig.primaryText, fill: "none" }), SVG$1.path({ stroke: ColorConfig.primaryText, "stroke-width": 2, d: "M 3 3 L 7 7 M -4 -1 L 2 -1", fill: "none" })));
             this._zoom100Button = button$4({ type: "button", title: "Zoom 100%", style: "height: var(--button-size); margin-left: 0.5em;" }, "100%");
             this._loopModeSelect = select$3({ style: "width: 100%; flex-grow: 1; margin-left: 0.5em;" }, option$3({ value: 0 }, "Loop"), option$3({ value: 1 }, "Ping-Pong"), option$3({ value: 2 }, "Play Once"), option$3({ value: 3 }, "Play Loop Once"));
             this._startOffsetStepper = input$3({ style: "flex-grow: 1; margin-left: 1em; width: 100%;", type: "number", value: this._chipWaveStartOffset, min: "0", step: "1" });
@@ -45891,7 +46043,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { div: div$3, h2: h2$2, span: span$2, input: input$2, button: button$3 } = HTML;
+    const { div: div$3, h2: h2$2, span: span$2, input: input$2, button: button$3 } = HTML$1;
     class SampleLoadingStatusPrompt {
         constructor(_doc) {
             this._intervalDuration = 2000;
@@ -45963,7 +46115,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { div: div$2, input: input$1, button: button$2, a, code, textarea, details, summary, span: span$1, ul, li, select: select$2, option: option$2, h2: h2$1 } = HTML;
+    const { div: div$2, input: input$1, button: button$2, a, code, textarea, details, summary, span: span$1, ul, li, select: select$2, option: option$2, h2: h2$1 } = HTML$1;
     class AddSamplesPrompt {
         constructor(_doc) {
             this._maxSamples = 64;
@@ -46466,8 +46618,8 @@ You should be redirected to the song at:<br /><br />
                     percussionBox.checked = entry.percussion;
                     const copyLinkPresetButton = button$2({ style: "height: auto; min-height: var(--button-size);", title: "For use with \"Add multiple samples\"" }, "Copy link preset");
                     const removeButton = button$2({ style: "height: auto; min-height: var(--button-size); margin-left: 0.5em;" }, "Remove");
-                    const moveUpButton = button$2({ style: "height: auto; min-height: var(--button-size); margin-left: 0.5em;" }, SVG.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG.path({ d: "M -6 6 L 0 -6 L 6 6 z", fill: ColorConfig.primaryText })));
-                    const moveDownButton = button$2({ style: "height: auto; min-height: var(--button-size); margin-left: 0.5em;" }, SVG.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG.path({ d: "M -6 -6 L 6 -6 L 0 6 z", fill: ColorConfig.primaryText })));
+                    const moveUpButton = button$2({ style: "height: auto; min-height: var(--button-size); margin-left: 0.5em;" }, SVG$1.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG$1.path({ d: "M -6 6 L 0 -6 L 6 6 z", fill: ColorConfig.primaryText })));
+                    const moveDownButton = button$2({ style: "height: auto; min-height: var(--button-size); margin-left: 0.5em;" }, SVG$1.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG$1.path({ d: "M -6 -6 L 6 -6 L 0 6 z", fill: ColorConfig.primaryText })));
                     const optionsContainer = details({ open: optionsVisible, style: "margin-bottom: 2em; margin-top: 1em;" }, summary({ style: "margin-bottom: 1em;" }, "Options"), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; :text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "What rate to resample to" }, "Sample rate")), sampleRateStepper), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `text-align: right; color: ${ColorConfig.primaryText}; flex-shrink: 0;` }, span$1({ title: "Pitch where the sample is played as-is" }, "Root key")), rootKeyDisplay, rootKeyStepper), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 0.5em;" }, div$2({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Percussion (pitch doesn't change with key)"), percussionBox), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "Applies to the \"Loop Start\" loop control option of the preset created for this sample" }, "Loop Start")), chipWaveLoopStartStepper), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "Applies to the \"Loop End\" loop control option of the preset created for this sample" }, "Loop End")), chipWaveLoopEndStepper), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "Applies to the \"Offset\" loop control option of the preset created for this sample" }, "Sample Start Offset")), chipWaveStartOffsetStepper), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "Applies to the \"Loop Mode\" loop control option of the preset created for this sample" }, "Loop Mode")), chipWaveLoopModeSelect), div$2({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" }, div$2({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span$1({ title: "Applies to the \"Backwards\" loop control option of the preset created for this sample" }, "Backwards")), chipWavePlayBackwardsBox));
                     urlInput.dataset.index = "" + entryIndex;
                     sampleRateStepper.dataset.index = "" + entryIndex;
@@ -46556,7 +46708,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$1, div: div$1, h2, select: select$1, option: option$1 } = HTML;
+    const { button: button$1, div: div$1, h2, select: select$1, option: option$1 } = HTML$1;
     class ShortenerConfigPrompt {
         constructor(_doc) {
             this._doc = _doc;
@@ -46592,7 +46744,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button, div, input, select, span, optgroup, option, canvas } = HTML;
+    const { button, div, input, select, span, optgroup, option, canvas } = HTML$1;
     function buildOptions(menu, items) {
         for (let index = 0; index < items.length; index++) {
             menu.appendChild(option({ value: index }, items[index]));
@@ -47160,18 +47312,18 @@ You should be redirected to the song at:<br /><br />
             this._prevBarButton = button({ class: "prevBarButton", type: "button", title: "Previous Bar (left bracket)" });
             this._nextBarButton = button({ class: "nextBarButton", type: "button", title: "Next Bar (right bracket)" });
             this._volumeSlider = new Slider(input({ title: "main volume", style: "width: 5em; flex-grow: 1; margin: 0;", type: "range", min: "0", max: "75", value: "50", step: "1" }), this.doc, null, false);
-            this._outVolumeBarBg = SVG.rect({ "pointer-events": "none", width: "90%", height: "50%", x: "5%", y: "25%", fill: ColorConfig.uiWidgetBackground });
-            this._outVolumeBar = SVG.rect({ "pointer-events": "none", height: "50%", width: "0%", x: "5%", y: "25%", fill: "url('#volumeGrad2')" });
-            this._outVolumeCap = SVG.rect({ "pointer-events": "none", width: "2px", height: "50%", x: "5%", y: "25%", fill: ColorConfig.uiWidgetFocus });
-            this._stop1 = SVG.stop({ "stop-color": "lime", offset: "60%" });
-            this._stop2 = SVG.stop({ "stop-color": "orange", offset: "90%" });
-            this._stop3 = SVG.stop({ "stop-color": "red", offset: "100%" });
-            this._gradient = SVG.linearGradient({ id: "volumeGrad2", gradientUnits: "userSpaceOnUse" }, this._stop1, this._stop2, this._stop3);
-            this._defs = SVG.defs({}, this._gradient);
-            this._volumeBarContainer = SVG.svg({ style: `touch-action: none; overflow: visible; margin: auto; max-width: 20vw;`, width: "160px", height: "100%", preserveAspectRatio: "none", viewBox: "0 0 160 12" }, this._defs, this._outVolumeBarBg, this._outVolumeBar, this._outVolumeCap);
+            this._outVolumeBarBg = SVG$1.rect({ "pointer-events": "none", width: "90%", height: "50%", x: "5%", y: "25%", fill: ColorConfig.uiWidgetBackground });
+            this._outVolumeBar = SVG$1.rect({ "pointer-events": "none", height: "50%", width: "0%", x: "5%", y: "25%", fill: "url('#volumeGrad2')" });
+            this._outVolumeCap = SVG$1.rect({ "pointer-events": "none", width: "2px", height: "50%", x: "5%", y: "25%", fill: ColorConfig.uiWidgetFocus });
+            this._stop1 = SVG$1.stop({ "stop-color": "lime", offset: "60%" });
+            this._stop2 = SVG$1.stop({ "stop-color": "orange", offset: "90%" });
+            this._stop3 = SVG$1.stop({ "stop-color": "red", offset: "100%" });
+            this._gradient = SVG$1.linearGradient({ id: "volumeGrad2", gradientUnits: "userSpaceOnUse" }, this._stop1, this._stop2, this._stop3);
+            this._defs = SVG$1.defs({}, this._gradient);
+            this._volumeBarContainer = SVG$1.svg({ style: `touch-action: none; overflow: visible; margin: auto; max-width: 20vw;`, width: "160px", height: "100%", preserveAspectRatio: "none", viewBox: "0 0 160 12" }, this._defs, this._outVolumeBarBg, this._outVolumeBar, this._outVolumeCap);
             this._volumeBarBox = div({ class: "playback-volume-bar", style: "height: 12px; align-self: center;" }, this._volumeBarContainer);
             this._fileMenu = select({ style: "width: 100%;" }, option({ selected: true, disabled: true, hidden: false }, "File"), option({ value: "new" }, "+ New Blank Song (⇧`)"), option({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"), option({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"), option({ value: "copyUrl" }, "⎘ Copy Song URL"), option({ value: "shareUrl" }, "⤳ Share Song URL"), option({ value: "configureShortener" }, "🛠 Customize Url Shortener..."), option({ value: "shortenUrl" }, "… Shorten Song URL"), option({ value: "viewPlayer" }, "▶ View in Song Player (⇧P)"), option({ value: "copyEmbed" }, "⎘ Copy HTML Embed Code"), option({ value: "songRecovery" }, "⚠ Recover Recent Song... (`)"));
-            this._editMenu = select({ style: "width: 100%;" }, option({ selected: true, disabled: true, hidden: false }, "Edit"), option({ value: "undo" }, "Undo (Z)"), option({ value: "redo" }, "Redo (Y)"), option({ value: "copy" }, "Copy Pattern (C)"), option({ value: "pasteNotes" }, "Paste Pattern Notes (V)"), option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"), option({ value: "insertBars" }, "Insert Bar (⏎)"), option({ value: "deleteBars" }, "Delete Selected Bars (⌫)"), option({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"), option({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"), option({ value: "selectChannel" }, "Select Channel (⇧A)"), option({ value: "selectAll" }, "Select All (A)"), option({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"), option({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"), option({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"), option({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"), option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + EditorConfig.ctrlSymbol + "E)"), option({ value: "beatsPerBar" }, "Change Beats Per Bar... (⇧B)"), option({ value: "barCount" }, "Change Song Length... (L)"), option({ value: "channelSettings" }, "Channel Settings... (Q)"), option({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"), option({ value: "addExternal" }, "Add Custom Samples... (⇧Q)"));
+            this._editMenu = select({ style: "width: 100%;" }, option({ selected: true, disabled: true, hidden: false }, "Edit"), option({ value: "undo" }, "Undo (Z)"), option({ value: "redo" }, "Redo (Y)"), option({ value: "copy" }, "Copy Pattern (C)"), option({ value: "pasteNotes" }, "Paste Pattern Notes (V)"), option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"), option({ value: "insertBars" }, "Insert Bar (⏎)"), option({ value: "deleteBars" }, "Delete Selected Bars (⌫)"), option({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"), option({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"), option({ value: "selectChannel" }, "Select Channel (⇧A)"), option({ value: "selectAll" }, "Select All (A)"), option({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"), option({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"), option({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"), option({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"), option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + EditorConfig.ctrlSymbol + "E)"), option({ value: "beatsPerBar" }, "Change Beats Per Bar... (⇧B)"), option({ value: "barCount" }, "Change Song Length... (L)"), option({ value: "channelSettings" }, "Channel Settings... (Q)"), option({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"), option({ value: "addExternal" }, "Add Custom Samples... (⇧Q)"), option({ value: "addPlugin" }, "Add Custom Plugin... "));
             this._optionsMenu = select({ style: "width: 100%;" }, option({ selected: true, disabled: true, hidden: false }, "Preferences"), optgroup({ label: "Technical" }, option({ value: "autoPlay" }, "Auto Play on Load"), option({ value: "autoFollow" }, "Auto Follow Playhead"), option({ value: "enableNotePreview" }, "Hear Added Notes"), option({ value: "notesOutsideScale" }, "Place Notes Out of Scale"), option({ value: "setDefaultScale" }, "Set Current Scale as Default"), option({ value: "alwaysFineNoteVol" }, "Always Fine Note Volume"), option({ value: "enableChannelMuting" }, "Enable Channel Muting"), option({ value: "instrumentCopyPaste" }, "Enable Copy/Paste Buttons"), option({ value: "instrumentImportExport" }, "Enable Import/Export Buttons"), option({ value: "displayBrowserUrl" }, "Enable Song Data in URL"), option({ value: "closePromptByClickoff" }, "Close Prompts on Click Off"), option({ value: "recordingSetup" }, "Note Recording...")), optgroup({ label: "Appearance" }, option({ value: "showFifth" }, 'Highlight "Fifth" Note'), option({ value: "notesFlashWhenPlayed" }, "Notes Flash When Played"), option({ value: "instrumentButtonsAtTop" }, "Instrument Buttons at Top"), option({ value: "frostedGlassBackground" }, "Frosted Glass Prompt Backdrop"), option({ value: "showChannels" }, "Show All Channels"), option({ value: "showScrollBar" }, "Show Octave Scroll Bar"), option({ value: "showInstrumentScrollbars" }, "Show Intsrument Scrollbars"), option({ value: "showLetters" }, "Show Piano Keys"), option({ value: "displayVolumeBar" }, "Show Playback Volume"), option({ value: "showOscilloscope" }, "Show Oscilloscope"), option({ value: "showSampleLoadingStatus" }, "Show Sample Loading Status"), option({ value: "showDescription" }, "Show Description"), option({ value: "layout" }, "Set Layout..."), option({ value: "colorTheme" }, "Set Theme..."), option({ value: "customTheme" }, "Custom Theme...")));
             this._scaleSelect = buildOptions(select(), Config.scales.map(scale => scale.name));
             this._keySelect = buildOptions(select(), Config.keys.map(key => key.name).reverse());
@@ -47240,7 +47392,7 @@ You should be redirected to the song at:<br /><br />
             this._chipWaveLoopModeSelect = buildOptions(select(), ["Loop", "Ping-Pong", "Play Once", "Play Loop Once"]);
             this._chipWaveLoopStartStepper = input({ type: "number", min: "0", step: "1", value: "0", style: "width: 100%; height: 1.5em; font-size: 80%; margin-left: 0.4em; vertical-align: middle;" });
             this._chipWaveLoopEndStepper = input({ type: "number", min: "0", step: "1", value: "0", style: "width: 100%; height: 1.5em; font-size: 80%; margin-left: 0.4em; vertical-align: middle;" });
-            this._setChipWaveLoopEndToEndButton = button({ type: "button", style: "width: 1.5em; height: 1.5em; padding: 0; margin-left: 0.5em;" }, SVG.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
+            this._setChipWaveLoopEndToEndButton = button({ type: "button", style: "width: 1.5em; height: 1.5em; padding: 0; margin-left: 0.5em;" }, SVG$1.svg({ width: "16", height: "16", viewBox: "-13 -14 26 26", "pointer-events": "none", style: "width: 100%; height: 100%;" }, SVG$1.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
             this._chipWaveStartOffsetStepper = input({ type: "number", min: "0", step: "1", value: "0", style: "width: 100%; height: 1.5em; font-size: 80%; margin-left: 0.4em; vertical-align: middle;" });
             this._chipWavePlayBackwardsBox = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 0.4em; margin-right: 4em;" });
             this._chipWaveSelectRow = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("chipWave") }, "Wave: "), div({ class: "selectContainer" }, this._chipWaveSelect));
@@ -47377,27 +47529,27 @@ You should be redirected to the song at:<br /><br />
             this._algorithm6OpSelectRow = div(div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("algorithm") }, "Algorithm: "), div({ class: "selectContainer" }, this._algorithm6OpSelect)), div({ style: "height:144px; display:flex; flex-direction: row; align-items:center; justify-content:center;" }, div({ style: "display:block; width:10px; margin-right: 0.2em" }, this._algorithmCanvasSwitch), div({ style: "width:144px; height:144px;" }, this._customAlgorithmCanvas.canvas)));
             this._instrumentCopyButton = button({ style: "max-width:86px; width: 86px;", class: "copyButton", title: "Copy Instrument (⇧C)" }, [
                 "Copy",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
             this._instrumentPasteButton = button({ style: "max-width:86px;", class: "pasteButton", title: "Paste Instrument (⇧V)" }, [
                 "Paste",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
             this._instrumentExportButton = button({ style: "max-width:86px; width: 86px;", class: "exportInstrumentButton" }, [
                 "Export",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
-                    SVG.path({ d: "M200-120v-40h560v40H200Zm279.231-150.769L254.615-568.462h130.769V-840h188.462v271.538h130.77L479.231-270.769Zm0-65.385 142.923-191.538h-88.308V-800H425.385v272.308h-88.308l142.154 191.538ZM480-527.692Z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
+                    SVG$1.path({ d: "M200-120v-40h560v40H200Zm279.231-150.769L254.615-568.462h130.769V-840h188.462v271.538h130.77L479.231-270.769Zm0-65.385 142.923-191.538h-88.308V-800H425.385v272.308h-88.308l142.154 191.538ZM480-527.692Z", fill: "currentColor" }),
                 ]),
             ]);
             this._instrumentImportButton = button({ style: "max-width:86px;", class: "importInstrumentButton" }, [
                 "Import",
-                SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
-                    SVG.path({ d: "M200-120v-40h560v40H200Zm185.384-150.769v-271.539H254.615L480-840l224.616 297.692h-130.77v271.539H385.384Zm40.001-40h108.461v-272.308h88.308L480-774.615 337.077-583.077h88.308v272.308ZM480-583.077Z", fill: "currentColor" }),
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 -960 960 960" }, [
+                    SVG$1.path({ d: "M200-120v-40h560v40H200Zm185.384-150.769v-271.539H254.615L480-840l224.616 297.692h-130.77v271.539H385.384Zm40.001-40h108.461v-272.308h88.308L480-774.615 337.077-583.077h88.308v272.308ZM480-583.077Z", fill: "currentColor" }),
                 ]),
             ]);
             this._globalOscscope = new oscilloscopeCanvas(canvas({ width: 144, height: 32, style: `border: 2px solid ${ColorConfig.uiWidgetBackground}; position: static;`, id: "oscilloscopeAll" }), 1);
@@ -47419,14 +47571,14 @@ You should be redirected to the song at:<br /><br />
             this._instrumentSettingsTextRow = div({ id: "instrumentSettingsText", style: `padding: 3px 0; max-width: 15em; text-align: center; color: ${ColorConfig.secondaryText};` }, "Instrument Settings");
             this._instrumentTypeSelectRow = div({ class: "selectRow", id: "typeSelectRow" }, span({ class: "tip", onclick: () => this._openPrompt("instrumentType") }, "Type:"), div(div({ class: "pitchSelect" }, this._pitchedPresetSelect), div({ class: "drumSelect" }, this._drumPresetSelect)));
             this._instrumentSettingsGroup = div({ class: "editor-controls" }, this._instrumentSettingsTextRow, this._instrumentsButtonRow, this._instrumentTypeSelectRow, this._instrumentVolumeSliderRow, this._customInstrumentSettingsGroup);
-            this._usedPatternIndicator = SVG.path({ d: "M -6 -6 H 6 V 6 H -6 V -6 M -2 -3 L -2 -3 L -1 -4 H 1 V 4 H -1 V -1.2 L -1.2 -1 H -2 V -3 z", fill: ColorConfig.indicatorSecondary, "fill-rule": "evenodd" });
-            this._usedInstrumentIndicator = SVG.path({ d: "M -6 -0.8 H -3.8 V -6 H 0.8 V 4.4 H 2.2 V -0.8 H 6 V 0.8 H 3.8 V 6 H -0.8 V -4.4 H -2.2 V 0.8 H -6 z", fill: ColorConfig.indicatorSecondary });
-            this._jumpToModIndicator = SVG.svg({ style: "width: 92%; height: 1.3em; flex-shrink: 0; position: absolute;", viewBox: "0 0 200 200" }, [
-                SVG.path({ d: "M90 155 l0 -45 -45 0 c-25 0 -45 -4 -45 -10 0 -5 20 -10 45 -10 l45 0 0 -45 c0 -25 5 -45 10 -45 6 0 10 20 10 45 l0 45 45 0 c25 0 45 5 45 10 0 6 -20 10 -45 10 l -45 0 0 45 c0 25 -4 45 -10 45 -5 0 -10 -20 -10 -45z" }),
-                SVG.path({ d: "M42 158 c-15 -15 -16 -38 -2 -38 6 0 10 7 10 15 0 8 7 15 15 15 8 0 15 5 15 10 0 14 -23 13 -38 -2z" }),
-                SVG.path({ d: "M120 160 c0 -5 7 -10 15 -10 8 0 15 -7 15 -15 0 -8 5 -15 10 -15 14 0 13 23 -2 38 -15 15 -38 16 -38 2z" }),
-                SVG.path({ d: "M32 58 c3 -23 48 -40 48 -19 0 6 -7 11 -15 11 -8 0 -15 7 -15 15 0 8 -5 15 -11 15 -6 0 -9 -10 -7 -22z" }),
-                SVG.path({ d: "M150 65 c0 -8 -7 -15 -15 -15 -8 0 -15 -4 -15 -10 0 -14 23 -13 38 2 15 15 16 38 2 38 -5 0 -10 -7 -10 -15z" })
+            this._usedPatternIndicator = SVG$1.path({ d: "M -6 -6 H 6 V 6 H -6 V -6 M -2 -3 L -2 -3 L -1 -4 H 1 V 4 H -1 V -1.2 L -1.2 -1 H -2 V -3 z", fill: ColorConfig.indicatorSecondary, "fill-rule": "evenodd" });
+            this._usedInstrumentIndicator = SVG$1.path({ d: "M -6 -0.8 H -3.8 V -6 H 0.8 V 4.4 H 2.2 V -0.8 H 6 V 0.8 H 3.8 V 6 H -0.8 V -4.4 H -2.2 V 0.8 H -6 z", fill: ColorConfig.indicatorSecondary });
+            this._jumpToModIndicator = SVG$1.svg({ style: "width: 92%; height: 1.3em; flex-shrink: 0; position: absolute;", viewBox: "0 0 200 200" }, [
+                SVG$1.path({ d: "M90 155 l0 -45 -45 0 c-25 0 -45 -4 -45 -10 0 -5 20 -10 45 -10 l45 0 0 -45 c0 -25 5 -45 10 -45 6 0 10 20 10 45 l0 45 45 0 c25 0 45 5 45 10 0 6 -20 10 -45 10 l -45 0 0 45 c0 25 -4 45 -10 45 -5 0 -10 -20 -10 -45z" }),
+                SVG$1.path({ d: "M42 158 c-15 -15 -16 -38 -2 -38 6 0 10 7 10 15 0 8 7 15 15 15 8 0 15 5 15 10 0 14 -23 13 -38 -2z" }),
+                SVG$1.path({ d: "M120 160 c0 -5 7 -10 15 -10 8 0 15 -7 15 -15 0 -8 5 -15 10 -15 14 0 13 23 -2 38 -15 15 -38 16 -38 2z" }),
+                SVG$1.path({ d: "M32 58 c3 -23 48 -40 48 -19 0 6 -7 11 -15 11 -8 0 -15 7 -15 15 0 8 -5 15 -11 15 -6 0 -9 -10 -7 -22z" }),
+                SVG$1.path({ d: "M150 65 c0 -8 -7 -15 -15 -15 -8 0 -15 -4 -15 -10 0 -14 23 -13 38 2 15 15 16 38 2 38 -5 0 -10 -7 -10 -15z" })
             ]);
             this._promptContainer = div({ class: "promptContainer", style: "display: none;" });
             this._promptContainerBG = div({ class: "promptContainerBG", style: "display: none; height: 100%; width: 100%; position: fixed; z-index: 99; overflow-x: hidden; pointer-events: none;" });
@@ -47443,7 +47595,7 @@ You should be redirected to the song at:<br /><br />
             this._sampleLoadingBar = div({ style: `width: 0%; height: 100%; background-color: ${ColorConfig.indicatorPrimary};` });
             this._sampleLoadingBarContainer = div({ style: `width: 80%; height: 4px; overflow: hidden; margin-left: auto; margin-right: auto; margin-top: 0.5em; cursor: pointer; background-color: ${ColorConfig.indicatorSecondary};` }, this._sampleLoadingBar);
             this._sampleLoadingStatusContainer = div({ style: "cursor: pointer;" }, div({ style: `margin-top: 0.5em; text-align: center; color: ${ColorConfig.secondaryText};` }, "Sample Loading Status"), div({ class: "selectRow", style: "height: 6px; margin-bottom: 0.5em;" }, this._sampleLoadingBarContainer));
-            this._songSettingsArea = div({ class: "song-settings-area" }, div({ class: "editor-controls" }, div({ class: "editor-song-settings" }, div({ style: "margin: 3px 0; position: relative; text-align: center; color: ${ColorConfig.secondaryText};" }, div({ class: "tip", style: "flex-shrink: 0; position:absolute; left: 0; top: 0; width: 12px; height: 12px", onclick: () => this._openPrompt("usedPattern") }, SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 0; pointer-events: none;", width: "12px", height: "12px", "margin-right": "0.5em", viewBox: "-6 -6 12 12" }, this._usedPatternIndicator)), div({ class: "tip", style: "flex-shrink: 0; position: absolute; left: 14px; top: 0; width: 12px; height: 12px", onclick: () => this._openPrompt("usedInstrument") }, SVG.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 0; pointer-events: none;", width: "12px", height: "12px", "margin-right": "1em", viewBox: "-6 -6 12 12" }, this._usedInstrumentIndicator)), "Song Settings", div({ style: "width: 100%; left: 0; top: -1px; position:absolute; overflow-x:clip;" }, this._jumpToModIndicator))), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("scale") }, "Scale: "), div({ class: "selectContainer" }, this._scaleSelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("key") }, "Key: "), div({ class: "selectContainer" }, this._keySelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("key_octave") }, "Octave: "), this._octaveStepper), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("tempo") }, "Tempo: "), span({ style: "display: flex;" }, this._tempoSlider.container, this._tempoStepper)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("rhythm") }, "Rhythm: "), div({ class: "selectContainer" }, this._rhythmSelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("songeq") }, span("Song EQ:")), this._songEqFilterZoom, this._songEqFilterEditor.container), this._sampleLoadingStatusContainer));
+            this._songSettingsArea = div({ class: "song-settings-area" }, div({ class: "editor-controls" }, div({ class: "editor-song-settings" }, div({ style: "margin: 3px 0; position: relative; text-align: center; color: ${ColorConfig.secondaryText};" }, div({ class: "tip", style: "flex-shrink: 0; position:absolute; left: 0; top: 0; width: 12px; height: 12px", onclick: () => this._openPrompt("usedPattern") }, SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 0; pointer-events: none;", width: "12px", height: "12px", "margin-right": "0.5em", viewBox: "-6 -6 12 12" }, this._usedPatternIndicator)), div({ class: "tip", style: "flex-shrink: 0; position: absolute; left: 14px; top: 0; width: 12px; height: 12px", onclick: () => this._openPrompt("usedInstrument") }, SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 0; pointer-events: none;", width: "12px", height: "12px", "margin-right": "1em", viewBox: "-6 -6 12 12" }, this._usedInstrumentIndicator)), "Song Settings", div({ style: "width: 100%; left: 0; top: -1px; position:absolute; overflow-x:clip;" }, this._jumpToModIndicator))), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("scale") }, "Scale: "), div({ class: "selectContainer" }, this._scaleSelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("key") }, "Key: "), div({ class: "selectContainer" }, this._keySelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("key_octave") }, "Octave: "), this._octaveStepper), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("tempo") }, "Tempo: "), span({ style: "display: flex;" }, this._tempoSlider.container, this._tempoStepper)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("rhythm") }, "Rhythm: "), div({ class: "selectContainer" }, this._rhythmSelect)), div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("songeq") }, span("Song EQ:")), this._songEqFilterZoom, this._songEqFilterEditor.container), this._sampleLoadingStatusContainer));
             this._instrumentSettingsArea = div({ class: "instrument-settings-area" }, this._instrumentSettingsGroup, this._modulatorGroup);
             this._settingsArea = div({ class: "settings-area noSelection" }, div({ class: "version-area" }, div({ style: `text-align: center; margin: 3px 0; color: ${ColorConfig.secondaryText};` }, this._songTitleInputBox.input)), div({ class: "play-pause-area" }, this._volumeBarBox, div({ class: "playback-bar-controls" }, this._playButton, this._pauseButton, this._recordButton, this._stopButton, this._prevBarButton, this._nextBarButton), div({ class: "playback-volume-controls" }, span({ class: "volume-speaker" }), this._volumeSlider.container), this._globalOscscopeContainer), this._menuArea, this._songSettingsArea, this._instrumentSettingsArea);
             this.mainLayer = div({ class: "beepboxEditor", tabIndex: "0" }, this._patternArea, this._trackArea, this._settingsArea, this._promptContainer);
@@ -47625,17 +47777,31 @@ You should be redirected to the song at:<br /><br />
                 const wasActive = this.mainLayer.contains(document.activeElement);
                 const activeElement = document.activeElement;
                 const colors = ColorConfig.getChannelColor(this.doc.song, this.doc.channel);
-                for (let i = this._effectsSelect.childElementCount - 1; i < Config.effectOrder.length; i++) {
+                for (let i = this._effectsSelect.childElementCount - 1; i < Config.effectOrder.length - 1; i++) {
                     this._effectsSelect.appendChild(option({ value: i }));
                 }
+                if (this._pluginurl && this._effectsSelect.childElementCount - 1 < Config.effectOrder.length) {
+                    this._effectsSelect.appendChild(option({ value: Config.effectOrder.length - 1 }));
+                }
+                else if (!this._pluginurl && this._effectsSelect.childElementCount - 1 == Config.effectOrder.length) {
+                    this._effectsSelect.removeChild(this._effectsSelect.lastChild);
+                }
                 this._effectsSelect.selectedIndex = -1;
-                for (let i = 0; i < Config.effectOrder.length; i++) {
+                for (let i = 0; i < Config.effectOrder.length - 1; i++) {
                     let effectFlag = Config.effectOrder[i];
                     const selected = ((instrument.effects & (1 << effectFlag)) != 0);
                     const label = (selected ? textOnIcon : textOffIcon) + Config.effectNames[effectFlag];
-                    const option = this._effectsSelect.children[i + 1];
-                    if (option.textContent != label)
-                        option.textContent = label;
+                    const effectOption = this._effectsSelect.children[i + 1];
+                    if (effectOption.textContent != label)
+                        effectOption.textContent = label;
+                }
+                if (this._pluginurl) {
+                    let effectFlag = Config.effectOrder[Config.effectOrder.length - 1];
+                    const selected = ((instrument.effects & (1 << effectFlag)) != 0);
+                    const label = (selected ? textOnIcon : textOffIcon) + EditorConfig.pluginName;
+                    const pluginOption = this._effectsSelect.children[Config.effectOrder.length];
+                    if (pluginOption.textContent != label)
+                        pluginOption.textContent = label;
                 }
                 setSelectedValue(this._scaleSelect, this.doc.song.scale);
                 this._scaleSelect.title = Config.scales[this.doc.song.scale].realName;
@@ -48102,16 +48268,16 @@ You should be redirected to the song at:<br /><br />
                     else {
                         this._granularContainerRow.style.display = "none";
                     }
-                    if (effectsIncludePlugin(instrument.effects)) {
-                        if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length != EditorConfig.pluginSliders.length) {
-                            this._pluginurl = this.doc.song.pluginurl;
-                            this._pluginContainerRow.innerHTML = "";
-                            for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
-                                this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
-                                this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
-                                this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                            }
+                    if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length != EditorConfig.pluginSliders.length) {
+                        this._pluginurl = this.doc.song.pluginurl;
+                        this._pluginContainerRow.innerHTML = "";
+                        for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
+                            this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
+                            this._pluginContainerRow.appendChild(this._pluginRows[i]);
                         }
+                    }
+                    if (effectsIncludePlugin(instrument.effects)) {
                         this._pluginContainerRow.style.display = "";
                         for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
                             this._pluginSliders[i].updateValue(instrument.pluginValues[i]);
@@ -50137,6 +50303,9 @@ You should be redirected to the song at:<br /><br />
                     case "addExternal":
                         this._openPrompt("addExternal");
                         break;
+                    case "addPlugin":
+                        this._openPrompt("addPlugin");
+                        break;
                 }
                 this._editMenu.selectedIndex = 0;
             };
@@ -50348,12 +50517,12 @@ You should be redirected to the song at:<br /><br />
                 let modSetRow = div({ class: "selectRow", id: "modSettingText" + mod, style: "margin-bottom: 0.9em; color: currentColor;" }, span({ class: "tip", onclick: () => this._openPrompt("modSet") }, "Setting: "), span({ class: "tip", style: "font-size:x-small;", onclick: () => this._openPrompt("modSetInfo" + mod) }, "?"), div({ class: "selectContainer" }, modSetBox));
                 let modFilterRow = div({ class: "selectRow", id: "modFilterText" + mod, style: "margin-bottom: 0.9em; color: currentColor;" }, span({ class: "tip", onclick: () => this._openPrompt("modFilter" + mod) }, "Target: "), div({ class: "selectContainer" }, modFilterBox));
                 let modEnvelopeRow = div({ class: "selectRow", id: "modEnvelopeText" + mod, style: "margin-bottom: 0.9em; color: currentColor;" }, span({ class: "tip", onclick: () => this._openPrompt("modEnvelope") }, "Envelope: "), div({ class: "selectContainer" }, modEnvelopeBox));
-                let modTarget = SVG.svg({ style: "transform: translate(0px, 1px);", width: "1.5em", height: "1em", viewBox: "0 0 200 200" }, [
-                    SVG.path({ d: "M90 155 l0 -45 -45 0 c-25 0 -45 -4 -45 -10 0 -5 20 -10 45 -10 l45 0 0 -45 c0 -25 5 -45 10 -45 6 0 10 20 10 45 l0 45 45 0 c25 0 45 5 45 10 0 6 -20 10 -45 10 l -45 0 0 45 c0 25 -4 45 -10 45 -5 0 -10 -20 -10 -45z" }),
-                    SVG.path({ d: "M42 158 c-15 -15 -16 -38 -2 -38 6 0 10 7 10 15 0 8 7 15 15 15 8 0 15 5 15 10 0 14 -23 13 -38 -2z" }),
-                    SVG.path({ d: "M120 160 c0 -5 7 -10 15 -10 8 0 15 -7 15 -15 0 -8 5 -15 10 -15 14 0 13 23 -2 38 -15 15 -38 16 -38 2z" }),
-                    SVG.path({ d: "M32 58 c3 -23 48 -40 48 -19 0 6 -7 11 -15 11 -8 0 -15 7 -15 15 0 8 -5 15 -11 15 -6 0 -9 -10 -7 -22z" }),
-                    SVG.path({ d: "M150 65 c0 -8 -7 -15 -15 -15 -8 0 -15 -4 -15 -10 0 -14 23 -13 38 2 15 15 16 38 2 38 -5 0 -10 -7 -10 -15z" })
+                let modTarget = SVG$1.svg({ style: "transform: translate(0px, 1px);", width: "1.5em", height: "1em", viewBox: "0 0 200 200" }, [
+                    SVG$1.path({ d: "M90 155 l0 -45 -45 0 c-25 0 -45 -4 -45 -10 0 -5 20 -10 45 -10 l45 0 0 -45 c0 -25 5 -45 10 -45 6 0 10 20 10 45 l0 45 45 0 c25 0 45 5 45 10 0 6 -20 10 -45 10 l -45 0 0 45 c0 25 -4 45 -10 45 -5 0 -10 -20 -10 -45z" }),
+                    SVG$1.path({ d: "M42 158 c-15 -15 -16 -38 -2 -38 6 0 10 7 10 15 0 8 7 15 15 15 8 0 15 5 15 10 0 14 -23 13 -38 -2z" }),
+                    SVG$1.path({ d: "M120 160 c0 -5 7 -10 15 -10 8 0 15 -7 15 -15 0 -8 5 -15 10 -15 14 0 13 23 -2 38 -15 15 -38 16 -38 2z" }),
+                    SVG$1.path({ d: "M32 58 c3 -23 48 -40 48 -19 0 6 -7 11 -15 11 -8 0 -15 7 -15 15 0 8 -5 15 -11 15 -6 0 -9 -10 -7 -22z" }),
+                    SVG$1.path({ d: "M150 65 c0 -8 -7 -15 -15 -15 -8 0 -15 -4 -15 -10 0 -14 23 -13 38 2 15 15 16 38 2 38 -5 0 -10 -7 -10 -15z" })
                 ]);
                 this._modNameRows.push(modNameRow);
                 this._modChannelBoxes.push(modChannelBox);
@@ -50891,6 +51060,9 @@ You should be redirected to the song at:<br /><br />
                         break;
                     case "addExternal":
                         this.prompt = new AddSamplesPrompt(this.doc);
+                        break;
+                    case "addPlugin":
+                        this.prompt = new PluginPrompt(this.doc);
                         break;
                     case "generateEuclideanRhythm":
                         this.prompt = new EuclideanRhythmPrompt(this.doc);

@@ -2734,6 +2734,18 @@ export class ChangePluginValue extends ChangeInstrumentSlider {
     }
 }
 
+export class ChangePluginurl extends Change {
+    constructor(doc: SongDocument, value: string) {
+        super();
+        const oldValue = doc.song.pluginurl;
+        if (oldValue != value) {
+            doc.song.pluginurl = value;
+            this._didSomething()
+        }
+        doc.notifier.changed();
+    }
+}
+
 export class ChangeStringSustain extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number) {
         super(doc);
