@@ -5607,6 +5607,7 @@ var beepbox = (function (exports) {
             Synth.pluginValueNames = [];
             Synth.pluginInstrumentStateFunction = null;
             Synth.pluginFunction = null;
+            Synth.pluginIndex = 0;
             Synth.PluginDelayLineSize = 0;
             EditorConfig.pluginSliders = [];
             EditorConfig.pluginName = "";
@@ -5870,8 +5871,14 @@ var beepbox = (function (exports) {
                         buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                     }
                     if (effectsIncludePlugin(instrument.effects)) {
-                        buffer.push(base64IntToCharCode[EditorConfig.pluginSliders.length]);
-                        for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
+                        let pluginValueCount = EditorConfig.pluginSliders.length;
+                        if (EditorConfig.pluginSliders.length == 0) {
+                            while (instrument.pluginValues[pluginValueCount] || instrument.pluginValues[pluginValueCount + 1]) {
+                                pluginValueCount++;
+                            }
+                        }
+                        buffer.push(base64IntToCharCode[pluginValueCount]);
+                        for (let i = 0; i < pluginValueCount; i++) {
                             buffer.push(base64IntToCharCode[instrument.pluginValues[i]]);
                         }
                     }
@@ -8534,9 +8541,13 @@ var beepbox = (function (exports) {
                     Synth.pluginValueNames = plugin.variableNames;
                     Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction;
                     Synth.pluginFunction = plugin.synthFunction;
+                    Synth.pluginIndex = plugin.effectOrderIndex | 0;
                     Synth.PluginDelayLineSize = plugin.delayLineSize;
                     EditorConfig.pluginSliders = plugin.sliders;
                     EditorConfig.pluginName = plugin.pluginName;
+                }).then(() => {
+                    if (Synth.rerenderSongEditorAfterPluginLoad)
+                        Synth.rerenderSongEditorAfterPluginLoad();
                 }).catch(() => {
                     window.alert("couldn't load plugin");
                 });
@@ -10497,6 +10508,7 @@ var beepbox = (function (exports) {
             this.reverbShelfPrevInput3 = 0.0;
             this.pluginValues = [];
             this.pluginDelayLine = null;
+            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
             this.pluginDelayLineDirty = false;
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
@@ -10554,8 +10566,8 @@ var beepbox = (function (exports) {
                 }
             }
             if (effectsIncludePlugin(instrument.effects)) {
-                if (this.pluginDelayLine == null || this.pluginDelayLine.length < Synth.PluginDelayLineSize) {
-                    this.pluginDelayLine = new Float32Array(Synth.PluginDelayLineSize);
+                if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
+                    this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
                 }
             }
         }
@@ -11061,6 +11073,7 @@ var beepbox = (function (exports) {
                 this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
             }
             if (usesPlugin && Synth.pluginInstrumentStateFunction) {
+                this.pluginDelayLineSize = Synth.PluginDelayLineSize;
                 new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
             }
             if (this.tonesAddedInThisTick) {
@@ -14994,7 +15007,7 @@ var beepbox = (function (exports) {
             let effectsFunction = Synth.effectsFunctionCache[signature];
             if (effectsFunction == undefined) {
                 let effectsSource = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
-                const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular;
+                const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular || instrumentState.pluginDelayLineSize > 0;
                 effectsSource += `
 				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
 				
@@ -15209,6 +15222,10 @@ var beepbox = (function (exports) {
                     for (let i = 0; i < instrumentState.pluginValues.length; i++) {
                         effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
                     }
+                    effectsSource += `
+                const pluginDelayLine = instrumentState.pluginDelayLine;
+                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                `;
                 }
                 effectsSource += `
 				
@@ -15217,11 +15234,10 @@ var beepbox = (function (exports) {
                 let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
                 tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;
                 `;
-                if (usesPlugin && Synth.pluginFunction) {
-                    effectsSource += Synth.pluginFunction;
-                }
+                const effectOrder = [];
                 if (usesGranular) {
-                    effectsSource += `
+                    let granularSource = "";
+                    granularSource += `
                 let granularOutput = 0;
                 for (let grainIndex = 0; grainIndex < granularGrainCount; grainIndex++) {
                     const grain = granularGrains[grainIndex];
@@ -15240,16 +15256,16 @@ var beepbox = (function (exports) {
                             let grainSample = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))    ) & granularDelayLineMask]; // No interpolation
                             `;
                     if (Config.granularEnvelopeType == 0) {
-                        effectsSource += `
+                        granularSource += `
                                 const grainEnvelope = grain.parabolicEnvelopeAmplitude;
                                 `;
                     }
                     else if (Config.granularEnvelopeType == 1) {
-                        effectsSource += `
+                        granularSource += `
                                 const grainEnvelope = grain.rcbEnvelopeAmplitude;
                                 `;
                     }
-                    effectsSource += `
+                    granularSource += `
                             grainSample *= grainEnvelope;
                             granularOutput += grainSample;
                             if (grainAgeInSamples > grainMaxAgeInSamples) {
@@ -15268,17 +15284,17 @@ var beepbox = (function (exports) {
                                 grainAgeInSamples++;
                             `;
                     if (Config.granularEnvelopeType == 0) {
-                        effectsSource += `
+                        granularSource += `
                                     grain.parabolicEnvelopeAmplitude += grain.parabolicEnvelopeSlope;
                                     grain.parabolicEnvelopeSlope += grain.parabolicEnvelopeCurve;
                                     `;
                     }
                     else if (Config.granularEnvelopeType == 1) {
-                        effectsSource += `
+                        granularSource += `
                                     grain.updateRCBEnvelope();
                                     `;
                     }
-                    effectsSource += `
+                    granularSource += `
                                 grain.ageInSamples = grainAgeInSamples;
                                 // if(usesRandomGrainLocation) {
                                 //     grain.delayLine -= grainPitchShift;
@@ -15294,9 +15310,13 @@ var beepbox = (function (exports) {
                 granularDelayLineIndex = (granularDelayLineIndex + 1) & granularDelayLineMask;
                 sample = sample * granularDry + granularOutput * granularWet;
                 `;
+                    effectOrder.push(granularSource);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesDistortion) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const distortionReverse = 1.0 - distortion;
 					const distortionNextInput = sample * distortionDrive;
@@ -15313,10 +15333,13 @@ var beepbox = (function (exports) {
 					sample *= distortionOversampleCompensation;
 					distortionPrevInput = distortionNextInput;
 					distortion += distortionDelta;
-					distortionDrive += distortionDriveDelta;`;
+					distortionDrive += distortionDriveDelta;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesBitcrusher) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					bitcrusherPhase += bitcrusherPhaseDelta;
 					if (bitcrusherPhase < 1.0) {
@@ -15341,10 +15364,13 @@ var beepbox = (function (exports) {
 					}
 					bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
 					bitcrusherScale *= bitcrusherScaleScale;
-					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`;
+					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesRingModulation) {
-                    effectsSource += ` 
+                    effectOrder.push(` 
                 
                 const ringModOutput = sample * waveform[(ringModPhase*waveformLength)|0];
                 const ringModMixF = Math.max(0, ringModMix * ringModMixFade);
@@ -15355,22 +15381,27 @@ var beepbox = (function (exports) {
                 ringModPhase -= ringModPhase | 0;
                 ringModPhaseDelta *= ringModPhaseDeltaScale;
                 ringModMixFade += ringModMixFadeDelta;
-                `;
+                `);
                 }
+                else {
+                    effectOrder.push("");
+                }
+                let eqFilterSource = "";
                 if (usesEqFilter) {
-                    effectsSource += `
+                    eqFilterSource += `
 					
 					const inputSample = sample;
 					sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
 					initialFilterInput2 = initialFilterInput1;
 					initialFilterInput1 = inputSample;`;
                 }
-                effectsSource += `
+                eqFilterSource += `
 					
 					sample *= eqFilterVolume;
 					eqFilterVolume += eqFilterVolumeDelta;`;
+                effectOrder.push(eqFilterSource);
                 if (usesPanning) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					panningDelayLine[panningDelayPos] = sample;
 					const panningRatioL  = panningOffsetL - (panningOffsetL | 0);
@@ -15387,16 +15418,16 @@ var beepbox = (function (exports) {
 					panningVolumeL += panningVolumeDeltaL;
 					panningVolumeR += panningVolumeDeltaR;
 					panningOffsetL += panningOffsetDeltaL;
-					panningOffsetR += panningOffsetDeltaR;`;
+					panningOffsetR += panningOffsetDeltaR;`);
                 }
                 else {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					let sampleL = sample;
-					let sampleR = sample;`;
+					let sampleR = sample;`);
                 }
                 if (usesChorus) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const chorusTap0Ratio = chorusTap0Index - (chorusTap0Index | 0);
 					const chorusTap1Ratio = chorusTap1Index - (chorusTap1Index | 0);
@@ -15434,10 +15465,13 @@ var beepbox = (function (exports) {
 					chorusTap4Index += chorusTap4Delta;
 					chorusTap5Index += chorusTap5Delta;
 					chorusVoiceMult += chorusVoiceMultDelta;
-					chorusCombinedMult += chorusCombinedMultDelta;`;
+					chorusCombinedMult += chorusCombinedMultDelta;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesEcho) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const echoTapStartIndex = (echoDelayPos + echoDelayOffsetStart) & echoMask;
 					const echoTapEndIndex   = (echoDelayPos + echoDelayOffsetEnd  ) & echoMask;
@@ -15460,10 +15494,13 @@ var beepbox = (function (exports) {
 					echoDelayPos = (echoDelayPos + 1) & echoMask;
 					echoDelayOffsetRatio += echoDelayOffsetRatioDelta;
 					echoMult += echoMultDelta;
-                    `;
+                    `);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesReverb) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					// Reverb, implemented using a feedback delay network with a Hadamard matrix and lowpass filters.
 					// good ratios:    0.555235 + 0.618033 + 0.818 +   1.0 = 2.991268
@@ -15499,8 +15536,15 @@ var beepbox = (function (exports) {
 					reverbDelayPos = (reverbDelayPos + 1) & reverbMask;
 					sampleL += reverbSample1 + reverbSample2 + reverbSample3;
 					sampleR += reverbSample0 + reverbSample2 - reverbSample3;
-					reverb += reverbDelta;`;
+					reverb += reverbDelta;`);
                 }
+                else {
+                    effectOrder.push("");
+                }
+                if (usesPlugin && Synth.pluginFunction) {
+                    effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
+                }
+                effectsSource += effectOrder.join("");
                 effectsSource += `
 					
 					outputDataL[sampleIndex] += sampleL * mixVolume;
@@ -16590,9 +16634,11 @@ var beepbox = (function (exports) {
     Synth.harmonicsFunctionCache = [];
     Synth.loopableChipFunctionCache = Array(Config.unisonVoicesMax + 1).fill(undefined);
     Synth.pluginFunction = null;
+    Synth.pluginIndex = 0;
     Synth.pluginValueNames = [];
     Synth.pluginInstrumentStateFunction = null;
     Synth.PluginDelayLineSize = 0;
+    Synth.rerenderSongEditorAfterPluginLoad = null;
     Synth.fmSourceTemplate = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
         const voiceCount = instrument.unisonVoices;

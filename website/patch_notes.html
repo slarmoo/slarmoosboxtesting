@@ -577,7 +577,6 @@
         const headers = document.getElementsByClassName("link");
         for(const header of headers) {
             const updateVersion = header.parentElement.innerText.match(/v|Version [\d\.]+/)[0].replace(/v|Version /, "");
-            console.log(updateVersion);
             header.name = updateVersion;
             header.addEventListener("click", () => linkTo(updateVersion));
             header.title = "Copy link to " + updateVersion;

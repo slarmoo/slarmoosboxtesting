@@ -1471,6 +1471,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
+        Synth.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);
@@ -2992,8 +2993,12 @@ export class SongEditor {
                 this._pluginurl = this.doc.song.pluginurl;
                 this._pluginContainerRow.innerHTML = "";
                 for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                    this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
+                    this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
                     this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
+                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
+                }
+            } else if (this._pluginContainerRow.innerHTML == "") { //if it cleared itself accidentally, fix
+                for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
                     this._pluginContainerRow.appendChild(this._pluginRows[i]);
                 }
             }

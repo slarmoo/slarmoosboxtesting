@@ -363,11 +363,11 @@ export class SpectrumEditorPrompt implements Prompt {
         this.container.addEventListener("mousemove", () => {
             this.spectrumEditor.render(); this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
         });
-        this.container.addEventListener("mousedown", this.spectrumEditor.render);
+        this.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
         this.spectrumEditor.container.addEventListener("mousemove", () => {
             this.spectrumEditor.render(); this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
         });
-        this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render);
+        this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
         this.updatePlayButton();
         // this.spectrumEditor.reassignDoc(_doc);
         

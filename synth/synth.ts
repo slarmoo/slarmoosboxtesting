@@ -3507,10 +3507,11 @@ export class Song {
         Synth.pluginValueNames = [];
         Synth.pluginInstrumentStateFunction = null;
         Synth.pluginFunction = null;
+        Synth.pluginIndex = 0;
         Synth.PluginDelayLineSize = 0;
         EditorConfig.pluginSliders = [];
         EditorConfig.pluginName = "";
-        
+
         for (let i: number = 0; i < Config.filterMorphCount - 1; i++) {
             this.eqSubFilters[i] = null;
         }
@@ -3816,8 +3817,14 @@ export class Song {
                     buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                 }
                 if (effectsIncludePlugin(instrument.effects)) {
-                    buffer.push(base64IntToCharCode[EditorConfig.pluginSliders.length]);
-                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
+                    let pluginValueCount: number = EditorConfig.pluginSliders.length
+                    if (EditorConfig.pluginSliders.length == 0) {
+                        while (instrument.pluginValues[pluginValueCount] || instrument.pluginValues[pluginValueCount + 1]) {
+                            pluginValueCount++;
+                        }
+                    }
+                    buffer.push(base64IntToCharCode[pluginValueCount]);
+                    for (let i: number = 0; i < pluginValueCount; i++) {
                         buffer.push(base64IntToCharCode[instrument.pluginValues[i]]);
                     }
                 }
@@ -6596,10 +6603,13 @@ export class Song {
                 Synth.pluginValueNames = plugin.variableNames;
                 Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction;
                 Synth.pluginFunction = plugin.synthFunction;
+                Synth.pluginIndex = plugin.effectOrderIndex | 0;
                 Synth.PluginDelayLineSize = plugin.delayLineSize;
                 EditorConfig.pluginSliders = plugin.sliders;
                 EditorConfig.pluginName = plugin.pluginName;
-            }).catch(() => {
+            }).then(() => {
+                if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
+             }).catch(() => {
                 window.alert("couldn't load plugin");
             })
         }
@@ -8734,6 +8744,7 @@ class InstrumentState {
 
     public pluginValues: number[] = [];
     public pluginDelayLine: Float32Array | null = null;
+    public pluginDelayLineSize: number = Synth.PluginDelayLineSize;
     public pluginDelayLineDirty: boolean = false
 
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
@@ -8800,8 +8811,8 @@ class InstrumentState {
         }
         if (effectsIncludePlugin(instrument.effects)) {
             //figure out plugin delay line
-            if (this.pluginDelayLine == null || this.pluginDelayLine.length < Synth.PluginDelayLineSize) {
-                this.pluginDelayLine = new Float32Array(Synth.PluginDelayLineSize);
+            if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
+                this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
             }
         }
     }
@@ -9428,6 +9439,8 @@ class InstrumentState {
             this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
         }
         if (usesPlugin && Synth.pluginInstrumentStateFunction) {
+            //default delay line size. Can be updated in plugin function
+            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
             //fill plugin array
             new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
         }
@@ -10005,9 +10018,11 @@ export class Synth {
     private static readonly loopableChipFunctionCache: Function[] = Array(Config.unisonVoicesMax + 1).fill(undefined); //For loopable chips, we have a matrix where the rows represent voices and the columns represent loop types
 
     public static pluginFunction: string | null = null;
+    public static pluginIndex: number = 0;
     public static pluginValueNames: string[] = [];
     public static pluginInstrumentStateFunction: string | null = null;
     public static PluginDelayLineSize: number = 0;
+    public static rerenderSongEditorAfterPluginLoad: Function | null = null;
 
     public readonly channels: ChannelState[] = [];
     private readonly tonePool: Deque<Tone> = new Deque<Tone>();
@@ -13967,7 +13982,7 @@ export class Synth {
         if (effectsFunction == undefined) {
             let effectsSource: string = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
 
-            const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular;
+            const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular || instrumentState.pluginDelayLineSize > 0;
 
             effectsSource += `
 				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
@@ -14208,7 +14223,10 @@ export class Synth {
                 for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
                     effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
                 }
-                // effectsSource += "instrumentState.pluginDelayLineDirty = Synth.PluginDelayLineSize ? true : false;"
+                effectsSource += `
+                const pluginDelayLine = instrumentState.pluginDelayLine;
+                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                `
             }
 
             effectsSource += `
@@ -14219,12 +14237,11 @@ export class Synth {
                 tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;
                 `
             
-            if (usesPlugin && Synth.pluginFunction) {
-                effectsSource += Synth.pluginFunction;
-            }
+            const effectOrder: string[] = [];
             
             if (usesGranular) {
-                effectsSource += `
+                let granularSource = "";
+                granularSource += `
                 let granularOutput = 0;
                 for (let grainIndex = 0; grainIndex < granularGrainCount; grainIndex++) {
                     const grain = granularGrains[grainIndex];
@@ -14243,15 +14260,15 @@ export class Synth {
                             let grainSample = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))    ) & granularDelayLineMask]; // No interpolation
                             `
                 if (Config.granularEnvelopeType == GranularEnvelopeType.parabolic) {
-                    effectsSource += `
+                    granularSource += `
                                 const grainEnvelope = grain.parabolicEnvelopeAmplitude;
                                 `
                 } else if (Config.granularEnvelopeType == GranularEnvelopeType.raisedCosineBell) {
-                    effectsSource += `
+                    granularSource += `
                                 const grainEnvelope = grain.rcbEnvelopeAmplitude;
                                 `
                 }
-                effectsSource += `
+                granularSource += `
                             grainSample *= grainEnvelope;
                             granularOutput += grainSample;
                             if (grainAgeInSamples > grainMaxAgeInSamples) {
@@ -14272,16 +14289,16 @@ export class Synth {
                 if (Config.granularEnvelopeType == GranularEnvelopeType.parabolic) {
                     // grain.updateParabolicEnvelope();
                     // Inlined:
-                    effectsSource += `
+                    granularSource += `
                                     grain.parabolicEnvelopeAmplitude += grain.parabolicEnvelopeSlope;
                                     grain.parabolicEnvelopeSlope += grain.parabolicEnvelopeCurve;
                                     `
                 } else if (Config.granularEnvelopeType == GranularEnvelopeType.raisedCosineBell) {
-                    effectsSource += `
+                    granularSource += `
                                     grain.updateRCBEnvelope();
                                     `
                 }
-                effectsSource += `
+                granularSource += `
                                 grain.ageInSamples = grainAgeInSamples;
                                 // if(usesRandomGrainLocation) {
                                 //     grain.delayLine -= grainPitchShift;
@@ -14297,11 +14314,14 @@ export class Synth {
                 granularDelayLineIndex = (granularDelayLineIndex + 1) & granularDelayLineMask;
                 sample = sample * granularDry + granularOutput * granularWet;
                 `
-            } 
+                effectOrder.push(granularSource);
+            } else {
+                effectOrder.push("");
+            }
 
 
             if (usesDistortion) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					const distortionReverse = 1.0 - distortion;
 					const distortionNextInput = sample * distortionDrive;
@@ -14318,11 +14338,14 @@ export class Synth {
 					sample *= distortionOversampleCompensation;
 					distortionPrevInput = distortionNextInput;
 					distortion += distortionDelta;
-					distortionDrive += distortionDriveDelta;`
+					distortionDrive += distortionDriveDelta;`);
+            } else {
+                effectOrder.push("");
             }
 
+
             if (usesBitcrusher) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					bitcrusherPhase += bitcrusherPhaseDelta;
 					if (bitcrusherPhase < 1.0) {
@@ -14347,11 +14370,14 @@ export class Synth {
 					}
 					bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
 					bitcrusherScale *= bitcrusherScaleScale;
-					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`
+					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`);
+            } else {
+                effectOrder.push("");
             }
 
+
             if (usesRingModulation) {
-                effectsSource += ` 
+                effectOrder.push(` 
                 
                 const ringModOutput = sample * waveform[(ringModPhase*waveformLength)|0];
                 const ringModMixF = Math.max(0, ringModMix * ringModMixFade);
@@ -14362,11 +14388,15 @@ export class Synth {
                 ringModPhase -= ringModPhase | 0;
                 ringModPhaseDelta *= ringModPhaseDeltaScale;
                 ringModMixFade += ringModMixFadeDelta;
-                `
+                `);
+            } else {
+                effectOrder.push("");
             }
 
+
+            let eqFilterSource: string = "";
             if (usesEqFilter) {
-                effectsSource += `
+                eqFilterSource += `
 					
 					const inputSample = sample;
 					sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
@@ -14375,13 +14405,14 @@ export class Synth {
             }
 
             // The eq filter volume is also used to fade out the instrument state, so always include it.
-            effectsSource += `
+            eqFilterSource += `
 					
 					sample *= eqFilterVolume;
 					eqFilterVolume += eqFilterVolumeDelta;`
+            effectOrder.push(eqFilterSource);
 
             if (usesPanning) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					panningDelayLine[panningDelayPos] = sample;
 					const panningRatioL  = panningOffsetL - (panningOffsetL | 0);
@@ -14398,16 +14429,16 @@ export class Synth {
 					panningVolumeL += panningVolumeDeltaL;
 					panningVolumeR += panningVolumeDeltaR;
 					panningOffsetL += panningOffsetDeltaL;
-					panningOffsetR += panningOffsetDeltaR;`
+					panningOffsetR += panningOffsetDeltaR;`);
             } else {
-                effectsSource += `
+                effectOrder.push(`
 					
 					let sampleL = sample;
-					let sampleR = sample;`
+					let sampleR = sample;`);
             }
 
             if (usesChorus) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					const chorusTap0Ratio = chorusTap0Index - (chorusTap0Index | 0);
 					const chorusTap1Ratio = chorusTap1Index - (chorusTap1Index | 0);
@@ -14445,11 +14476,14 @@ export class Synth {
 					chorusTap4Index += chorusTap4Delta;
 					chorusTap5Index += chorusTap5Delta;
 					chorusVoiceMult += chorusVoiceMultDelta;
-					chorusCombinedMult += chorusCombinedMultDelta;`
+					chorusCombinedMult += chorusCombinedMultDelta;`);
+            } else {
+                effectOrder.push("");
             }
 
+
             if (usesEcho) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					const echoTapStartIndex = (echoDelayPos + echoDelayOffsetStart) & echoMask;
 					const echoTapEndIndex   = (echoDelayPos + echoDelayOffsetEnd  ) & echoMask;
@@ -14472,11 +14506,14 @@ export class Synth {
 					echoDelayPos = (echoDelayPos + 1) & echoMask;
 					echoDelayOffsetRatio += echoDelayOffsetRatioDelta;
 					echoMult += echoMultDelta;
-                    `
+                    `);
+            } else {
+                effectOrder.push("");
             }
 
+
             if (usesReverb) {
-                effectsSource += `
+                effectOrder.push(`
 					
 					// Reverb, implemented using a feedback delay network with a Hadamard matrix and lowpass filters.
 					// good ratios:    0.555235 + 0.618033 + 0.818 +   1.0 = 2.991268
@@ -14512,8 +14549,16 @@ export class Synth {
 					reverbDelayPos = (reverbDelayPos + 1) & reverbMask;
 					sampleL += reverbSample1 + reverbSample2 + reverbSample3;
 					sampleR += reverbSample0 + reverbSample2 - reverbSample3;
-					reverb += reverbDelta;`
+					reverb += reverbDelta;`);
+            } else {
+                effectOrder.push("");
             }
+
+
+            if (usesPlugin && Synth.pluginFunction) {
+                effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
+            }
+            effectsSource += effectOrder.join("");
 
             effectsSource += `
 					

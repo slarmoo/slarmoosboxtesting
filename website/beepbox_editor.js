@@ -14500,6 +14500,7 @@ li.select2-results__option[role=group] > strong:hover {
             Synth.pluginValueNames = [];
             Synth.pluginInstrumentStateFunction = null;
             Synth.pluginFunction = null;
+            Synth.pluginIndex = 0;
             Synth.PluginDelayLineSize = 0;
             EditorConfig.pluginSliders = [];
             EditorConfig.pluginName = "";
@@ -14763,8 +14764,14 @@ li.select2-results__option[role=group] > strong:hover {
                         buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                     }
                     if (effectsIncludePlugin(instrument.effects)) {
-                        buffer.push(base64IntToCharCode[EditorConfig.pluginSliders.length]);
-                        for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
+                        let pluginValueCount = EditorConfig.pluginSliders.length;
+                        if (EditorConfig.pluginSliders.length == 0) {
+                            while (instrument.pluginValues[pluginValueCount] || instrument.pluginValues[pluginValueCount + 1]) {
+                                pluginValueCount++;
+                            }
+                        }
+                        buffer.push(base64IntToCharCode[pluginValueCount]);
+                        for (let i = 0; i < pluginValueCount; i++) {
                             buffer.push(base64IntToCharCode[instrument.pluginValues[i]]);
                         }
                     }
@@ -17427,9 +17434,13 @@ li.select2-results__option[role=group] > strong:hover {
                     Synth.pluginValueNames = plugin.variableNames;
                     Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction;
                     Synth.pluginFunction = plugin.synthFunction;
+                    Synth.pluginIndex = plugin.effectOrderIndex | 0;
                     Synth.PluginDelayLineSize = plugin.delayLineSize;
                     EditorConfig.pluginSliders = plugin.sliders;
                     EditorConfig.pluginName = plugin.pluginName;
+                }).then(() => {
+                    if (Synth.rerenderSongEditorAfterPluginLoad)
+                        Synth.rerenderSongEditorAfterPluginLoad();
                 }).catch(() => {
                     window.alert("couldn't load plugin");
                 });
@@ -19390,6 +19401,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.reverbShelfPrevInput3 = 0.0;
             this.pluginValues = [];
             this.pluginDelayLine = null;
+            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
             this.pluginDelayLineDirty = false;
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
@@ -19447,8 +19459,8 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             if (effectsIncludePlugin(instrument.effects)) {
-                if (this.pluginDelayLine == null || this.pluginDelayLine.length < Synth.PluginDelayLineSize) {
-                    this.pluginDelayLine = new Float32Array(Synth.PluginDelayLineSize);
+                if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
+                    this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
                 }
             }
         }
@@ -19954,6 +19966,7 @@ li.select2-results__option[role=group] > strong:hover {
                 this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
             }
             if (usesPlugin && Synth.pluginInstrumentStateFunction) {
+                this.pluginDelayLineSize = Synth.PluginDelayLineSize;
                 new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
             }
             if (this.tonesAddedInThisTick) {
@@ -23887,7 +23900,7 @@ li.select2-results__option[role=group] > strong:hover {
             let effectsFunction = Synth.effectsFunctionCache[signature];
             if (effectsFunction == undefined) {
                 let effectsSource = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
-                const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular;
+                const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular || instrumentState.pluginDelayLineSize > 0;
                 effectsSource += `
 				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
 				
@@ -24102,6 +24115,10 @@ li.select2-results__option[role=group] > strong:hover {
                     for (let i = 0; i < instrumentState.pluginValues.length; i++) {
                         effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
                     }
+                    effectsSource += `
+                const pluginDelayLine = instrumentState.pluginDelayLine;
+                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                `;
                 }
                 effectsSource += `
 				
@@ -24110,11 +24127,10 @@ li.select2-results__option[role=group] > strong:hover {
                 let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
                 tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;
                 `;
-                if (usesPlugin && Synth.pluginFunction) {
-                    effectsSource += Synth.pluginFunction;
-                }
+                const effectOrder = [];
                 if (usesGranular) {
-                    effectsSource += `
+                    let granularSource = "";
+                    granularSource += `
                 let granularOutput = 0;
                 for (let grainIndex = 0; grainIndex < granularGrainCount; grainIndex++) {
                     const grain = granularGrains[grainIndex];
@@ -24133,16 +24149,16 @@ li.select2-results__option[role=group] > strong:hover {
                             let grainSample = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))    ) & granularDelayLineMask]; // No interpolation
                             `;
                     if (Config.granularEnvelopeType == 0) {
-                        effectsSource += `
+                        granularSource += `
                                 const grainEnvelope = grain.parabolicEnvelopeAmplitude;
                                 `;
                     }
                     else if (Config.granularEnvelopeType == 1) {
-                        effectsSource += `
+                        granularSource += `
                                 const grainEnvelope = grain.rcbEnvelopeAmplitude;
                                 `;
                     }
-                    effectsSource += `
+                    granularSource += `
                             grainSample *= grainEnvelope;
                             granularOutput += grainSample;
                             if (grainAgeInSamples > grainMaxAgeInSamples) {
@@ -24161,17 +24177,17 @@ li.select2-results__option[role=group] > strong:hover {
                                 grainAgeInSamples++;
                             `;
                     if (Config.granularEnvelopeType == 0) {
-                        effectsSource += `
+                        granularSource += `
                                     grain.parabolicEnvelopeAmplitude += grain.parabolicEnvelopeSlope;
                                     grain.parabolicEnvelopeSlope += grain.parabolicEnvelopeCurve;
                                     `;
                     }
                     else if (Config.granularEnvelopeType == 1) {
-                        effectsSource += `
+                        granularSource += `
                                     grain.updateRCBEnvelope();
                                     `;
                     }
-                    effectsSource += `
+                    granularSource += `
                                 grain.ageInSamples = grainAgeInSamples;
                                 // if(usesRandomGrainLocation) {
                                 //     grain.delayLine -= grainPitchShift;
@@ -24187,9 +24203,13 @@ li.select2-results__option[role=group] > strong:hover {
                 granularDelayLineIndex = (granularDelayLineIndex + 1) & granularDelayLineMask;
                 sample = sample * granularDry + granularOutput * granularWet;
                 `;
+                    effectOrder.push(granularSource);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesDistortion) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const distortionReverse = 1.0 - distortion;
 					const distortionNextInput = sample * distortionDrive;
@@ -24206,10 +24226,13 @@ li.select2-results__option[role=group] > strong:hover {
 					sample *= distortionOversampleCompensation;
 					distortionPrevInput = distortionNextInput;
 					distortion += distortionDelta;
-					distortionDrive += distortionDriveDelta;`;
+					distortionDrive += distortionDriveDelta;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesBitcrusher) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					bitcrusherPhase += bitcrusherPhaseDelta;
 					if (bitcrusherPhase < 1.0) {
@@ -24234,10 +24257,13 @@ li.select2-results__option[role=group] > strong:hover {
 					}
 					bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
 					bitcrusherScale *= bitcrusherScaleScale;
-					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`;
+					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesRingModulation) {
-                    effectsSource += ` 
+                    effectOrder.push(` 
                 
                 const ringModOutput = sample * waveform[(ringModPhase*waveformLength)|0];
                 const ringModMixF = Math.max(0, ringModMix * ringModMixFade);
@@ -24248,22 +24274,27 @@ li.select2-results__option[role=group] > strong:hover {
                 ringModPhase -= ringModPhase | 0;
                 ringModPhaseDelta *= ringModPhaseDeltaScale;
                 ringModMixFade += ringModMixFadeDelta;
-                `;
+                `);
                 }
+                else {
+                    effectOrder.push("");
+                }
+                let eqFilterSource = "";
                 if (usesEqFilter) {
-                    effectsSource += `
+                    eqFilterSource += `
 					
 					const inputSample = sample;
 					sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
 					initialFilterInput2 = initialFilterInput1;
 					initialFilterInput1 = inputSample;`;
                 }
-                effectsSource += `
+                eqFilterSource += `
 					
 					sample *= eqFilterVolume;
 					eqFilterVolume += eqFilterVolumeDelta;`;
+                effectOrder.push(eqFilterSource);
                 if (usesPanning) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					panningDelayLine[panningDelayPos] = sample;
 					const panningRatioL  = panningOffsetL - (panningOffsetL | 0);
@@ -24280,16 +24311,16 @@ li.select2-results__option[role=group] > strong:hover {
 					panningVolumeL += panningVolumeDeltaL;
 					panningVolumeR += panningVolumeDeltaR;
 					panningOffsetL += panningOffsetDeltaL;
-					panningOffsetR += panningOffsetDeltaR;`;
+					panningOffsetR += panningOffsetDeltaR;`);
                 }
                 else {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					let sampleL = sample;
-					let sampleR = sample;`;
+					let sampleR = sample;`);
                 }
                 if (usesChorus) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const chorusTap0Ratio = chorusTap0Index - (chorusTap0Index | 0);
 					const chorusTap1Ratio = chorusTap1Index - (chorusTap1Index | 0);
@@ -24327,10 +24358,13 @@ li.select2-results__option[role=group] > strong:hover {
 					chorusTap4Index += chorusTap4Delta;
 					chorusTap5Index += chorusTap5Delta;
 					chorusVoiceMult += chorusVoiceMultDelta;
-					chorusCombinedMult += chorusCombinedMultDelta;`;
+					chorusCombinedMult += chorusCombinedMultDelta;`);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesEcho) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					const echoTapStartIndex = (echoDelayPos + echoDelayOffsetStart) & echoMask;
 					const echoTapEndIndex   = (echoDelayPos + echoDelayOffsetEnd  ) & echoMask;
@@ -24353,10 +24387,13 @@ li.select2-results__option[role=group] > strong:hover {
 					echoDelayPos = (echoDelayPos + 1) & echoMask;
 					echoDelayOffsetRatio += echoDelayOffsetRatioDelta;
 					echoMult += echoMultDelta;
-                    `;
+                    `);
+                }
+                else {
+                    effectOrder.push("");
                 }
                 if (usesReverb) {
-                    effectsSource += `
+                    effectOrder.push(`
 					
 					// Reverb, implemented using a feedback delay network with a Hadamard matrix and lowpass filters.
 					// good ratios:    0.555235 + 0.618033 + 0.818 +   1.0 = 2.991268
@@ -24392,8 +24429,15 @@ li.select2-results__option[role=group] > strong:hover {
 					reverbDelayPos = (reverbDelayPos + 1) & reverbMask;
 					sampleL += reverbSample1 + reverbSample2 + reverbSample3;
 					sampleR += reverbSample0 + reverbSample2 - reverbSample3;
-					reverb += reverbDelta;`;
+					reverb += reverbDelta;`);
                 }
+                else {
+                    effectOrder.push("");
+                }
+                if (usesPlugin && Synth.pluginFunction) {
+                    effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
+                }
+                effectsSource += effectOrder.join("");
                 effectsSource += `
 					
 					outputDataL[sampleIndex] += sampleL * mixVolume;
@@ -25483,9 +25527,11 @@ li.select2-results__option[role=group] > strong:hover {
     Synth.harmonicsFunctionCache = [];
     Synth.loopableChipFunctionCache = Array(Config.unisonVoicesMax + 1).fill(undefined);
     Synth.pluginFunction = null;
+    Synth.pluginIndex = 0;
     Synth.pluginValueNames = [];
     Synth.pluginInstrumentStateFunction = null;
     Synth.PluginDelayLineSize = 0;
+    Synth.rerenderSongEditorAfterPluginLoad = null;
     Synth.fmSourceTemplate = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
         const voiceCount = instrument.unisonVoices;
@@ -44048,12 +44094,12 @@ You should be redirected to the song at:<br /><br />
                 this.spectrumEditor.render();
                 this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
             });
-            this.container.addEventListener("mousedown", this.spectrumEditor.render);
+            this.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
             this.spectrumEditor.container.addEventListener("mousemove", () => {
                 this.spectrumEditor.render();
                 this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
             });
-            this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render);
+            this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
             this.updatePlayButton();
             if (this._isDrumset) {
                 for (let i = Config.drumCount - 1; i >= 0; i--) {
@@ -48272,8 +48318,13 @@ You should be redirected to the song at:<br /><br />
                         this._pluginurl = this.doc.song.pluginurl;
                         this._pluginContainerRow.innerHTML = "";
                         for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
-                            this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: "0", step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
+                            this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
+                            this._pluginContainerRow.appendChild(this._pluginRows[i]);
+                        }
+                    }
+                    else if (this._pluginContainerRow.innerHTML == "") {
+                        for (let i = 0; i < EditorConfig.pluginSliders.length; i++) {
                             this._pluginContainerRow.appendChild(this._pluginRows[i]);
                         }
                     }
@@ -50431,6 +50482,7 @@ You should be redirected to the song at:<br /><br />
                 this.doc.prefs.save();
             };
             this.doc.notifier.watch(this.whenUpdated);
+            Synth.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this);
             this.doc.modRecordingHandler = () => { this.handleModRecording(); };
             new MidiInputHandler(this.doc);
             window.addEventListener("resize", this.whenUpdated);
