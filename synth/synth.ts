@@ -13192,7 +13192,13 @@ export class Synth {
     }
     // advloop addition
     static wrap(x: number, b: number): number {
-        return (x % b + b) % b;
+        if (x < 0) {
+            x += b;
+        }
+        if (x >= b) {
+            x -= b;
+        }
+        return x;
     }
     static loopableChipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         // @TODO:
@@ -13294,7 +13300,7 @@ export class Synth {
                 chipSource += `
                 let lastWave# = tone.chipWaveCompletionsLastWave[#];
                 const phaseDeltaScale# = +tone.phaseDeltaScales[#];
-                let phase# = Synth.wrap(tone.phases[#], 1) * waveLength;
+                let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
                 let prevWaveIntegral# = 0;
 
                 `.replaceAll("#", i + "");

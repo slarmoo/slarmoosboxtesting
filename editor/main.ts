@@ -19,6 +19,11 @@ if (sbtitle != null) {
     sbtitle.innerHTML = TESTING ? "Slarmoo's Box Testing" : "Slarmoo's Box";
 }
 
+if (TESTING) {
+    const sourceCodeLink = document.getElementById("sourceCode") as HTMLAnchorElement;
+    if(sourceCodeLink) sourceCodeLink.href = "https://github.com/slarmoo/slarmoosboxtesting";
+}
+
 const beepboxEditorContainer: HTMLElement = document.getElementById("beepboxEditorContainer")!;
 beepboxEditorContainer.appendChild(editor.mainLayer);
 editor.whenUpdated();

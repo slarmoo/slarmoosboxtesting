@@ -14273,7 +14273,13 @@ var beepbox = (function (exports) {
             }
         }
         static wrap(x, b) {
-            return (x % b + b) % b;
+            if (x < 0) {
+                x += b;
+            }
+            if (x >= b) {
+                x -= b;
+            }
+            return x;
         }
         static loopableChipSynth(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) {
             const voiceCount = Math.max(2, instrumentState.unisonVoices);
@@ -14357,7 +14363,7 @@ var beepbox = (function (exports) {
                     chipSource += `
                 let lastWave# = tone.chipWaveCompletionsLastWave[#];
                 const phaseDeltaScale# = +tone.phaseDeltaScales[#];
-                let phase# = Synth.wrap(tone.phases[#], 1) * waveLength;
+                let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
                 let prevWaveIntegral# = 0;
 
                 `.replaceAll("#", i + "");

@@ -23166,7 +23166,13 @@ li.select2-results__option[role=group] > strong:hover {
             }
         }
         static wrap(x, b) {
-            return (x % b + b) % b;
+            if (x < 0) {
+                x += b;
+            }
+            if (x >= b) {
+                x -= b;
+            }
+            return x;
         }
         static loopableChipSynth(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) {
             const voiceCount = Math.max(2, instrumentState.unisonVoices);
@@ -23250,7 +23256,7 @@ li.select2-results__option[role=group] > strong:hover {
                     chipSource += `
                 let lastWave# = tone.chipWaveCompletionsLastWave[#];
                 const phaseDeltaScale# = +tone.phaseDeltaScales[#];
-                let phase# = Synth.wrap(tone.phases[#], 1) * waveLength;
+                let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
                 let prevWaveIntegral# = 0;
 
                 `.replaceAll("#", i + "");
@@ -51426,6 +51432,11 @@ You should be redirected to the song at:<br /><br />
     const sbtitle = document.getElementById("sbtitle");
     if (sbtitle != null) {
         sbtitle.innerHTML = TESTING ? "Slarmoo's Box Testing" : "Slarmoo's Box";
+    }
+    if (TESTING) {
+        const sourceCodeLink = document.getElementById("sourceCode");
+        if (sourceCodeLink)
+            sourceCodeLink.href = "https://github.com/slarmoo/slarmoosboxtesting";
     }
     const beepboxEditorContainer = document.getElementById("beepboxEditorContainer");
     beepboxEditorContainer.appendChild(editor.mainLayer);
