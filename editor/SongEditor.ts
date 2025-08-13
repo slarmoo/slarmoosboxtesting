@@ -796,7 +796,7 @@ export class SongEditor {
         option({ value: "channelSettings" }, "Channel Settings... (Q)"),
         option({ value: "limiterSettings" }, "Limiter Settings... (⇧L)"),
         option({ value: "addExternal" }, "Add Custom Samples... (⇧Q)"),
-        option({ value: "addPlugin" }, "Add Custom Plugin... "),
+        option({ value: "addPlugin" }, "Add Custom Plugin... (⇧U)"),
     );
     private readonly _optionsMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "Preferences"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
@@ -1566,7 +1566,7 @@ export class SongEditor {
             spectrumEditor.container.addEventListener("mousedown", this.refocusStage);
             this._drumsetSpectrumEditors[i] = spectrumEditor;
 
-            const envelopeSelect: HTMLSelectElement = buildOptions(select({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopes.map(envelope => envelope.name));
+            const envelopeSelect: HTMLSelectElement = buildOptions(select({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopePresets.map(envelope => envelope.name));
             this._drumsetEnvelopeSelects[i] = envelopeSelect;
             envelopeSelect.addEventListener("change", () => {
                 this.doc.record(new ChangeDrumsetEnvelope(this.doc, drumIndex, envelopeSelect.selectedIndex));
@@ -2988,21 +2988,20 @@ export class SongEditor {
             } else {
                 this._granularContainerRow.style.display = "none";
             }
-
-            if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length != EditorConfig.pluginSliders.length) {
-                this._pluginurl = this.doc.song.pluginurl;
-                this._pluginContainerRow.innerHTML = "";
-                for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                    this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
-                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
-                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                }
-            } else if (this._pluginContainerRow.innerHTML == "") { //if it cleared itself accidentally, fix
-                for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                }
-            }
+            
             if (effectsIncludePlugin(instrument.effects)) {
+                if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length < EditorConfig.pluginSliders.length) {
+                    this._pluginurl = this.doc.song.pluginurl;
+                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
+                        this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
+                        this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
+                    }
+                    this._pluginContainerRow.innerHTML = ""
+                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
+                        this._pluginContainerRow.appendChild(this._pluginRows[i]);
+                    }
+                }
+
                 this._pluginContainerRow.style.display = "";
                 for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
                     this._pluginSliders[i].updateValue(instrument.pluginValues[i]);
@@ -4650,6 +4649,11 @@ export class SongEditor {
                 if (event.ctrlKey || event.metaKey) {
                     this._openPrompt("import");
                     event.preventDefault();
+                }
+                break;
+            case 85: //u
+                if (event.shiftKey) {
+                    this._openPrompt("addPlugin");
                 }
                 break;
             case 86: // v

@@ -1383,7 +1383,7 @@ export class EnvelopeSettings {
     public pitchEnvelopeEnd: number;
     public inverse: boolean;
     //midbox
-    public perEnvelopeSpeed: number = Config.envelopes[this.envelope].speed;
+    public perEnvelopeSpeed: number = Config.envelopePresets[this.envelope].speed;
     public perEnvelopeLowerBound: number = 0;
     public perEnvelopeUpperBound: number = 1;
     //modulation support
@@ -1410,7 +1410,7 @@ export class EnvelopeSettings {
         this.pitchEnvelopeEnd = this.isNoiseEnvelope ? Config.drumCount - 1 : Config.maxPitch;
         this.inverse = false;
         this.isNoiseEnvelope = false;
-        this.perEnvelopeSpeed = Config.envelopes[this.envelope].speed;
+        this.perEnvelopeSpeed = Config.envelopePresets[this.envelope].speed;
         this.perEnvelopeLowerBound = 0;
         this.perEnvelopeUpperBound = 1;
         this.tempEnvelopeSpeed = null;
@@ -1425,7 +1425,7 @@ export class EnvelopeSettings {
     public toJsonObject(): Object {
         const envelopeObject: any = {
             "target": Config.instrumentAutomationTargets[this.target].name,
-            "envelope": Config.newEnvelopes[this.envelope].name,
+            "envelope": Config.envelopes[this.envelope].name,
             "inverse": this.inverse,
             "perEnvelopeSpeed": this.perEnvelopeSpeed,
             "perEnvelopeLowerBound": this.perEnvelopeLowerBound,
@@ -1435,14 +1435,14 @@ export class EnvelopeSettings {
         if (Config.instrumentAutomationTargets[this.target].maxCount > 1) {
             envelopeObject["index"] = this.index;
         }
-        if (Config.newEnvelopes[this.envelope].name == "pitch") {
+        if (Config.envelopes[this.envelope].name == "pitch") {
             envelopeObject["pitchEnvelopeStart"] = this.pitchEnvelopeStart;
             envelopeObject["pitchEnvelopeEnd"] = this.pitchEnvelopeEnd;
-        } else if (Config.newEnvelopes[this.envelope].name == "random") {
+        } else if (Config.envelopes[this.envelope].name == "random") {
             envelopeObject["steps"] = this.steps;
             envelopeObject["seed"] = this.seed;
             envelopeObject["waveform"] = this.waveform;
-        } else if (Config.newEnvelopes[this.envelope].name == "lfo") {
+        } else if (Config.envelopes[this.envelope].name == "lfo") {
             envelopeObject["waveform"] = this.waveform;
             envelopeObject["steps"] = this.steps;
         }
@@ -1456,40 +1456,40 @@ export class EnvelopeSettings {
         if (target == null) target = Config.instrumentAutomationTargets.dictionary["noteVolume"];
         this.target = target.index;
 
-        let envelope: Envelope = Config.envelopes.dictionary["none"];
+        let envelope: Envelope = Config.envelopePresets.dictionary["none"];
         let isTremolo2: Boolean = false;
         if (format == "slarmoosbox") {
             if (envelopeObject["envelope"] == "tremolo2") {
-                envelope = Config.newEnvelopes[EnvelopeType.lfo];
+                envelope = Config.envelopes[EnvelopeType.lfo];
                 isTremolo2 = true;
             } else if (envelopeObject["envelope"] == "tremolo") {
-                envelope = Config.newEnvelopes[EnvelopeType.lfo];
+                envelope = Config.envelopes[EnvelopeType.lfo];
                 isTremolo2 = false;
             } else {
-                envelope = Config.newEnvelopes.dictionary[envelopeObject["envelope"]];
+                envelope = Config.envelopes.dictionary[envelopeObject["envelope"]];
             }
         } else {
-            if (Config.envelopes.dictionary[envelopeObject["envelope"]].type == EnvelopeType.tremolo2) {
-                envelope = Config.newEnvelopes[EnvelopeType.lfo];
+            if (Config.envelopePresets.dictionary[envelopeObject["envelope"]].type == EnvelopeType.tremolo2) {
+                envelope = Config.envelopes[EnvelopeType.lfo];
                 isTremolo2 = true;
-            } else if (Config.newEnvelopes[Math.max(Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > EnvelopeType.lfo) {
-                envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1];
+            } else if (Config.envelopes[Math.max(Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > EnvelopeType.lfo) {
+                envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1];
             } else {
-                envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type];
+                envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type];
             }
         }
 
         if (envelope == undefined) {
-            if (Config.envelopes.dictionary[envelopeObject["envelope"]].type == EnvelopeType.tremolo2) {
-                envelope = Config.newEnvelopes[EnvelopeType.lfo];
+            if (Config.envelopePresets.dictionary[envelopeObject["envelope"]].type == EnvelopeType.tremolo2) {
+                envelope = Config.envelopes[EnvelopeType.lfo];
                 isTremolo2 = true;
-            } else if (Config.newEnvelopes[Math.max(Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > EnvelopeType.lfo) {
-                envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1];
+            } else if (Config.envelopes[Math.max(Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > EnvelopeType.lfo) {
+                envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1];
             } else {
-                envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type];
+                envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type];
             }
         }
-        if (envelope == null) envelope = Config.envelopes.dictionary["none"];
+        if (envelope == null) envelope = Config.envelopePresets.dictionary["none"];
         this.envelope = envelope.index;
 
         if (envelopeObject["index"] != undefined) {
@@ -1515,7 +1515,7 @@ export class EnvelopeSettings {
         if (envelopeObject["perEnvelopeSpeed"] != undefined) {
             this.perEnvelopeSpeed = envelopeObject["perEnvelopeSpeed"];
         } else {
-            this.perEnvelopeSpeed = Config.envelopes.dictionary[envelopeObject["envelope"]].speed;
+            this.perEnvelopeSpeed = Config.envelopePresets.dictionary[envelopeObject["envelope"]].speed;
         }
 
         if (envelopeObject["perEnvelopeLowerBound"] != undefined) {
@@ -1727,7 +1727,7 @@ export class Instrument {
             this.operators[i] = new Operator(i);
         }
         for (let i: number = 0; i < Config.drumCount; i++) {
-            this.drumsetEnvelopes[i] = Config.envelopes.dictionary["twang 2"].index;
+            this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
         }
 
@@ -1886,7 +1886,7 @@ export class Instrument {
             case InstrumentType.drumset:
                 this.chord = Config.chords.dictionary["simultaneous"].index;
                 for (let i: number = 0; i < Config.drumCount; i++) {
-                    this.drumsetEnvelopes[i] = Config.envelopes.dictionary["twang 2"].index;
+                    this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
                     if (this.drumsetSpectrumWaves[i] == undefined) {
                         this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
                     }
@@ -1956,15 +1956,15 @@ export class Instrument {
         // legacy defaults:
         if (legacyCutoffSetting == undefined) legacyCutoffSetting = (this.type == InstrumentType.chip) ? 6 : 10;
         if (legacyResonanceSetting == undefined) legacyResonanceSetting = 0;
-        if (legacyFilterEnv == undefined) legacyFilterEnv = Config.envelopes.dictionary["none"];
-        if (legacyPulseEnv == undefined) legacyPulseEnv = Config.envelopes.dictionary[(this.type == InstrumentType.pwm) ? "twang 2" : "none"];
-        if (legacyOperatorEnvelopes == undefined) legacyOperatorEnvelopes = [Config.envelopes.dictionary[(this.type == InstrumentType.fm) ? "note size" : "none"], Config.envelopes.dictionary["none"], Config.envelopes.dictionary["none"], Config.envelopes.dictionary["none"]];
-        if (legacyFeedbackEnv == undefined) legacyFeedbackEnv = Config.envelopes.dictionary["none"];
+        if (legacyFilterEnv == undefined) legacyFilterEnv = Config.envelopePresets.dictionary["none"];
+        if (legacyPulseEnv == undefined) legacyPulseEnv = Config.envelopePresets.dictionary[(this.type == InstrumentType.pwm) ? "twang 2" : "none"];
+        if (legacyOperatorEnvelopes == undefined) legacyOperatorEnvelopes = [Config.envelopePresets.dictionary[(this.type == InstrumentType.fm) ? "note size" : "none"], Config.envelopePresets.dictionary["none"], Config.envelopePresets.dictionary["none"], Config.envelopePresets.dictionary["none"]];
+        if (legacyFeedbackEnv == undefined) legacyFeedbackEnv = Config.envelopePresets.dictionary["none"];
 
         // The "punch" envelope is special: it goes *above* the chosen cutoff. But if the cutoff was already at the max, it couldn't go any higher... except in the current version of BeepBox I raised the max cutoff so it *can* but then it sounds different, so to preserve the original sound let's just remove the punch envelope.
         const legacyFilterCutoffRange: number = 11;
         const cutoffAtMax: boolean = (legacyCutoffSetting == legacyFilterCutoffRange - 1);
-        if (cutoffAtMax && legacyFilterEnv.type == EnvelopeType.punch) legacyFilterEnv = Config.envelopes.dictionary["none"];
+        if (cutoffAtMax && legacyFilterEnv.type == EnvelopeType.punch) legacyFilterEnv = Config.envelopePresets.dictionary["none"];
 
         const carrierCount: number = Config.algorithms[this.algorithm].carrierCount;
         let noCarriersControlledByNoteSize: boolean = true;
@@ -1989,9 +1989,9 @@ export class Instrument {
 
         if (this.type == InstrumentType.fm || this.type == InstrumentType.fm6op) {
             if (allCarriersControlledByNoteSize && noteSizeControlsSomethingElse) {
-                this.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopes.dictionary["note size"].index, false);
+                this.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopePresets.dictionary["note size"].index, false);
             } else if (noCarriersControlledByNoteSize && !noteSizeControlsSomethingElse) {
-                this.addEnvelope(Config.instrumentAutomationTargets.dictionary["none"].index, 0, Config.envelopes.dictionary["note size"].index, false);
+                this.addEnvelope(Config.instrumentAutomationTargets.dictionary["none"].index, 0, Config.envelopePresets.dictionary["note size"].index, false);
             }
         }
 
@@ -2678,9 +2678,9 @@ export class Instrument {
 
         const legacyEnvelopeNames: Dictionary<string> = { "custom": "note size", "steady": "none", "pluck 1": "twang 1", "pluck 2": "twang 2", "pluck 3": "twang 3" };
         const getEnvelope = (name: any): Envelope | undefined => {
-            if (legacyEnvelopeNames[name] != undefined) return Config.envelopes.dictionary[legacyEnvelopeNames[name]];
+            if (legacyEnvelopeNames[name] != undefined) return Config.envelopePresets.dictionary[legacyEnvelopeNames[name]];
             else {
-                return Config.envelopes.dictionary[name];
+                return Config.envelopePresets.dictionary[name];
             }
         }
 
@@ -2690,7 +2690,7 @@ export class Instrument {
                     const drum: any = instrumentObject["drums"][j];
                     if (drum == undefined) continue;
 
-                    this.drumsetEnvelopes[j] = Config.envelopes.dictionary["twang 2"].index; // default value.
+                    this.drumsetEnvelopes[j] = Config.envelopePresets.dictionary["twang 2"].index; // default value.
                     if (drum["filterEnvelope"] != undefined) {
                         const envelope: Envelope | undefined = getEnvelope(drum["filterEnvelope"]);
                         if (envelope != undefined) this.drumsetEnvelopes[j] = envelope.index;
@@ -2992,7 +2992,7 @@ export class Instrument {
                         if (instrumentObject["operators"][j] != undefined) {
                             envelope = getEnvelope(instrumentObject["operators"][j]["envelope"]);
                         }
-                        legacySettings.operatorEnvelopes[j] = (envelope != undefined) ? envelope : Config.envelopes.dictionary["none"];
+                        legacySettings.operatorEnvelopes[j] = (envelope != undefined) ? envelope : Config.envelopePresets.dictionary["none"];
                     }
                 }
 
@@ -3045,7 +3045,7 @@ export class Instrument {
                     let envelopeInverse: boolean;
                     if (instrumentObject["envelopeInverse" + i] != undefined && instrumentObject["envelopeInverse" + i] != null) {
                         envelopeInverse = instrumentObject["envelopeInverse" + i];
-                    } else if (instrumentObject["pitchEnvelopeInverse"] != undefined && instrumentObject["pitchEnvelopeInverse"] != null && Config.envelopes[tempEnvelope.envelope].name == "pitch") { //assign only if a pitch envelope
+                    } else if (instrumentObject["pitchEnvelopeInverse"] != undefined && instrumentObject["pitchEnvelopeInverse"] != null && Config.envelopePresets[tempEnvelope.envelope].name == "pitch") { //assign only if a pitch envelope
                         envelopeInverse = instrumentObject["pitchEnvelopeInverse"];
                     } else {
                         envelopeInverse = tempEnvelope.inverse;
@@ -3106,7 +3106,7 @@ export class Instrument {
 
     public addEnvelope(target: number, index: number, envelope: number, newEnvelopes: boolean, start: number = 0, end: number = -1, inverse: boolean = false, perEnvelopeSpeed: number = -1, perEnvelopeLowerBound: number = 0, perEnvelopeUpperBound: number = 1, steps: number = 2, seed: number = 2, waveform: number = LFOEnvelopeTypes.sine, discrete: boolean = false): void {
         end = end != -1 ? end : this.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch; //find default if none is given
-        perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopes[envelope].speed; //find default if none is given
+        perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopePresets[envelope].speed; //find default if none is given
         let makeEmpty: boolean = false;
         if (!this.supportsEnvelopeTarget(target, index)) makeEmpty = true;
         if (this.envelopeCount >= Config.maxEnvelopeCount) throw new Error();
@@ -3115,7 +3115,7 @@ export class Instrument {
         envelopeSettings.target = makeEmpty ? Config.instrumentAutomationTargets.dictionary["none"].index : target;
         envelopeSettings.index = makeEmpty ? 0 : index;
         if (!newEnvelopes) {
-            envelopeSettings.envelope = clamp(0, Config.newEnvelopes.length, Config.envelopes[envelope].type);
+            envelopeSettings.envelope = clamp(0, Config.envelopes.length, Config.envelopePresets[envelope].type);
         } else {
             envelopeSettings.envelope = envelope;
         }
@@ -3195,7 +3195,7 @@ export class Instrument {
 
     public getDrumsetEnvelope(pitch: number): Envelope {
         if (this.type != InstrumentType.drumset) throw new Error("Can't getDrumsetEnvelope() for non-drumset.");
-        return Config.envelopes[this.drumsetEnvelopes[pitch]];
+        return Config.envelopePresets[this.drumsetEnvelopes[pitch]];
     }
 }
 
@@ -4026,7 +4026,7 @@ export class Song {
                     }
                     buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].envelope]);
                     //run pitch envelope handling
-                    if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "pitch") {
+                    if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "pitch") {
                         if (!instrument.isNoiseInstrument) {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeStart >> 6], base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeStart & 0x3f]);
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd >> 6], base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd & 0x3f]);
@@ -4035,12 +4035,12 @@ export class Song {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd]);
                         }
                         //random
-                    } else if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "random") {
+                    } else if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "random") {
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].steps]);
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].seed]);
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].waveform]);
                         //lfo
-                    } else if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "lfo") {
+                    } else if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "lfo") {
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].waveform]);
                         if (instrument.envelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedSaw || instrument.envelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedTri) {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].steps]);
@@ -4052,7 +4052,7 @@ export class Song {
                     checkboxValues += +instrument.envelopes[envelopeIndex].inverse;
                     buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
                     //midbox envelope port
-                    if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "pitch" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "note size" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "punch" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "none") {
+                    if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "pitch" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "note size" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "punch" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "none") {
                         buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.envelopes[envelopeIndex].perEnvelopeSpeed]]);
                     }
                     buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
@@ -4318,7 +4318,7 @@ export class Song {
     private static _envelopeFromLegacyIndex(legacyIndex: number): Envelope {
         // I swapped the order of "custom"/"steady", now "none"/"note size".
         if (legacyIndex == 0) legacyIndex = 1; else if (legacyIndex == 1) legacyIndex = 0;
-        return Config.envelopes[clamp(0, Config.envelopes.length, legacyIndex)];
+        return Config.envelopePresets[clamp(0, Config.envelopePresets.length, legacyIndex)];
     }
 
     public fromBase64String(compressed: string, jsonFormat: string = "auto"): void {
@@ -4869,7 +4869,7 @@ export class Song {
                             const legacyFilter: number = [1, 3, 4, 5][clamp(0, legacyToCutoff.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                             legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                             legacySettings.filterResonance = 0;
-                            legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                            legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                             instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                         } else if (beforeSix && fromBeepBox) {
                             for (let channelIndex: number = 0; channelIndex < this.getChannelCount(); channelIndex++) {
@@ -4880,11 +4880,11 @@ export class Song {
                                     if (channelIndex < this.pitchChannelCount) {
                                         legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                                         legacySettings.filterResonance = 0;
-                                        legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                                        legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                                     } else {
                                         legacySettings.filterCutoff = 10;
                                         legacySettings.filterResonance = 0;
-                                        legacySettings.filterEnvelope = Config.envelopes.dictionary["none"];
+                                        legacySettings.filterEnvelope = Config.envelopePresets.dictionary["none"];
                                     }
                                     instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                 }
@@ -4895,7 +4895,7 @@ export class Song {
                             const legacySettings: LegacySettings = legacySettingsCache![instrumentChannelIterator][instrumentIndexIterator];
                             legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                             legacySettings.filterResonance = 0;
-                            legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                            legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                             instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                         }
                     } else {
@@ -5070,7 +5070,7 @@ export class Song {
                         let aa: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox)) aa = pregoldToEnvelope[aa];
                         if (!fromSlarmoosBox && aa >= 2) aa++; //2 for pitch
-                        instrument.drumsetEnvelopes[i] = clamp(0, Config.envelopes.length, aa);
+                        instrument.drumsetEnvelopes[i] = clamp(0, Config.envelopePresets.length, aa);
                     }
                 }
             } break;
@@ -5192,7 +5192,7 @@ export class Song {
                             instrument.vibrato = legacyEffects[effect];
                             if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == EnvelopeType.none) {
                                 // Imitate the legacy tremolo with a filter envelope.
-                                legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                 instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                             }
                             if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -5210,7 +5210,7 @@ export class Song {
                                     instrument.vibrato = legacyEffects[effect];
                                     if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == EnvelopeType.none) {
                                         // Imitate the legacy tremolo with a filter envelope.
-                                        legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                        legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                         instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                     }
                                     if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -5233,7 +5233,7 @@ export class Song {
                             instrument.vibrato = legacyEffects[effect];
                             if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == EnvelopeType.none) {
                                 // Imitate the legacy tremolo with a filter envelope.
-                                legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                 instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                             }
                             if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -5924,19 +5924,19 @@ export class Song {
                         let perEnvelopeSpeed: number = 1;
                         if (!fromSlarmoosBox || beforeThree) {
                             updatedEnvelopes = true;
-                            perEnvelopeSpeed = Config.envelopes[aa].speed;
-                            aa = Config.envelopes[aa].type; //update envelopes
+                            perEnvelopeSpeed = Config.envelopePresets[aa].speed;
+                            aa = Config.envelopePresets[aa].type; //update envelopes
                         } else if (beforeFour && aa >= 3) aa++; //3 for random
                         let isTremolo2: boolean = false;
                         if ((fromSlarmoosBox && !beforeThree && beforeFour) || updatedEnvelopes) { //remove tremolo2
                             if (aa == 9) isTremolo2 = true;
                             aa = slarURL3toURL4Envelope[aa];
                         }
-                        const envelope: number = clamp(0, ((fromSlarmoosBox && !beforeThree || updatedEnvelopes) ? Config.newEnvelopes.length : Config.envelopes.length), aa);
+                        const envelope: number = clamp(0, ((fromSlarmoosBox && !beforeThree || updatedEnvelopes) ? Config.envelopes.length : Config.envelopePresets.length), aa);
                         let pitchEnvelopeStart: number = 0;
                         let pitchEnvelopeEnd: number = Config.maxPitch;
                         let envelopeInverse: boolean = false;
-                        perEnvelopeSpeed = (fromSlarmoosBox && !beforeThree) ? Config.newEnvelopes[envelope].speed : perEnvelopeSpeed;
+                        perEnvelopeSpeed = (fromSlarmoosBox && !beforeThree) ? Config.envelopes[envelope].speed : perEnvelopeSpeed;
                         let perEnvelopeLowerBound: number = 0;
                         let perEnvelopeUpperBound: number = 1;
                         let steps: number = 2;
@@ -5944,19 +5944,19 @@ export class Song {
                         let waveform: number = LFOEnvelopeTypes.sine;
                         //pull out unique envelope setting values first, then general ones
                         if (fromSlarmoosBox && !beforeFour) {
-                            if (Config.newEnvelopes[envelope].name == "lfo") {
+                            if (Config.envelopes[envelope].name == "lfo") {
                                 waveform = clamp(0, LFOEnvelopeTypes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 if (waveform == LFOEnvelopeTypes.steppedSaw || waveform == LFOEnvelopeTypes.steppedTri) {
                                     steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 }
-                            } else if (Config.newEnvelopes[envelope].name == "random") {
+                            } else if (Config.envelopes[envelope].name == "random") {
                                 steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 seed = clamp(1, Config.randomEnvelopeSeedMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 waveform = clamp(0, RandomEnvelopeTypes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]); //we use waveform for the random type as well
                             }
                         }
                         if (fromSlarmoosBox && !beforeThree) {
-                            if (Config.newEnvelopes[envelope].name == "pitch") {
+                            if (Config.envelopes[envelope].name == "pitch") {
                                 if (!instrument.isNoiseInstrument) {
                                     let pitchEnvelopeCompact: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     pitchEnvelopeStart = clamp(0, Config.maxPitch + 1, pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
@@ -5972,7 +5972,7 @@ export class Song {
                                 envelopeDiscrete = (checkboxValues >> 1) == 1 ? true : false;
                             }
                             envelopeInverse = (checkboxValues & 1) == 1 ? true : false;
-                            if (Config.newEnvelopes[envelope].name != "pitch" && Config.newEnvelopes[envelope].name != "note size" && Config.newEnvelopes[envelope].name != "punch" && Config.newEnvelopes[envelope].name != "none") {
+                            if (Config.envelopes[envelope].name != "pitch" && Config.envelopes[envelope].name != "note size" && Config.envelopes[envelope].name != "punch" && Config.envelopes[envelope].name != "none") {
                                 perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
                             }
                             perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
@@ -6013,7 +6013,7 @@ export class Song {
                         for (let i: number = 0; i < envelopeCount; i++) {
                             instrument.envelopes[i].pitchEnvelopeStart = instrumentPitchEnvelopeStart;
                             instrument.envelopes[i].pitchEnvelopeEnd = instrumentPitchEnvelopeEnd;
-                            instrument.envelopes[i].inverse = Config.envelopes[instrument.envelopes[i].envelope].name == "pitch" ? instrumentEnvelopeInverse : false;
+                            instrument.envelopes[i].inverse = Config.envelopePresets[instrument.envelopes[i].envelope].name == "pitch" ? instrumentEnvelopeInverse : false;
                         }
                     }
 
@@ -8044,12 +8044,12 @@ class EnvelopeComputer {
                 // Special case: if no other envelopes used note size, default to applying it to note volume.
                 automationTarget = Config.instrumentAutomationTargets.dictionary["noteVolume"];
                 targetIndex = 0;
-                envelope = Config.newEnvelopes.dictionary["note size"];
+                envelope = Config.envelopes.dictionary["note size"];
             } else {
                 let envelopeSettings: EnvelopeSettings = instrument.envelopes[envelopeIndex];
                 automationTarget = Config.instrumentAutomationTargets[envelopeSettings.target];
                 targetIndex = envelopeSettings.index;
-                envelope = Config.newEnvelopes[envelopeSettings.envelope];
+                envelope = Config.envelopes[envelopeSettings.envelope];
                 inverse = instrument.envelopes[envelopeIndex].inverse;
                 isDiscrete = instrument.envelopes[envelopeIndex].discrete;
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;

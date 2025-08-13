@@ -816,7 +816,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 instrument.pitchShift = selectCurvedDistribution(0, Config.pitchShiftRange - 1, Config.pitchShiftCenter, 2);
                 if (instrument.pitchShift != Config.pitchShiftCenter) {
                     instrument.effects |= 1 << EffectType.pitchShift;
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pitchShift"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pitchShift"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 1 },
                         { item: "random", weight: 2},
                         { item: "flare", weight: 2 },
@@ -844,7 +844,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 applyFilterPoints(instrument.noteFilter, [
                     new PotentialFilterPoint(1.0, FilterType.lowPass, midFreq, maxFreq, 8000.0, -1),
                 ]);
-                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteFilterAllFreqs"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteFilterAllFreqs"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                     { item: "note size", weight: 2 },
                     { item: "pitch", weight: 2 },
                     { item: "punch", weight: 4 },
@@ -914,7 +914,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 ])].index;
 
                 if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 2 },
                         { item: "pitch", weight: 2 },
                         { item: "twang", weight: 6 },
@@ -979,7 +979,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 case InstrumentType.drumset: {
                     for (let i: number = 0; i < Config.drumCount; i++) {
                         // Might wanna do this Random*Config.____.length thing for all envelope/unison randomization?
-                        instrument.drumsetEnvelopes[i] = Math.floor(Math.random() * Config.envelopes.length);
+                        instrument.drumsetEnvelopes[i] = Math.floor(Math.random() * Config.envelopePresets.length);
                         const spectrum: number[] = [];
                         let randomFactor: number = Math.floor(Math.random() * 3)
                         for (let j = 0; j < Config.spectrumControlPoints; j++) {
@@ -1079,7 +1079,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 instrument.pitchShift = selectCurvedDistribution(0, Config.pitchShiftRange - 1, Config.pitchShiftCenter, 1);
                 if (instrument.pitchShift != Config.pitchShiftCenter) {
                     instrument.effects |= 1 << EffectType.pitchShift;
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pitchShift"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pitchShift"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 2 },
                         { item: "pitch", weight: 2 },
                         { item: "random", weight: 3},
@@ -1112,7 +1112,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["distortion"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["distortion"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 3 },
                         { item: "pitch", weight: 4 },
                         { item: "random", weight: 1 },
@@ -1148,7 +1148,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                     envelopeLowerBound = 0;
                     envelopeUpperBound = 1;
                 }
-                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteFilterAllFreqs"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteFilterAllFreqs"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                     { item: "note size", weight: 2 },
                     { item: "pitch", weight: 2 },
                     { item: "punch", weight: 6 },
@@ -1175,7 +1175,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                     envelopeUpperBound = 1;
                 }
                 if (Math.random() < 0.3) {
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherFrequency"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherFrequency"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 4 },
                         { item: "pitch", weight: 3 },
                         { item: "random", weight: 12 },
@@ -1193,7 +1193,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         selectWeightedRandom([{ item: LFOEnvelopeTypes.sine, weight: 3 }, { item: LFOEnvelopeTypes.triangle, weight: 1 }]));
                 }
                 if (Math.random() < 0.5) {
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherQuantization"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherQuantization"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 8 },
                         { item: "pitch", weight: 3 },
                         { item: "random", weight: 12 },
@@ -1210,8 +1210,8 @@ export class ChangeRandomGeneratedInstrument extends Change {
                     ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 20, 34)], envelopeLowerBound, envelopeUpperBound, selectCurvedDistribution(2, 16, 2, 6), selectCurvedDistribution(1, 63, 32, 31),
                         selectWeightedRandom([{ item: LFOEnvelopeTypes.sine, weight: 3 }, { item: LFOEnvelopeTypes.triangle, weight: 1 }]));
                 } else if (type == InstrumentType.spectrum) {
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.newEnvelopes.dictionary["note size"].index, true);
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherQuantization"].index, 0, Config.newEnvelopes.dictionary["note size"].index, true);
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopes.dictionary["note size"].index, true);
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["bitcrusherQuantization"].index, 0, Config.envelopes.dictionary["note size"].index, true);
                  }
             }
             if (Math.random() < 0.1) {
@@ -1224,7 +1224,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["chorus"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["chorus"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 3 },
                         { item: "pitch", weight: 4 },
                         { item: "random", weight: 1 },
@@ -1254,7 +1254,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                             envelopeLowerBound = 0;
                             envelopeUpperBound = 1;
                         }
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["echoDelay"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["echoDelay"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                             { item: "note size", weight: 4 },
                             { item: "pitch", weight: 8 },
                             { item: "random", weight: 7 },
@@ -1285,7 +1285,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                             envelopeLowerBound = 0;
                             envelopeUpperBound = 1;
                         }
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["ringModulation"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["ringModulation"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                             { item: "note size", weight: 4 },
                             { item: "pitch", weight: 8 },
                             { item: "random", weight: 7 },
@@ -1310,7 +1310,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                             envelopeLowerBound = 0;
                             envelopeUpperBound = 1;
                         }
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["ringModulationHz"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["ringModulationHz"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                             { item: "note size", weight: 4 },
                             { item: "pitch", weight: 8 },
                             { item: "random", weight: 7 },
@@ -1339,7 +1339,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["reverb"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["reverb"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 3 },
                         { item: "pitch", weight: 4 },
                         { item: "random", weight: 1 },
@@ -1371,7 +1371,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["granular"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["granular"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 10 },
                         { item: "pitch", weight: 8 },
                         { item: "random", weight: 2 },
@@ -1394,7 +1394,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainFreq"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainFreq"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 10 },
                         { item: "pitch", weight: 8 },
                         { item: "random", weight: 7 },
@@ -1418,7 +1418,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainSize"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainSize"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 10 },
                         { item: "pitch", weight: 8 },
                         { item: "random", weight: 7 },
@@ -1443,7 +1443,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         envelopeLowerBound = 0;
                         envelopeUpperBound = 1;
                     }
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainRange"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["grainRange"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                         { item: "note size", weight: 10 },
                         { item: "pitch", weight: 8 },
                         { item: "random", weight: 7 },
@@ -1468,7 +1468,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                     envelopeLowerBound = 0;
                     envelopeUpperBound = 1;
                 }
-                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                     { item: "pitch", weight: 1 },
                     { item: "random", weight: 4},
                     { item: "punch", weight: 6 },
@@ -1516,7 +1516,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                     instrument.decimalOffset = 0;
 
                     if (Math.random() < 0.6) {
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pulseWidth"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pulseWidth"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                             { item: "note size", weight: 2 },
                             { item: "pitch", weight: 1 },
                             { item: "random", weight: 3 },
@@ -1657,7 +1657,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                                 envelopeLowerBound = 0;
                                 envelopeUpperBound = 1;
                             }
-                            instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorAmplitude"].index, i, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                            instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorAmplitude"].index, i, Config.envelopes.dictionary[selectWeightedRandom([
                                 { item: "punch", weight: 2 },
                                 { item: "pitch", weight: 1 },
                                 { item: "flare", weight: 3 },
@@ -1679,7 +1679,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                                 envelopeLowerBound = 0;
                                 envelopeUpperBound = 1;
                             }
-                            instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorFrequency"].index, i, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                            instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["operatorFrequency"].index, i, Config.envelopes.dictionary[selectWeightedRandom([
                                 { item: "punch", weight: 2 },
                                 { item: "pitch", weight: 1 },
                                 { item: "flare", weight: 3 },
@@ -1727,7 +1727,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                             envelopeLowerBound = 0;
                             envelopeUpperBound = 1;
                         }
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["feedbackAmplitude"].index, 0, Config.newEnvelopes.dictionary[selectWeightedRandom([
+                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["feedbackAmplitude"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
                             { item: "note size", weight: 4 },
                             { item: "punch", weight: 2 },
                             { item: "pitch", weight: 1 },
@@ -2781,7 +2781,7 @@ export class ChangeEQFilterType extends Change {
         }
         else {
             // To Advanced - convert filter
-            instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopes.dictionary["none"]);
+            instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
             instrument.tmpEqFilterStart = instrument.eqFilter;
             instrument.tmpEqFilterEnd = null;
         }
@@ -2803,7 +2803,7 @@ export class ChangeNoteFilterType extends Change {
         }
         else {
             // To Advanced - convert filter, kill modulators
-            instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopes.dictionary["none"]);
+            instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
             instrument.tmpNoteFilterStart = instrument.noteFilter;
             instrument.tmpNoteFilterEnd = null;
         }
@@ -5425,8 +5425,8 @@ export class ChangeSetEnvelopeType extends Change {
         if (oldValue != newValue) {
             instrument.envelopes[envelopeIndex].envelope = newValue;
             instrument.preset = instrument.type;
-            if (oldValue == Config.newEnvelopes.dictionary["none"].index) {
-                instrument.envelopes[envelopeIndex].perEnvelopeSpeed = Config.newEnvelopes[newValue].speed;
+            if (oldValue == Config.envelopes.dictionary["none"].index) {
+                instrument.envelopes[envelopeIndex].perEnvelopeSpeed = Config.envelopes[newValue].speed;
             }
             doc.notifier.changed();
             this._didSomething();

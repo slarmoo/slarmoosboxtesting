@@ -249,7 +249,7 @@ export class EnvelopeEditor {
 				this.extraSettingsDropdowns[i].style.display = "inline";
 				this.updateSpeedDisplay(i);
 
-				if (Config.newEnvelopes[instrument.envelopes[i].envelope].name == "pitch") {
+				if (Config.envelopes[instrument.envelopes[i].envelope].name == "pitch") {
 					//update values
 					this.pitchStartBoxes[i].value = instrument.envelopes[i].pitchEnvelopeStart.toString();
 					this.pitchEndBoxes[i].value = instrument.envelopes[i].pitchEnvelopeEnd.toString();
@@ -273,7 +273,7 @@ export class EnvelopeEditor {
 					this.extraRandomSettingsGroups[i].style.display = "none";
 					this.extraLFODropdownGroups[i].style.display = "none";
 
-				} else if (Config.newEnvelopes[instrument.envelopes[i].envelope].name == "random") {
+				} else if (Config.envelopes[instrument.envelopes[i].envelope].name == "random") {
 					
 					//update values
 					const isRandomTime: boolean = instrument.envelopes[i].waveform == RandomEnvelopeTypes.time || instrument.envelopes[i].waveform == RandomEnvelopeTypes.timeSmooth;
@@ -294,7 +294,7 @@ export class EnvelopeEditor {
 					this.extraRandomSettingsGroups[i].style.display = "";
 					this.extraLFODropdownGroups[i].style.display = "none";
 
-				} else if (Config.newEnvelopes[instrument.envelopes[i].envelope].name == "lfo") {
+				} else if (Config.envelopes[instrument.envelopes[i].envelope].name == "lfo") {
 
 					//update values
 					this._waveformSelects[i].value = instrument.envelopes[i].waveform.toString();
@@ -318,7 +318,7 @@ export class EnvelopeEditor {
 					this.extraPitchSettingsGroups[i].style.display = "none";
 					this.extraRandomSettingsGroups[i].style.display = "none";
 					this.extraLFODropdownGroups[i].style.display = "none";
-					if (Config.newEnvelopes[instrument.envelopes[i].envelope].name == "punch" || Config.newEnvelopes[instrument.envelopes[i].envelope].name == "none" || Config.newEnvelopes[instrument.envelopes[i].envelope].name == "note size") {
+					if (Config.envelopes[instrument.envelopes[i].envelope].name == "punch" || Config.envelopes[instrument.envelopes[i].envelope].name == "none" || Config.envelopes[instrument.envelopes[i].envelope].name == "note size") {
 						this.perEnvelopeSpeedGroups[i].style.display = "none"
 					} else {
 						//perEnvelopeSpeed
@@ -395,8 +395,8 @@ export class EnvelopeEditor {
 			const envelopeSelect: HTMLSelectElement = HTML.select({ id: "envelopeSelect"});
 			//count represents the location of the envelope in the dropdown, while envelope represents the location of the envelope in synthconfig
 			//add bases first, then presets
-			for (let envelope: number = 0; envelope < Config.newEnvelopes.length; envelope++) {
-				envelopeSelect.appendChild(HTML.option({ value: envelope }, Config.newEnvelopes[envelope].name));
+			for (let envelope: number = 0; envelope < Config.envelopes.length; envelope++) {
+				envelopeSelect.appendChild(HTML.option({ value: envelope }, Config.envelopes[envelope].name));
 			}
 			// I might add envelope presets later, but it's too much of a hassle currently
 			//const envelopePresets: HTMLElement = HTML.optgroup({ label: "Presets ▾" });
@@ -517,7 +517,7 @@ export class EnvelopeEditor {
 			const copyPasteContainer: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin: 0.5em; display: flex; flex-direction:row; align-items:center;" }, envelopeCopyButton, envelopePasteButton);
 			
 			//general structure
-			const extraSettingsDropdown: HTMLButtonElement = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(DropdownID.EnvelopeSettings, envelopeIndex, Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
+			const extraSettingsDropdown: HTMLButtonElement = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(DropdownID.EnvelopeSettings, envelopeIndex, Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
 			extraSettingsDropdown.style.display = "inline";
 
 			const extraSettingsDropdownGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
