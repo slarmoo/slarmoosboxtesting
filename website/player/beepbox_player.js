@@ -886,7 +886,7 @@ var beepbox = (function (exports) {
         { name: "128×", mult: 128.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "256×", mult: 250.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
-    Config.envelopes = toNameMap([
+    Config.envelopePresets = toNameMap([
         { name: "none", type: 0, speed: 1.0 },
         { name: "note size", type: 1, speed: 1.0 },
         { name: "pitch", type: 2, speed: 1.0 },
@@ -953,7 +953,7 @@ var beepbox = (function (exports) {
         { name: "fall 2", type: 15, speed: 4.0 },
         { name: "fall 3", type: 15, speed: 2.0 },
     ]);
-    Config.newEnvelopes = toNameMap([
+    Config.envelopes = toNameMap([
         { name: "none", type: 0, speed: 1.0 },
         { name: "note size", type: 1, speed: 1.0 },
         { name: "pitch", type: 2, speed: 1.0 },
@@ -962,13 +962,13 @@ var beepbox = (function (exports) {
         { name: "flare", type: 5, speed: 32.0 },
         { name: "twang", type: 6, speed: 32.0 },
         { name: "swell", type: 7, speed: 32.0 },
-        { name: "lfo", type: 8, speed: 4.0 },
+        { name: "lfo", type: 8, speed: 1.0 },
         { name: "decay", type: 10, speed: 10.0 },
         { name: "wibble", type: 11, speed: 24.0 },
         { name: "linear", type: 12, speed: 32.0 },
         { name: "rise", type: 13, speed: 32.0 },
         { name: "blip", type: 14, speed: 6.0 },
-        { name: "fall", type: 15, speed: 2.0 },
+        { name: "fall", type: 15, speed: 6.0 },
     ]);
     Config.feedbacks = toNameMap([
         { name: "1⟲", indices: [[1], [], [], []] },
@@ -9033,6 +9033,7 @@ var beepbox = (function (exports) {
                 { name: "harp 2", midiProgram: 46, settings: { "type": "FM6op", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 1000, "linearGain": 2.8284 }, { "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.25 }, { "type": "high-pass", "cutoffHz": 148.65, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 1000, "linearGain": 2.8284 }, { "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.25 }, { "type": "high-pass", "cutoffHz": 148.65, "linearGain": 0.5 }], "eqSubFilters1": [], "effects": ["detune", "note filter", "echo", "reverb"], "detuneCents": -23, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 6727.17, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 105.11, "linearGain": 2.8284 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 6727.17, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 105.11, "linearGain": 2.8284 }], "echoSustain": 29, "echoDelayBeats": 1.083, "reverb": 74, "fadeInSeconds": 0, "fadeOutTicks": -1, "algorithm": "1←4 2←5 3←6", "feedbackType": "1⟲", "feedbackAmplitude": 5, "operators": [{ "frequency": "1×", "amplitude": 10, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 5, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 10, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "4×", "amplitude": 6, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "6×", "amplitude": 12, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 2, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "noteVolume", "envelope": "decay", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 4, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }, { "target": "operatorFrequency", "envelope": "tremolo", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 8, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "index": 1 }, { "target": "detune", "envelope": "decay", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 7, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }, { "target": "noteFilterFreq", "envelope": "tremolo2", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "index": 0 }, { "target": "operatorAmplitude", "envelope": "twang", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 8, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "index": 4 }, { "target": "operatorAmplitude", "envelope": "swell", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": true, "perEnvelopeSpeed": 8, "perEnvelopeLowerBound": 0.4, "perEnvelopeUpperBound": 1, "index": 0 }, { "target": "noteVolume", "envelope": "punch", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }], "isDrum": false } },
                 { name: "electric guitar 1", midiProgram: 30, settings: { "type": "FM", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 1189.21, "linearGain": 2 }, { "type": "low-pass", "cutoffHz": 4000, "linearGain": 1.4142 }, { "type": "peak", "cutoffHz": 707.11, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 420.45, "linearGain": 0.0884 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 1189.21, "linearGain": 2 }, { "type": "low-pass", "cutoffHz": 4000, "linearGain": 1.4142 }, { "type": "peak", "cutoffHz": 707.11, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 420.45, "linearGain": 0.0884 }], "effects": ["chord type", "vibrato", "note filter", "distortion", "reverb"], "chord": "monophonic", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 0, "vibrato": "delayed", "vibratoDepth": 0.3, "vibratoDelay": 18.5, "vibratoSpeed": 10, "vibratoType": 0, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 1414.21, "linearGain": 4 }, { "type": "high-pass", "cutoffHz": 594.6, "linearGain": 1 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 1414.21, "linearGain": 4 }, { "type": "high-pass", "cutoffHz": 594.6, "linearGain": 1 }], "distortion": 100, "aliases": false, "panDelay": 0, "reverb": 6, "fadeInSeconds": 0, "fadeOutTicks": 24, "algorithm": "1 2 3 4", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "1×", "amplitude": 15, "waveform": "sawtooth", "pulseWidth": 5 }, { "frequency": "2×", "amplitude": 0, "waveform": "sawtooth", "pulseWidth": 5 }, { "frequency": "4×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "0.25×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "noteVolume", "envelope": "punch", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "vibratoDepth", "envelope": "rise", "inverse": false, "perEnvelopeSpeed": 9, "perEnvelopeLowerBound": 1, "perEnvelopeUpperBound": 2, "discrete": false }, { "target": "noteVolume", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "distortion", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }], "isDrum": false } },
                 { name: "electric guitar 2", midiProgram: 30, settings: { "type": "PWM", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 3363.59, "linearGain": 5.6569 }, { "type": "high-pass", "cutoffHz": 1681.79, "linearGain": 0.25 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 3363.59, "linearGain": 5.6569 }, { "type": "high-pass", "cutoffHz": 1681.79, "linearGain": 0.25 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 2 }], "effects": ["chord type", "vibrato", "note filter", "distortion", "bitcrusher", "chorus", "reverb"], "chord": "monophonic", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 0, "vibrato": "custom", "vibratoDepth": 0.68, "vibratoDelay": 22, "vibratoSpeed": 10, "vibratoType": 0, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 1000, "linearGain": 2.8284 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 1000, "linearGain": 2.8284 }], "distortion": 43, "aliases": false, "bitcrusherOctave": 6.5, "bitcrusherQuantization": 71, "panDelay": 0, "chorus": 14, "reverb": 13, "fadeInSeconds": 0, "fadeOutTicks": 24, "pulseWidth": 50, "decimalOffset": 0, "unison": "none", "envelopes": [{ "target": "noteFilterAllFreqs", "envelope": "rise", "inverse": false, "perEnvelopeSpeed": 0.3333, "perEnvelopeLowerBound": 0.8, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "pulseWidth", "envelope": "twang", "inverse": true, "perEnvelopeSpeed": 2.25, "perEnvelopeLowerBound": 0.5, "perEnvelopeUpperBound": 0.9, "discrete": false }, { "target": "noteVolume", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "bitcrusherQuantization", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }], "isDrum": false } },
+                { name: "tremolo strings 2", midiProgram: 44, settings: { "type": "FM", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 1681.79, "linearGain": 0.5 }, { "type": "high-pass", "cutoffHz": 297.3, "linearGain": 1 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 1681.79, "linearGain": 0.5 }, { "type": "high-pass", "cutoffHz": 297.3, "linearGain": 1 }], "effects": ["panning", "transition type", "vibrato", "granular", "chorus", "reverb"], "transition": "slide", "clicklessTransition": false, "vibrato": "custom", "vibratoDepth": 0.04, "vibratoDelay": 0, "vibratoSpeed": 3, "vibratoType": 1, "granular": 10, "grainSize": 49, "grainAmounts": 4, "grainRange": 40, "pan": 0, "panDelay": 0, "chorus": 43, "reverb": 68, "fadeInSeconds": 0.0413, "fadeOutTicks": 96, "algorithm": "(1 2)←(3 4)", "feedbackType": "1→2", "feedbackAmplitude": 9, "operators": [{ "frequency": "2×", "amplitude": 9, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "3×", "amplitude": 9, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "2×", "amplitude": 2, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "7×", "amplitude": 6, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "operatorAmplitude", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "index": 3 }, { "target": "feedbackAmplitude", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 2, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteVolume", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 4, "perEnvelopeLowerBound": 0.5, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 0, "steps": 2 }, { "target": "noteVolume", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "granular", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }], "isDrum": false } },
             ])
         },
         {
@@ -9043,7 +9044,8 @@ var beepbox = (function (exports) {
                 { name: "stationary harmonics", generalMidi: false, settings: { "type": "harmonics", "eqFilter": [{ "type": "low-pass", "cutoffHz": 4756.83, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 353.55, "linearGain": 1 }, { "type": "peak", "cutoffHz": 1189.21, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 4756.83, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 353.55, "linearGain": 1 }, { "type": "peak", "cutoffHz": 1189.21, "linearGain": 0.5 }], "effects": ["transition type", "chord type", "vibrato"], "transition": "continue", "clicklessTransition": false, "chord": "simultaneous", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "vibrato": "shaky", "vibratoDepth": 0.1, "vibratoDelay": 0, "vibratoSpeed": 10, "vibratoType": 1, "fadeInSeconds": 0, "fadeOutTicks": 12, "harmonics": [100, 0, 57, 29, 14, 57, 29, 29, 14, 14, 29, 43, 14, 14, 14, 0, 14, 29, 29, 14, 0, 0, 14, 0, 0, 29, 14, 14], "unison": "stationary", "envelopes": [], "isDrum": false } },
                 { name: "dead souls", generalMidi: false, settings: { "type": "spectrum", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.1768 }, { "type": "high-pass", "cutoffHz": 353.55, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 707.11, "linearGain": 1.4142 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": true, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.1768 }, { "type": "high-pass", "cutoffHz": 353.55, "linearGain": 0.0884 }, { "type": "peak", "cutoffHz": 707.11, "linearGain": 1.4142 }], "effects": ["transition type", "chord type", "pitch shift", "detune", "distortion", "chorus", "reverb"], "transition": "interrupt", "clicklessTransition": false, "chord": "arpeggio", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "pitchShiftSemitones": 24, "detuneCents": -200, "distortion": 100, "aliases": false, "chorus": 14, "reverb": 35, "fadeInSeconds": 0, "fadeOutTicks": -1, "spectrum": [100, 71, 43, 43, 29, 29, 29, 14, 14, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 57, 14, 14, 0, 0], "unison": "none", "envelopes": [{ "target": "pitchShift", "envelope": "random", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 24, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1.2, "steps": 16, "seed": 37, "waveform": 0 }, { "target": "noteVolume", "envelope": "note size", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "steps": 2, "seed": 2, "waveform": 0 }, { "target": "detune", "envelope": "note size", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": true, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "steps": 2, "seed": 2, "waveform": 0 }, { "target": "distortion", "envelope": "note size", "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96, "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "steps": 2, "seed": 2, "waveform": 0 }], "isDrum": false } },
                 { name: "flutter", generalMidi: false, settings: { "type": "FM", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 707.11, "linearGain": 1 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 707.11, "linearGain": 1 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }], "effects": ["transition type", "chorus", "reverb", "ring mod"], "transition": "interrupt", "clicklessTransition": false, "ringMod": 100, "ringModHz": 100, "ringModWaveformIndex": 0, "panDelay": 0, "chorus": 14, "reverb": 10, "fadeInSeconds": 0, "fadeOutTicks": 12, "algorithm": "1←3 2←4", "feedbackType": "1⟲", "feedbackAmplitude": 3, "operators": [{ "frequency": "1×", "amplitude": 15, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 10, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "ringModulationHz", "envelope": "fall", "inverse": false, "perEnvelopeSpeed": 1.5, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1.9 }, { "target": "noteVolume", "envelope": "blip", "inverse": false, "perEnvelopeSpeed": 0.25, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }], "isDrum": false } },
-                { name: "vinyl", generalMidi: false, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "effects": ["transition type", "note filter", "distortion", "bitcrusher", "chorus", "echo", "reverb"], "transition": "interrupt", "clicklessTransition": false, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "noteSubFilters0": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "distortion": 14, "aliases": false, "bitcrusherOctave": 5.5, "bitcrusherQuantization": 14, "chorus": 29, "echoSustain": 14, "echoDelayBeats": 0.083, "reverb": 32, "fadeInSeconds": 0, "fadeOutTicks": 24, "wave": "crackling", "unison": "none", "envelopes": [], "isDrum": false } },
+                { name: "vinyl", generalMidi: false, isNoise: true, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "effects": ["transition type", "note filter", "distortion", "bitcrusher", "chorus", "echo", "reverb"], "transition": "interrupt", "clicklessTransition": false, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "noteSubFilters0": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "distortion": 14, "aliases": false, "bitcrusherOctave": 5.5, "bitcrusherQuantization": 14, "chorus": 29, "echoSustain": 14, "echoDelayBeats": 0.083, "reverb": 32, "fadeInSeconds": 0, "fadeOutTicks": 24, "wave": "crackling", "unison": "none", "envelopes": [], "isDrum": false } },
+                { name: "crackle", generalMidi: false, isNoise: true, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters1": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters2": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters3": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.1768 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "effects": ["panning", "granular", "reverb"], "granular": 10, "grainSize": 1, "grainAmounts": 0, "grainRange": 0, "pan": -100, "panDelay": 0, "reverb": 6, "fadeInSeconds": 0, "fadeOutTicks": -3, "wave": "white", "unison": "none", "envelopes": [{ "target": "grainFreq", "envelope": "none", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 0.1, "discrete": false }, { "target": "panning", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": true, "steps": 32, "seed": 2, "waveform": 0 }], "isDrum": true } },
             ])
         }
     ]);
@@ -10675,7 +10677,7 @@ var beepbox = (function (exports) {
             this.target = 0;
             this.index = 0;
             this.envelope = 0;
-            this.perEnvelopeSpeed = Config.envelopes[this.envelope].speed;
+            this.perEnvelopeSpeed = Config.envelopePresets[this.envelope].speed;
             this.perEnvelopeLowerBound = 0;
             this.perEnvelopeUpperBound = 1;
             this.tempEnvelopeSpeed = null;
@@ -10695,7 +10697,7 @@ var beepbox = (function (exports) {
             this.pitchEnvelopeEnd = this.isNoiseEnvelope ? Config.drumCount - 1 : Config.maxPitch;
             this.inverse = false;
             this.isNoiseEnvelope = false;
-            this.perEnvelopeSpeed = Config.envelopes[this.envelope].speed;
+            this.perEnvelopeSpeed = Config.envelopePresets[this.envelope].speed;
             this.perEnvelopeLowerBound = 0;
             this.perEnvelopeUpperBound = 1;
             this.tempEnvelopeSpeed = null;
@@ -10709,7 +10711,7 @@ var beepbox = (function (exports) {
         toJsonObject() {
             const envelopeObject = {
                 "target": Config.instrumentAutomationTargets[this.target].name,
-                "envelope": Config.newEnvelopes[this.envelope].name,
+                "envelope": Config.envelopes[this.envelope].name,
                 "inverse": this.inverse,
                 "perEnvelopeSpeed": this.perEnvelopeSpeed,
                 "perEnvelopeLowerBound": this.perEnvelopeLowerBound,
@@ -10719,16 +10721,16 @@ var beepbox = (function (exports) {
             if (Config.instrumentAutomationTargets[this.target].maxCount > 1) {
                 envelopeObject["index"] = this.index;
             }
-            if (Config.newEnvelopes[this.envelope].name == "pitch") {
+            if (Config.envelopes[this.envelope].name == "pitch") {
                 envelopeObject["pitchEnvelopeStart"] = this.pitchEnvelopeStart;
                 envelopeObject["pitchEnvelopeEnd"] = this.pitchEnvelopeEnd;
             }
-            else if (Config.newEnvelopes[this.envelope].name == "random") {
+            else if (Config.envelopes[this.envelope].name == "random") {
                 envelopeObject["steps"] = this.steps;
                 envelopeObject["seed"] = this.seed;
                 envelopeObject["waveform"] = this.waveform;
             }
-            else if (Config.newEnvelopes[this.envelope].name == "lfo") {
+            else if (Config.envelopes[this.envelope].name == "lfo") {
                 envelopeObject["waveform"] = this.waveform;
                 envelopeObject["steps"] = this.steps;
             }
@@ -10740,47 +10742,47 @@ var beepbox = (function (exports) {
             if (target == null)
                 target = Config.instrumentAutomationTargets.dictionary["noteVolume"];
             this.target = target.index;
-            let envelope = Config.envelopes.dictionary["none"];
+            let envelope = Config.envelopePresets.dictionary["none"];
             let isTremolo2 = false;
             if (format == "slarmoosbox") {
                 if (envelopeObject["envelope"] == "tremolo2") {
-                    envelope = Config.newEnvelopes[8];
+                    envelope = Config.envelopes[8];
                     isTremolo2 = true;
                 }
                 else if (envelopeObject["envelope"] == "tremolo") {
-                    envelope = Config.newEnvelopes[8];
+                    envelope = Config.envelopes[8];
                     isTremolo2 = false;
                 }
                 else {
-                    envelope = Config.newEnvelopes.dictionary[envelopeObject["envelope"]];
+                    envelope = Config.envelopes.dictionary[envelopeObject["envelope"]];
                 }
             }
             else {
-                if (Config.envelopes.dictionary[envelopeObject["envelope"]].type == 9) {
-                    envelope = Config.newEnvelopes[8];
+                if (Config.envelopePresets.dictionary[envelopeObject["envelope"]].type == 9) {
+                    envelope = Config.envelopes[8];
                     isTremolo2 = true;
                 }
-                else if (Config.newEnvelopes[Math.max(Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > 8) {
-                    envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1];
+                else if (Config.envelopes[Math.max(Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > 8) {
+                    envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1];
                 }
                 else {
-                    envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type];
+                    envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type];
                 }
             }
             if (envelope == undefined) {
-                if (Config.envelopes.dictionary[envelopeObject["envelope"]].type == 9) {
-                    envelope = Config.newEnvelopes[8];
+                if (Config.envelopePresets.dictionary[envelopeObject["envelope"]].type == 9) {
+                    envelope = Config.envelopes[8];
                     isTremolo2 = true;
                 }
-                else if (Config.newEnvelopes[Math.max(Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > 8) {
-                    envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type - 1];
+                else if (Config.envelopes[Math.max(Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1, 0)].index > 8) {
+                    envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type - 1];
                 }
                 else {
-                    envelope = Config.newEnvelopes[Config.envelopes.dictionary[envelopeObject["envelope"]].type];
+                    envelope = Config.envelopes[Config.envelopePresets.dictionary[envelopeObject["envelope"]].type];
                 }
             }
             if (envelope == null)
-                envelope = Config.envelopes.dictionary["none"];
+                envelope = Config.envelopePresets.dictionary["none"];
             this.envelope = envelope.index;
             if (envelopeObject["index"] != undefined) {
                 this.index = clamp(0, Config.instrumentAutomationTargets[this.target].maxCount, envelopeObject["index"] | 0);
@@ -10805,7 +10807,7 @@ var beepbox = (function (exports) {
                 this.perEnvelopeSpeed = envelopeObject["perEnvelopeSpeed"];
             }
             else {
-                this.perEnvelopeSpeed = Config.envelopes.dictionary[envelopeObject["envelope"]].speed;
+                this.perEnvelopeSpeed = Config.envelopePresets.dictionary[envelopeObject["envelope"]].speed;
             }
             if (envelopeObject["perEnvelopeLowerBound"] != undefined) {
                 this.perEnvelopeLowerBound = clamp(Config.perEnvelopeBoundMin, Config.perEnvelopeBoundMax + 1, envelopeObject["perEnvelopeLowerBound"]);
@@ -10964,7 +10966,7 @@ var beepbox = (function (exports) {
                 this.operators[i] = new Operator(i);
             }
             for (let i = 0; i < Config.drumCount; i++) {
-                this.drumsetEnvelopes[i] = Config.envelopes.dictionary["twang 2"].index;
+                this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
                 this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
             }
             for (let i = 0; i < 64; i++) {
@@ -11106,7 +11108,7 @@ var beepbox = (function (exports) {
                 case 4:
                     this.chord = Config.chords.dictionary["simultaneous"].index;
                     for (let i = 0; i < Config.drumCount; i++) {
-                        this.drumsetEnvelopes[i] = Config.envelopes.dictionary["twang 2"].index;
+                        this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
                         if (this.drumsetSpectrumWaves[i] == undefined) {
                             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
                         }
@@ -11171,17 +11173,17 @@ var beepbox = (function (exports) {
             if (legacyResonanceSetting == undefined)
                 legacyResonanceSetting = 0;
             if (legacyFilterEnv == undefined)
-                legacyFilterEnv = Config.envelopes.dictionary["none"];
+                legacyFilterEnv = Config.envelopePresets.dictionary["none"];
             if (legacyPulseEnv == undefined)
-                legacyPulseEnv = Config.envelopes.dictionary[(this.type == 6) ? "twang 2" : "none"];
+                legacyPulseEnv = Config.envelopePresets.dictionary[(this.type == 6) ? "twang 2" : "none"];
             if (legacyOperatorEnvelopes == undefined)
-                legacyOperatorEnvelopes = [Config.envelopes.dictionary[(this.type == 1) ? "note size" : "none"], Config.envelopes.dictionary["none"], Config.envelopes.dictionary["none"], Config.envelopes.dictionary["none"]];
+                legacyOperatorEnvelopes = [Config.envelopePresets.dictionary[(this.type == 1) ? "note size" : "none"], Config.envelopePresets.dictionary["none"], Config.envelopePresets.dictionary["none"], Config.envelopePresets.dictionary["none"]];
             if (legacyFeedbackEnv == undefined)
-                legacyFeedbackEnv = Config.envelopes.dictionary["none"];
+                legacyFeedbackEnv = Config.envelopePresets.dictionary["none"];
             const legacyFilterCutoffRange = 11;
             const cutoffAtMax = (legacyCutoffSetting == legacyFilterCutoffRange - 1);
             if (cutoffAtMax && legacyFilterEnv.type == 4)
-                legacyFilterEnv = Config.envelopes.dictionary["none"];
+                legacyFilterEnv = Config.envelopePresets.dictionary["none"];
             const carrierCount = Config.algorithms[this.algorithm].carrierCount;
             let noCarriersControlledByNoteSize = true;
             let allCarriersControlledByNoteSize = true;
@@ -11205,10 +11207,10 @@ var beepbox = (function (exports) {
             this.envelopeCount = 0;
             if (this.type == 1 || this.type == 11) {
                 if (allCarriersControlledByNoteSize && noteSizeControlsSomethingElse) {
-                    this.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopes.dictionary["note size"].index, false);
+                    this.addEnvelope(Config.instrumentAutomationTargets.dictionary["noteVolume"].index, 0, Config.envelopePresets.dictionary["note size"].index, false);
                 }
                 else if (noCarriersControlledByNoteSize && !noteSizeControlsSomethingElse) {
-                    this.addEnvelope(Config.instrumentAutomationTargets.dictionary["none"].index, 0, Config.envelopes.dictionary["note size"].index, false);
+                    this.addEnvelope(Config.instrumentAutomationTargets.dictionary["none"].index, 0, Config.envelopePresets.dictionary["note size"].index, false);
                 }
             }
             if (legacyFilterEnv.type == 0) {
@@ -11861,9 +11863,9 @@ var beepbox = (function (exports) {
             const legacyEnvelopeNames = { "custom": "note size", "steady": "none", "pluck 1": "twang 1", "pluck 2": "twang 2", "pluck 3": "twang 3" };
             const getEnvelope = (name) => {
                 if (legacyEnvelopeNames[name] != undefined)
-                    return Config.envelopes.dictionary[legacyEnvelopeNames[name]];
+                    return Config.envelopePresets.dictionary[legacyEnvelopeNames[name]];
                 else {
-                    return Config.envelopes.dictionary[name];
+                    return Config.envelopePresets.dictionary[name];
                 }
             };
             if (this.type == 4) {
@@ -11872,7 +11874,7 @@ var beepbox = (function (exports) {
                         const drum = instrumentObject["drums"][j];
                         if (drum == undefined)
                             continue;
-                        this.drumsetEnvelopes[j] = Config.envelopes.dictionary["twang 2"].index;
+                        this.drumsetEnvelopes[j] = Config.envelopePresets.dictionary["twang 2"].index;
                         if (drum["filterEnvelope"] != undefined) {
                             const envelope = getEnvelope(drum["filterEnvelope"]);
                             if (envelope != undefined)
@@ -12163,7 +12165,7 @@ var beepbox = (function (exports) {
                             if (instrumentObject["operators"][j] != undefined) {
                                 envelope = getEnvelope(instrumentObject["operators"][j]["envelope"]);
                             }
-                            legacySettings.operatorEnvelopes[j] = (envelope != undefined) ? envelope : Config.envelopes.dictionary["none"];
+                            legacySettings.operatorEnvelopes[j] = (envelope != undefined) ? envelope : Config.envelopePresets.dictionary["none"];
                         }
                     }
                     if (instrumentObject["filter"] != undefined) {
@@ -12217,7 +12219,7 @@ var beepbox = (function (exports) {
                         if (instrumentObject["envelopeInverse" + i] != undefined && instrumentObject["envelopeInverse" + i] != null) {
                             envelopeInverse = instrumentObject["envelopeInverse" + i];
                         }
-                        else if (instrumentObject["pitchEnvelopeInverse"] != undefined && instrumentObject["pitchEnvelopeInverse"] != null && Config.envelopes[tempEnvelope.envelope].name == "pitch") {
+                        else if (instrumentObject["pitchEnvelopeInverse"] != undefined && instrumentObject["pitchEnvelopeInverse"] != null && Config.envelopePresets[tempEnvelope.envelope].name == "pitch") {
                             envelopeInverse = instrumentObject["pitchEnvelopeInverse"];
                         }
                         else {
@@ -12276,7 +12278,7 @@ var beepbox = (function (exports) {
         }
         addEnvelope(target, index, envelope, newEnvelopes, start = 0, end = -1, inverse = false, perEnvelopeSpeed = -1, perEnvelopeLowerBound = 0, perEnvelopeUpperBound = 1, steps = 2, seed = 2, waveform = 0, discrete = false) {
             end = end != -1 ? end : this.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
-            perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopes[envelope].speed;
+            perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopePresets[envelope].speed;
             let makeEmpty = false;
             if (!this.supportsEnvelopeTarget(target, index))
                 makeEmpty = true;
@@ -12288,7 +12290,7 @@ var beepbox = (function (exports) {
             envelopeSettings.target = makeEmpty ? Config.instrumentAutomationTargets.dictionary["none"].index : target;
             envelopeSettings.index = makeEmpty ? 0 : index;
             if (!newEnvelopes) {
-                envelopeSettings.envelope = clamp(0, Config.newEnvelopes.length, Config.envelopes[envelope].type);
+                envelopeSettings.envelope = clamp(0, Config.envelopes.length, Config.envelopePresets[envelope].type);
             }
             else {
                 envelopeSettings.envelope = envelope;
@@ -12361,7 +12363,7 @@ var beepbox = (function (exports) {
         getDrumsetEnvelope(pitch) {
             if (this.type != 4)
                 throw new Error("Can't getDrumsetEnvelope() for non-drumset.");
-            return Config.envelopes[this.drumsetEnvelopes[pitch]];
+            return Config.envelopePresets[this.drumsetEnvelopes[pitch]];
         }
     }
     class Channel {
@@ -13072,7 +13074,7 @@ var beepbox = (function (exports) {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].index]);
                         }
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].envelope]);
-                        if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "pitch") {
+                        if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "pitch") {
                             if (!instrument.isNoiseInstrument) {
                                 buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeStart >> 6], base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeStart & 0x3f]);
                                 buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd >> 6], base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd & 0x3f]);
@@ -13082,12 +13084,12 @@ var beepbox = (function (exports) {
                                 buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].pitchEnvelopeEnd]);
                             }
                         }
-                        else if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "random") {
+                        else if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "random") {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].steps]);
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].seed]);
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].waveform]);
                         }
-                        else if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name == "lfo") {
+                        else if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name == "lfo") {
                             buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].waveform]);
                             if (instrument.envelopes[envelopeIndex].waveform == 5 || instrument.envelopes[envelopeIndex].waveform == 6) {
                                 buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].steps]);
@@ -13097,7 +13099,7 @@ var beepbox = (function (exports) {
                         checkboxValues = checkboxValues << 1;
                         checkboxValues += +instrument.envelopes[envelopeIndex].inverse;
                         buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
-                        if (Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "pitch" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "note size" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "punch" && Config.newEnvelopes[instrument.envelopes[envelopeIndex].envelope].name != "none") {
+                        if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "pitch" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "note size" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "punch" && Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name != "none") {
                             buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.envelopes[envelopeIndex].perEnvelopeSpeed]]);
                         }
                         buffer.push(base64IntToCharCode[instrument.envelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
@@ -13331,7 +13333,7 @@ var beepbox = (function (exports) {
                 legacyIndex = 1;
             else if (legacyIndex == 1)
                 legacyIndex = 0;
-            return Config.envelopes[clamp(0, Config.envelopes.length, legacyIndex)];
+            return Config.envelopePresets[clamp(0, Config.envelopePresets.length, legacyIndex)];
         }
         fromBase64String(compressed, jsonFormat = "auto") {
             if (compressed == null || compressed == "") {
@@ -13878,7 +13880,7 @@ var beepbox = (function (exports) {
                                         const legacyFilter = [1, 3, 4, 5][clamp(0, legacyToCutoff.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                                         legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                                         legacySettings.filterResonance = 0;
-                                        legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                                        legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                                         instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                     }
                                     else if (beforeSix && fromBeepBox) {
@@ -13890,12 +13892,12 @@ var beepbox = (function (exports) {
                                                 if (channelIndex < this.pitchChannelCount) {
                                                     legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                                                     legacySettings.filterResonance = 0;
-                                                    legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                                                    legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                                                 }
                                                 else {
                                                     legacySettings.filterCutoff = 10;
                                                     legacySettings.filterResonance = 0;
-                                                    legacySettings.filterEnvelope = Config.envelopes.dictionary["none"];
+                                                    legacySettings.filterEnvelope = Config.envelopePresets.dictionary["none"];
                                                 }
                                                 instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                             }
@@ -13907,7 +13909,7 @@ var beepbox = (function (exports) {
                                         const legacySettings = legacySettingsCache[instrumentChannelIterator][instrumentIndexIterator];
                                         legacySettings.filterCutoff = legacyToCutoff[legacyFilter];
                                         legacySettings.filterResonance = 0;
-                                        legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyToEnvelope[legacyFilter]];
+                                        legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyToEnvelope[legacyFilter]];
                                         instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                     }
                                 }
@@ -14065,7 +14067,7 @@ var beepbox = (function (exports) {
                                         aa = pregoldToEnvelope[aa];
                                     if (!fromSlarmoosBox && aa >= 2)
                                         aa++;
-                                    instrument.drumsetEnvelopes[i] = clamp(0, Config.envelopes.length, aa);
+                                    instrument.drumsetEnvelopes[i] = clamp(0, Config.envelopePresets.length, aa);
                                 }
                             }
                         }
@@ -14184,7 +14186,7 @@ var beepbox = (function (exports) {
                                         const legacySettings = legacySettingsCache[channelIndex][0];
                                         instrument.vibrato = legacyEffects[effect];
                                         if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == 0) {
-                                            legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                            legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                             instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                         }
                                         if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -14201,7 +14203,7 @@ var beepbox = (function (exports) {
                                                 const legacySettings = legacySettingsCache[channelIndex][i];
                                                 instrument.vibrato = legacyEffects[effect];
                                                 if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == 0) {
-                                                    legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                                    legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                                     instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                                 }
                                                 if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -14222,7 +14224,7 @@ var beepbox = (function (exports) {
                                         const legacySettings = legacySettingsCache[instrumentChannelIterator][instrumentIndexIterator];
                                         instrument.vibrato = legacyEffects[effect];
                                         if (legacySettings.filterEnvelope == undefined || legacySettings.filterEnvelope.type == 0) {
-                                            legacySettings.filterEnvelope = Config.envelopes.dictionary[legacyEnvelopes[effect]];
+                                            legacySettings.filterEnvelope = Config.envelopePresets.dictionary[legacyEnvelopes[effect]];
                                             instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                                         }
                                         if (instrument.vibrato != Config.vibratos.dictionary["none"].index) {
@@ -14891,8 +14893,8 @@ var beepbox = (function (exports) {
                                     let perEnvelopeSpeed = 1;
                                     if (!fromSlarmoosBox || beforeThree) {
                                         updatedEnvelopes = true;
-                                        perEnvelopeSpeed = Config.envelopes[aa].speed;
-                                        aa = Config.envelopes[aa].type;
+                                        perEnvelopeSpeed = Config.envelopePresets[aa].speed;
+                                        aa = Config.envelopePresets[aa].type;
                                     }
                                     else if (beforeFour && aa >= 3)
                                         aa++;
@@ -14902,31 +14904,31 @@ var beepbox = (function (exports) {
                                             isTremolo2 = true;
                                         aa = slarURL3toURL4Envelope[aa];
                                     }
-                                    const envelope = clamp(0, ((fromSlarmoosBox && !beforeThree || updatedEnvelopes) ? Config.newEnvelopes.length : Config.envelopes.length), aa);
+                                    const envelope = clamp(0, ((fromSlarmoosBox && !beforeThree || updatedEnvelopes) ? Config.envelopes.length : Config.envelopePresets.length), aa);
                                     let pitchEnvelopeStart = 0;
                                     let pitchEnvelopeEnd = Config.maxPitch;
                                     let envelopeInverse = false;
-                                    perEnvelopeSpeed = (fromSlarmoosBox && !beforeThree) ? Config.newEnvelopes[envelope].speed : perEnvelopeSpeed;
+                                    perEnvelopeSpeed = (fromSlarmoosBox && !beforeThree) ? Config.envelopes[envelope].speed : perEnvelopeSpeed;
                                     let perEnvelopeLowerBound = 0;
                                     let perEnvelopeUpperBound = 1;
                                     let steps = 2;
                                     let seed = 2;
                                     let waveform = 0;
                                     if (fromSlarmoosBox && !beforeFour) {
-                                        if (Config.newEnvelopes[envelope].name == "lfo") {
+                                        if (Config.envelopes[envelope].name == "lfo") {
                                             waveform = clamp(0, 7, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                             if (waveform == 5 || waveform == 6) {
                                                 steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                             }
                                         }
-                                        else if (Config.newEnvelopes[envelope].name == "random") {
+                                        else if (Config.envelopes[envelope].name == "random") {
                                             steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                             seed = clamp(1, Config.randomEnvelopeSeedMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                             waveform = clamp(0, 4, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                         }
                                     }
                                     if (fromSlarmoosBox && !beforeThree) {
-                                        if (Config.newEnvelopes[envelope].name == "pitch") {
+                                        if (Config.envelopes[envelope].name == "pitch") {
                                             if (!instrument.isNoiseInstrument) {
                                                 let pitchEnvelopeCompact = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                                 pitchEnvelopeStart = clamp(0, Config.maxPitch + 1, pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
@@ -14943,7 +14945,7 @@ var beepbox = (function (exports) {
                                             envelopeDiscrete = (checkboxValues >> 1) == 1 ? true : false;
                                         }
                                         envelopeInverse = (checkboxValues & 1) == 1 ? true : false;
-                                        if (Config.newEnvelopes[envelope].name != "pitch" && Config.newEnvelopes[envelope].name != "note size" && Config.newEnvelopes[envelope].name != "punch" && Config.newEnvelopes[envelope].name != "none") {
+                                        if (Config.envelopes[envelope].name != "pitch" && Config.envelopes[envelope].name != "note size" && Config.envelopes[envelope].name != "punch" && Config.envelopes[envelope].name != "none") {
                                             perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
                                         }
                                         perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
@@ -14983,7 +14985,7 @@ var beepbox = (function (exports) {
                                     for (let i = 0; i < envelopeCount; i++) {
                                         instrument.envelopes[i].pitchEnvelopeStart = instrumentPitchEnvelopeStart;
                                         instrument.envelopes[i].pitchEnvelopeEnd = instrumentPitchEnvelopeEnd;
-                                        instrument.envelopes[i].inverse = Config.envelopes[instrument.envelopes[i].envelope].name == "pitch" ? instrumentEnvelopeInverse : false;
+                                        instrument.envelopes[i].inverse = Config.envelopePresets[instrument.envelopes[i].envelope].name == "pitch" ? instrumentEnvelopeInverse : false;
                                     }
                                 }
                             }
@@ -16845,13 +16847,13 @@ var beepbox = (function (exports) {
                         break;
                     automationTarget = Config.instrumentAutomationTargets.dictionary["noteVolume"];
                     targetIndex = 0;
-                    envelope = Config.newEnvelopes.dictionary["note size"];
+                    envelope = Config.envelopes.dictionary["note size"];
                 }
                 else {
                     let envelopeSettings = instrument.envelopes[envelopeIndex];
                     automationTarget = Config.instrumentAutomationTargets[envelopeSettings.target];
                     targetIndex = envelopeSettings.index;
-                    envelope = Config.newEnvelopes[envelopeSettings.envelope];
+                    envelope = Config.envelopes[envelopeSettings.envelope];
                     inverse = instrument.envelopes[envelopeIndex].inverse;
                     isDiscrete = instrument.envelopes[envelopeIndex].discrete;
                     perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
@@ -24081,6 +24083,7 @@ var beepbox = (function (exports) {
         else {
             synth.loopRepeatCount = -1;
         }
+        setLocalStorage("loopMode", synth.loopRepeatCount + "");
         renderLoopIcon();
     }
     function onVolumeChange() {
@@ -24089,6 +24092,7 @@ var beepbox = (function (exports) {
     }
     function onToggleZoom() {
         zoomEnabled = !zoomEnabled;
+        setLocalStorage("zoomMode", zoomEnabled + "");
         renderZoomIcon();
         renderTimeline();
     }
@@ -24404,7 +24408,20 @@ var beepbox = (function (exports) {
     if (getLocalStorage("volume") != null) {
         volumeSlider.value = getLocalStorage("volume");
     }
+    if (getLocalStorage("loopMode") != null) {
+        synth.loopRepeatCount = parseInt(getLocalStorage("loopMode"));
+    }
+    if (getLocalStorage("zoomMode") != null) {
+        zoomEnabled = getLocalStorage("zoomMode") == "true";
+    }
     setSynthVolume();
+    hashUpdatedExternally();
+    renderLoopIcon();
+    renderZoomIcon();
+    renderPlayButton();
+    if (synth.song && synth.song.title) {
+        titleText.innerText = synth.song.title;
+    }
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("keydown", onKeyPressed);
     timeline.addEventListener("mousedown", onTimelineMouseDown);
@@ -24422,10 +24439,6 @@ var beepbox = (function (exports) {
     shareLink.addEventListener("click", onShareClicked);
     window.addEventListener("hashchange", hashUpdatedExternally);
     sampleLoadEvents.addEventListener("sampleloaded", updateSampleLoadingBar.bind(exports));
-    hashUpdatedExternally();
-    renderLoopIcon();
-    renderZoomIcon();
-    renderPlayButton();
 
     exports.Channel = Channel;
     exports.Config = Config;
