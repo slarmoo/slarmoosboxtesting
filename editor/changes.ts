@@ -2724,13 +2724,25 @@ export class ChangeBitcrusherQuantization extends ChangeInstrumentSlider {
     }
 }
 
-export class ChangePluginValue extends ChangeInstrumentSlider {
+export class ChangePluginSliderValue extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number, index: number) {
         super(doc);
         // doc.synth.unsetMod(Config.modulators.dictionary[""].index, doc.channel, doc.getCurrentInstrument());
         this._instrument.pluginValues[index] = newValue;
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangePluginValue extends Change {
+    constructor(doc: SongDocument, oldValue: number, newValue: number, index: number) {
+        super();
+        const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        if (oldValue != newValue) {
+            instrument.pluginValues[index] = newValue;
+            this._didSomething();
+        }
+        doc.notifier.changed();
     }
 }
 

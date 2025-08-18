@@ -2,6 +2,7 @@
 
 import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
+import { PluginConfig } from "../editor/PluginConfig";
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 import { events } from "../global/Events";
@@ -1006,6 +1007,7 @@ class Grain {
 
     public initializeParabolicEnvelope(durationInSamples: number, amplitude: number): void {
         this.parabolicEnvelopeAmplitude = 0;
+        if (durationInSamples == 0) durationInSamples++; //prevent division by 0
         const invDuration: number = 1.0 / durationInSamples;
         const invDurationSquared: number = invDuration * invDuration;
         this.parabolicEnvelopeSlope = 4.0 * amplitude * (invDuration - invDurationSquared);
@@ -1017,6 +1019,7 @@ class Grain {
         this.parabolicEnvelopeSlope += this.parabolicEnvelopeCurve;
     }
 
+    //rcb is unfinished and unused rn
     public initializeRCBEnvelope(durationInSamples: number, amplitude: number): void {
         // attack:
         this.rcbEnvelopeAttackIndex = Math.floor(durationInSamples / 6);
@@ -2143,7 +2146,7 @@ export class Instrument {
         }
 
         if (effectsIncludePlugin(this.effects)) {
-            instrumentObject["plugin"] = this.pluginValues.slice(0, EditorConfig.pluginSliders.length - 1);
+            instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
         }
 
         if (this.type != InstrumentType.drumset) {
@@ -3509,8 +3512,8 @@ export class Song {
         Synth.pluginFunction = null;
         Synth.pluginIndex = 0;
         Synth.PluginDelayLineSize = 0;
-        EditorConfig.pluginSliders = [];
-        EditorConfig.pluginName = "";
+        PluginConfig.pluginUIElements = [];
+        PluginConfig.pluginName = "";
 
         for (let i: number = 0; i < Config.filterMorphCount - 1; i++) {
             this.eqSubFilters[i] = null;
@@ -3817,10 +3820,10 @@ export class Song {
                     buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                 }
                 if (effectsIncludePlugin(instrument.effects)) {
-                    let pluginValueCount: number = EditorConfig.pluginSliders.length
-                    if (EditorConfig.pluginSliders.length == 0) {
-                        while (instrument.pluginValues[pluginValueCount] || instrument.pluginValues[pluginValueCount + 1]) {
-                            pluginValueCount++;
+                    let pluginValueCount: number = PluginConfig.pluginUIElements.length
+                    if (PluginConfig.pluginUIElements.length == 0) {
+                        for (let i = 0; i < instrument.pluginValues.length; i++) {
+                            if (instrument.pluginValues[pluginValueCount]) pluginValueCount = i;
                         }
                     }
                     buffer.push(base64IntToCharCode[pluginValueCount]);
@@ -6600,17 +6603,18 @@ export class Song {
             }).then((response) => {
                 return response.json();
             }).then((plugin) => {
-                Synth.pluginValueNames = plugin.variableNames;
-                Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction;
-                Synth.pluginFunction = plugin.synthFunction;
-                Synth.pluginIndex = plugin.effectOrderIndex | 0;
-                Synth.PluginDelayLineSize = plugin.delayLineSize;
-                EditorConfig.pluginSliders = plugin.sliders;
-                EditorConfig.pluginName = plugin.pluginName;
+                //decode and store the data
+                Synth.pluginValueNames = plugin.variableNames || [];
+                Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
+                Synth.pluginFunction = plugin.synthFunction || "";
+                Synth.pluginIndex = plugin.effectOrderIndex || 0;
+                Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
+                PluginConfig.pluginUIElements = plugin.elements || [];
+                PluginConfig.pluginName = plugin.pluginName || "plugin";
             }).then(() => {
                 if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
              }).catch(() => {
-                window.alert("couldn't load plugin");
+                window.alert("couldn't load plugin "+ pluginurl);
             })
         }
     }
@@ -12525,7 +12529,7 @@ export class Synth {
                 const associatedCarrierIndex: number = (instrument.type == InstrumentType.fm6op ? instrument.customAlgorithm.associatedCarrier[i] - 1 : Config.algorithms[instrument.algorithm].associatedCarrier[i] - 1);
                 const pitch: number = tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : ((i < tone.pitchCount) ? i : ((associatedCarrierIndex < tone.pitchCount) ? associatedCarrierIndex : 0))];
                 const freqMult = Config.operatorFrequencies[instrument.operators[i].frequency].mult;
-                const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval;
+                const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval; //make conditional
                 const pitchStart: number = basePitch + (pitch + intervalStart) * intervalScale + interval;
                 const pitchEnd: number = basePitch + (pitch + intervalEnd) * intervalScale + interval;
                 const baseFreqStart: number = Instrument.frequencyFromPitch(pitchStart);
@@ -12568,7 +12572,6 @@ export class Synth {
                     tone.phaseDeltas[i * unisonVoices + voice] = freqStart * sampleTime * unisonStart;
                     tone.phaseDeltaScales[i * unisonVoices + voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
                 }
-                // console.log(tone.phaseDeltas, unisonVoices, carrierCount)
 
                 let amplitudeStart: number = instrument.operators[i].amplitude;
                 let amplitudeEnd: number = instrument.operators[i].amplitude;
@@ -13988,7 +13991,7 @@ export class Synth {
         if (effectsFunction == undefined) {
             let effectsSource: string = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
 
-            const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular || instrumentState.pluginDelayLineSize > 0;
+            const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
 
             effectsSource += `
 				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
@@ -14263,7 +14266,7 @@ export class Synth {
                             // const grainSample0 = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))    ) & granularDelayLineMask];
                             // const grainSample1 = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt)) + 1) & granularDelayLineMask];
                             // let grainSample = grainSample0 + (grainSample1 - grainSample0) * grainDelayLinePositionT; // Linear interpolation (@TODO: sounds quite bad?)
-                            let grainSample = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))    ) & granularDelayLineMask]; // No interpolation
+                            let grainSample = granularDelayLine[((granularDelayLineIndex + (granularDelayLineLength - grainDelayLinePositionInt))) & granularDelayLineMask]; // No interpolation
                             `
                 if (Config.granularEnvelopeType == GranularEnvelopeType.parabolic) {
                     granularSource += `
@@ -14306,7 +14309,7 @@ export class Synth {
                 }
                 granularSource += `
                                 grain.ageInSamples = grainAgeInSamples;
-                                // if(usesRandomGrainLocation) {
+                                // if(!usesRandomGrainLocation) {
                                 //     grain.delayLine -= grainPitchShift;
                                 // }
                             }

@@ -12,6 +12,7 @@ import { CustomFilterPrompt } from "./CustomFilterPrompt";
 import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
 import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
 import { EditorConfig, isMobile, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
+import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "./PluginConfig"
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
 import "./Layout"; // Imported here for the sake of ensuring this code is transpiled early.
@@ -47,7 +48,7 @@ import { SpectrumEditor, SpectrumEditorPrompt } from "./SpectrumEditor";
 import { CustomThemePrompt } from "./CustomThemePrompt";
 import { ThemePrompt } from "./ThemePrompt";
 import { TipPrompt } from "./TipPrompt";
-import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainAmounts, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue } from "./changes";
+import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainAmounts, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue } from "./changes";
 
 import { TrackEditor } from "./TrackEditor";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
@@ -883,7 +884,7 @@ export class SongEditor {
         this._grainRangeSliderRow
     );
     private _pluginurl: string | null = null;
-    private readonly _pluginSliders: Slider[] = [];
+    private readonly _pluginElements: (Slider | HTMLInputElement | HTMLSelectElement)[] = [];
     private readonly _pluginRows: HTMLDivElement[] = [];
     private readonly _pluginContainerRow: HTMLDivElement = div({ class: "", style: "display:flex; flex-direction:column;" });
     private readonly _echoSustainSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.echoSustainRange - 1, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeEchoSustain(this.doc, oldValue, newValue), false);
@@ -2481,7 +2482,7 @@ export class SongEditor {
         if (this._pluginurl) {
             let effectFlag: number = Config.effectOrder[Config.effectOrder.length - 1];
             const selected: boolean = ((instrument.effects & (1 << effectFlag)) != 0);
-            const label: string = (selected ? textOnIcon : textOffIcon) + EditorConfig.pluginName;
+            const label: string = (selected ? textOnIcon : textOffIcon) + PluginConfig.pluginName;
             const pluginOption: HTMLOptionElement = <HTMLOptionElement>this._effectsSelect.children[Config.effectOrder.length];
             if (pluginOption.textContent != label) pluginOption.textContent = label;
         }
@@ -2989,22 +2990,46 @@ export class SongEditor {
                 this._granularContainerRow.style.display = "none";
             }
             
-            if (effectsIncludePlugin(instrument.effects)) {
-                if (this._pluginurl != this.doc.song.pluginurl || this._pluginSliders.length < EditorConfig.pluginSliders.length) {
-                    this._pluginurl = this.doc.song.pluginurl;
-                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                        this._pluginSliders[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: EditorConfig.pluginSliders[i].max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginValue(this.doc, oldValue, newValue, i), false);
-                        this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, EditorConfig.pluginSliders[i].name + ":"), this._pluginSliders[i].container);
-                    }
-                    this._pluginContainerRow.innerHTML = ""
-                    for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                        this._pluginContainerRow.appendChild(this._pluginRows[i]);
+            if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length < PluginConfig.pluginUIElements.length) {
+                this._pluginurl = this.doc.song.pluginurl;
+                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    const pluginElement: PluginElement = PluginConfig.pluginUIElements[i];
+                    switch (pluginElement.type) {
+                        case "slider": {
+                            this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: (pluginElement as PluginSlider).max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, (pluginElement as PluginSlider).name + ":"), (this._pluginElements[i] as Slider).container);
+                            break;
+                        }
+                        case "checkbox": {
+                            this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
+                            (this._pluginElements[i] as HTMLInputElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +(this._pluginElements[i] as HTMLInputElement).checked, instrument.pluginValues[i], i)))
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
+                            break;
+                        }
+                        case "dropdown": {
+                            this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
+                            (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, instrument.pluginValues[i], parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
+                            break;
+                        }
                     }
                 }
+                this._pluginContainerRow.innerHTML = ""
+                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
+                }
+            }
 
+            if (effectsIncludePlugin(instrument.effects)) {
                 this._pluginContainerRow.style.display = "";
-                for (let i: number = 0; i < EditorConfig.pluginSliders.length; i++) {
-                    this._pluginSliders[i].updateValue(instrument.pluginValues[i]);
+                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    if (this._pluginElements[i] instanceof Slider) {
+                        (this._pluginElements[i] as Slider).updateValue(instrument.pluginValues[i]);
+                    } else if (this._pluginElements[i] instanceof HTMLSelectElement) {
+                        (this._pluginElements[i] as HTMLSelectElement).value = instrument.pluginValues[i] + "";
+                    } else if (this._pluginElements[i] instanceof HTMLInputElement) {
+                        (this._pluginElements[i] as HTMLInputElement).checked = Boolean(instrument.pluginValues[i]);
+                    }
                 }
             } else {
                 this._pluginContainerRow.style.display = "none";
