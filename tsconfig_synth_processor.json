@@ -1,0 +1,6 @@
+{
+    "extends": "./tsconfig_synth_only.json",
+    "files": [
+        "synth/synth_processor.ts"
+    ]
+}

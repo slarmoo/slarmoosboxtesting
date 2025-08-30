@@ -307,6 +307,8 @@ export class SpectrumEditor {
 
 export class SpectrumEditorPrompt implements Prompt {
 
+    private readonly _doc: SongDocument = new SongDocument();
+    
     public spectrumEditor: SpectrumEditor = new SpectrumEditor(this._doc, null, true);
 
     private readonly spectrumEditors: SpectrumEditor[] = [];
@@ -353,7 +355,8 @@ export class SpectrumEditorPrompt implements Prompt {
         this._cancelButton,
     );
 
-    constructor(private _doc: SongDocument, private _songEditor: SongEditor, private _isDrumset: boolean) {
+    constructor(_doc: SongDocument, private _songEditor: SongEditor, private _isDrumset: boolean) {
+        this._doc = _doc;
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);
         this.container.addEventListener("keydown", this.whenKeyPressed);

@@ -18,7 +18,7 @@
 	"icon": "path.join(__dirname, 'icon.ico')",
 	"scripts": {
 		"build": "npm run build-synth && npm run build-player && npm run build-editor",
-		"build-synth": "bash ./scripts/compile_beepbox_synth.sh",
+		"build-synth": "bash ./scripts/compile_beepbox_synth.sh && bash ./scripts/compile_beepbox_synth_processor.sh",
 		"build-player": "bash ./scripts/compile_beepbox_player.sh",
 		"build-editor": "bash ./scripts/compile_beepbox_editor.sh",
 		"build-offline": "bash ./scripts/compile_beepbox_offline.sh",

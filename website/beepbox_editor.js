@@ -13250,7 +13250,7 @@ li.select2-results__option[role=group] > strong:hover {
                 instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
             }
             if (effectsIncludePlugin(this.effects)) {
-                instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
+                instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
             }
             if (this.type != 4) {
                 instrumentObject["fadeInSeconds"] = Math.round(10000 * Synth.fadeInSettingToSeconds(this.fadeIn)) / 10000;
@@ -13368,7 +13368,23 @@ li.select2-results__option[role=group] > strong:hover {
                     instrumentObject["unisonSign"] = this.unisonSign;
                 }
             }
-            else if (this.type == 1 || this.type == 11) {
+            else if (this.type == 1) {
+                const operatorArray = [];
+                for (let i = 0; i < Config.operatorCount; i++) {
+                    const operator = this.operators[i];
+                    operatorArray.push({
+                        "frequency": Config.operatorFrequencies[operator.frequency].name,
+                        "amplitude": operator.amplitude,
+                        "waveform": Config.operatorWaves[operator.waveform].name,
+                        "pulseWidth": operator.pulseWidth,
+                    });
+                }
+                instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
+                instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
+                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+                instrumentObject["operators"] = operatorArray;
+            }
+            else if (this.type == 11) {
                 const operatorArray = [];
                 for (const operator of this.operators) {
                     operatorArray.push({
@@ -13378,29 +13394,21 @@ li.select2-results__option[role=group] > strong:hover {
                         "pulseWidth": operator.pulseWidth,
                     });
                 }
-                if (this.type == 1) {
-                    instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
-                    instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
-                    instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                    instrumentObject["operators"] = operatorArray;
+                instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
+                instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
+                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+                if (this.algorithm6Op == 0) {
+                    const customAlgorithm = {};
+                    customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
+                    customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
+                    instrumentObject["customAlgorithm"] = customAlgorithm;
                 }
-                else {
-                    instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
-                    instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
-                    instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                    if (this.algorithm6Op == 0) {
-                        const customAlgorithm = {};
-                        customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
-                        customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
-                        instrumentObject["customAlgorithm"] = customAlgorithm;
-                    }
-                    if (this.feedbackType6Op == 0) {
-                        const customFeedback = {};
-                        customFeedback["mods"] = this.customFeedbackType.indices;
-                        instrumentObject["customFeedback"] = customFeedback;
-                    }
-                    instrumentObject["operators"] = operatorArray;
+                if (this.feedbackType6Op == 0) {
+                    const customFeedback = {};
+                    customFeedback["mods"] = this.customFeedbackType.indices;
+                    instrumentObject["customFeedback"] = customFeedback;
                 }
+                instrumentObject["operators"] = operatorArray;
             }
             else if (this.type == 9) {
                 instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
@@ -37406,8 +37414,8 @@ You should be redirected to the song at:<br /><br />
     }
     class HarmonicsEditorPrompt {
         constructor(_doc, _songEditor) {
-            this._doc = _doc;
             this._songEditor = _songEditor;
+            this._doc = new SongDocument();
             this.harmonicsEditor = new HarmonicsEditor(this._doc, true);
             this._playButton = HTML$1.button({ style: "width: 55%;", type: "button" });
             this._cancelButton = HTML$1.button({ class: "cancelButton" });
@@ -37479,6 +37487,7 @@ You should be redirected to the song at:<br /><br />
                 this._doc.record(this.harmonicsEditor.saveSettings(), true);
                 this._doc.prompt = null;
             };
+            this._doc = _doc;
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
             this.container.addEventListener("keydown", this.whenKeyPressed);
@@ -44001,9 +44010,9 @@ You should be redirected to the song at:<br /><br />
     }
     class SpectrumEditorPrompt {
         constructor(_doc, _songEditor, _isDrumset) {
-            this._doc = _doc;
             this._songEditor = _songEditor;
             this._isDrumset = _isDrumset;
+            this._doc = new SongDocument();
             this.spectrumEditor = new SpectrumEditor(this._doc, null, true);
             this.spectrumEditors = [];
             this._drumsetSpectrumIndex = 0;
@@ -44109,6 +44118,7 @@ You should be redirected to the song at:<br /><br />
                 this._doc.record(group, true);
                 this._doc.prompt = null;
             };
+            this._doc = _doc;
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
             this.container.addEventListener("keydown", this.whenKeyPressed);

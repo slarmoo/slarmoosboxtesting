@@ -282,6 +282,8 @@ export class HarmonicsEditor {
 
 export class HarmonicsEditorPrompt implements Prompt {
 
+    private readonly _doc: SongDocument = new SongDocument();
+
     public readonly harmonicsEditor: HarmonicsEditor = new HarmonicsEditor(this._doc, true);
 
     public readonly _playButton: HTMLButtonElement = HTML.button({ style: "width: 55%;", type: "button" });
@@ -320,7 +322,8 @@ export class HarmonicsEditorPrompt implements Prompt {
         this._cancelButton,
     );
 
-    constructor(private _doc: SongDocument, private _songEditor: SongEditor) {
+    constructor(_doc: SongDocument, private _songEditor: SongEditor) {
+        this._doc = _doc;
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);
         this.container.addEventListener("keydown", this.whenKeyPressed);
