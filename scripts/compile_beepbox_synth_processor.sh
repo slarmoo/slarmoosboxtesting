@@ -13,4 +13,13 @@ npx rollup build/synth/synth_processor.js \
 	--sourcemap \
 	--plugin @rollup/plugin-node-resolve
 
-# No need to minify website/beepbox_synth_processor.js
+# Minify website/beepbox_synth_processor.js into website/beepbox_synth_processor.min.js
+npx terser \
+	./website/beepbox_synth_processor.js \
+	--source-map "content='./website/beepbox_synth_processor.js.map',url=beepbox_synth_processor.min.js.map" \
+	-o ./website/beepbox_synth_processor.min.js \
+	--compress \
+	--define OFFLINE=false \
+	--define TESTING=true \
+	--mangle \
+	--mangle-props regex="/^_.+/;"

@@ -9,6 +9,7 @@ import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { ArrayBufferWriter } from "./ArrayBufferWriter";
 import { MidiChunkType, MidiFileFormat, MidiControlEventMessage, MidiEventType, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, volumeMultToMidiVolume, volumeMultToMidiExpression, defaultMidiPitchBend, defaultMidiExpression } from "./Midi";
+import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 const { button, div, h2, input, select, option } = HTML;
 
@@ -274,6 +275,7 @@ export class ExportPrompt implements Prompt {
         const tempSamplesR = new Float32Array(samplesInChunk);
 
         this.synth.renderingSong = true;
+        //TODO: actually figure out exporting
         this.synth.synthesize(tempSamplesL, tempSamplesR, samplesInChunk);
 
         // Concatenate chunk data into final array
@@ -334,10 +336,12 @@ export class ExportPrompt implements Prompt {
             }
         }
 
-
-        this.synth.initModFilters(this._doc.song);
-        this.synth.computeLatestModValues();
-        this.synth.warmUpSynthesizer(this._doc.song);
+        const computeModsMessage: ComputeModsMessage = {
+            flag: MessageFlag.computeMods,
+            initFilters: true
+        };
+        this.synth.sendMessage(computeModsMessage);
+        // this.synth.warmUpSynthesizer(this._doc.song);
 
         this.sampleFrames = this.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, this.synth.loopRepeatCount);
         // Compute how many UI updates will need to run to determine how many 

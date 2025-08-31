@@ -1,10 +1,11 @@
-import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin } from "./SynthConfig";
+import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin } from "./SynthConfig";
 import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song } from "./synth"
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 import { events } from "../global/Events";
 import { xxHash32 } from "js-xxhash";
+import { DeactivateMessage, Message, MessageFlag } from "./synthMessages";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -2298,22 +2299,12 @@ export class SynthProcessor extends AudioWorkletProcessor {
             // Clear all mod values, and set up temp variables for the time a mod would be set at.
             let latestModTimes: (number | null)[] = [];
             let latestModInsTimes: (number | null)[][][] = [];
-            this.modValues = [];
-            this.nextModValues = [];
-            this.modInsValues = [];
-            this.nextModInsValues = [];
+            //TODO: is filling with -1 the best solution?
+            this.modValues.fill(-1);
+            this.nextModValues.fill(-1);
+            this.modInsValues.fill(-1);
+            this.nextModInsValues.fill(-1);
             this.heldMods = [];
-            for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
-                latestModInsTimes[channel] = [];
-                this.modInsValues[channel] = [];
-                this.nextModInsValues[channel] = [];
-
-                for (let instrument: number = 0; instrument < this.song.channels[channel].instruments.length; instrument++) {
-                    this.modInsValues[channel][instrument] = [];
-                    this.nextModInsValues[channel][instrument] = [];
-                    latestModInsTimes[channel][instrument] = [];
-                }
-            }
 
             // Find out where we're at in the fraction of the current bar.
             let currentPart: number = this.beat * Config.partsPerBeat + this.part;
@@ -2482,58 +2473,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
     }
 
-    // Detects if a modulator is set, but not valid for the current effects/instrument type/filter type
-    // Note, setting 'none' or the intermediary steps when clicking to add a mod, like an unset channel/unset instrument, counts as valid.
-    // TODO: This kind of check is mirrored in SongEditor.ts' whenUpdated. Creates a lot of redundancy for adding new mods. Can be moved into new properties for mods, to avoid this later.
-    public determineInvalidModulators(instrument: Instrument): void {
-        if (this.song == null)
-            return;
-        for (let mod: number = 0; mod < Config.modCount; mod++) {
-            instrument.invalidModulators[mod] = true;
-            // For song modulator, valid if any setting used
-            if (instrument.modChannels[mod] == -1) {
-                if (instrument.modulators[mod] != 0)
-                    instrument.invalidModulators[mod] = false;
-                continue;
-            }
-            const channel: Channel | null = this.song.channels[instrument.modChannels[mod]];
-            if (channel == null) continue;
-            let tgtInstrumentList: Instrument[] = [];
-            if (instrument.modInstruments[mod] >= channel.instruments.length) { // All or active
-                tgtInstrumentList = channel.instruments;
-            } else {
-                tgtInstrumentList = [channel.instruments[instrument.modInstruments[mod]]];
-            }
-            for (let i: number = 0; i < tgtInstrumentList.length; i++) {
-                const tgtInstrument: Instrument | null = tgtInstrumentList[i];
-                if (tgtInstrument == null) continue;
-                const str: string = Config.modulators[instrument.modulators[mod]].name;
-                // Check effects
-                if (!((Config.modulators[instrument.modulators[mod]].associatedEffect != EffectType.length && !(tgtInstrument.effects & (1 << Config.modulators[instrument.modulators[mod]].associatedEffect)))
-                    // Instrument type specific
-                    || ((tgtInstrument.type != InstrumentType.fm && tgtInstrument.type != InstrumentType.fm6op) && (str == "fm slider 1" || str == "fm slider 2" || str == "fm slider 3" || str == "fm slider 4" || str == "fm feedback"))
-                    || tgtInstrument.type != InstrumentType.fm6op && (str == "fm slider 5" || str == "fm slider 6")
-                    || ((tgtInstrument.type != InstrumentType.pwm && tgtInstrument.type != InstrumentType.supersaw) && (str == "pulse width" || str == "decimal offset"))
-                    || ((tgtInstrument.type != InstrumentType.supersaw) && (str == "dynamism" || str == "spread" || str == "saw shape"))
-                    // Arp check
-                    || (!tgtInstrument.getChord().arpeggiates && (str == "arp speed" || str == "reset arp"))
-                    // EQ Filter check
-                    || (tgtInstrument.eqFilterType && str == "eq filter")
-                    || (!tgtInstrument.eqFilterType && (str == "eq filt cut" || str == "eq filt peak"))
-                    || (str == "eq filter" && Math.floor((instrument.modFilterTypes[mod] + 1) / 2) > tgtInstrument.getLargestControlPointCount(false))
-                    // Note Filter check
-                    || (tgtInstrument.noteFilterType && str == "note filter")
-                    || (!tgtInstrument.noteFilterType && (str == "note filt cut" || str == "note filt peak"))
-                    || (str == "note filter" && Math.floor((instrument.modFilterTypes[mod] + 1) / 2) > tgtInstrument.getLargestControlPointCount(true)))) {
-
-                    instrument.invalidModulators[mod] = false;
-                    i = tgtInstrumentList.length;
-                }
-            }
-
-        }
-    }
-
     private static operatorAmplitudeCurve(amplitude: number): number {
         return (Math.pow(16.0, amplitude / 15.0) - 1.0) / 15.0;
     }
@@ -2546,8 +2485,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
     // TODO: reverb
 
     public song: Song | null = null;
-    public preferLowerLatency: boolean = false; // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
-    public anticipatePoorPerformance: boolean = false; // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
     public liveInputDuration: number = 0;
     public liveBassInputDuration: number = 0;
     public liveInputStarted: boolean = false;
@@ -2577,10 +2514,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
     public tickSampleCountdown: number = 0;
-    private modValues: (number | null)[] = [];
-    public modInsValues: (number | null)[][][] = [];
-    private nextModValues: (number | null)[] = [];
-    public nextModInsValues: (number | null)[][][] = [];
+    public modValues: Int8Array;
+    public modInsValues: Int8Array;
+    public nextModValues: Int8Array;
+    public nextModInsValues: Int8Array;
     private isPlayingSong: boolean = false;
     private isRecording: boolean = false;
     private liveInputEndTime: number = 0.0;
@@ -2638,21 +2575,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private outputDataLUnfiltered: Float32Array | null = null;
     private outputDataRUnfiltered: Float32Array | null = null;
 
-    private audioContext: any | null = null;
-    private workletNode: any | null = null;
-
-    public get playing(): boolean {
-        return this.isPlayingSong;
-    }
-
-    public get recording(): boolean {
-        return this.isRecording;
-    }
-
-    public get playhead(): number {
-        return this.playheadInternal;
-    }
-
+    //TODO: remove playhead?
     public set playhead(value: number) {
         if (this.song != null) {
             this.playheadInternal = Math.max(0, Math.min(this.song.barCount, value));
@@ -2668,11 +2591,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.isAtStartOfTick = true;
             this.prevBar = null;
         }
-    }
-
-    public getSamplesPerBar(): number {
-        if (this.song == null) throw new Error();
-        return this.getSamplesPerTick() * Config.ticksPerPart * Config.partsPerBeat * this.song.beatsPerBar;
     }
 
     public getTicksIntoBar(): number {
@@ -2705,213 +2623,65 @@ export class SynthProcessor extends AudioWorkletProcessor {
         return partsInBar;
     }
 
-    // Returns the total samples in the song
-    public getTotalSamples(enableIntro: boolean, enableOutro: boolean, loop: number): number {
-        if (this.song == null)
-            return -1;
-
-        // Compute the window to be checked (start bar to end bar)
-        let startBar: number = enableIntro ? 0 : this.song.loopStart;
-        let endBar: number = enableOutro ? this.song.barCount : (this.song.loopStart + this.song.loopLength);
-        let hasTempoMods: boolean = false;
-        let hasNextBarMods: boolean = false;
-        let prevTempo: number = this.song.tempo;
-
-        // Determine if any tempo or next bar mods happen anywhere in the window
-        for (let channel: number = this.song.getChannelCount() - 1; channel >= this.song.pitchChannelCount + this.song.noiseChannelCount; channel--) {
-            for (let bar: number = startBar; bar < endBar; bar++) {
-                let pattern: Pattern | null = this.song.getPattern(channel, bar);
-                if (pattern != null) {
-                    let instrument: Instrument = this.song.channels[channel].instruments[pattern.instruments[0]];
-                    for (let mod: number = 0; mod < Config.modCount; mod++) {
-                        if (instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
-                            hasTempoMods = true;
-                        }
-                        if (instrument.modulators[mod] == Config.modulators.dictionary["next bar"].index) {
-                            hasNextBarMods = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        // If intro is not zero length, determine what the "entry" tempo is going into the start part, by looking at mods that came before...
-        if (startBar > 0) {
-            let latestTempoPin: number | null = null;
-            let latestTempoValue: number = 0;
-
-            for (let bar: number = startBar - 1; bar >= 0; bar--) {
-                for (let channel: number = this.song.getChannelCount() - 1; channel >= this.song.pitchChannelCount + this.song.noiseChannelCount; channel--) {
-                    let pattern = this.song.getPattern(channel, bar);
-
-                    if (pattern != null) {
-                        let instrumentIdx: number = pattern.instruments[0];
-                        let instrument: Instrument = this.song.channels[channel].instruments[instrumentIdx];
-
-                        let partsInBar: number = this.findPartsInBar(bar);
-
-                        for (const note of pattern.notes) {
-                            if (instrument.modulators[Config.modCount - 1 - note.pitches[0]] == Config.modulators.dictionary["tempo"].index) {
-                                if (note.start < partsInBar && (latestTempoPin == null || note.end > latestTempoPin)) {
-                                    if (note.end <= partsInBar) {
-                                        latestTempoPin = note.end;
-                                        latestTempoValue = note.pins[note.pins.length - 1].size;
-                                    }
-                                    else {
-                                        latestTempoPin = partsInBar;
-                                        // Find the pin where bar change happens, and compute where pin volume would be at that time
-                                        for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
-                                            if (note.pins[pinIdx].time + note.start > partsInBar) {
-                                                const transitionLength: number = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
-                                                const toNextBarLength: number = partsInBar - note.start - note.pins[pinIdx - 1].time;
-                                                const deltaVolume: number = note.pins[pinIdx].size - note.pins[pinIdx - 1].size;
-
-                                                latestTempoValue = Math.round(note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength);
-                                                pinIdx = note.pins.length;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Done once you process a pattern where tempo mods happened, since the search happens backward
-                if (latestTempoPin != null) {
-                    prevTempo = latestTempoValue + Config.modulators.dictionary["tempo"].convertRealFactor;
-                    bar = -1;
-                }
-            }
-        }
-
-        if (hasTempoMods || hasNextBarMods) {
-            // Run from start bar to end bar and observe looping, computing average tempo across each bar
-            let bar: number = startBar;
-            let ended: boolean = false;
-            let totalSamples: number = 0;
-
-            while (!ended) {
-                // Compute the subsection of the pattern that will play
-                let partsInBar: number = Config.partsPerBeat * this.song.beatsPerBar;
-                let currentPart: number = 0;
-
-                if (hasNextBarMods) {
-                    partsInBar = this.findPartsInBar(bar);
-                }
-
-                // Compute average tempo in this tick window, or use last tempo if nothing happened
-                if (hasTempoMods) {
-                    let foundMod: boolean = false;
-                    for (let channel: number = this.song.getChannelCount() - 1; channel >= this.song.pitchChannelCount + this.song.noiseChannelCount; channel--) {
-                        if (foundMod == false) {
-                            let pattern: Pattern | null = this.song.getPattern(channel, bar);
-                            if (pattern != null) {
-                                let instrument: Instrument = this.song.channels[channel].instruments[pattern.instruments[0]];
-                                for (let mod: number = 0; mod < Config.modCount; mod++) {
-                                    if (foundMod == false && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index
-                                        && pattern.notes.find(n => n.pitches[0] == (Config.modCount - 1 - mod))) {
-                                        // Only the first tempo mod instrument for this bar will be checked (well, the first with a note in this bar).
-                                        foundMod = true;
-                                        // Need to re-sort the notes by start time to make the next part much less painful.
-                                        pattern.notes.sort(function (a, b) { return (a.start == b.start) ? a.pitches[0] - b.pitches[0] : a.start - b.start; });
-                                        for (const note of pattern.notes) {
-                                            if (note.pitches[0] == (Config.modCount - 1 - mod)) {
-                                                // Compute samples up to this note
-                                                totalSamples += (Math.min(partsInBar - currentPart, note.start - currentPart)) * Config.ticksPerPart * this.getSamplesPerTickSpecificBPM(prevTempo);
-
-                                                if (note.start < partsInBar) {
-                                                    for (let pinIdx: number = 1; pinIdx < note.pins.length; pinIdx++) {
-                                                        // Compute samples up to this pin
-                                                        if (note.pins[pinIdx - 1].time + note.start <= partsInBar) {
-                                                            const tickLength: number = Config.ticksPerPart * Math.min(partsInBar - (note.start + note.pins[pinIdx - 1].time), note.pins[pinIdx].time - note.pins[pinIdx - 1].time);
-                                                            const prevPinTempo: number = note.pins[pinIdx - 1].size + Config.modulators.dictionary["tempo"].convertRealFactor;
-                                                            let currPinTempo: number = note.pins[pinIdx].size + Config.modulators.dictionary["tempo"].convertRealFactor;
-                                                            if (note.pins[pinIdx].time + note.start > partsInBar) {
-                                                                // Compute an intermediary tempo since bar changed over mid-pin. Maybe I'm deep in "what if" territory now!
-                                                                currPinTempo = note.pins[pinIdx - 1].size + (note.pins[pinIdx].size - note.pins[pinIdx - 1].size) * (partsInBar - (note.start + note.pins[pinIdx - 1].time)) / (note.pins[pinIdx].time - note.pins[pinIdx - 1].time) + Config.modulators.dictionary["tempo"].convertRealFactor;
-                                                            }
-                                                            let bpmScalar: number = Config.partsPerBeat * Config.ticksPerPart / 60;
-
-                                                            if (currPinTempo != prevPinTempo) {
-
-                                                                // Definite integral of SamplesPerTick w/r/t beats to find total samples from start point to end point for a variable tempo
-                                                                // The starting formula is
-                                                                // SamplesPerTick = SamplesPerSec / ((PartsPerBeat * TicksPerPart) / SecPerMin) * BeatsPerMin )
-                                                                //
-                                                                // This is an expression of samples per tick "instantaneously", and it can be multiplied by a number of ticks to get a sample count.
-                                                                // But this isn't the full story. BeatsPerMin, e.g. tempo, changes throughout the interval so it has to be expressed in terms of ticks, "t"
-                                                                // ( Also from now on PartsPerBeat, TicksPerPart, and SecPerMin are combined into one scalar, called "BPMScalar" )
-                                                                // Substituting BPM for a step variable that moves with respect to the current tick, we get
-                                                                // SamplesPerTick = SamplesPerSec / (BPMScalar * ( (EndTempo - StartTempo / TickLength) * t + StartTempo ) )
-                                                                //
-                                                                // When this equation is integrated from 0 to TickLength with respect to t, we get the following expression:
-                                                                //   Samples = - SamplesPerSec * TickLength * ( log( BPMScalar * EndTempo * TickLength ) - log( BPMScalar * StartTempo * TickLength ) ) / BPMScalar * ( StartTempo - EndTempo )
-
-                                                                totalSamples += - this.samplesPerSecond * tickLength * (Math.log(bpmScalar * currPinTempo * tickLength) - Math.log(bpmScalar * prevPinTempo * tickLength)) / (bpmScalar * (prevPinTempo - currPinTempo));
-
-                                                            }
-                                                            else {
-
-                                                                // No tempo change between the two pins.
-                                                                totalSamples += tickLength * this.getSamplesPerTickSpecificBPM(currPinTempo);
-
-                                                            }
-                                                            prevTempo = currPinTempo;
-                                                        }
-                                                        currentPart = Math.min(note.start + note.pins[pinIdx].time, partsInBar);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Compute samples for the rest of the bar
-                totalSamples += (partsInBar - currentPart) * Config.ticksPerPart * this.getSamplesPerTickSpecificBPM(prevTempo);
-
-                bar++;
-                if (loop != 0 && bar == this.song.loopStart + this.song.loopLength) {
-                    bar = this.song.loopStart;
-                    if (loop > 0) loop--;
-                }
-                if (bar >= endBar) {
-                    ended = true;
-                }
-
-            }
-
-            return Math.ceil(totalSamples);
-        }
-        else {
-            // No tempo or next bar mods... phew! Just calculate normally.
-            return this.getSamplesPerBar() * this.getTotalBars(enableIntro, enableOutro, loop);
-        }
-    }
-
-    public getTotalBars(enableIntro: boolean, enableOutro: boolean, useLoopCount: number = this.loopRepeatCount): number {
-        if (this.song == null) throw new Error();
-        let bars: number = this.song.loopLength * (useLoopCount + 1);
-        if (enableIntro) bars += this.song.loopStart;
-        if (enableOutro) bars += this.song.barCount - (this.song.loopStart + this.song.loopLength);
-        return bars;
-    }
-
     constructor() {
         super();
+        this.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
         this.computeDelayBufferSizes();
-        //TODO: can't initialize a synth with a song.. will hav
     }
 
-    public setSong(song: Song | string): void {
+    private sendMessage(message: Message) {
+        this.port.postMessage(message);
+    }
+
+    private receiveMessage(event: MessageEvent): void {
+        const flag: MessageFlag = event.data.flag;
+    
+        switch (flag) {
+            case MessageFlag.togglePlay:
+                if (event.data.play) {
+                    this.play();
+                } else {
+                    this.pause();
+                }
+                break;
+            case MessageFlag.loadSong:
+                this.setSong(event.data.song);
+                break;
+            case MessageFlag.maintainLiveInput:
+                this.maintainLiveInput();
+                break;
+            case MessageFlag.resetEffects:
+                this.resetEffects();
+                break;
+            case MessageFlag.computeMods:
+                if (event.data.initFilters) this.initModFilters(this.song);
+                this.computeLatestModValues();
+                break;
+            case MessageFlag.songPosition: {
+                this.bar = event.data.bar;
+                this.beat = event.data.beat;
+                this.part = event.data.part;
+
+                this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song!.beatsPerBar + this.bar;
+
+                break;
+            }
+            case MessageFlag.sharedArrayBuffers: {
+                this.modValues = event.data.modValues;
+                this.modInsValues = event.data.modInsValues;
+                this.nextModValues = event.data.nextModValues;
+                this.nextModInsValues = event.data.nextModInsValues;
+                break;
+            }
+            case MessageFlag.setPrevBar: {
+                this.prevBar = event.data.prevBar;
+            }
+        }
+    }
+
+    public setSong(song: string): void {
         if (typeof (song) == "string") {
             this.song = new Song(song);
-        } else if (song instanceof Song) {
-            this.song = song;
         }
         this.prevBar = null;
     }
@@ -2923,40 +2693,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.chorusDelayBufferMask = this.chorusDelayBufferSize - 1;
     }
 
-    private async activateAudio(): Promise<void> {
-        const bufferSize: number = this.anticipatePoorPerformance ? (this.preferLowerLatency ? 2048 : 4096) : (this.preferLowerLatency ? 512 : 2048);
-        if (this.audioContext == null || this.workletNode == null || this.workletNode.bufferSize != bufferSize) {
-            if (this.workletNode != null) this.deactivateAudio();
-            const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
-            this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
-            this.samplesPerSecond = this.audioContext.sampleRate;
-            await this.audioContext.audioWorklet.addModule("beepbox_synth_processor.js");
-            this.workletNode = new AudioWorkletNode(this.audioContext, 'synth_processor', { numberOfOutputs: 1, outputChannelCount: [2] });
-
-            this.workletNode.connect(this.audioContext.destination);
-
-            // this.workletNode = this.audioCtx.createScriptProcessor ? this.audioCtx.createScriptProcessor(bufferSize, 0, 2) : this.audioCtx.createJavaScriptNode(bufferSize, 0, 2); // bufferSize samples per callback buffer, 0 input channels, 2 output channels (left/right)
-            // this.workletNode.onaudioprocess = this.audioProcessCallback;
-            // this.workletNode.channelCountMode = 'explicit';
-            // this.workletNode.channelInterpretation = 'speakers';
-            // this.workletNode.connect(this.audioCtx.destination);
-
-            this.computeDelayBufferSizes();
-        }
-        this.audioContext.resume();
-    }
 
     private deactivateAudio(): void {
-        if (this.audioContext != null && this.workletNode != null) {
-            this.workletNode.disconnect(this.audioContext.destination);
-            this.workletNode = null;
-            if (this.audioContext.close) this.audioContext.close(); // firefox is missing this function?
-            this.audioContext = null;
+        const DeactivateMessage: DeactivateMessage = {
+            flag: MessageFlag.deactivate
         }
+        this.sendMessage(DeactivateMessage);
     }
 
     public maintainLiveInput(): void {
-        this.activateAudio();
         this.liveInputEndTime = performance.now() + 10000.0;
     }
 
@@ -2964,7 +2709,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
         if (this.isPlayingSong) return;
         this.initModFilters(this.song);
         this.computeLatestModValues();
-        this.activateAudio();
         this.warmUpSynthesizer(this.song);
         this.isPlayingSong = true;
     }
@@ -2972,27 +2716,19 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public pause(): void {
         if (!this.isPlayingSong) return;
         this.isPlayingSong = false;
+        //TODO: remove recording?
         this.isRecording = false;
-        this.preferLowerLatency = false;
-        this.modValues = [];
-        this.nextModValues = [];
+        this.modValues.fill(-1);
+        this.nextModValues.fill(-1);
         this.heldMods = [];
         if (this.song != null) {
             this.song.inVolumeCap = 0.0;
             this.song.outVolumeCap = 0.0;
             this.song.tmpEqFilterStart = null;
             this.song.tmpEqFilterEnd = null;
-            for (let channelIndex: number = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
-                this.modInsValues[channelIndex] = [];
-                this.nextModInsValues[channelIndex] = [];
-            }
+            this.modInsValues.fill(-1);
+            this.nextModInsValues.fill(-1);
         }
-    }
-
-    public startRecording(): void {
-        this.preferLowerLatency = true;
-        this.isRecording = true;
-        this.play();
     }
 
     public resetEffects(): void {
@@ -3007,6 +2743,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
     }
 
+    private modInsIndex(channelIndex: number, instrumentIndex: number, setting: number): number {
+        return (channelIndex * (Config.pitchChannelCountMax + Config.noiseChannelCountMax) + instrumentIndex) * Config.layeredInstrumentCountMax + setting;
+    }
+
     public setModValue(volumeStart: number, volumeEnd: number, channelIndex: number, instrumentIndex: number, setting: number): number {
         let val: number = volumeStart + Config.modulators[setting].convertRealFactor;
         let nextVal: number = volumeEnd + Config.modulators[setting].convertRealFactor;
@@ -3016,11 +2756,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.nextModValues[setting] = nextVal;
             }
         } else {
-            if (this.modInsValues[channelIndex][instrumentIndex][setting] == null
-                || this.modInsValues[channelIndex][instrumentIndex][setting] != val
-                || this.nextModInsValues[channelIndex][instrumentIndex][setting] != nextVal) {
-                this.modInsValues[channelIndex][instrumentIndex][setting] = val;
-                this.nextModInsValues[channelIndex][instrumentIndex][setting] = nextVal;
+            if (this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] == -1
+                || this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != val
+                || this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != nextVal) {
+                this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = val;
+                this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = nextVal;
             }
         }
 
@@ -3034,9 +2774,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 return nextVal ? this.nextModValues[setting]! : this.modValues[setting]!;
             }
         } else if (channel != undefined && instrument != undefined) {
-            if (this.modInsValues[channel][instrument][setting] != null && this.nextModInsValues[channel][instrument][setting] != null) {
-                return nextVal ? this.nextModInsValues[channel][instrument][setting]! : this.modInsValues[channel][instrument][setting]!;
-            }
+            return nextVal ? this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] : this.modInsValues[this.modInsIndex(channel, instrument, setting)];
         }
         return -1;
     }
@@ -3045,7 +2783,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public isAnyModActive(channel: number, instrument: number): boolean {
         for (let setting: number = 0; setting < Config.modulators.length; setting++) {
             if ((this.modValues != undefined && this.modValues[setting] != null)
-                || (this.modInsValues != undefined && this.modInsValues[channel] != undefined && this.modInsValues[channel][instrument] != undefined && this.modInsValues[channel][instrument][setting] != null)) {
+                || (this.modInsValues != undefined && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1)) {
                 return true;
             }
         }
@@ -3054,8 +2792,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
     public unsetMod(setting: number, channel?: number, instrument?: number) {
         if (this.isModActive(setting) || (channel != undefined && instrument != undefined && this.isModActive(setting, channel, instrument))) {
-            this.modValues[setting] = null;
-            this.nextModValues[setting] = null;
+            this.modValues[setting] = -1;
+            this.nextModValues[setting] = -1;
             for (let i: number = 0; i < this.heldMods.length; i++) {
                 if (channel != undefined && instrument != undefined) {
                     if (this.heldMods[i].channelIndex == channel && this.heldMods[i].instrumentIndex == instrument && this.heldMods[i].setting == setting)
@@ -3066,42 +2804,18 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
             if (channel != undefined && instrument != undefined) {
-                this.modInsValues[channel][instrument][setting] = null;
-                this.nextModInsValues[channel][instrument][setting] = null;
+                this.modInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
+                this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
             }
         }
-    }
-
-    public isFilterModActive(forNoteFilter: boolean, channelIdx: number, instrumentIdx: number, forSong?: boolean) {
-        const instrument: Instrument = this.song!.channels[channelIdx].instruments[instrumentIdx];
-
-        if (forNoteFilter) {
-            if (instrument.noteFilterType)
-                return false;
-            if (instrument.tmpNoteFilterEnd != null)
-                return true;
-        }
-        else {
-            if (forSong) {
-                if (this?.song?.tmpEqFilterEnd != null)
-                    return true;
-            } else {
-                if (instrument.eqFilterType)
-                    return false;
-                if (instrument.tmpEqFilterEnd != null)
-                    return true;
-            }
-        }
-
-        return false
     }
 
     public isModActive(setting: number, channel?: number, instrument?: number): boolean {
         const forSong: boolean = Config.modulators[setting].forSong;
         if (forSong) {
-            return (this.modValues != undefined && this.modValues[setting] != null);
-        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined && this.modInsValues[channel] != null && this.modInsValues[channel][instrument] != null) {
-            return (this.modInsValues[channel][instrument][setting] != null);
+            return (this.modValues != undefined && this.modValues[setting] != -1);
+        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined) {
+            return (this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1);
         }
         return false;
     }
@@ -3148,7 +2862,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.bar = this.song.loopStart;
             this.playheadInternal += this.bar - oldBar;
 
-            if (this.playing)
+            if (this.isPlayingSong)
                 this.computeLatestModValues();
         }
     }
@@ -3163,7 +2877,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
         this.playheadInternal += this.bar - oldBar;
 
-        if (this.playing)
+        if (this.isPlayingSong)
             this.computeLatestModValues();
     }
 
@@ -3177,7 +2891,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
         this.playheadInternal += this.bar - oldBar;
 
-        if (this.playing)
+        if (this.isPlayingSong)
             this.computeLatestModValues();
     }
 
@@ -3907,8 +3621,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             for (let setting: number = 0; setting < Config.modulators.length; setting++) {
                 for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
                     for (let instrument: number = 0; instrument < maxInstrumentsPerChannel; instrument++) {
-                        if (this.nextModInsValues != null && this.nextModInsValues[channel] != null && this.nextModInsValues[channel][instrument] != null && this.nextModInsValues[channel][instrument][setting] != null) {
-                            this.modInsValues[channel][instrument][setting] = this.nextModInsValues[channel][instrument][setting];
+                        if (this.nextModInsValues != null && this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
+                            this.modInsValues[this.modInsIndex(channel, instrument, setting)] = this.nextModInsValues[this.modInsIndex(channel, instrument, setting)];
                         }
                     }
                 }
@@ -8450,7 +8164,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 }
 
-registerProcessor('synth_processor', SynthProcessor);
+registerProcessor('synth-processor', SynthProcessor);
 
 
 // https://github.com/microsoft/TypeScript/issues/28308#issuecomment-650802278

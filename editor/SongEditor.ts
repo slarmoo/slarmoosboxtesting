@@ -11,7 +11,8 @@ import { CustomChipPrompt } from "./CustomChipPrompt";
 import { CustomFilterPrompt } from "./CustomFilterPrompt";
 import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
 import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
-import { EditorConfig, isMobile, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
+import { EditorConfig, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
+import { isMobile, ctrlSymbol, versionDisplayName } from "./DeviceConfig";
 import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "./PluginConfig"
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
@@ -56,6 +57,7 @@ import { VisualLoopControlsPrompt } from "./VisualLoopControlsPrompt";
 import { SampleLoadingStatusPrompt } from "./SampleLoadingStatusPrompt";
 import { AddSamplesPrompt } from "./AddSamplesPrompt";
 import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
+import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -764,8 +766,8 @@ export class SongEditor {
     private readonly _fileMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "File"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
         option({ value: "new" }, "+ New Blank Song (⇧`)"),
-        option({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"),
-        option({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"),
+        option({ value: "import" }, "↑ Import Song... (" + ctrlSymbol + "O)"),
+        option({ value: "export" }, "↓ Export Song... (" + ctrlSymbol + "S)"),
         option({ value: "copyUrl" }, "⎘ Copy Song URL"),
         option({ value: "shareUrl" }, "⤳ Share Song URL"),
         option({ value: "configureShortener" }, "🛠 Customize Url Shortener..."),
@@ -780,18 +782,18 @@ export class SongEditor {
         option({ value: "redo" }, "Redo (Y)"),
         option({ value: "copy" }, "Copy Pattern (C)"),
         option({ value: "pasteNotes" }, "Paste Pattern Notes (V)"),
-        option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"),
+        option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + ctrlSymbol + "⇧V)"),
         option({ value: "insertBars" }, "Insert Bar (⏎)"),
         option({ value: "deleteBars" }, "Delete Selected Bars (⌫)"),
-        option({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"),
-        option({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"),
+        option({ value: "insertChannel" }, "Insert Channel (" + ctrlSymbol + "⏎)"),
+        option({ value: "deleteChannel" }, "Delete Selected Channels (" + ctrlSymbol + "⌫)"),
         option({ value: "selectChannel" }, "Select Channel (⇧A)"),
         option({ value: "selectAll" }, "Select All (A)"),
         option({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"),
         option({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"),
         option({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"),
         option({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"),
-        option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + EditorConfig.ctrlSymbol + "E)"),
+        option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + ctrlSymbol + "E)"),
         option({ value: "beatsPerBar" }, "Change Beats Per Bar... (⇧B)"),
         option({ value: "barCount" }, "Change Song Length... (L)"),
         option({ value: "channelSettings" }, "Channel Settings... (Q)"),
@@ -1160,7 +1162,7 @@ export class SongEditor {
         div({ style: "margin-top:5px; display:flex; justify-content:center;" }, [this._customWavePresetDrop, this._customWaveZoom]),
     ]);
 
-    private readonly _songTitleInputBox: InputBox = new InputBox(input({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: EditorConfig.versionDisplayName }), this.doc, (oldValue: string, newValue: string) => new ChangeSongTitle(this.doc, oldValue, newValue));
+    private readonly _songTitleInputBox: InputBox = new InputBox(input({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: versionDisplayName }), this.doc, (oldValue: string, newValue: string) => new ChangeSongTitle(this.doc, oldValue, newValue));
 
 
     private readonly _feedbackAmplitudeSlider: Slider = new Slider(input({ type: "range", min: "0", max: Config.operatorAmplitudeMax, value: "0", step: "1", title: "Feedback Amplitude" }), this.doc, (oldValue: number, newValue: number) => new ChangeFeedbackAmplitude(this.doc, oldValue, newValue), false);
@@ -4331,8 +4333,11 @@ export class SongEditor {
 
                             this.doc.synth.goToBar(this.doc.bar);
                             this.doc.synth.snapToBar();
-                            this.doc.synth.initModFilters(this.doc.song);
-                            this.doc.synth.computeLatestModValues();
+                            const computeModsMessage: ComputeModsMessage = {
+                                flag: MessageFlag.computeMods,
+                                initFilters: true
+                            }
+                            this.doc.synth.sendMessage(computeModsMessage);
                             if (this.doc.prefs.autoFollow) {
                                 this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                             }
@@ -4439,8 +4444,11 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.song.loopStart);
                     this.doc.synth.snapToBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    const computeModsMessage: ComputeModsMessage = {
+                        flag: MessageFlag.computeMods,
+                        initFilters: true
+                    }
+                    this.doc.synth.sendMessage(computeModsMessage);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -4465,8 +4473,11 @@ export class SongEditor {
                     this._loopEditor.setLoopAt(this.doc.synth.loopBarStart, this.doc.synth.loopBarEnd);
 
                     this.doc.synth.snapToStart();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    const computeModsMessage: ComputeModsMessage = {
+                        flag: MessageFlag.computeMods,
+                        initFilters: true
+                    }
+                    this.doc.synth.sendMessage(computeModsMessage);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -4480,8 +4491,11 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.bar);
                     this.doc.synth.snapToBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    const computeModsMessage: ComputeModsMessage = {
+                        flag: MessageFlag.computeMods,
+                        initFilters: true
+                    }
+                    this.doc.synth.sendMessage(computeModsMessage);
 
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
@@ -4737,8 +4751,11 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToPrevBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    const computeModsMessage: ComputeModsMessage = {
+                        flag: MessageFlag.computeMods,
+                        initFilters: true
+                    }
+                    this.doc.synth.sendMessage(computeModsMessage);
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;
@@ -4755,8 +4772,11 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToNextBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    const computeModsMessage: ComputeModsMessage = {
+                        flag: MessageFlag.computeMods,
+                        initFilters: true
+                    }
+                    this.doc.synth.sendMessage(computeModsMessage);
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;

@@ -17,8 +17,8 @@ done
 # JS output has some slight differences, so check the other build strategies
 # before publishing updates.
 npx concurrently \
+  "npx esbuild --format=iife --keep-names --global-name=beepbox --bundle ./synth/synth_processor.ts --outfile=website/beepbox_synth_processor.js --sourcemap --watch " \
   "npx esbuild --format=iife --keep-names --global-name=beepbox --bundle ./synth/synth.js --outfile=website/beepbox_synth.js --sourcemap --watch --define:TESTING=true " \
   "npx esbuild --format=iife --keep-names --global-name=beepbox --bundle ./player/main.js --outfile=website/player/beepbox_player.min.js --sourcemap --watch --define:OFFLINE=false --define:TESTING=true " \
 	"npx esbuild --format=iife --keep-names --global-name=beepbox --bundle ./editor/main.js --outfile=website/beepbox_editor.js --sourcemap --watch --define:TESTING=true " \
-  "npx esbuild --format=iife --keep-names --global-name=beepbox --bundle ./synth/synth_processor.ts --outfile=website/beepbox_synth_processor.js --sourcemap --watch " \
 	"npx five-server --wait=200 --watch=website --port=4000 --open=$open_browser_path website/"

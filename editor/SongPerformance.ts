@@ -6,6 +6,7 @@ import { SongDocument } from "./SongDocument";
 import { ChangeGroup } from "./Change";
 import { ChangeChannelBar, ChangePinTime, ChangeEnsurePatternExists, ChangeNoteAdded, ChangeInsertBars, ChangeDeleteBars, ChangeNoteLength } from "./changes";
 import { Piano } from "./Piano";
+import { MessageFlag, ResetEffectsMessage } from "../synth/synthMessages";
 
 export class SongPerformance {
     private _channelIsDrum: boolean = false;
@@ -56,7 +57,10 @@ export class SongPerformance {
             this._lastNote = null;
         }
         this._doc.synth.pause();
-        this._doc.synth.resetEffects();
+        const resetEffects: ResetEffectsMessage = {
+            flag: MessageFlag.resetEffects
+        }
+        this._doc.synth.sendMessage(resetEffects);
         this._doc.synth.enableMetronome = false;
         this._doc.synth.countInMetronome = false
         if (this._doc.prefs.autoFollow) {
