@@ -5,7 +5,3 @@ export const isOnMac: boolean = /^Mac/i.test(navigator.platform) || /Mac OS X/i.
 
 export const ctrlSymbol: string = isOnMac ? "⌘" : "Ctrl+";
 export const ctrlName: string = isOnMac ? "command" : "control";
-
-//similar issue with the testing flag
-export const version: string = "1.5"; // Currently using patch versions in display (unlike JB)
-export const versionDisplayName: string = "Slarmoo's Box " + (TESTING ? "Testing " : "") + version;

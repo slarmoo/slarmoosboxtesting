@@ -5,7 +5,7 @@ import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 import { events } from "../global/Events";
 import { xxHash32 } from "js-xxhash";
-import { DeactivateMessage, Message, MessageFlag } from "./synthMessages";
+import { DeactivateMessage, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -780,17 +780,21 @@ class EnvelopeComputer {
                 //we can use either the time passed from the beginning of our song or the pitch of the note for what we hash
                 const hashMax: number = 0xffffffff;
                 const step: number = steps;
+                //TODO: old string serialization for backwards compatibility?
+                let unitarraybuffer: Uint8Array = new Uint8Array(1)
                 switch (waveform) {
                     case RandomEnvelopeTypes.time:
                         if (step <= 1) return 1;
-                        const timeHash: number = xxHash32((perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256))) + "", seed);
+                        unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
+                        const timeHash: number = xxHash32(unitarraybuffer, seed);
                         if (inverse) {
                             return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(timeHash * step / (hashMax + 1)) / step;
                         } else {
                             return boundAdjust * (step / (step - 1)) * Math.floor(timeHash * (step) / (hashMax + 1)) / step + perEnvelopeLowerBound;
                         }
                     case RandomEnvelopeTypes.pitch:
-                        const pitchHash: number = xxHash32(defaultPitch + "", seed);
+                        unitarraybuffer[0] = defaultPitch;
+                        const pitchHash: number = xxHash32(unitarraybuffer, seed);
                         if (inverse) {
                             return perEnvelopeUpperBound - boundAdjust * pitchHash / (hashMax + 1);
                         } else {
@@ -798,15 +802,18 @@ class EnvelopeComputer {
                         }
                     case RandomEnvelopeTypes.note:
                         if (step <= 1) return 1;
-                        const noteHash: number = xxHash32(notePinStart + "", seed);
+                        unitarraybuffer[0] = notePinStart
+                        const noteHash: number = xxHash32(unitarraybuffer, seed);
                         if (inverse) {
                             return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(noteHash * step / (hashMax + 1)) / step;
                         } else {
                             return boundAdjust * (step / (step - 1)) * Math.floor(noteHash * (step) / (hashMax + 1)) / step + perEnvelopeLowerBound;
                         }
                     case RandomEnvelopeTypes.timeSmooth:
-                        const timeHashA: number = xxHash32((perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256))) + "", seed);
-                        const timeHashB: number = xxHash32((perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / (256))) + "", seed);
+                        unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
+                        const timeHashA: number = xxHash32(unitarraybuffer, seed);
+                        unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / (256)));
+                        const timeHashB: number = xxHash32(unitarraybuffer, seed);
                         const weightedAverage: number = timeHashA * (1 - ((timeSinceStart * perEnvelopeSpeed) / (256)) % 1) + timeHashB * (((timeSinceStart * perEnvelopeSpeed) / (256)) % 1);
                         if (inverse) {
                             return perEnvelopeUpperBound - boundAdjust * weightedAverage / (hashMax + 1);
@@ -2293,6 +2300,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
 
     public computeLatestModValues(): void {
+        // console.log("here");
 
         if (this.song != null && this.song.modChannelCount > 0) {
 
@@ -2305,6 +2313,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.modInsValues.fill(-1);
             this.nextModInsValues.fill(-1);
             this.heldMods = [];
+
+            for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
+                latestModInsTimes[channel] = [];
+
+                for (let instrument: number = 0; instrument < this.song.channels[channel].instruments.length; instrument++) {
+                    latestModInsTimes[channel][instrument] = [];
+                }
+            }
 
             // Find out where we're at in the fraction of the current bar.
             let currentPart: number = this.beat * Config.partsPerBeat + this.part;
@@ -2504,7 +2520,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = [];
     private wantToSkip: boolean = false;
-    private playheadInternal: number = 0.0;
     private bar: number = 0;
     private prevBar: number | null = null;
     private nextBar: number | null = null;
@@ -2520,7 +2535,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public nextModInsValues: Int8Array;
     private isPlayingSong: boolean = false;
     private isRecording: boolean = false;
-    private liveInputEndTime: number = 0.0;
     private browserAutomaticallyClearsAudioBuffer: boolean = true; // Assume true until proven otherwise. Older Chrome does not clear the buffer so it needs to be cleared manually.
 
     public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
@@ -2574,24 +2588,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private tempMonoInstrumentSampleBuffer: Float32Array | null = null;
     private outputDataLUnfiltered: Float32Array | null = null;
     private outputDataRUnfiltered: Float32Array | null = null;
-
-    //TODO: remove playhead?
-    public set playhead(value: number) {
-        if (this.song != null) {
-            this.playheadInternal = Math.max(0, Math.min(this.song.barCount, value));
-            let remainder: number = this.playheadInternal;
-            this.bar = Math.floor(remainder);
-            remainder = this.song.beatsPerBar * (remainder - this.bar);
-            this.beat = Math.floor(remainder);
-            remainder = Config.partsPerBeat * (remainder - this.beat);
-            this.part = Math.floor(remainder);
-            remainder = Config.ticksPerPart * (remainder - this.part);
-            this.tick = Math.floor(remainder);
-            this.tickSampleCountdown = 0;
-            this.isAtStartOfTick = true;
-            this.prevBar = null;
-        }
-    }
 
     public getTicksIntoBar(): number {
         return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
@@ -2647,9 +2643,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.loadSong:
                 this.setSong(event.data.song);
                 break;
-            case MessageFlag.maintainLiveInput:
-                this.maintainLiveInput();
-                break;
             case MessageFlag.resetEffects:
                 this.resetEffects();
                 break;
@@ -2661,12 +2654,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.bar = event.data.bar;
                 this.beat = event.data.beat;
                 this.part = event.data.part;
-
-                this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song!.beatsPerBar + this.bar;
-
                 break;
             }
             case MessageFlag.sharedArrayBuffers: {
+                console.log("LOADING SABS")
                 this.modValues = event.data.modValues;
                 this.modInsValues = event.data.modInsValues;
                 this.nextModValues = event.data.nextModValues;
@@ -2701,10 +2692,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.sendMessage(DeactivateMessage);
     }
 
-    public maintainLiveInput(): void {
-        this.liveInputEndTime = performance.now() + 10000.0;
-    }
-
     public play(): void {
         if (this.isPlayingSong) return;
         this.initModFilters(this.song);
@@ -2718,6 +2705,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.isPlayingSong = false;
         //TODO: remove recording?
         this.isRecording = false;
+        console.log(this.modValues, this.modInsValues)
         this.modValues.fill(-1);
         this.nextModValues.fill(-1);
         this.heldMods = [];
@@ -2779,37 +2767,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
         return -1;
     }
 
-    // Checks if any mod is active for the given channel/instrument OR if any mod is active for the song scope. Could split the logic if needed later.
-    public isAnyModActive(channel: number, instrument: number): boolean {
-        for (let setting: number = 0; setting < Config.modulators.length; setting++) {
-            if ((this.modValues != undefined && this.modValues[setting] != null)
-                || (this.modInsValues != undefined && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public unsetMod(setting: number, channel?: number, instrument?: number) {
-        if (this.isModActive(setting) || (channel != undefined && instrument != undefined && this.isModActive(setting, channel, instrument))) {
-            this.modValues[setting] = -1;
-            this.nextModValues[setting] = -1;
-            for (let i: number = 0; i < this.heldMods.length; i++) {
-                if (channel != undefined && instrument != undefined) {
-                    if (this.heldMods[i].channelIndex == channel && this.heldMods[i].instrumentIndex == instrument && this.heldMods[i].setting == setting)
-                        this.heldMods.splice(i, 1);
-                } else {
-                    if (this.heldMods[i].setting == setting)
-                        this.heldMods.splice(i, 1);
-                }
-            }
-            if (channel != undefined && instrument != undefined) {
-                this.modInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
-                this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
-            }
-        }
-    }
-
     public isModActive(setting: number, channel?: number, instrument?: number): boolean {
         const forSong: boolean = Config.modulators[setting].forSong;
         if (forSong) {
@@ -2818,81 +2775,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             return (this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1);
         }
         return false;
-    }
-
-    // Force a modulator to be held at the given volumeStart for a brief duration.
-    public forceHoldMods(volumeStart: number, channelIndex: number, instrumentIndex: number, setting: number): void {
-        let found: boolean = false;
-        for (let i: number = 0; i < this.heldMods.length; i++) {
-            if (this.heldMods[i].channelIndex == channelIndex && this.heldMods[i].instrumentIndex == instrumentIndex && this.heldMods[i].setting == setting) {
-                this.heldMods[i].volume = volumeStart;
-                this.heldMods[i].holdFor = 24;
-                found = true;
-            }
-        }
-        // Default: hold for 24 ticks / 12 parts (half a beat).
-        if (!found)
-            this.heldMods.push({ volume: volumeStart, channelIndex: channelIndex, instrumentIndex: instrumentIndex, setting: setting, holdFor: 24 });
-    }
-
-    public snapToStart(): void {
-        this.bar = 0;
-        this.resetEffects();
-        this.snapToBar();
-    }
-
-    public goToBar(bar: number): void {
-        this.bar = bar;
-        this.resetEffects();
-        this.playheadInternal = this.bar;
-    }
-
-    public snapToBar(): void {
-        this.playheadInternal = this.bar;
-        this.beat = 0;
-        this.part = 0;
-        this.tick = 0;
-        this.tickSampleCountdown = 0;
-    }
-
-    public jumpIntoLoop(): void {
-        if (!this.song) return;
-        if (this.bar < this.song.loopStart || this.bar >= this.song.loopStart + this.song.loopLength) {
-            const oldBar: number = this.bar;
-            this.bar = this.song.loopStart;
-            this.playheadInternal += this.bar - oldBar;
-
-            if (this.isPlayingSong)
-                this.computeLatestModValues();
-        }
-    }
-
-    public goToNextBar(): void {
-        if (!this.song) return;
-        this.prevBar = this.bar;
-        const oldBar: number = this.bar;
-        this.bar++;
-        if (this.bar >= this.song.barCount) {
-            this.bar = 0;
-        }
-        this.playheadInternal += this.bar - oldBar;
-
-        if (this.isPlayingSong)
-            this.computeLatestModValues();
-    }
-
-    public goToPrevBar(): void {
-        if (!this.song) return;
-        this.prevBar = null;
-        const oldBar: number = this.bar;
-        this.bar--;
-        if (this.bar < 0 || this.bar >= this.song.barCount) {
-            this.bar = this.song.barCount - 1;
-        }
-        this.playheadInternal += this.bar - oldBar;
-
-        if (this.isPlayingSong)
-            this.computeLatestModValues();
     }
 
     private getNextBar(): number {
@@ -2950,20 +2832,24 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 outputDataR[i] = 0.0;
             }
         }
-
-        if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) {
-            this.deactivateAudio();
+        //liveInputEndTime is now handled on the main thread
+        if (!this.isPlayingSong) {
+            const maintainLiveInputMessage: MaintainLiveInputMessage = {
+                flag: MessageFlag.maintainLiveInput
+            }
+            this.sendMessage(maintainLiveInputMessage);
         } else {
             this.synthesize(outputDataL, outputDataR, outputDataL.length, this.isPlayingSong);
 
-            if (this.oscEnabled) {
-                if (this.oscRefreshEventTimer <= 0) {
-                    events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
-                    this.oscRefreshEventTimer = 2;
-                } else {
-                    this.oscRefreshEventTimer--;
-                }
-            }
+            //TODO: figure out how to properly handle this
+            // if (this.oscEnabled) {
+            //     if (this.oscRefreshEventTimer <= 0) {
+            //         events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
+            //         this.oscRefreshEventTimer = 2;
+            //     } else {
+            //         this.oscRefreshEventTimer--;
+            //     }
+            // }
         }
         return true;
     }
@@ -2989,17 +2875,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             let endSimpleGain: number = this.song.eqFilterSimplePeak;
 
             let filterChanges: boolean = false;
-
-            // if (synth.isModActive(Config.modulators.dictionary["eq filt cut"].index, channelIndex, instrumentIndex)) {
-            //     startSimpleFreq = synth.getModValue(Config.modulators.dictionary["eq filt cut"].index, channelIndex, instrumentIndex, false);
-            //     endSimpleFreq = synth.getModValue(Config.modulators.dictionary["eq filt cut"].index, channelIndex, instrumentIndex, true);
-            //     filterChanges = true;
-            // }
-            // if (synth.isModActive(Config.modulators.dictionary["eq filt peak"].index, channelIndex, instrumentIndex)) {
-            //     startSimpleGain = synth.getModValue(Config.modulators.dictionary["eq filt peak"].index, channelIndex, instrumentIndex, false);
-            //     endSimpleGain = synth.getModValue(Config.modulators.dictionary["eq filt peak"].index, channelIndex, instrumentIndex, true);
-            //     filterChanges = true;
-            // }
 
             let startPoint: FilterControlPoint;
 
@@ -3038,13 +2913,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             eqFilterVolume = Math.min(3.0, eqFilterVolume);
         } else {
             const eqFilterSettings: FilterSettings = (this.song.tmpEqFilterStart != null) ? this.song.tmpEqFilterStart : this.song.eqFilter;
-            //const eqAllFreqsEnvelopeStart: number = envelopeStarts[InstrumentAutomationIndex.eqFilterAllFreqs];
-            //const eqAllFreqsEnvelopeEnd:   number = envelopeEnds[  InstrumentAutomationIndex.eqFilterAllFreqs];
             for (let i: number = 0; i < eqFilterSettings.controlPointCount; i++) {
-                //const eqFreqEnvelopeStart: number = envelopeStarts[InstrumentAutomationIndex.eqFilterFreq0 + i];
-                //const eqFreqEnvelopeEnd:   number = envelopeEnds[  InstrumentAutomationIndex.eqFilterFreq0 + i];
-                //const eqPeakEnvelopeStart: number = envelopeStarts[InstrumentAutomationIndex.eqFilterGain0 + i];
-                //const eqPeakEnvelopeEnd:   number = envelopeEnds[  InstrumentAutomationIndex.eqFilterGain0 + i];
                 let startPoint: FilterControlPoint = eqFilterSettings.controlPoints[i];
                 let endPoint: FilterControlPoint = (this.song.tmpEqFilterEnd != null && this.song.tmpEqFilterEnd.controlPoints[i] != null) ? this.song.tmpEqFilterEnd.controlPoints[i] : eqFilterSettings.controlPoints[i];
 
@@ -3053,8 +2922,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     startPoint = endPoint;
                 }
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
-                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
+                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
                 if (this.songEqFiltersL.length <= i) this.songEqFiltersL[i] = new DynamicBiquadFilter();
                 this.songEqFiltersL[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
                 if (this.songEqFiltersR.length <= i) this.songEqFiltersR[i] = new DynamicBiquadFilter();
@@ -3123,8 +2992,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
         }
-
-        //const synthStartTime: number = performance.now();
 
         this.syncSongState();
 
@@ -3634,24 +3501,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.limit = limit;
 
         if (playSong && !this.countInMetronome) {
-            this.playheadInternal = (((this.tick + 1.0 - this.tickSampleCountdown / samplesPerTick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / song.beatsPerBar + this.bar;
+            const playheadMessage: SongPositionMessage = {
+                flag: MessageFlag.songPosition,
+                bar: this.bar,
+                beat: this.beat,
+                part: this.part,
+            }
+            this.sendMessage(playheadMessage);
         }
-
-        /*
-        const synthDuration: number = performance.now() - synthStartTime;
-        // Performance measurements:
-        samplesAccumulated += outputDataLLength;
-        samplePerformance += synthDuration;
-    	
-        if (samplesAccumulated >= 44100 * 4) {
-            const secondsGenerated = samplesAccumulated / 44100;
-            const secondsRequired = samplePerformance / 1000;
-            const ratio = secondsRequired / secondsGenerated;
-            console.log(ratio);
-            samplePerformance = 0;
-            samplesAccumulated = 0;
-        }
-        */
     }
 
     private freeTone(tone: Tone): void {
@@ -6127,8 +5984,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
 
             pickedStringSource += `
-				const Config = beepbox.Config;
-				const Synth = beepbox.Synth;
 				const data = synth.tempMonoInstrumentSampleBuffer;
 				
 				let pickedString# = tone.pickedStrings[#];
@@ -6453,29 +6308,29 @@ export class SynthProcessor extends AudioWorkletProcessor {
 				let chorusCombinedMult = +instrumentState.chorusCombinedMult;
 				const chorusCombinedMultDelta = +instrumentState.chorusCombinedMultDelta;
 				
-				const chorusDuration = +beepbox.Config.chorusPeriodSeconds;
+				const chorusDuration = +Config.chorusPeriodSeconds;
 				const chorusAngle = Math.PI * 2.0 / (chorusDuration * synth.samplesPerSecond);
-				const chorusRange = synth.samplesPerSecond * beepbox.Config.chorusDelayRange;
-				const chorusOffset0 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[0][0] * chorusRange;
-				const chorusOffset1 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[0][1] * chorusRange;
-				const chorusOffset2 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[0][2] * chorusRange;
-				const chorusOffset3 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[1][0] * chorusRange;
-				const chorusOffset4 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[1][1] * chorusRange;
-				const chorusOffset5 = synth.chorusDelayBufferSize - beepbox.Config.chorusDelayOffsets[1][2] * chorusRange;
+				const chorusRange = synth.samplesPerSecond * Config.chorusDelayRange;
+				const chorusOffset0 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[0][0] * chorusRange;
+				const chorusOffset1 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[0][1] * chorusRange;
+				const chorusOffset2 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[0][2] * chorusRange;
+				const chorusOffset3 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[1][0] * chorusRange;
+				const chorusOffset4 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[1][1] * chorusRange;
+				const chorusOffset5 = synth.chorusDelayBufferSize - Config.chorusDelayOffsets[1][2] * chorusRange;
 				let chorusPhase = instrumentState.chorusPhase % (Math.PI * 2.0);
-				let chorusTap0Index = chorusDelayPos + chorusOffset0 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][0]);
-				let chorusTap1Index = chorusDelayPos + chorusOffset1 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][1]);
-				let chorusTap2Index = chorusDelayPos + chorusOffset2 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][2]);
-				let chorusTap3Index = chorusDelayPos + chorusOffset3 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][0]);
-				let chorusTap4Index = chorusDelayPos + chorusOffset4 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][1]);
-				let chorusTap5Index = chorusDelayPos + chorusOffset5 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][2]);
+				let chorusTap0Index = chorusDelayPos + chorusOffset0 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][0]);
+				let chorusTap1Index = chorusDelayPos + chorusOffset1 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][1]);
+				let chorusTap2Index = chorusDelayPos + chorusOffset2 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][2]);
+				let chorusTap3Index = chorusDelayPos + chorusOffset3 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][0]);
+				let chorusTap4Index = chorusDelayPos + chorusOffset4 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][1]);
+				let chorusTap5Index = chorusDelayPos + chorusOffset5 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][2]);
 				chorusPhase += chorusAngle * runLength;
-				const chorusTap0End = chorusDelayPos + chorusOffset0 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][0]) + runLength;
-				const chorusTap1End = chorusDelayPos + chorusOffset1 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][1]) + runLength;
-				const chorusTap2End = chorusDelayPos + chorusOffset2 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[0][2]) + runLength;
-				const chorusTap3End = chorusDelayPos + chorusOffset3 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][0]) + runLength;
-				const chorusTap4End = chorusDelayPos + chorusOffset4 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][1]) + runLength;
-				const chorusTap5End = chorusDelayPos + chorusOffset5 - chorusRange * Math.sin(chorusPhase + beepbox.Config.chorusPhaseOffsets[1][2]) + runLength;
+				const chorusTap0End = chorusDelayPos + chorusOffset0 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][0]) + runLength;
+				const chorusTap1End = chorusDelayPos + chorusOffset1 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][1]) + runLength;
+				const chorusTap2End = chorusDelayPos + chorusOffset2 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[0][2]) + runLength;
+				const chorusTap3End = chorusDelayPos + chorusOffset3 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][0]) + runLength;
+				const chorusTap4End = chorusDelayPos + chorusOffset4 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][1]) + runLength;
+				const chorusTap5End = chorusDelayPos + chorusOffset5 - chorusRange * Math.sin(chorusPhase + Config.chorusPhaseOffsets[1][2]) + runLength;
 				const chorusTap0Delta = (chorusTap0End - chorusTap0Index) / runLength;
 				const chorusTap1Delta = (chorusTap1End - chorusTap1Index) / runLength;
 				const chorusTap2Delta = (chorusTap2End - chorusTap2Index) / runLength;

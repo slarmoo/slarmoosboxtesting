@@ -8,7 +8,6 @@ import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
 import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
-import { versionDisplayName } from "./DeviceConfig";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
@@ -5178,7 +5177,7 @@ export class ChangeSongTitle extends Change {
         }
 
         doc.song.title = newValue;
-        document.title = newValue + " - " + versionDisplayName;
+        document.title = newValue + " - " + EditorConfig.versionDisplayName;
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
     }

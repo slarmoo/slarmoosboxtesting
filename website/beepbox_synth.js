@@ -3008,6 +3008,13 @@ var beepbox = (() => {
       __name(this, "EditorConfig");
     }
     static {
+      this.version = "1.5";
+    }
+    static {
+      // Currently using patch versions in display (unlike JB)
+      this.versionDisplayName = "Slarmoo's Box " + (true ? "Testing " : "") + this.version;
+    }
+    static {
       this.releaseNotesURL = "./patch_notes.html";
     }
     static {
@@ -9249,7 +9256,6 @@ var beepbox = (() => {
           parsedUrl = new URL(urlSliced);
         }
       } else {
-        alert(url + " is not a valid url");
         return false;
       }
       if (parseOldSyntax) {
@@ -10076,16 +10082,9 @@ var beepbox = (() => {
       this.loopRepeatCount = -1;
       this.loopBarStart = -1;
       this.loopBarEnd = -1;
+      this.liveInputEndTime = 0;
       this.messageQueue = [];
       if (song != null) this.setSong(song);
-      const sabMessage = {
-        flag: 7 /* sharedArrayBuffers */,
-        modValues: this.modValues,
-        modInsValues: this.modInsValues,
-        nextModValues: this.nextModValues,
-        nextModInsValues: this.nextModInsValues
-      };
-      this.sendMessage(sabMessage);
       this.activateAudio();
     }
     static {
@@ -10181,7 +10180,20 @@ var beepbox = (() => {
           this.playheadInternal = ((this.tick / 2 + this.part) / Config.partsPerBeat + this.beat) / this.song.beatsPerBar + this.bar;
           break;
         }
+        case 4 /* maintainLiveInput */: {
+          if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
+          break;
+        }
       }
+    }
+    updateProcessorLocation() {
+      const songPositionMessage = {
+        flag: 3 /* songPosition */,
+        bar: this.bar,
+        beat: this.beat,
+        part: this.part
+      };
+      this.sendMessage(songPositionMessage);
     }
     setSong(song) {
       if (typeof song == "string") {
@@ -10203,6 +10215,21 @@ var beepbox = (() => {
     async activateAudio() {
       if (this.audioContext == null || this.workletNode == null) {
         if (this.workletNode != null) this.deactivateAudio();
+        const sabMessage = {
+          flag: 7 /* sharedArrayBuffers */,
+          modValues: this.modValues,
+          modInsValues: this.modInsValues,
+          nextModValues: this.nextModValues,
+          nextModInsValues: this.nextModInsValues
+        };
+        this.sendMessage(sabMessage);
+        if (this.song) {
+          const songMessage = {
+            flag: 0 /* loadSong */,
+            song: this.song.toBase64String()
+          };
+          this.sendMessage(songMessage);
+        }
         const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
         this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
         this.samplesPerSecond = this.audioContext.sampleRate;
@@ -10229,10 +10256,7 @@ var beepbox = (() => {
     }
     maintainLiveInput() {
       this.activateAudio();
-      const maintainLiveInputMessage = {
-        flag: 4 /* maintainLiveInput */
-      };
-      this.sendMessage(maintainLiveInputMessage);
+      this.liveInputEndTime = performance.now() + 1e4;
     }
     // Direct synthesize request, get from worker
     synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
@@ -10278,6 +10302,7 @@ var beepbox = (() => {
       const resetEffectsMessage = {
         flag: 5 /* resetEffects */
       };
+      this.updateProcessorLocation();
       this.sendMessage(resetEffectsMessage);
       this.playheadInternal = this.bar;
     }
@@ -10287,6 +10312,7 @@ var beepbox = (() => {
       this.part = 0;
       this.tick = 0;
       this.tickSampleCountdown = 0;
+      this.updateProcessorLocation();
     }
     jumpIntoLoop() {
       if (!this.song) return;
@@ -10299,6 +10325,7 @@ var beepbox = (() => {
             flag: 6 /* computeMods */,
             initFilters: false
           };
+          this.updateProcessorLocation();
           this.sendMessage(computeModsMessage);
         }
       }
@@ -10316,6 +10343,7 @@ var beepbox = (() => {
         this.bar = 0;
       }
       this.playheadInternal += this.bar - oldBar;
+      this.updateProcessorLocation();
       if (this.playing) {
         const computeModsMessage = {
           flag: 6 /* computeMods */,
@@ -10337,52 +10365,13 @@ var beepbox = (() => {
         this.bar = this.song.barCount - 1;
       }
       this.playheadInternal += this.bar - oldBar;
+      this.updateProcessorLocation();
       if (this.playing) {
         const computeModsMessage = {
           flag: 6 /* computeMods */,
           initFilters: false
         };
         this.sendMessage(computeModsMessage);
-      }
-    }
-    // private getNextBar(): number {
-    //     let nextBar: number = this.bar + 1;
-    //     if (this.isRecording) {
-    //         if (nextBar >= this.song!.barCount) {
-    //             nextBar = this.song!.barCount - 1;
-    //         }
-    //     } else if (this.bar == this.loopBarEnd && !this.renderingSong) {
-    //         nextBar = this.loopBarStart;
-    //     }
-    //     else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song!.loopStart + this.song!.loopLength)) {
-    //         nextBar = this.song!.loopStart;
-    //     }
-    //     return nextBar;
-    // }
-    skipBar() {
-      if (!this.song) return;
-      const samplesPerTick = this.getSamplesPerTick();
-      const prevBar = {
-        flag: 8 /* setPrevBar */,
-        prevBar: this.bar
-        // Bugfix by LeoV
-      };
-      this.sendMessage(prevBar);
-      if (this.loopBarEnd != this.bar)
-        this.bar++;
-      else {
-        this.bar = this.loopBarStart;
-      }
-      this.beat = 0;
-      this.part = 0;
-      this.tick = 0;
-      this.tickSampleCountdown = samplesPerTick;
-      this.isAtStartOfTick = true;
-      if (this.loopRepeatCount != 0 && this.bar == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd)) {
-        this.bar = this.song.loopStart;
-        if (this.loopBarStart != -1)
-          this.bar = this.loopBarStart;
-        if (this.loopRepeatCount > 0) this.loopRepeatCount--;
       }
     }
     // Returns the total samples in the song
@@ -10605,7 +10594,7 @@ var beepbox = (() => {
       let val = volumeStart + Config.modulators[setting].convertRealFactor;
       let nextVal = volumeEnd + Config.modulators[setting].convertRealFactor;
       if (Config.modulators[setting].forSong) {
-        if (this.modValues[setting] == null || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
+        if (this.modValues[setting] == -1 || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
           this.modValues[setting] = val;
           this.nextModValues[setting] = nextVal;
         }
@@ -10620,7 +10609,7 @@ var beepbox = (() => {
     getModValue(setting, channel, instrument, nextVal) {
       const forSong = Config.modulators[setting].forSong;
       if (forSong) {
-        if (this.modValues[setting] != null && this.nextModValues[setting] != null) {
+        if (this.modValues[setting] != -1 && this.nextModValues[setting] != -1) {
           return nextVal ? this.nextModValues[setting] : this.modValues[setting];
         }
       } else if (channel != void 0 && instrument != void 0) {
@@ -10631,7 +10620,7 @@ var beepbox = (() => {
     // Checks if any mod is active for the given channel/instrument OR if any mod is active for the song scope. Could split the logic if needed later.
     isAnyModActive(channel, instrument) {
       for (let setting = 0; setting < Config.modulators.length; setting++) {
-        if (this.modValues != void 0 && this.modValues[setting] != null || this.modInsValues != void 0 && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
+        if (this.modValues != void 0 && this.modValues[setting] != -1 || this.modInsValues != void 0 && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
           return true;
         }
       }

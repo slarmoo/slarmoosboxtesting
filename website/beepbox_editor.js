@@ -3036,6 +3036,13 @@ var beepbox = (() => {
       __name(this, "EditorConfig");
     }
     static {
+      this.version = "1.5";
+    }
+    static {
+      // Currently using patch versions in display (unlike JB)
+      this.versionDisplayName = "Slarmoo's Box " + (true ? "Testing " : "") + this.version;
+    }
+    static {
       this.releaseNotesURL = "./patch_notes.html";
     }
     static {
@@ -3475,8 +3482,6 @@ var beepbox = (() => {
   var isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
   var ctrlSymbol = isOnMac ? "\u2318" : "Ctrl+";
   var ctrlName = isOnMac ? "command" : "control";
-  var version = "1.5";
-  var versionDisplayName = "Slarmoo's Box " + (true ? "Testing " : "") + version;
 
   // node_modules/imperative-html/dist/esm/elements-base.js
   var __values = function(o) {
@@ -16285,20 +16290,20 @@ li.select2-results__option[role=group] > strong:hover {
       } else {
         fromBeepBox = true;
       }
-      const version2 = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-      if (fromBeepBox && (version2 == -1 || version2 > _Song._latestBeepboxVersion || version2 < _Song._oldestBeepboxVersion)) return;
-      if (fromJummBox && (version2 == -1 || version2 > _Song._latestJummBoxVersion || version2 < _Song._oldestJummBoxVersion)) return;
-      if (fromGoldBox && (version2 == -1 || version2 > _Song._latestGoldBoxVersion || version2 < _Song._oldestGoldBoxVersion)) return;
-      if (fromUltraBox && (version2 == -1 || version2 > _Song._latestUltraBoxVersion || version2 < _Song._oldestUltraBoxVersion)) return;
-      if (fromSlarmoosBox && (version2 == -1 || version2 > _Song._latestSlarmoosBoxVersion || version2 < _Song._oldestSlarmoosBoxVersion)) return;
-      const beforeTwo = version2 < 2;
-      const beforeThree = version2 < 3;
-      const beforeFour = version2 < 4;
-      const beforeFive = version2 < 5;
-      const beforeSix = version2 < 6;
-      const beforeSeven = version2 < 7;
-      const beforeEight = version2 < 8;
-      const beforeNine = version2 < 9;
+      const version = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+      if (fromBeepBox && (version == -1 || version > _Song._latestBeepboxVersion || version < _Song._oldestBeepboxVersion)) return;
+      if (fromJummBox && (version == -1 || version > _Song._latestJummBoxVersion || version < _Song._oldestJummBoxVersion)) return;
+      if (fromGoldBox && (version == -1 || version > _Song._latestGoldBoxVersion || version < _Song._oldestGoldBoxVersion)) return;
+      if (fromUltraBox && (version == -1 || version > _Song._latestUltraBoxVersion || version < _Song._oldestUltraBoxVersion)) return;
+      if (fromSlarmoosBox && (version == -1 || version > _Song._latestSlarmoosBoxVersion || version < _Song._oldestSlarmoosBoxVersion)) return;
+      const beforeTwo = version < 2;
+      const beforeThree = version < 3;
+      const beforeFour = version < 4;
+      const beforeFive = version < 5;
+      const beforeSix = version < 6;
+      const beforeSeven = version < 7;
+      const beforeEight = version < 8;
+      const beforeNine = version < 9;
       this.initToDefault(fromBeepBox && beforeNine || (fromJummBox && beforeFive || beforeFour && fromGoldBox));
       const forceSimpleFilter = fromBeepBox && beforeNine || fromJummBox && beforeFive;
       let willLoadLegacySamplesForOldSongs = false;
@@ -18388,7 +18393,6 @@ li.select2-results__option[role=group] > strong:hover {
           parsedUrl = new URL(urlSliced);
         }
       } else {
-        alert(url + " is not a valid url");
         return false;
       }
       if (parseOldSyntax) {
@@ -19215,16 +19219,9 @@ li.select2-results__option[role=group] > strong:hover {
       this.loopRepeatCount = -1;
       this.loopBarStart = -1;
       this.loopBarEnd = -1;
+      this.liveInputEndTime = 0;
       this.messageQueue = [];
       if (song != null) this.setSong(song);
-      const sabMessage = {
-        flag: 7 /* sharedArrayBuffers */,
-        modValues: this.modValues,
-        modInsValues: this.modInsValues,
-        nextModValues: this.nextModValues,
-        nextModInsValues: this.nextModInsValues
-      };
-      this.sendMessage(sabMessage);
       this.activateAudio();
     }
     static {
@@ -19320,7 +19317,20 @@ li.select2-results__option[role=group] > strong:hover {
           this.playheadInternal = ((this.tick / 2 + this.part) / Config.partsPerBeat + this.beat) / this.song.beatsPerBar + this.bar;
           break;
         }
+        case 4 /* maintainLiveInput */: {
+          if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
+          break;
+        }
       }
+    }
+    updateProcessorLocation() {
+      const songPositionMessage = {
+        flag: 3 /* songPosition */,
+        bar: this.bar,
+        beat: this.beat,
+        part: this.part
+      };
+      this.sendMessage(songPositionMessage);
     }
     setSong(song) {
       if (typeof song == "string") {
@@ -19342,6 +19352,21 @@ li.select2-results__option[role=group] > strong:hover {
     async activateAudio() {
       if (this.audioContext == null || this.workletNode == null) {
         if (this.workletNode != null) this.deactivateAudio();
+        const sabMessage = {
+          flag: 7 /* sharedArrayBuffers */,
+          modValues: this.modValues,
+          modInsValues: this.modInsValues,
+          nextModValues: this.nextModValues,
+          nextModInsValues: this.nextModInsValues
+        };
+        this.sendMessage(sabMessage);
+        if (this.song) {
+          const songMessage = {
+            flag: 0 /* loadSong */,
+            song: this.song.toBase64String()
+          };
+          this.sendMessage(songMessage);
+        }
         const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
         this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
         this.samplesPerSecond = this.audioContext.sampleRate;
@@ -19368,10 +19393,7 @@ li.select2-results__option[role=group] > strong:hover {
     }
     maintainLiveInput() {
       this.activateAudio();
-      const maintainLiveInputMessage = {
-        flag: 4 /* maintainLiveInput */
-      };
-      this.sendMessage(maintainLiveInputMessage);
+      this.liveInputEndTime = performance.now() + 1e4;
     }
     // Direct synthesize request, get from worker
     synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
@@ -19417,6 +19439,7 @@ li.select2-results__option[role=group] > strong:hover {
       const resetEffectsMessage = {
         flag: 5 /* resetEffects */
       };
+      this.updateProcessorLocation();
       this.sendMessage(resetEffectsMessage);
       this.playheadInternal = this.bar;
     }
@@ -19426,6 +19449,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.part = 0;
       this.tick = 0;
       this.tickSampleCountdown = 0;
+      this.updateProcessorLocation();
     }
     jumpIntoLoop() {
       if (!this.song) return;
@@ -19438,6 +19462,7 @@ li.select2-results__option[role=group] > strong:hover {
             flag: 6 /* computeMods */,
             initFilters: false
           };
+          this.updateProcessorLocation();
           this.sendMessage(computeModsMessage);
         }
       }
@@ -19455,6 +19480,7 @@ li.select2-results__option[role=group] > strong:hover {
         this.bar = 0;
       }
       this.playheadInternal += this.bar - oldBar;
+      this.updateProcessorLocation();
       if (this.playing) {
         const computeModsMessage = {
           flag: 6 /* computeMods */,
@@ -19476,52 +19502,13 @@ li.select2-results__option[role=group] > strong:hover {
         this.bar = this.song.barCount - 1;
       }
       this.playheadInternal += this.bar - oldBar;
+      this.updateProcessorLocation();
       if (this.playing) {
         const computeModsMessage = {
           flag: 6 /* computeMods */,
           initFilters: false
         };
         this.sendMessage(computeModsMessage);
-      }
-    }
-    // private getNextBar(): number {
-    //     let nextBar: number = this.bar + 1;
-    //     if (this.isRecording) {
-    //         if (nextBar >= this.song!.barCount) {
-    //             nextBar = this.song!.barCount - 1;
-    //         }
-    //     } else if (this.bar == this.loopBarEnd && !this.renderingSong) {
-    //         nextBar = this.loopBarStart;
-    //     }
-    //     else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song!.loopStart + this.song!.loopLength)) {
-    //         nextBar = this.song!.loopStart;
-    //     }
-    //     return nextBar;
-    // }
-    skipBar() {
-      if (!this.song) return;
-      const samplesPerTick = this.getSamplesPerTick();
-      const prevBar = {
-        flag: 8 /* setPrevBar */,
-        prevBar: this.bar
-        // Bugfix by LeoV
-      };
-      this.sendMessage(prevBar);
-      if (this.loopBarEnd != this.bar)
-        this.bar++;
-      else {
-        this.bar = this.loopBarStart;
-      }
-      this.beat = 0;
-      this.part = 0;
-      this.tick = 0;
-      this.tickSampleCountdown = samplesPerTick;
-      this.isAtStartOfTick = true;
-      if (this.loopRepeatCount != 0 && this.bar == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd)) {
-        this.bar = this.song.loopStart;
-        if (this.loopBarStart != -1)
-          this.bar = this.loopBarStart;
-        if (this.loopRepeatCount > 0) this.loopRepeatCount--;
       }
     }
     // Returns the total samples in the song
@@ -19744,7 +19731,7 @@ li.select2-results__option[role=group] > strong:hover {
       let val = volumeStart + Config.modulators[setting].convertRealFactor;
       let nextVal = volumeEnd + Config.modulators[setting].convertRealFactor;
       if (Config.modulators[setting].forSong) {
-        if (this.modValues[setting] == null || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
+        if (this.modValues[setting] == -1 || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
           this.modValues[setting] = val;
           this.nextModValues[setting] = nextVal;
         }
@@ -19759,7 +19746,7 @@ li.select2-results__option[role=group] > strong:hover {
     getModValue(setting, channel, instrument, nextVal) {
       const forSong = Config.modulators[setting].forSong;
       if (forSong) {
-        if (this.modValues[setting] != null && this.nextModValues[setting] != null) {
+        if (this.modValues[setting] != -1 && this.nextModValues[setting] != -1) {
           return nextVal ? this.nextModValues[setting] : this.modValues[setting];
         }
       } else if (channel != void 0 && instrument != void 0) {
@@ -19770,7 +19757,7 @@ li.select2-results__option[role=group] > strong:hover {
     // Checks if any mod is active for the given channel/instrument OR if any mod is active for the song scope. Could split the logic if needed later.
     isAnyModActive(channel, instrument) {
       for (let setting = 0; setting < Config.modulators.length; setting++) {
-        if (this.modValues != void 0 && this.modValues[setting] != null || this.modInsValues != void 0 && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
+        if (this.modValues != void 0 && this.modValues[setting] != -1 || this.modInsValues != void 0 && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
           return true;
         }
       }
@@ -19900,8 +19887,8 @@ li.select2-results__option[role=group] > strong:hover {
     return JSON.parse(key.substring(versionPrefix.length));
   }
   __name(keyToVersion, "keyToVersion");
-  function versionToKey(version2) {
-    return versionPrefix + JSON.stringify(version2);
+  function versionToKey(version) {
+    return versionPrefix + JSON.stringify(version);
   }
   __name(versionToKey, "versionToKey");
   function generateUid() {
@@ -19934,14 +19921,14 @@ li.select2-results__option[role=group] > strong:hover {
       for (let i = 0; i < localStorage.length; i++) {
         const itemKey = localStorage.key(i);
         if (keyIsVersion(itemKey)) {
-          const version2 = keyToVersion(itemKey);
-          let song = songsByUid[version2.uid];
+          const version = keyToVersion(itemKey);
+          let song = songsByUid[version.uid];
           if (song == void 0) {
             song = { versions: [] };
-            songsByUid[version2.uid] = song;
+            songsByUid[version.uid] = song;
             songs.push(song);
           }
-          song.versions.push(version2);
+          song.versions.push(version);
         }
       }
       for (const song of songs) {
@@ -20017,8 +20004,8 @@ li.select2-results__option[role=group] > strong:hover {
               leastImportantSong = song;
             }
           }
-          for (const version2 of leastImportantSong.versions) {
-            localStorage.removeItem(versionToKey(version2));
+          for (const version of leastImportantSong.versions) {
+            localStorage.removeItem(versionToKey(version));
           }
           songs.splice(songs.indexOf(leastImportantSong), 1);
         }
@@ -25836,7 +25823,7 @@ li.select2-results__option[role=group] > strong:hover {
         newValue = newValue.substring(0, 30);
       }
       doc.song.title = newValue;
-      document.title = newValue + " - " + versionDisplayName;
+      document.title = newValue + " - " + EditorConfig.versionDisplayName;
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -38980,16 +38967,16 @@ You should be redirected to the song at:<br /><br />
       }
       for (const song of songs) {
         const versionMenu = select8({ style: "width: 100%;" });
-        for (const version2 of song.versions) {
-          versionMenu.appendChild(option8({ value: version2.time }, version2.name + ": " + new Date(version2.time).toLocaleString()));
+        for (const version of song.versions) {
+          versionMenu.appendChild(option8({ value: version.time }, version.name + ": " + new Date(version.time).toLocaleString()));
         }
         const player = iframe({ style: "width: 100%; height: 60px; border: none; display: block;" });
         player.src = "player/" + (OFFLINE ? "index.html" : "") + "#song=" + window.localStorage.getItem(versionToKey(song.versions[0]));
         const container = div17({ style: "margin: 4px 0;" }, div17({ class: "selectContainer", style: "width: 100%; margin: 2px 0;" }, versionMenu), player);
         this._songContainer.appendChild(container);
         versionMenu.addEventListener("change", () => {
-          const version2 = song.versions[versionMenu.selectedIndex];
-          player.contentWindow.location.replace("player/" + (OFFLINE ? "index.html" : "") + "#song=" + window.localStorage.getItem(versionToKey(version2)));
+          const version = song.versions[versionMenu.selectedIndex];
+          player.contentWindow.location.replace("player/" + (OFFLINE ? "index.html" : "") + "#song=" + window.localStorage.getItem(versionToKey(version)));
           player.contentWindow.dispatchEvent(new Event("hashchange"));
         });
       }
@@ -44022,7 +44009,7 @@ You should be redirected to the song at:<br /><br />
       this._harmonicsZoom = button25({ style: "padding-left:0.2em; height:1.5em; max-width: 12px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("harmonicsSettings"), "onclick") }, "+");
       this._harmonicsRow = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("harmonics"), "onclick"), style: "font-size: smaller" }, "Harmonics:"), this._harmonicsZoom, this._harmonicsEditor.container);
       //SongEditor.ts
-      this.envelopeEditor = new EnvelopeEditor(this.doc, (id2, submenu, subtype) => this._toggleDropdownMenu(id2, submenu, subtype), (name) => this._openPrompt(name));
+      this.envelopeEditor = new EnvelopeEditor(this.doc, (id2, submenu, subtype) => this._toggleDropdownMenu(id2, submenu), (name) => this._openPrompt(name));
       this._envelopeSpeedDisplay = span7({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "x1");
       this._envelopeSpeedSlider = new Slider(input19({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["envelope speed"].maxRawVol, value: "0", step: "1" }), this.doc, (oldValue, newValue) => new ChangeEnvelopeSpeed(this.doc, oldValue, newValue), false);
       this._envelopeSpeedRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("envelopeSpeed"), "onclick") }, "\u2023 Spd:"), this._envelopeSpeedDisplay, this._envelopeSpeedSlider.container);
@@ -44086,7 +44073,7 @@ You should be redirected to the song at:<br /><br />
         div26({ style: "height:54px; display:flex; justify-content:center;" }, [this._customWaveDrawCanvas.canvas]),
         div26({ style: "margin-top:5px; display:flex; justify-content:center;" }, [this._customWavePresetDrop, this._customWaveZoom])
       ]);
-      this._songTitleInputBox = new InputBox(input19({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: versionDisplayName }), this.doc, (oldValue, newValue) => new ChangeSongTitle(this.doc, oldValue, newValue));
+      this._songTitleInputBox = new InputBox(input19({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: EditorConfig.versionDisplayName }), this.doc, (oldValue, newValue) => new ChangeSongTitle(this.doc, oldValue, newValue));
       this._feedbackAmplitudeSlider = new Slider(input19({ type: "range", min: "0", max: Config.operatorAmplitudeMax, value: "0", step: "1", title: "Feedback Amplitude" }), this.doc, (oldValue, newValue) => new ChangeFeedbackAmplitude(this.doc, oldValue, newValue), false);
       this._feedbackRow2 = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("feedbackVolume"), "onclick") }, "Fdback Vol:"), this._feedbackAmplitudeSlider.container);
       /*
@@ -47439,7 +47426,7 @@ You should be redirected to the song at:<br /><br />
       }
       this._customAlgorithmCanvas.redrawCanvas();
     }
-    _toggleDropdownMenu(dropdown, submenu = 0, subtype = null) {
+    _toggleDropdownMenu(dropdown, submenu = 0) {
       let target = this._vibratoDropdown;
       let group = this._vibratoDropdownGroup;
       switch (dropdown) {

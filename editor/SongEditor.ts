@@ -12,7 +12,7 @@ import { CustomFilterPrompt } from "./CustomFilterPrompt";
 import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
 import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
 import { EditorConfig, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
-import { isMobile, ctrlSymbol, versionDisplayName } from "./DeviceConfig";
+import { isMobile, ctrlSymbol } from "./DeviceConfig";
 import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "./PluginConfig"
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
@@ -1086,7 +1086,7 @@ export class SongEditor {
     private readonly _harmonicsRow: HTMLElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("harmonics"), style: "font-size: smaller"}, "Harmonics:"), this._harmonicsZoom, this._harmonicsEditor.container);
 
     //SongEditor.ts
-    readonly envelopeEditor: EnvelopeEditor = new EnvelopeEditor(this.doc, (id: number, submenu: number, subtype: string) => this._toggleDropdownMenu(id, submenu, subtype), (name: string) => this._openPrompt(name));
+    readonly envelopeEditor: EnvelopeEditor = new EnvelopeEditor(this.doc, (id: number, submenu: number, subtype: string) => this._toggleDropdownMenu(id, submenu), (name: string) => this._openPrompt(name));
     private readonly _envelopeSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "x1");
     private readonly _envelopeSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["envelope speed"].maxRawVol, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeEnvelopeSpeed(this.doc, oldValue, newValue), false);
     private readonly _envelopeSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("envelopeSpeed") }, "‣ Spd:"), this._envelopeSpeedDisplay, this._envelopeSpeedSlider.container);
@@ -1162,7 +1162,7 @@ export class SongEditor {
         div({ style: "margin-top:5px; display:flex; justify-content:center;" }, [this._customWavePresetDrop, this._customWaveZoom]),
     ]);
 
-    private readonly _songTitleInputBox: InputBox = new InputBox(input({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: versionDisplayName }), this.doc, (oldValue: string, newValue: string) => new ChangeSongTitle(this.doc, oldValue, newValue));
+    private readonly _songTitleInputBox: InputBox = new InputBox(input({ style: "font-weight:bold; border:none; width: 98%; background-color:${ColorConfig.editorBackground}; color:${ColorConfig.primaryText}; text-align:center", maxlength: "30", type: "text", value: EditorConfig.versionDisplayName }), this.doc, (oldValue: string, newValue: string) => new ChangeSongTitle(this.doc, oldValue, newValue));
 
 
     private readonly _feedbackAmplitudeSlider: Slider = new Slider(input({ type: "range", min: "0", max: Config.operatorAmplitudeMax, value: "0", step: "1", title: "Feedback Amplitude" }), this.doc, (oldValue: number, newValue: number) => new ChangeFeedbackAmplitude(this.doc, oldValue, newValue), false);
@@ -1827,7 +1827,7 @@ export class SongEditor {
         this._customAlgorithmCanvas.redrawCanvas();
     }
 
-    private _toggleDropdownMenu(dropdown: DropdownID, submenu: number = 0, subtype: string | null = null): void {
+    private _toggleDropdownMenu(dropdown: DropdownID, submenu: number = 0): void {
         let target: HTMLButtonElement = this._vibratoDropdown;
         let group: HTMLElement = this._vibratoDropdownGroup;
         switch (dropdown) {

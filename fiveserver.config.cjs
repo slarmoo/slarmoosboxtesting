@@ -1,3 +1,4 @@
+//for live editor typeless to work with shared array buffers
 module.exports = {
     middleware: [
         (req, res, next) => {
@@ -7,4 +8,3 @@ module.exports = {
         },
     ],
 };
-  

@@ -38,7 +38,7 @@ export interface SongPositionMessage extends Message {
 }
 
 export interface MaintainLiveInputMessage extends Message {
-    flag: MessageFlag.maintainLiveInput
+    flag: MessageFlag.maintainLiveInput,
 }
 
 export interface ResetEffectsMessage extends Message {

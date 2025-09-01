@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, MaintainLiveInputMessage, ResetEffectsMessage, ComputeModsMessage, SendSharedArrayBuffers, SetPrevBarMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SendSharedArrayBuffers, SetPrevBarMessage, SongPositionMessage } from "./synthMessages";
 
 declare global {
     interface Window {
@@ -6532,7 +6532,7 @@ export class Song {
             }
         }
         else {
-            alert(url + " is not a valid url");
+            // alert(url + " is not a valid url");
             return false;
         }
 
@@ -7512,6 +7512,8 @@ export class Synth {
     public loopBarStart: number = -1;
     public loopBarEnd: number = -1;
 
+    private liveInputEndTime: number = 0.0;
+
     public get playing(): boolean {
         return this.isPlayingSong;
     }
@@ -7554,15 +7556,6 @@ export class Synth {
 
     constructor(song: Song | string | null = null) {
         if (song != null) this.setSong(song);
-        const sabMessage: SendSharedArrayBuffers = {
-            flag: MessageFlag.sharedArrayBuffers,
-            modValues: this.modValues,
-            modInsValues: this.modInsValues,
-            nextModValues: this.nextModValues,
-            nextModInsValues: this.nextModInsValues
-
-        }
-        this.sendMessage(sabMessage);
         this.activateAudio();
     }
 
@@ -7609,7 +7602,22 @@ export class Synth {
 
                 break;
             }
+                
+            case MessageFlag.maintainLiveInput: {
+                if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
+                break;
+            }
         }
+    }
+
+    private updateProcessorLocation() {
+        const songPositionMessage: SongPositionMessage = {
+            flag: MessageFlag.songPosition,
+            bar: this.bar,
+            beat: this.beat,
+            part: this.part
+        }
+        this.sendMessage(songPositionMessage);
     }
 
     public setSong(song: Song | string): void {
@@ -7633,6 +7641,24 @@ export class Synth {
     private async activateAudio(): Promise<void> {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
+            //make sure that the workletNode has access to the shared array buffers and the song
+            const sabMessage: SendSharedArrayBuffers = {
+                flag: MessageFlag.sharedArrayBuffers,
+                modValues: this.modValues,
+                modInsValues: this.modInsValues,
+                nextModValues: this.nextModValues,
+                nextModInsValues: this.nextModInsValues
+
+            }
+            this.sendMessage(sabMessage);
+            if (this.song) {
+                const songMessage: LoadSongMessage = {
+                    flag: MessageFlag.loadSong,
+                    song: this.song.toBase64String()
+                }
+                this.sendMessage(songMessage);
+            }
+
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
             this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
             this.samplesPerSecond = this.audioContext.sampleRate;
@@ -7663,10 +7689,7 @@ export class Synth {
 
     public maintainLiveInput(): void {
         this.activateAudio();
-        const maintainLiveInputMessage: MaintainLiveInputMessage = {
-            flag: MessageFlag.maintainLiveInput
-        }
-        this.sendMessage(maintainLiveInputMessage);
+        this.liveInputEndTime = performance.now() + 10000.0;
     }
 
     // Direct synthesize request, get from worker
@@ -7721,6 +7744,7 @@ export class Synth {
         const resetEffectsMessage: ResetEffectsMessage = {
             flag: MessageFlag.resetEffects
         }
+        this.updateProcessorLocation();
         this.sendMessage(resetEffectsMessage);
         this.playheadInternal = this.bar;
     }
@@ -7731,6 +7755,7 @@ export class Synth {
         this.part = 0;
         this.tick = 0;
         this.tickSampleCountdown = 0;
+        this.updateProcessorLocation();
     }
 
     public jumpIntoLoop(): void {
@@ -7745,6 +7770,7 @@ export class Synth {
                     flag: MessageFlag.computeMods,
                     initFilters: false
                 }
+                this.updateProcessorLocation();
                 this.sendMessage(computeModsMessage);
             }
         }
@@ -7763,6 +7789,7 @@ export class Synth {
             this.bar = 0;
         }
         this.playheadInternal += this.bar - oldBar;
+        this.updateProcessorLocation();
 
         if (this.playing) {
             const computeModsMessage: ComputeModsMessage = {
@@ -7787,6 +7814,7 @@ export class Synth {
         }
         this.playheadInternal += this.bar - oldBar;
 
+        this.updateProcessorLocation();
         if (this.playing) {
             const computeModsMessage: ComputeModsMessage = {
                 flag: MessageFlag.computeMods,
@@ -7794,49 +7822,6 @@ export class Synth {
             }
             this.sendMessage(computeModsMessage);
         }
-    }
-
-    // private getNextBar(): number {
-    //     let nextBar: number = this.bar + 1;
-    //     if (this.isRecording) {
-    //         if (nextBar >= this.song!.barCount) {
-    //             nextBar = this.song!.barCount - 1;
-    //         }
-    //     } else if (this.bar == this.loopBarEnd && !this.renderingSong) {
-    //         nextBar = this.loopBarStart;
-    //     }
-    //     else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song!.loopStart + this.song!.loopLength)) {
-    //         nextBar = this.song!.loopStart;
-    //     }
-    //     return nextBar;
-    // }
-
-    public skipBar(): void {
-        if (!this.song) return;
-        const samplesPerTick: number = this.getSamplesPerTick();
-        const prevBar: SetPrevBarMessage = {
-            flag: MessageFlag.setPrevBar,
-            prevBar: this.bar // Bugfix by LeoV
-        }
-        this.sendMessage(prevBar);
-        if (this.loopBarEnd != this.bar)
-            this.bar++;
-        else {
-            this.bar = this.loopBarStart;
-        }
-        this.beat = 0;
-        this.part = 0;
-        this.tick = 0;
-        this.tickSampleCountdown = samplesPerTick;
-        this.isAtStartOfTick = true;
-
-        if (this.loopRepeatCount != 0 && this.bar == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd)) {
-            this.bar = this.song.loopStart;
-            if (this.loopBarStart != -1)
-                this.bar = this.loopBarStart;
-            if (this.loopRepeatCount > 0) this.loopRepeatCount--;
-        }
-
     }
 
     // Returns the total samples in the song
@@ -8140,7 +8125,7 @@ export class Synth {
         let val: number = volumeStart + Config.modulators[setting].convertRealFactor;
         let nextVal: number = volumeEnd + Config.modulators[setting].convertRealFactor;
         if (Config.modulators[setting].forSong) {
-            if (this.modValues[setting] == null || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
+            if (this.modValues[setting] == -1 || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
                 this.modValues[setting] = val;
                 this.nextModValues[setting] = nextVal;
             }
@@ -8159,7 +8144,7 @@ export class Synth {
     public getModValue(setting: number, channel?: number | null, instrument?: number | null, nextVal?: boolean): number {
         const forSong: boolean = Config.modulators[setting].forSong;
         if (forSong) {
-            if (this.modValues[setting] != null && this.nextModValues[setting] != null) {
+            if (this.modValues[setting] != -1 && this.nextModValues[setting] != -1) {
                 return nextVal ? this.nextModValues[setting]! : this.modValues[setting]!;
             }
         } else if (channel != undefined && instrument != undefined) {
@@ -8171,7 +8156,7 @@ export class Synth {
     // Checks if any mod is active for the given channel/instrument OR if any mod is active for the song scope. Could split the logic if needed later.
     public isAnyModActive(channel: number, instrument: number): boolean {
         for (let setting: number = 0; setting < Config.modulators.length; setting++) {
-            if ((this.modValues != undefined && this.modValues[setting] != null)
+            if ((this.modValues != undefined && this.modValues[setting] != -1)
                 || (this.modInsValues != undefined && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1)) {
                 return true;
             }
