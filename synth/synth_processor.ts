@@ -3,7 +3,7 @@ import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, 
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
-import { events } from "../global/Events";
+// import { events } from "../global/Events";
 import { xxHash32 } from "js-xxhash";
 import { DeactivateMessage, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
 
@@ -2733,10 +2733,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
         }
-    }
-
-    private modInsIndex(channelIndex: number, instrumentIndex: number, setting: number): number {
-        return (channelIndex * (Config.pitchChannelCountMax + Config.noiseChannelCountMax) + instrumentIndex) * Config.layeredInstrumentCountMax + setting;
     }
 
     public setModValue(volumeStart: number, volumeEnd: number, channelIndex: number, instrumentIndex: number, setting: number): number {
