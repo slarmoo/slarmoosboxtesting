@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SendSharedArrayBuffers, SetPrevBarMessage, SongPositionMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage } from "./synthMessages";
 
 declare global {
     interface Window {
@@ -7502,10 +7502,10 @@ export class Synth {
     public samplesPerSecond: number = 44100;
 
     public song: Song | null = null;
-    public modValues: Int8Array = new Int8Array(new SharedArrayBuffer(Config.modulators.length));
-    public modInsValues: Int8Array = new Int8Array(new SharedArrayBuffer((Config.pitchChannelCountMax + Config.noiseChannelCountMax) * Config.layeredInstrumentCountMax * Config.modulators.length));
-    public nextModValues: Int8Array = new Int8Array(new SharedArrayBuffer(Config.modulators.length));
-    public nextModInsValues: Int8Array = new Int8Array(new SharedArrayBuffer((Config.pitchChannelCountMax + Config.noiseChannelCountMax) * Config.layeredInstrumentCountMax * Config.modulators.length));
+    private modValues: (number | null)[] = [];
+    public modInsValues: (number | null)[][][] = [];
+    private nextModValues: (number | null)[] = [];
+    public nextModInsValues: (number | null)[][][] = [];
     public heldMods: HeldMod[] = [];
 
     public loopRepeatCount: number = -1;
@@ -7642,22 +7642,16 @@ export class Synth {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
             //make sure that the workletNode has access to the shared array buffers and the song
-            const sabMessage: SendSharedArrayBuffers = {
-                flag: MessageFlag.sharedArrayBuffers,
-                modValues: this.modValues,
-                modInsValues: this.modInsValues,
-                nextModValues: this.nextModValues,
-                nextModInsValues: this.nextModInsValues
+            // const sabMessage: SendSharedArrayBuffers = {
+            //     flag: MessageFlag.sharedArrayBuffers,
+            //     modValues: this.modValues,
+            //     modInsValues: this.modInsValues,
+            //     nextModValues: this.nextModValues,
+            //     nextModInsValues: this.nextModInsValues
 
-            }
-            this.sendMessage(sabMessage);
-            if (this.song) {
-                const songMessage: LoadSongMessage = {
-                    flag: MessageFlag.loadSong,
-                    song: this.song.toBase64String()
-                }
-                this.sendMessage(songMessage);
-            }
+            // }
+            // this.sendMessage(sabMessage);
+            this.updateWorkletSong(); 
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
             this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
@@ -7676,6 +7670,16 @@ export class Synth {
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
         }
         this.audioContext.resume();
+    }
+
+    public updateWorkletSong(): void {
+        if (this.song) {
+            const songMessage: LoadSongMessage = {
+                flag: MessageFlag.loadSong,
+                song: this.song.toBase64String()
+            }
+            this.sendMessage(songMessage);
+        }
     }
 
     private deactivateAudio(): void {
@@ -7766,12 +7770,7 @@ export class Synth {
             this.playheadInternal += this.bar - oldBar;
 
             if (this.playing) {
-                const computeModsMessage: ComputeModsMessage = {
-                    flag: MessageFlag.computeMods,
-                    initFilters: false
-                }
-                this.updateProcessorLocation();
-                this.sendMessage(computeModsMessage);
+                this.computeLatestModValues();
             }
         }
     }
@@ -7792,11 +7791,7 @@ export class Synth {
         this.updateProcessorLocation();
 
         if (this.playing) {
-            const computeModsMessage: ComputeModsMessage = {
-                flag: MessageFlag.computeMods,
-                initFilters: false
-            }
-            this.sendMessage(computeModsMessage);
+            this.computeLatestModValues();
         }
     }
 
@@ -7816,11 +7811,7 @@ export class Synth {
 
         this.updateProcessorLocation();
         if (this.playing) {
-            const computeModsMessage: ComputeModsMessage = {
-                flag: MessageFlag.computeMods,
-                initFilters: false
-            }
-            this.sendMessage(computeModsMessage);
+            this.computeLatestModValues();
         }
     }
 
@@ -8064,6 +8055,205 @@ export class Synth {
         return this.samplesPerSecond / tickPerSecond;
     }
 
+    public computeLatestModValues(modEffects: boolean = false): void {
+        //tell procecssor to also compute mod values
+        const computeModsMessage: ComputeModsMessage = {
+            flag: MessageFlag.computeMods,
+            initFilters: modEffects
+        }
+        this.sendMessage(computeModsMessage);
+
+        if (this.song != null && this.song.modChannelCount > 0) {
+
+            // Clear all mod values, and set up temp variables for the time a mod would be set at.
+            let latestModTimes: (number | null)[] = [];
+            let latestModInsTimes: (number | null)[][][] = [];
+            //TODO: is filling with -1 the best solution?
+            this.modValues = [];
+            this.nextModValues = [];
+            this.modInsValues = [];
+            this.nextModInsValues = [];
+            this.heldMods = [];
+
+            for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
+                latestModInsTimes[channel] = [];
+                this.modInsValues[channel] = [];
+                this.nextModInsValues[channel] = [];
+
+                for (let instrument: number = 0; instrument < this.song.channels[channel].instruments.length; instrument++) {
+                    this.modInsValues[channel][instrument] = [];
+                    this.nextModInsValues[channel][instrument] = [];
+                    latestModInsTimes[channel][instrument] = [];
+                }
+            }
+
+            // Find out where we're at in the fraction of the current bar.
+            let currentPart: number = this.beat * Config.partsPerBeat + this.part;
+
+            // For mod channels, calculate last set value for each mod
+            for (let channelIndex: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
+                if (!(this.song.channels[channelIndex].muted)) {
+
+                    let pattern: Pattern | null;
+
+                    for (let currentBar: number = this.bar; currentBar >= 0; currentBar--) {
+                        pattern = this.song.getPattern(channelIndex, currentBar);
+
+                        if (pattern != null) {
+                            let instrumentIdx: number = pattern.instruments[0];
+                            let instrument: Instrument = this.song.channels[channelIndex].instruments[instrumentIdx];
+                            let latestPinParts: number[] = [];
+                            let latestPinValues: number[] = [];
+
+                            let partsInBar: number = (currentBar == this.bar)
+                                ? currentPart
+                                : this.findPartsInBar(currentBar);
+
+                            for (const note of pattern.notes) {
+                                if (note.start <= partsInBar && (latestPinParts[Config.modCount - 1 - note.pitches[0]] == null || note.end > latestPinParts[Config.modCount - 1 - note.pitches[0]])) {
+                                    if (note.start == partsInBar) { // This can happen with next bar mods, and the value of the aligned note's start pin will be used.
+                                        latestPinParts[Config.modCount - 1 - note.pitches[0]] = note.start;
+                                        latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[0].size;
+                                    }
+                                    if (note.end <= partsInBar) {
+                                        latestPinParts[Config.modCount - 1 - note.pitches[0]] = note.end;
+                                        latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[note.pins.length - 1].size;
+                                    }
+                                    else {
+                                        latestPinParts[Config.modCount - 1 - note.pitches[0]] = partsInBar;
+                                        // Find the pin where bar change happens, and compute where pin volume would be at that time
+                                        for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
+                                            if (note.pins[pinIdx].time + note.start > partsInBar) {
+                                                const transitionLength: number = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
+                                                const toNextBarLength: number = partsInBar - note.start - note.pins[pinIdx - 1].time;
+                                                const deltaVolume: number = note.pins[pinIdx].size - note.pins[pinIdx - 1].size;
+
+                                                latestPinValues[Config.modCount - 1 - note.pitches[0]] = Math.round(note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength);
+                                                pinIdx = note.pins.length;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Set modulator value, if it wasn't set in another pattern already scanned
+                            for (let mod: number = 0; mod < Config.modCount; mod++) {
+                                if (latestPinParts[mod] != null) {
+                                    if (Config.modulators[instrument.modulators[mod]].forSong) {
+                                        const songFilterParam: boolean = instrument.modulators[mod] == Config.modulators.dictionary["song eq"].index;
+                                        if (latestModTimes[instrument.modulators[mod]] == null || currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod] > (latestModTimes[instrument.modulators[mod]] as number)) {
+                                            if (songFilterParam) {
+                                                let tgtSong: Song = this.song
+                                                if (instrument.modFilterTypes[mod] == 0) {
+                                                    tgtSong.tmpEqFilterStart = tgtSong.eqSubFilters[latestPinValues[mod]];
+                                                } else {
+                                                    for (let i: number = 0; i < Config.filterMorphCount; i++) {
+                                                        if (tgtSong.tmpEqFilterStart != null && tgtSong.tmpEqFilterStart == tgtSong.eqSubFilters[i]) {
+                                                            tgtSong.tmpEqFilterStart = new FilterSettings();
+                                                            tgtSong.tmpEqFilterStart.fromJsonObject(tgtSong.eqSubFilters[i]!.toJsonObject());
+                                                            i = Config.filterMorphCount;
+                                                        }
+                                                    }
+                                                    if (tgtSong.tmpEqFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtSong.tmpEqFilterStart.controlPointCount) {
+                                                        if (instrument.modFilterTypes[mod] % 2)
+                                                            tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
+                                                        else
+                                                            tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
+                                                    }
+                                                }
+                                                tgtSong.tmpEqFilterEnd = tgtSong.tmpEqFilterStart;
+                                            }
+                                            this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], instrument.modInstruments[mod], instrument.modulators[mod]);
+                                            latestModTimes[instrument.modulators[mod]] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                                        }
+                                    } else {
+                                        // Generate list of used instruments
+                                        let usedInstruments: number[] = [];
+                                        // All
+                                        if (instrument.modInstruments[mod] == this.song.channels[instrument.modChannels[mod]].instruments.length) {
+                                            for (let i: number = 0; i < this.song.channels[instrument.modChannels[mod]].instruments.length; i++) {
+                                                usedInstruments.push(i);
+                                            }
+                                        } // Active
+                                        else if (instrument.modInstruments[mod] > this.song.channels[instrument.modChannels[mod]].instruments.length) {
+                                            const tgtPattern: Pattern | null = this.song.getPattern(instrument.modChannels[mod], currentBar);
+                                            if (tgtPattern != null)
+                                                usedInstruments = tgtPattern.instruments;
+                                        } else {
+                                            usedInstruments.push(instrument.modInstruments[mod]);
+                                        }
+                                        for (let instrumentIndex: number = 0; instrumentIndex < usedInstruments.length; instrumentIndex++) {
+                                            // Iterate through all used instruments by this modulator
+                                            // Special indices for mod filter targets, since they control multiple things.
+                                            const eqFilterParam: boolean = instrument.modulators[mod] == Config.modulators.dictionary["eq filter"].index;
+                                            const noteFilterParam: boolean = instrument.modulators[mod] == Config.modulators.dictionary["note filter"].index;
+                                            let modulatorAdjust: number = instrument.modulators[mod];
+                                            if (eqFilterParam) {
+                                                modulatorAdjust = Config.modulators.length + (instrument.modFilterTypes[mod] | 0);
+                                            } else if (noteFilterParam) {
+                                                // Skip all possible indices for eq filter
+                                                modulatorAdjust = Config.modulators.length + 1 + (2 * Config.filterMaxPoints) + (instrument.modFilterTypes[mod] | 0);
+                                            }
+
+                                            if (latestModInsTimes[instrument.modChannels[mod]][usedInstruments[instrumentIndex]][modulatorAdjust] == null
+                                                || currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod] > latestModInsTimes[instrument.modChannels[mod]][usedInstruments[instrumentIndex]][modulatorAdjust]!) {
+
+                                                if (eqFilterParam) {
+                                                    let tgtInstrument: Instrument = this.song.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
+                                                    if (instrument.modFilterTypes[mod] == 0) {
+                                                        tgtInstrument.tmpEqFilterStart = tgtInstrument.eqSubFilters[latestPinValues[mod]];
+                                                    } else {
+                                                        for (let i: number = 0; i < Config.filterMorphCount; i++) {
+                                                            if (tgtInstrument.tmpEqFilterStart != null && tgtInstrument.tmpEqFilterStart == tgtInstrument.eqSubFilters[i]) {
+                                                                tgtInstrument.tmpEqFilterStart = new FilterSettings();
+                                                                tgtInstrument.tmpEqFilterStart.fromJsonObject(tgtInstrument.eqSubFilters[i]!.toJsonObject());
+                                                                i = Config.filterMorphCount;
+                                                            }
+                                                        }
+                                                        if (tgtInstrument.tmpEqFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtInstrument.tmpEqFilterStart.controlPointCount) {
+                                                            if (instrument.modFilterTypes[mod] % 2)
+                                                                tgtInstrument.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
+                                                            else
+                                                                tgtInstrument.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
+                                                        }
+                                                    }
+                                                    tgtInstrument.tmpEqFilterEnd = tgtInstrument.tmpEqFilterStart;
+                                                } else if (noteFilterParam) {
+                                                    let tgtInstrument: Instrument = this.song.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
+                                                    if (instrument.modFilterTypes[mod] == 0) {
+                                                        tgtInstrument.tmpNoteFilterStart = tgtInstrument.noteSubFilters[latestPinValues[mod]];
+                                                    } else {
+                                                        for (let i: number = 0; i < Config.filterMorphCount; i++) {
+                                                            if (tgtInstrument.tmpNoteFilterStart != null && tgtInstrument.tmpNoteFilterStart == tgtInstrument.noteSubFilters[i]) {
+                                                                tgtInstrument.tmpNoteFilterStart = new FilterSettings();
+                                                                tgtInstrument.tmpNoteFilterStart.fromJsonObject(tgtInstrument.noteSubFilters[i]!.toJsonObject());
+                                                                i = Config.filterMorphCount;
+                                                            }
+                                                        }
+                                                        if (tgtInstrument.tmpNoteFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtInstrument.tmpNoteFilterStart.controlPointCount) {
+                                                            if (instrument.modFilterTypes[mod] % 2)
+                                                                tgtInstrument.tmpNoteFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
+                                                            else
+                                                                tgtInstrument.tmpNoteFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
+                                                        }
+                                                    }
+                                                    tgtInstrument.tmpNoteFilterEnd = tgtInstrument.tmpNoteFilterStart;
+                                                }
+                                                else this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], usedInstruments[instrumentIndex], modulatorAdjust);
+
+                                                latestModInsTimes[instrument.modChannels[mod]][usedInstruments[instrumentIndex]][modulatorAdjust] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /** Detects if a modulator is set, but not valid for the current effects/instrument type/filter type
     * Note, setting 'none' or the intermediary steps when clicking to add a mod, like an unset channel/unset instrument, counts as valid.
     // TODO: This kind of check is mirrored in SongEditor.ts' whenUpdated. Creates a lot of redundancy for adding new mods. Can be moved into new properties for mods, to avoid this later.
@@ -8116,11 +8306,6 @@ export class Synth {
         }
     }
 
-    //TODO: Inline this function
-    private modInsIndex(channelIndex: number, instrumentIndex: number, setting: number): number {
-        return (channelIndex * (Config.pitchChannelCountMax + Config.noiseChannelCountMax) + instrumentIndex) * Config.layeredInstrumentCountMax + setting;
-    }
-
     public setModValue(volumeStart: number, volumeEnd: number, channelIndex: number, instrumentIndex: number, setting: number): number {
         let val: number = volumeStart + Config.modulators[setting].convertRealFactor;
         let nextVal: number = volumeEnd + Config.modulators[setting].convertRealFactor;
@@ -8130,11 +8315,11 @@ export class Synth {
                 this.nextModValues[setting] = nextVal;
             }
         } else {
-            if (this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] == -1
-                || this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != val
-                || this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != nextVal) {
-                this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = val;
-                this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = nextVal;
+            if (this.modInsValues[channelIndex][instrumentIndex][setting] == null
+                || this.modInsValues[channelIndex][instrumentIndex][setting] != val
+                || this.nextModInsValues[channelIndex][instrumentIndex][setting] != nextVal) {
+                this.modInsValues[channelIndex][instrumentIndex][setting] = val;
+                this.nextModInsValues[channelIndex][instrumentIndex][setting] = nextVal;
             }
         }
 
@@ -8148,7 +8333,9 @@ export class Synth {
                 return nextVal ? this.nextModValues[setting]! : this.modValues[setting]!;
             }
         } else if (channel != undefined && instrument != undefined) {
-            return nextVal ? this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] : this.modInsValues[this.modInsIndex(channel, instrument, setting)];
+            if (this.modInsValues[channel][instrument][setting] != null && this.nextModInsValues[channel][instrument][setting] != null) {
+                return nextVal ? this.nextModInsValues[channel][instrument][setting]! : this.modInsValues[channel][instrument][setting]!;
+            }
         }
         return -1;
     }
@@ -8156,8 +8343,8 @@ export class Synth {
     // Checks if any mod is active for the given channel/instrument OR if any mod is active for the song scope. Could split the logic if needed later.
     public isAnyModActive(channel: number, instrument: number): boolean {
         for (let setting: number = 0; setting < Config.modulators.length; setting++) {
-            if ((this.modValues != undefined && this.modValues[setting] != -1)
-                || (this.modInsValues != undefined && this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1)) {
+            if ((this.modValues != undefined && this.modValues[setting] != null)
+                || (this.modInsValues != undefined && this.modInsValues[channel] != undefined && this.modInsValues[channel][instrument] != undefined && this.modInsValues[channel][instrument][setting] != null)) {
                 return true;
             }
         }
@@ -8178,35 +8365,10 @@ export class Synth {
                 }
             }
             if (channel != undefined && instrument != undefined) {
-                this.modInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
-                this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] = -1;
+                this.modInsValues[channel][instrument][setting] = null;
+                this.nextModInsValues[channel][instrument][setting] = null;
             }
         }
-    }
-
-    public isModActive(setting: number, channel?: number, instrument?: number): boolean {
-        const forSong: boolean = Config.modulators[setting].forSong;
-        if (forSong) {
-            return (this.modValues != undefined && this.modValues[setting] != -1);
-        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined) {
-            return (this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1);
-        }
-        return false;
-    }
-
-    // Force a modulator to be held at the given volumeStart for a brief duration.
-    public forceHoldMods(volumeStart: number, channelIndex: number, instrumentIndex: number, setting: number): void {
-        let found: boolean = false;
-        for (let i: number = 0; i < this.heldMods.length; i++) {
-            if (this.heldMods[i].channelIndex == channelIndex && this.heldMods[i].instrumentIndex == instrumentIndex && this.heldMods[i].setting == setting) {
-                this.heldMods[i].volume = volumeStart;
-                this.heldMods[i].holdFor = 24;
-                found = true;
-            }
-        }
-        // Default: hold for 24 ticks / 12 parts (half a beat).
-        if (!found)
-            this.heldMods.push({ volume: volumeStart, channelIndex: channelIndex, instrumentIndex: instrumentIndex, setting: setting, holdFor: 24 });
     }
 
     public isFilterModActive(forNoteFilter: boolean, channelIdx: number, instrumentIdx: number, forSong?: boolean) {
@@ -8230,6 +8392,31 @@ export class Synth {
         }
 
         return false
+    }
+
+    public isModActive(setting: number, channel?: number, instrument?: number): boolean {
+        const forSong: boolean = Config.modulators[setting].forSong;
+        if (forSong) {
+            return (this.modValues != undefined && this.modValues[setting] != null);
+        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined && this.modInsValues[channel] != null && this.modInsValues[channel][instrument] != null) {
+            return (this.modInsValues[channel][instrument][setting] != null);
+        }
+        return false;
+    }
+
+    // Force a modulator to be held at the given volumeStart for a brief duration.
+    public forceHoldMods(volumeStart: number, channelIndex: number, instrumentIndex: number, setting: number): void {
+        let found: boolean = false;
+        for (let i: number = 0; i < this.heldMods.length; i++) {
+            if (this.heldMods[i].channelIndex == channelIndex && this.heldMods[i].instrumentIndex == instrumentIndex && this.heldMods[i].setting == setting) {
+                this.heldMods[i].volume = volumeStart;
+                this.heldMods[i].holdFor = 24;
+                found = true;
+            }
+        }
+        // Default: hold for 24 ticks / 12 parts (half a beat).
+        if (!found)
+            this.heldMods.push({ volume: volumeStart, channelIndex: channelIndex, instrumentIndex: instrumentIndex, setting: setting, holdFor: 24 });
     }
 
     public static fadeInSettingToSeconds(setting: number): number {

@@ -2300,7 +2300,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
 
     public computeLatestModValues(): void {
-        // console.log("here");
 
         if (this.song != null && this.song.modChannelCount > 0) {
 
@@ -2308,16 +2307,20 @@ export class SynthProcessor extends AudioWorkletProcessor {
             let latestModTimes: (number | null)[] = [];
             let latestModInsTimes: (number | null)[][][] = [];
             //TODO: is filling with -1 the best solution?
-            this.modValues.fill(-1);
-            this.nextModValues.fill(-1);
-            this.modInsValues.fill(-1);
-            this.nextModInsValues.fill(-1);
+            this.modValues = [];
+            this.nextModValues = [];
+            this.modInsValues = [];
+            this.nextModInsValues = [];
             this.heldMods = [];
 
             for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
                 latestModInsTimes[channel] = [];
+                this.modInsValues[channel] = [];
+                this.nextModInsValues[channel] = [];
 
                 for (let instrument: number = 0; instrument < this.song.channels[channel].instruments.length; instrument++) {
+                    this.modInsValues[channel][instrument] = [];
+                    this.nextModInsValues[channel][instrument] = [];
                     latestModInsTimes[channel][instrument] = [];
                 }
             }
@@ -2529,10 +2532,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
     public tickSampleCountdown: number = 0;
-    public modValues: Int8Array;
-    public modInsValues: Int8Array;
-    public nextModValues: Int8Array;
-    public nextModInsValues: Int8Array;
+    private modValues: (number | null)[] = [];
+    public modInsValues: (number | null)[][][] = [];
+    private nextModValues: (number | null)[] = [];
+    public nextModInsValues: (number | null)[][][] = [];
     private isPlayingSong: boolean = false;
     private isRecording: boolean = false;
     private browserAutomaticallyClearsAudioBuffer: boolean = true; // Assume true until proven otherwise. Older Chrome does not clear the buffer so it needs to be cleared manually.
@@ -2658,10 +2661,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             case MessageFlag.sharedArrayBuffers: {
                 console.log("LOADING SABS")
-                this.modValues = event.data.modValues;
-                this.modInsValues = event.data.modInsValues;
-                this.nextModValues = event.data.nextModValues;
-                this.nextModInsValues = event.data.nextModInsValues;
+                // this.modValues = event.data.modValues;
+                // this.modInsValues = event.data.modInsValues;
+                // this.nextModValues = event.data.nextModValues;
+                // this.nextModInsValues = event.data.nextModInsValues;
                 break;
             }
             case MessageFlag.setPrevBar: {
@@ -2705,17 +2708,18 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.isPlayingSong = false;
         //TODO: remove recording?
         this.isRecording = false;
-        console.log(this.modValues, this.modInsValues)
-        this.modValues.fill(-1);
-        this.nextModValues.fill(-1);
+        this.modValues = [];
+        this.nextModValues = [];
         this.heldMods = [];
         if (this.song != null) {
             this.song.inVolumeCap = 0.0;
             this.song.outVolumeCap = 0.0;
             this.song.tmpEqFilterStart = null;
             this.song.tmpEqFilterEnd = null;
-            this.modInsValues.fill(-1);
-            this.nextModInsValues.fill(-1);
+            for (let channelIndex: number = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
+                this.modInsValues[channelIndex] = [];
+                this.nextModInsValues[channelIndex] = [];
+            }
         }
     }
 
@@ -2744,11 +2748,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.nextModValues[setting] = nextVal;
             }
         } else {
-            if (this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] == -1
-                || this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != val
-                || this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] != nextVal) {
-                this.modInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = val;
-                this.nextModInsValues[this.modInsIndex(channelIndex, instrumentIndex, setting)] = nextVal;
+            if (this.modInsValues[channelIndex][instrumentIndex][setting] == null
+                || this.modInsValues[channelIndex][instrumentIndex][setting] != val
+                || this.nextModInsValues[channelIndex][instrumentIndex][setting] != nextVal) {
+                this.modInsValues[channelIndex][instrumentIndex][setting] = val;
+                this.nextModInsValues[channelIndex][instrumentIndex][setting] = nextVal;
             }
         }
 
@@ -2762,7 +2766,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 return nextVal ? this.nextModValues[setting]! : this.modValues[setting]!;
             }
         } else if (channel != undefined && instrument != undefined) {
-            return nextVal ? this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] : this.modInsValues[this.modInsIndex(channel, instrument, setting)];
+            if (this.modInsValues[channel][instrument][setting] != null && this.nextModInsValues[channel][instrument][setting] != null) {
+                return nextVal ? this.nextModInsValues[channel][instrument][setting]! : this.modInsValues[channel][instrument][setting]!;
+            }
         }
         return -1;
     }
@@ -2770,9 +2776,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public isModActive(setting: number, channel?: number, instrument?: number): boolean {
         const forSong: boolean = Config.modulators[setting].forSong;
         if (forSong) {
-            return (this.modValues != undefined && this.modValues[setting] != -1);
-        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined) {
-            return (this.modInsValues[this.modInsIndex(channel, instrument, setting)] != -1);
+            return (this.modValues != undefined && this.modValues[setting] != null);
+        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined && this.modInsValues[channel] != null && this.modInsValues[channel][instrument] != null) {
+            return (this.modInsValues[channel][instrument][setting] != null);
         }
         return false;
     }
@@ -3488,8 +3494,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             for (let setting: number = 0; setting < Config.modulators.length; setting++) {
                 for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
                     for (let instrument: number = 0; instrument < maxInstrumentsPerChannel; instrument++) {
-                        if (this.nextModInsValues != null && this.nextModInsValues[this.modInsIndex(channel, instrument, setting)] != -1) {
-                            this.modInsValues[this.modInsIndex(channel, instrument, setting)] = this.nextModInsValues[this.modInsIndex(channel, instrument, setting)];
+                        if (this.nextModInsValues != null && this.nextModInsValues[channel] != null && this.nextModInsValues[channel][instrument] != null && this.nextModInsValues[channel][instrument][setting] != null) {
+                            this.modInsValues[channel][instrument][setting] = this.nextModInsValues[channel][instrument][setting];
                         }
                     }
                 }

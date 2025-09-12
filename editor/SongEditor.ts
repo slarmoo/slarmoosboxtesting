@@ -57,7 +57,6 @@ import { VisualLoopControlsPrompt } from "./VisualLoopControlsPrompt";
 import { SampleLoadingStatusPrompt } from "./SampleLoadingStatusPrompt";
 import { AddSamplesPrompt } from "./AddSamplesPrompt";
 import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
-import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -4333,11 +4332,7 @@ export class SongEditor {
 
                             this.doc.synth.goToBar(this.doc.bar);
                             this.doc.synth.snapToBar();
-                            const computeModsMessage: ComputeModsMessage = {
-                                flag: MessageFlag.computeMods,
-                                initFilters: true
-                            }
-                            this.doc.synth.sendMessage(computeModsMessage);
+                            this.doc.synth.computeLatestModValues(true);
                             if (this.doc.prefs.autoFollow) {
                                 this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                             }
@@ -4444,11 +4439,7 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.song.loopStart);
                     this.doc.synth.snapToBar();
-                    const computeModsMessage: ComputeModsMessage = {
-                        flag: MessageFlag.computeMods,
-                        initFilters: true
-                    }
-                    this.doc.synth.sendMessage(computeModsMessage);
+                    this.doc.synth.computeLatestModValues(true);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -4473,11 +4464,7 @@ export class SongEditor {
                     this._loopEditor.setLoopAt(this.doc.synth.loopBarStart, this.doc.synth.loopBarEnd);
 
                     this.doc.synth.snapToStart();
-                    const computeModsMessage: ComputeModsMessage = {
-                        flag: MessageFlag.computeMods,
-                        initFilters: true
-                    }
-                    this.doc.synth.sendMessage(computeModsMessage);
+                    this.doc.synth.computeLatestModValues(true);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -4491,11 +4478,7 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.bar);
                     this.doc.synth.snapToBar();
-                    const computeModsMessage: ComputeModsMessage = {
-                        flag: MessageFlag.computeMods,
-                        initFilters: true
-                    }
-                    this.doc.synth.sendMessage(computeModsMessage);
+                    this.doc.synth.computeLatestModValues(true);
 
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
@@ -4751,11 +4734,8 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToPrevBar();
-                    const computeModsMessage: ComputeModsMessage = {
-                        flag: MessageFlag.computeMods,
-                        initFilters: true
-                    }
-                    this.doc.synth.sendMessage(computeModsMessage);
+                    this.doc.synth.computeLatestModValues(true);
+
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;
@@ -4772,11 +4752,8 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToNextBar();
-                    const computeModsMessage: ComputeModsMessage = {
-                        flag: MessageFlag.computeMods,
-                        initFilters: true
-                    }
-                    this.doc.synth.sendMessage(computeModsMessage);
+                    this.doc.synth.computeLatestModValues(true);
+
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;

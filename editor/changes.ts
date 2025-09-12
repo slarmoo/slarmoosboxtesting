@@ -7,7 +7,6 @@ import { Change, ChangeGroup, ChangeSequence, UndoableChange } from "./Change";
 import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
-import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
@@ -2114,11 +2113,7 @@ export class ChangeAddChannel extends ChangeGroup {
             if (addedChannelIndex - 1 >= index) {
                 this.append(new ChangeChannelOrder(doc, index, addedChannelIndex - 1, 1));
             }
-            const computeModsMessage: ComputeModsMessage = {
-                flag: MessageFlag.computeMods,
-                initFilters: false
-            }
-            doc.synth.sendMessage(computeModsMessage);
+            doc.synth.computeLatestModValues();
             doc.recalcChannelNames = true;
         }
     }
@@ -2167,12 +2162,8 @@ export class ChangeRemoveChannel extends ChangeGroup {
         doc.recalcChannelNames = true;
 
         this.append(new ChangeChannelBar(doc, Math.max(0, minIndex - 1), doc.bar));
-
-        const computeModsMessage: ComputeModsMessage = {
-            flag: MessageFlag.computeMods,
-            initFilters: false
-        }
-        doc.synth.sendMessage(computeModsMessage);
+        
+        doc.synth.computeLatestModValues();
 
         this._didSomething();
         doc.notifier.changed();
@@ -3418,11 +3409,7 @@ export class ChangeAddChannelInstrument extends Change {
             }
         }
         // Also, make synth re-compute mod values, since 'all'/'active' mods now retroactively apply to this new instrument.
-        const computeModsMessage: ComputeModsMessage = {
-            flag: MessageFlag.computeMods,
-            initFilters: false
-        }
-        doc.synth.sendMessage(computeModsMessage);
+        doc.synth.computeLatestModValues();
 
         doc.notifier.changed();
         this._didSomething();
@@ -4386,11 +4373,7 @@ export class ChangeSong extends ChangeGroup {
         } else {
             this.append(new ChangeValidateTrackSelection(doc));
         }
-        const computeModsMessage: ComputeModsMessage = {
-            flag: MessageFlag.computeMods,
-            initFilters: false
-        }
-        doc.synth.sendMessage(computeModsMessage);
+        doc.synth.computeLatestModValues();
         doc.notifier.changed();
         this._didSomething();
     }

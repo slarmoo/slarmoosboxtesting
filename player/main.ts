@@ -5,7 +5,6 @@ import { ColorConfig } from "../editor/ColorConfig";
 import { NotePin, Note, Pattern, Instrument, Channel, Synth } from "../synth/synth";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 const {a, button, div, h1, input, canvas} = HTML;
 const {svg, circle, rect, path} = SVG;
@@ -467,11 +466,7 @@ function onTimelineCursorMove(mouseX: number): void {
 	if (draggingPlayhead && synth.song != null) {
 		const boundingRect: ClientRect = visualizationContainer.getBoundingClientRect();
 		synth.playhead = synth.song.barCount * (mouseX - boundingRect.left) / (boundingRect.right - boundingRect.left);
-		const computeModsMessage: ComputeModsMessage = {
-			flag: MessageFlag.computeMods,
-			initFilters: false
-		}
-		synth.sendMessage(computeModsMessage);
+		synth.computeLatestModValues();
 		renderPlayhead();
 	}
 }
@@ -685,31 +680,27 @@ function renderZoomIcon(): void {
 }
 
 function onKeyPressed(event: KeyboardEvent): void {
-	const computeModsMessage: ComputeModsMessage = {
-		flag: MessageFlag.computeMods,
-		initFilters: false
-	}
 	switch (event.keyCode) {
 		case 70: // first bar
 			synth.playhead = 0;
-			synth.sendMessage(computeModsMessage);
+			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
 			break;
 		case 32: // space
 			onTogglePlay();
-			synth.sendMessage(computeModsMessage);
+			synth.computeLatestModValues();
 			event.preventDefault();
 			break;
 		case 219: // left brace
 			synth.goToPrevBar();
-			synth.sendMessage(computeModsMessage);
+			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
 			break;
 		case 221: // right brace
 			synth.goToNextBar();
-			synth.sendMessage(computeModsMessage);
+			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
 			break;

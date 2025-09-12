@@ -9,7 +9,6 @@ import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { ArrayBufferWriter } from "./ArrayBufferWriter";
 import { MidiChunkType, MidiFileFormat, MidiControlEventMessage, MidiEventType, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, volumeMultToMidiVolume, volumeMultToMidiExpression, defaultMidiPitchBend, defaultMidiExpression } from "./Midi";
-import { ComputeModsMessage, MessageFlag } from "../synth/synthMessages";
 
 const { button, div, h2, input, select, option } = HTML;
 
@@ -336,11 +335,8 @@ export class ExportPrompt implements Prompt {
             }
         }
 
-        const computeModsMessage: ComputeModsMessage = {
-            flag: MessageFlag.computeMods,
-            initFilters: true
-        };
-        this.synth.sendMessage(computeModsMessage);
+        this.synth.computeLatestModValues(true);
+
         // this.synth.warmUpSynthesizer(this._doc.song);
 
         this.sampleFrames = this.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, this.synth.loopRepeatCount);
