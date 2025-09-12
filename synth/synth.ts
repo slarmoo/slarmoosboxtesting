@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers } from "./synthMessages";
 
 declare global {
     interface Window {
@@ -7454,23 +7454,40 @@ export class Synth {
 
     public preferLowerLatency: boolean = false; // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     public anticipatePoorPerformance: boolean = false; // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
-    public liveInputDuration: number = 0;
-    public liveBassInputDuration: number = 0;
-    public liveInputStarted: boolean = false;
-    public liveBassInputStarted: boolean = false;
-    public liveInputPitches: number[] = [];
-    public liveBassInputPitches: number[] = [];
-    public liveInputChannel: number = 0;
-    public liveBassInputChannel: number = 0;
-    public liveInputInstruments: number[] = [];
-    public liveBassInputInstruments: number[] = [];
+    
+    // public liveInputDuration: number = 0;
+    // public liveBassInputDuration: number = 0;
+    // public liveInputStarted: boolean = false;
+    // public liveBassInputStarted: boolean = false;
+    //TODO: Make an enum in synthConfig for this
+    /**
+     * liveInputDuration [0]: number
+     * 
+     * liveBassInputDuration [1]: number
+     * 
+     * liveInputStarted [2]: 0 | 1
+     * 
+     * liveBassInputStarted [3]: 0 | 1
+     * 
+     * liveInputChannel [4]: integer
+     * 
+     * liveBassInputChannel [5]: integer
+     */
+    public liveInputValues: Int8Array = new Int8Array(new SharedArrayBuffer(6));
+    public liveInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
+    public liveBassInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
+    // public liveInputChannel: number = 0;
+    // public liveBassInputChannel: number = 0;
+    //TODO: send liveInputInstruments somehow
+    public liveInputInstruments: Int8Array = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
+    public liveBassInputInstruments: Int8Array = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
+    
     public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
     public enableMetronome: boolean = false;
     public countInMetronome: boolean = false;
     public renderingSong: boolean = false;
-    // private wantToSkip: boolean = false;
     private playheadInternal: number = 0.0;
     private bar: number = 0;
     // private prevBar: number | null = null;
@@ -7484,10 +7501,6 @@ export class Synth {
     private isPlayingSong: boolean = false;
     private isRecording: boolean = false;
     
-    public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
-    public static readonly tempFilterEndCoefficients: FilterCoefficients = new FilterCoefficients();
-    public tempFrequencyResponse: FrequencyResponse = new FrequencyResponse();
-
     public static pluginFunction: string | null = null;
     public static pluginIndex: number = 0;
     public static pluginValueNames: string[] = [];
@@ -7557,6 +7570,13 @@ export class Synth {
     constructor(song: Song | string | null = null) {
         if (song != null) this.setSong(song);
         this.activateAudio();
+        this.update();
+    }
+
+    //TODO: Update only when needed. Probably requires a rewrite of the change system...
+    private update() {
+        requestAnimationFrame(() => this.update());
+        this.updateWorkletSong();
     }
 
     private messageQueue: Message[] = [];
@@ -7641,16 +7661,17 @@ export class Synth {
     private async activateAudio(): Promise<void> {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
-            //make sure that the workletNode has access to the shared array buffers and the song
-            // const sabMessage: SendSharedArrayBuffers = {
-            //     flag: MessageFlag.sharedArrayBuffers,
-            //     modValues: this.modValues,
-            //     modInsValues: this.modInsValues,
-            //     nextModValues: this.nextModValues,
-            //     nextModInsValues: this.nextModInsValues
-
-            // }
-            // this.sendMessage(sabMessage);
+            // make sure that the workletNode has access to the shared array buffers and the song
+            const sabMessage: SendSharedArrayBuffers = {
+                flag: MessageFlag.sharedArrayBuffers,
+                livePitches: this.liveInputPitches,
+                bassLivePitches: this.liveBassInputPitches,
+                liveInputValues: this.liveInputValues,
+                livePitchInstruments: this.liveInputInstruments,
+                liveBassPitchInstruments: this.liveBassInputInstruments
+                //add more here if needed
+            }
+            this.sendMessage(sabMessage);
             this.updateWorkletSong(); 
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");

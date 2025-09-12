@@ -2504,16 +2504,33 @@ export class SynthProcessor extends AudioWorkletProcessor {
     // TODO: reverb
 
     public song: Song | null = null;
-    public liveInputDuration: number = 0;
-    public liveBassInputDuration: number = 0;
-    public liveInputStarted: boolean = false;
-    public liveBassInputStarted: boolean = false;
-    public liveInputPitches: number[] = [];
-    public liveBassInputPitches: number[] = [];
-    public liveInputChannel: number = 0;
-    public liveBassInputChannel: number = 0;
-    public liveInputInstruments: number[] = [];
-    public liveBassInputInstruments: number[] = [];
+    // public liveInputDuration: number = 0;
+    // public liveBassInputDuration: number = 0;
+    // public liveInputStarted: boolean = false;
+    // public liveBassInputStarted: boolean = false;
+    /**
+     * liveInputDuration [0]: number
+     * 
+     * liveBassInputDuration [1]: number
+     * 
+     * liveInputStarted [2]: 0 | 1
+     * 
+     * liveBassInputStarted [3]: 0 | 1
+     * 
+     * liveInputChannel [4]: integer
+     * 
+     * liveBassInputChannel [5]: integer
+     */
+    public liveInputValues: Int8Array;
+    //first value represents length
+    public liveInputPitches: Int8Array;
+    //first value represents length
+    public liveBassInputPitches: Int8Array;
+
+    // public liveInputChannel: number = 0;
+    // public liveBassInputChannel: number = 0;
+    public liveInputInstruments: Int8Array;
+    public liveBassInputInstruments: Int8Array;
     public loopRepeatCount: number = -1;
     public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
@@ -2660,11 +2677,12 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 break;
             }
             case MessageFlag.sharedArrayBuffers: {
-                console.log("LOADING SABS")
-                // this.modValues = event.data.modValues;
-                // this.modInsValues = event.data.modInsValues;
-                // this.nextModValues = event.data.nextModValues;
-                // this.nextModInsValues = event.data.nextModInsValues;
+                console.log("LOADING SABS");
+                this.liveInputPitches = event.data.livePitches;
+                this.liveBassInputPitches = event.data.bassLivePitches;
+                this.liveInputValues = event.data.liveInputValues;
+                this.liveInputInstruments = event.data.livePitchInstruments;
+                this.liveBassInputInstruments = event.data.liveBassPitchInstruments;
                 break;
             }
             case MessageFlag.setPrevBar: {
@@ -2840,19 +2858,23 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 flag: MessageFlag.maintainLiveInput
             }
             this.sendMessage(maintainLiveInputMessage);
-        } else {
+        } 
+        try {
             this.synthesize(outputDataL, outputDataR, outputDataL.length, this.isPlayingSong);
-
-            //TODO: figure out how to properly handle this
-            // if (this.oscEnabled) {
-            //     if (this.oscRefreshEventTimer <= 0) {
-            //         events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
-            //         this.oscRefreshEventTimer = 2;
-            //     } else {
-            //         this.oscRefreshEventTimer--;
-            //     }
-            // }
+        } catch(e) {
+            console.log(e);
         }
+
+        //TODO: figure out how to properly handle this
+        // if (this.oscEnabled) {
+        //     if (this.oscRefreshEventTimer <= 0) {
+        //         events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
+        //         this.oscRefreshEventTimer = 2;
+        //     } else {
+        //         this.oscRefreshEventTimer--;
+        //     }
+        // }
+        
         return true;
     }
 
@@ -3098,7 +3120,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
             this.computeSongState(samplesPerTick);
 
-            if (!this.isPlayingSong && (this.liveInputPitches.length > 0 || this.liveBassInputPitches.length > 0)) { //set up modulation for live input tones
+            if (!this.isPlayingSong && (this.liveInputPitches[0] > 0 || this.liveBassInputPitches[0] > 0)) { //set up modulation for live input tones
                 this.computeLatestModValues();
             }
 
@@ -3419,8 +3441,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (this.tick == Config.ticksPerPart) {
                     this.tick = 0;
                     this.part++;
-                    this.liveInputDuration--;
-                    this.liveBassInputDuration--;
+                    this.liveInputValues[0]--;
+                    this.liveInputValues[1]--;
                     // Decrement held modulator counters after each run
                     for (let i: number = 0; i < this.heldMods.length; i++) {
                         this.heldMods[i].holdFor--;
@@ -3551,14 +3573,21 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private determineLiveInputTones(song: Song, channelIndex: number, samplesPerTick: number): void {
         const channel: Channel = song.channels[channelIndex];
         const channelState: ChannelState = this.channels[channelIndex];
-        const pitches: number[] = this.liveInputPitches;
-        const bassPitches: number[] = this.liveBassInputPitches;
+        const pitches: number[] = [];
+        const bassPitches: number[] = [];
+        //0 denotes the used length of the array
+        for (let i: number = 1; i <= this.liveInputPitches[0]; i++) {
+            pitches.push(this.liveInputPitches[i]);
+        }
+        for (let i: number = 1; i <= this.liveBassInputPitches[0]; i++) {
+            bassPitches.push(this.liveBassInputPitches[i]);
+        }
 
         for (let instrumentIndex: number = 0; instrumentIndex < channel.instruments.length; instrumentIndex++) {
             const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];
             const toneList: Deque<Tone> = instrumentState.liveInputTones;
             let toneCount: number = 0;
-            if (this.liveInputDuration > 0 && (channelIndex == this.liveInputChannel) && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
+            if (this.liveInputValues[0] > 0 && (channelIndex == this.liveInputValues[4]) && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
                 if (instrument.getChord().singleTone) {
@@ -3566,7 +3595,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     if (toneList.count() <= toneCount) {
                         tone = this.newTone();
                         toneList.pushBack(tone);
-                    } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+                    } else if (!instrument.getTransition().isSeamless && this.liveInputValues[2]) {
                         this.releaseTone(instrumentState, toneList.get(toneCount));
                         tone = this.newTone();
                         toneList.set(toneCount, tone);
@@ -3582,7 +3611,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
-                    tone.atNoteStart = this.liveInputStarted;
+                    tone.atNoteStart = Boolean(this.liveInputValues[2]);
                     tone.forceContinueAtStart = false;
                     tone.forceContinueAtEnd = false;
                     this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
@@ -3614,7 +3643,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         tone.chordSize = pitches.length;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
-                        tone.atNoteStart = this.liveInputStarted;
+                        tone.atNoteStart = Boolean(this.liveInputValues[2]);
                         tone.forceContinueAtStart = false;
                         tone.forceContinueAtEnd = false;
                         this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
@@ -3622,7 +3651,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            if (this.liveBassInputDuration > 0 && (channelIndex == this.liveBassInputChannel) && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
+            if (this.liveInputValues[1] > 0 && (channelIndex == this.liveInputValues[5]) && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
                 if (instrument.getChord().singleTone) {
@@ -3630,7 +3659,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     if (toneList.count() <= toneCount) {
                         tone = this.newTone();
                         toneList.pushBack(tone);
-                    } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+                    } else if (!instrument.getTransition().isSeamless && this.liveInputValues[2]) {
                         this.releaseTone(instrumentState, toneList.get(toneCount));
                         tone = this.newTone();
                         toneList.set(toneCount, tone);
@@ -3646,7 +3675,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
-                    tone.atNoteStart = this.liveBassInputStarted;
+                    tone.atNoteStart = Boolean(this.liveInputValues[3]);
                     tone.forceContinueAtStart = false;
                     tone.forceContinueAtEnd = false;
                     this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
@@ -3678,7 +3707,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         tone.chordSize = bassPitches.length;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
-                        tone.atNoteStart = this.liveBassInputStarted;
+                        tone.atNoteStart = Boolean(this.liveInputValues[3]);
                         tone.forceContinueAtStart = false;
                         tone.forceContinueAtEnd = false;
                         this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
@@ -3693,8 +3722,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.clearTempMatchedPitchTones(toneCount, instrumentState);
         }
 
-        this.liveInputStarted = false;
-        this.liveBassInputStarted = false;
+        this.liveInputValues[2] = 0;
+        this.liveInputValues[3] = 0;
     }
 
     // Returns the chord type of the instrument in the adjacent pattern if it is compatible for a
@@ -3895,7 +3924,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             let prevNote: Note | null = null;
             let nextNote: Note | null = null;
 
-            if (playSong && pattern != null && !channel.muted && (!this.isRecording || this.liveInputChannel != channelIndex)) {
+            if (playSong && pattern != null && !channel.muted && (!this.isRecording || this.liveInputValues[4] != channelIndex)) {
                 for (let i: number = 0; i < pattern.notes.length; i++) {
                     if (pattern.notes[i].end <= currentPart) {
                         prevNote = pattern.notes[i];

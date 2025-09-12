@@ -52,10 +52,11 @@ export interface ComputeModsMessage extends Message {
 
 export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
-    modValues: Int8Array,
-    modInsValues: Int8Array,
-    nextModValues: Int8Array,
-    nextModInsValues: Int8Array
+    livePitches: Int8Array,
+    bassLivePitches: Int8Array,
+    liveInputValues: Int8Array,
+    livePitchInstruments: Int8Array,
+    liveBassPitchInstruments: Int8Array
 }
 
 export interface SetPrevBarMessage extends Message {

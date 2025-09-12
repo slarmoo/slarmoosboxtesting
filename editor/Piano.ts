@@ -230,20 +230,20 @@ export class Piano {
         window.requestAnimationFrame(this._onAnimationFrame);
 
         let liveInputChanged: boolean = false;
-        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.synth.liveInputPitches.length : 0;
-        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.synth.liveBassInputPitches.length : 0;
+        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.synth.liveInputPitches[0] : 0;
+        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.synth.liveBassInputPitches[0] : 0;
         if (this._renderedLiveInputPitches.length != liveInputPitchCount) {
             liveInputChanged = true;
         }
-        for (let i: number = 0; i < this._doc.synth.liveInputPitches.length; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveInputPitches[i]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveInputPitches[i];
+        for (let i: number = 0; i < this._doc.synth.liveInputPitches[0]; i++) {
+            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveInputPitches[i + 1]) {
+                this._renderedLiveInputPitches[i] = this._doc.synth.liveInputPitches[i + 1];
                 liveInputChanged = true;
             }
         }
         for (let i: number = this._doc.synth.liveInputPitches.length; i < liveInputPitchCount; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveBassInputPitches[i - this._doc.synth.liveInputPitches.length]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveBassInputPitches[i - this._doc.synth.liveInputPitches.length];
+            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]]) {
+                this._renderedLiveInputPitches[i] = this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]];
                 liveInputChanged = true;
             }
         }
