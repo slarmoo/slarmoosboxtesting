@@ -10217,7 +10217,7 @@ var Synth = class {
      * 
      * liveBassInputChannel [5]: integer
      */
-    this.liveInputValues = new Int8Array(new SharedArrayBuffer(6));
+    this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
     this.liveInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     // public liveInputChannel: number = 0;

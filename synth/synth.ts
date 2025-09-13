@@ -7473,7 +7473,7 @@ export class Synth {
      * 
      * liveBassInputChannel [5]: integer
      */
-    public liveInputValues: Int8Array = new Int8Array(new SharedArrayBuffer(6));
+    public liveInputValues: Uint32Array = new Uint32Array(new SharedArrayBuffer(6 * 4));
     public liveInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     public liveBassInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     // public liveInputChannel: number = 0;

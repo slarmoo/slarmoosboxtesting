@@ -397,11 +397,18 @@ export class SongPerformance {
             if (this._doc.prefs.ignorePerformedNotesNotInScale && !Config.scales[this._doc.song.scale].flags[pitch % Config.pitchesPerOctave]) {
                 return;
             }
-            if (this._doc.synth.liveInputPitches.indexOf(pitch) == -1) {
-                this._doc.synth.liveInputPitches[this._doc.synth.liveInputPitches[0]] = pitch;
+            let foundPitch: boolean = false;
+            for (let i: number = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
+                if (this._doc.synth.liveInputPitches[i] == pitch) {
+                    foundPitch = true;
+                    break;
+                }
+            }
+            if (!foundPitch) {
+                this._doc.synth.liveInputPitches[this._doc.synth.liveInputPitches[0] + 1] = pitch;
                 this._doc.synth.liveInputPitches[0]++;
                 this._pitchesChanged = true;
-                while (this._doc.synth.liveInputPitches.length > Config.maxChordSize) {
+                while (this._doc.synth.liveInputPitches[0] > Config.maxChordSize) {
                     for (let i: number = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
                         this._doc.synth.liveInputPitches[i] = this._doc.synth.liveInputPitches[i + 1];
                     }
@@ -431,11 +438,18 @@ export class SongPerformance {
             if (this._doc.prefs.ignorePerformedNotesNotInScale && !Config.scales[this._doc.song.scale].flags[pitch % Config.pitchesPerOctave]) {
                 return;
             }
-            if (this._doc.synth.liveBassInputPitches.indexOf(pitch) == -1) {
-                this._doc.synth.liveBassInputPitches[this._doc.synth.liveBassInputPitches[0]] = pitch;
+            let foundPitch: boolean = false;
+            for (let i: number = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
+                if (this._doc.synth.liveBassInputPitches[i] == pitch) {
+                    foundPitch = true;
+                    break;
+                }
+            }
+            if (!foundPitch) {
+                this._doc.synth.liveBassInputPitches[this._doc.synth.liveBassInputPitches[0] + 1] = pitch;
                 this._doc.synth.liveBassInputPitches[0]++;
                 this._bassPitchesChanged = true;
-                while (this._doc.synth.liveBassInputPitches.length > Config.maxChordSize) {
+                while (this._doc.synth.liveBassInputPitches[0] > Config.maxChordSize) {
                     for (let i: number = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
                         this._doc.synth.liveBassInputPitches[i] = this._doc.synth.liveBassInputPitches[i + 1];
                     }
@@ -511,8 +525,8 @@ export class SongPerformance {
             this.clearAllBassPitches();
         }
         for (let i: number = 0; i < Config.layeredInstrumentCountMax; i++) {
-            this._doc.synth.liveInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.channel][i] || -1;
-            this._doc.synth.liveBassInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] || -1;
+            this._doc.synth.liveInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.channel][i] != undefined ? this._doc.recentPatternInstruments[this._doc.channel][i] : -1;
+            this._doc.synth.liveBassInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] != undefined ? this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] : -1;
         }
     }
 }

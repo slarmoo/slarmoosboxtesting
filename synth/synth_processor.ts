@@ -2521,7 +2521,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
      * 
      * liveBassInputChannel [5]: integer
      */
-    public liveInputValues: Int8Array;
+    public liveInputValues: Uint32Array;
     //first value represents length
     public liveInputPitches: Int8Array;
     //first value represents length
