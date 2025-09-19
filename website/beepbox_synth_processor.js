@@ -4487,8 +4487,8 @@ var FilterControlPoint = class _FilterControlPoint {
   static getRoundedSettingValueFromLinearGain(linearGain) {
     return Math.max(0, Math.min(Config.filterGainRange - 1, Math.round(Math.log2(linearGain) / Config.filterGainStep + Config.filterGainCenter)));
   }
-  toCoefficients(filter, sampleRate, freqMult = 1, peakMult = 1) {
-    const cornerRadiansPerSample = 2 * Math.PI * Math.max(Config.filterFreqMinHz, Math.min(Config.filterFreqMaxHz, freqMult * this.getHz())) / sampleRate;
+  toCoefficients(filter, sampleRate2, freqMult = 1, peakMult = 1) {
+    const cornerRadiansPerSample = 2 * Math.PI * Math.max(Config.filterFreqMinHz, Math.min(Config.filterFreqMaxHz, freqMult * this.getHz())) / sampleRate2;
     const linearGain = this.getLinearGain(peakMult);
     switch (this.type) {
       case 0 /* lowPass */:
@@ -10222,9 +10222,6 @@ var Synth = class {
     this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     // public liveInputChannel: number = 0;
     // public liveBassInputChannel: number = 0;
-    //TODO: send liveInputInstruments somehow
-    this.liveInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
-    this.liveBassInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
     this.volume = 1;
     this.oscRefreshEventTimer = 0;
     this.oscEnabled = true;
@@ -10385,6 +10382,7 @@ var Synth = class {
       this.song = song;
     }
   }
+  //TODO: Channel muting
   async activateAudio() {
     if (this.audioContext == null || this.workletNode == null) {
       if (this.workletNode != null) this.deactivateAudio();
@@ -10392,9 +10390,7 @@ var Synth = class {
         flag: 7 /* sharedArrayBuffers */,
         livePitches: this.liveInputPitches,
         bassLivePitches: this.liveBassInputPitches,
-        liveInputValues: this.liveInputValues,
-        livePitchInstruments: this.liveInputInstruments,
-        liveBassPitchInstruments: this.liveBassInputInstruments
+        liveInputValues: this.liveInputValues
         //add more here if needed
       };
       this.sendMessage(sabMessage);
@@ -10426,10 +10422,7 @@ var Synth = class {
   }
   deactivateAudio() {
     if (this.audioContext != null && this.workletNode != null) {
-      this.workletNode.disconnect(this.audioContext.destination);
-      this.workletNode = null;
-      if (this.audioContext.close) this.audioContext.close();
-      this.audioContext = null;
+      this.audioContext.suspend();
     }
   }
   maintainLiveInput() {
@@ -13238,6 +13231,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.samplesPerSecond = 44100;
     // TODO: reverb
     this.song = null;
+    // public liveInputChannel: number = 0;
+    // public liveBassInputChannel: number = 0;
     this.loopRepeatCount = -1;
     this.volume = 1;
     this.oscRefreshEventTimer = 0;
@@ -13642,8 +13637,6 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
         this.liveInputPitches = event.data.livePitches;
         this.liveBassInputPitches = event.data.bassLivePitches;
         this.liveInputValues = event.data.liveInputValues;
-        this.liveInputInstruments = event.data.livePitchInstruments;
-        this.liveBassInputInstruments = event.data.liveBassPitchInstruments;
         break;
       }
       case 8 /* setPrevBar */: {
@@ -13780,6 +13773,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
   process(_, outputs) {
     const outputDataL = outputs[0][0];
     const outputDataR = outputs[0][1];
+    this.samplesPerSecond = sampleRate;
     if (this.browserAutomaticallyClearsAudioBuffer && (outputDataL[0] != 0 || outputDataR[0] != 0 || outputDataL[outputDataL.length - 1] != 0 || outputDataR[outputDataL.length - 1] != 0)) {
       this.browserAutomaticallyClearsAudioBuffer = false;
     }
@@ -13867,7 +13861,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.songEqFilterVolumeDelta = (eqFilterVolumeEnd - eqFilterVolumeStart) / roundedSamplesPerTick;
   }
   synthesize(outputDataL, outputDataR, outputDataLLength, playSong = true) {
-    if (this.song == null) {
+    if (this.song == null || this.liveInputPitches == void 0 || this.liveBassInputPitches == void 0 || this.liveInputValues == void 0) {
       outputDataL.fill(0);
       outputDataR.fill(0);
       this.deactivateAudio();
@@ -14362,7 +14356,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       const instrumentState = channelState.instruments[instrumentIndex];
       const toneList = instrumentState.liveInputTones;
       let toneCount = 0;
-      if (this.liveInputValues[0] > 0 && channelIndex == this.liveInputValues[4] && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
+      const pattern = song.getPattern(channelIndex, this.bar);
+      if (this.liveInputValues[0] > 0 && channelIndex == this.liveInputValues[4] && pitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
@@ -14417,7 +14412,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
           }
         }
       }
-      if (this.liveInputValues[1] > 0 && channelIndex == this.liveInputValues[5] && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
+      if (this.liveInputValues[1] > 0 && channelIndex == this.liveInputValues[5] && bassPitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
@@ -18031,6 +18026,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       }
     }
   }
+  //It's used in the just-in-time compiled synth functions, but typescript can't see that
+  // @ts-ignore
   static findRandomZeroCrossing(wave, waveLength) {
     let phase = Math.random() * waveLength;
     const phaseMask = waveLength - 1;

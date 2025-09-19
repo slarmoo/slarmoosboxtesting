@@ -304,6 +304,7 @@ export class MuteEditor {
         }
 
         for (let y: number = 0; y < this._doc.song.getChannelCount(); y++) {
+            //TODO: Make a sab
             if (this._doc.song.channels[y].muted) {
                 this._buttons[y].children[0].classList.add("muted");
 

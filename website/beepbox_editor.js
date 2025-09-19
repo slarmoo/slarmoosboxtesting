@@ -19200,9 +19200,6 @@ li.select2-results__option[role=group] > strong:hover {
       this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
       // public liveInputChannel: number = 0;
       // public liveBassInputChannel: number = 0;
-      //TODO: send liveInputInstruments somehow
-      this.liveInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
-      this.liveBassInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
       this.volume = 1;
       this.oscRefreshEventTimer = 0;
       this.oscEnabled = true;
@@ -19363,6 +19360,7 @@ li.select2-results__option[role=group] > strong:hover {
         this.song = song;
       }
     }
+    //TODO: Channel muting
     async activateAudio() {
       if (this.audioContext == null || this.workletNode == null) {
         if (this.workletNode != null) this.deactivateAudio();
@@ -19370,9 +19368,7 @@ li.select2-results__option[role=group] > strong:hover {
           flag: 7 /* sharedArrayBuffers */,
           livePitches: this.liveInputPitches,
           bassLivePitches: this.liveBassInputPitches,
-          liveInputValues: this.liveInputValues,
-          livePitchInstruments: this.liveInputInstruments,
-          liveBassPitchInstruments: this.liveBassInputInstruments
+          liveInputValues: this.liveInputValues
           //add more here if needed
         };
         this.sendMessage(sabMessage);
@@ -19404,10 +19400,7 @@ li.select2-results__option[role=group] > strong:hover {
     }
     deactivateAudio() {
       if (this.audioContext != null && this.workletNode != null) {
-        this.workletNode.disconnect(this.audioContext.destination);
-        this.workletNode = null;
-        if (this.audioContext.close) this.audioContext.close();
-        this.audioContext = null;
+        this.audioContext.suspend();
       }
     }
     maintainLiveInput() {
@@ -26961,10 +26954,6 @@ li.select2-results__option[role=group] > strong:hover {
           this._songKey = this._doc.song.key;
           this.clearAllPitches();
           this.clearAllBassPitches();
-        }
-        for (let i = 0; i < Config.layeredInstrumentCountMax; i++) {
-          this._doc.synth.liveInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.channel][i] != void 0 ? this._doc.recentPatternInstruments[this._doc.channel][i] : -1;
-          this._doc.synth.liveBassInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] != void 0 ? this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] : -1;
         }
       }, "_documentChanged");
       this._doc.notifier.watch(this._documentChanged);
@@ -39203,7 +39192,7 @@ You should be redirected to the song at:<br /><br />
         h218({ style: "align-self: center;" }, "Note Recording Setup"),
         div18(
           { style: "display: grid; overflow-y: auto; overflow-x: hidden; flex-shrink: 1;" },
-          p7("UltraBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + ctrlSymbol + "P)."),
+          p7("Slarmoo's Box can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + ctrlSymbol + "P)."),
           label4(
             { style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: center;" },
             "Add \u25CF record button next to \u25B6 play button:",
@@ -39242,7 +39231,7 @@ You should be redirected to the song at:<br /><br />
             "Count-in 1 bar of metronome before recording:",
             this._metronomeCountIn
           ),
-          p7("If you have a ", a2({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in UltraBox! (Or you could buy ", a2({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a2({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"),
+          p7("If you have a ", a2({ href: "https://caniuse.com/midi", target: "_blank" }, "compatible browser"), " on a device connected to a MIDI keyboard, you can use it to perform notes in Slarmoo's Box! (Or you could buy ", a2({ href: "https://imitone.com/", target: "_blank" }, "Imitone"), " or ", a2({ href: "https://vochlea.com/", target: "_blank" }, "Dubler"), " to hum notes into a microphone while wearing headphones!)"),
           label4(
             { style: "display: flex; flex-direction: row; align-items: center; margin-top: 0.5em; height: 2em; justify-content: center;" },
             "Enable MIDI performance:",
@@ -39256,7 +39245,7 @@ You should be redirected to the song at:<br /><br />
             div18({ class: "selectContainer", style: "width: 50%; margin-left: 1em;" }, this._bassOffset)
           ),
           p7("Once you enable the setting, the keyboard layout above will darken to denote the new bass notes. The notes will be recorded with independent timing and this works with MIDI devices, too. Be aware that the octave offset of both used channels will impact how high/low the bass/lead are relative to one another."),
-          p7('Recorded notes often overlap such that one note ends after the next note already started. In UltraBox, these notes get split into multiple notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the "transition type" effect on the instrument and setting it to "continue".'),
+          p7(`Recorded notes often overlap such that one note ends after the next note already started. In Slarmoo's Box, these notes get split into multiple notes which may sound different when re-played than they did when you were recording. To fix the sound, you can either manually clean up the notes in the pattern editor, or you could try enabling the "transition type" effect on the instrument and setting it to "continue".`),
           div18({ style: `width: 100%; height: 80px; background: linear-gradient(rgba(0,0,0,0), ${ColorConfig.editorBackground}); position: sticky; bottom: 0; pointer-events: none;` })
         ),
         div18(

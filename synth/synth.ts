@@ -5,6 +5,7 @@ import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers } from "./synthMessages";
+import { RingBuffer } from "ringbuf.js";
 
 declare global {
     interface Window {
@@ -7478,9 +7479,6 @@ export class Synth {
     public liveBassInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
     // public liveInputChannel: number = 0;
     // public liveBassInputChannel: number = 0;
-    //TODO: send liveInputInstruments somehow
-    public liveInputInstruments: Int8Array = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
-    public liveBassInputInstruments: Int8Array = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
     
     public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
@@ -7658,6 +7656,8 @@ export class Synth {
         }
     }
 
+    //TODO: Channel muting
+
     private async activateAudio(): Promise<void> {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
@@ -7667,8 +7667,6 @@ export class Synth {
                 livePitches: this.liveInputPitches,
                 bassLivePitches: this.liveBassInputPitches,
                 liveInputValues: this.liveInputValues,
-                livePitchInstruments: this.liveInputInstruments,
-                liveBassPitchInstruments: this.liveBassInputInstruments
                 //add more here if needed
             }
             this.sendMessage(sabMessage);
@@ -7705,10 +7703,11 @@ export class Synth {
 
     private deactivateAudio(): void {
         if (this.audioContext != null && this.workletNode != null) {
-            this.workletNode.disconnect(this.audioContext.destination);
-            this.workletNode = null;
-            if (this.audioContext.close) this.audioContext.close(); // firefox is missing this function?
-            this.audioContext = null;
+            this.audioContext.suspend();
+            // this.workletNode.disconnect(this.audioContext.destination);
+            // this.workletNode = null;
+            // if (this.audioContext.close) this.audioContext.close(); // firefox is missing this function?
+            // this.audioContext = null;
         }
     }
 

@@ -524,9 +524,5 @@ export class SongPerformance {
             this.clearAllPitches();
             this.clearAllBassPitches();
         }
-        for (let i: number = 0; i < Config.layeredInstrumentCountMax; i++) {
-            this._doc.synth.liveInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.channel][i] != undefined ? this._doc.recentPatternInstruments[this._doc.channel][i] : -1;
-            this._doc.synth.liveBassInputInstruments[i] = this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] != undefined ? this._doc.recentPatternInstruments[this._doc.synth.liveInputValues[5]][i] : -1;
-        }
     }
 }

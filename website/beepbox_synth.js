@@ -10063,9 +10063,6 @@ var beepbox = (() => {
       this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
       // public liveInputChannel: number = 0;
       // public liveBassInputChannel: number = 0;
-      //TODO: send liveInputInstruments somehow
-      this.liveInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
-      this.liveBassInputInstruments = new Int8Array(new SharedArrayBuffer(Config.layeredInstrumentCountMax));
       this.volume = 1;
       this.oscRefreshEventTimer = 0;
       this.oscEnabled = true;
@@ -10226,6 +10223,7 @@ var beepbox = (() => {
         this.song = song;
       }
     }
+    //TODO: Channel muting
     async activateAudio() {
       if (this.audioContext == null || this.workletNode == null) {
         if (this.workletNode != null) this.deactivateAudio();
@@ -10233,9 +10231,7 @@ var beepbox = (() => {
           flag: 7 /* sharedArrayBuffers */,
           livePitches: this.liveInputPitches,
           bassLivePitches: this.liveBassInputPitches,
-          liveInputValues: this.liveInputValues,
-          livePitchInstruments: this.liveInputInstruments,
-          liveBassPitchInstruments: this.liveBassInputInstruments
+          liveInputValues: this.liveInputValues
           //add more here if needed
         };
         this.sendMessage(sabMessage);
@@ -10267,10 +10263,7 @@ var beepbox = (() => {
     }
     deactivateAudio() {
       if (this.audioContext != null && this.workletNode != null) {
-        this.workletNode.disconnect(this.audioContext.destination);
-        this.workletNode = null;
-        if (this.audioContext.close) this.audioContext.close();
-        this.audioContext = null;
+        this.audioContext.suspend();
       }
     }
     maintainLiveInput() {

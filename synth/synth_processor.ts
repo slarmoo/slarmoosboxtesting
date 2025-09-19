@@ -2529,8 +2529,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
     // public liveInputChannel: number = 0;
     // public liveBassInputChannel: number = 0;
-    public liveInputInstruments: Int8Array;
-    public liveBassInputInstruments: Int8Array;
     public loopRepeatCount: number = -1;
     public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
@@ -2681,8 +2679,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.liveInputPitches = event.data.livePitches;
                 this.liveBassInputPitches = event.data.bassLivePitches;
                 this.liveInputValues = event.data.liveInputValues;
-                this.liveInputInstruments = event.data.livePitchInstruments;
-                this.liveBassInputInstruments = event.data.liveBassPitchInstruments;
                 break;
             }
             case MessageFlag.setPrevBar: {
@@ -2840,6 +2836,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
         const outputDataL: Float32Array = outputs[0][0];
         const outputDataR: Float32Array = outputs[0][1];
 
+        // AudioWorkletProcessor is not officially supported by typescript so for now we have lots of strange workarounds
+        // @ts-ignore
+        this.samplesPerSecond = sampleRate;
+
         if (this.browserAutomaticallyClearsAudioBuffer && (outputDataL[0] != 0.0 || outputDataR[0] != 0.0 || outputDataL[outputDataL.length - 1] != 0.0 || outputDataR[outputDataL.length - 1] != 0.0)) {
             // If the buffer is ever initially nonzero, then this must be an older browser that doesn't automatically clear the audio buffer.
             this.browserAutomaticallyClearsAudioBuffer = false;
@@ -2863,6 +2863,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.synthesize(outputDataL, outputDataR, outputDataL.length, this.isPlayingSong);
         } catch(e) {
             console.log(e);
+            // this.deactivateAudio();
         }
 
         //TODO: figure out how to properly handle this
@@ -2967,7 +2968,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputDataLLength: number, playSong: boolean = true): void {
-        if (this.song == null) {
+        if (this.song == null ||
+            this.liveInputPitches == undefined ||
+            this.liveBassInputPitches == undefined ||
+            this.liveInputValues == undefined
+        ) {
             outputDataL.fill(0.0);
             outputDataR.fill(0.0);
             this.deactivateAudio();
@@ -3587,7 +3592,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];
             const toneList: Deque<Tone> = instrumentState.liveInputTones;
             let toneCount: number = 0;
-            if (this.liveInputValues[0] > 0 && (channelIndex == this.liveInputValues[4]) && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
+            const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
+            if (this.liveInputValues[0] > 0 && (channelIndex == this.liveInputValues[4]) && pitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
                 if (instrument.getChord().singleTone) {
@@ -3651,7 +3657,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            if (this.liveInputValues[1] > 0 && (channelIndex == this.liveInputValues[5]) && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
+            if (this.liveInputValues[1] > 0 && (channelIndex == this.liveInputValues[5]) && bassPitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
                 if (instrument.getChord().singleTone) {
@@ -5288,8 +5294,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     }
                 }
 
-                //console.log(synthSource.join("\n"));
-
                 const wrappedFmSynth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
 
                 SynthProcessor.fmSynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFmSynth)(Config, SynthProcessor);
@@ -5374,8 +5378,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         synthSource.push(line);
                     }
                 }
-
-                //console.log(synthSource.join("\n"));
 
                 const wrappedFm6Synth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
 
@@ -7856,7 +7858,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
     }
 
-    public static findRandomZeroCrossing(wave: Float32Array, waveLength: number): number { //literally only public to let typescript compile
+    //It's used in the just-in-time compiled synth functions, but typescript can't see that
+    // @ts-ignore
+    private static findRandomZeroCrossing(wave: Float32Array, waveLength: number): number {
         let phase: number = Math.random() * waveLength;
         const phaseMask: number = waveLength - 1;
 

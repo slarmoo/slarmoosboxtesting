@@ -54,9 +54,7 @@ export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
     livePitches: Int8Array,
     bassLivePitches: Int8Array,
-    liveInputValues: Uint32Array,
-    livePitchInstruments: Int8Array,
-    liveBassPitchInstruments: Int8Array
+    liveInputValues: Uint32Array
 }
 
 export interface SetPrevBarMessage extends Message {
