@@ -11699,23 +11699,33 @@ function xxHash32(input, seed = 0) {
 }
 __name(xxHash32, "xxHash32");
 
-// synth/DenseSet.ts
-var DenseSet = class {
+// synth/Set.ts
+var BeepboxSet = class {
+  /**
+   * Creates a Set. Can optionally be initialized with data
+   * @param initialize Data to initialize the set with. Preferably is filled with numbers and can be iterated over with a for _ of _
+   */
   constructor(initialize) {
     this._size = 0;
     this.set = [];
     this._maxVal = 0;
     this._lastGrabbed = 0;
-    for (const val in initialize) {
-      const element = Number(val);
-      if (!Number.isNaN(element)) {
-        this.add(Number(element));
+    if (initialize) {
+      for (const val of initialize) {
+        const element = Number(val);
+        if (!Number.isNaN(element)) {
+          this.add(Number(element));
+        }
       }
     }
   }
   static {
-    __name(this, "DenseSet");
+    __name(this, "BeepboxSet");
   }
+  /**
+   * Adds an element to the set
+   * @param element the element to add
+   */
   add(element) {
     if (this.set[element] === void 0) {
       this.set[element] = element;
@@ -11723,16 +11733,28 @@ var DenseSet = class {
       if (element > this._maxVal) this._maxVal = element;
     }
   }
+  /**
+   * Tests if an element is in the set
+   * @param element the element to test
+   * @returns whether or not the element is in the set
+   */
   has(element) {
     return this.set[element] !== void 0;
   }
+  /**
+   * Remove an element from the set
+   * @param element the element to remove
+   */
   delete(element) {
     if (this.set[element] !== void 0) {
       this.set[element] = void 0;
       this._size--;
     }
   }
-  size() {
+  /**
+   * Get the size of the set
+   */
+  get size() {
     return this._size;
   }
   /**
@@ -11762,12 +11784,19 @@ var DenseSet = class {
     this._maxVal = 0;
     return void 0;
   }
+  /**
+   * Empties the set
+   */
   clear() {
     this.set = [];
     this._size = 0;
     this._maxVal = 0;
     this._lastGrabbed = 0;
   }
+  /**
+   * Turn the set into an array
+   * @returns an array filled with the values of the set
+   */
   getArray() {
     const arr = [];
     for (let i = 0; i <= this._maxVal; i++) {
@@ -13693,8 +13722,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.samplesPerSecond = 44100;
     // TODO: reverb
     this.song = null;
-    this.liveInputPitches = new DenseSet();
-    this.liveBassInputPitches = new DenseSet();
+    this.liveInputPitches = new BeepboxSet();
+    this.liveBassInputPitches = new BeepboxSet();
     // public liveInputChannel: number = 0;
     // public liveBassInputChannel: number = 0;
     this.loopRepeatCount = -1;
@@ -14441,7 +14470,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
         continue;
       }
       this.computeSongState(samplesPerTick);
-      if (!this.isPlayingSong && (this.liveInputPitches.size() > 0 || this.liveBassInputPitches.size() > 0)) {
+      if (!this.isPlayingSong && (this.liveInputPitches.size > 0 || this.liveBassInputPitches.size > 0)) {
         this.computeLatestModValues();
       }
       this.dequeueLivePitches();
@@ -14848,7 +14877,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       const toneList = instrumentState.liveInputTones;
       let toneCount = 0;
       const pattern = song.getPattern(channelIndex, this.bar);
-      if (this.liveInputValues[0 /* liveInputDuration */] > 0 && channelIndex == this.liveInputValues[4 /* liveInputChannel */] && pitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+      if (this.liveInputValues[0 /* liveInputDuration */] > 0 && channelIndex == this.liveInputValues[4 /* liveInputChannel */] && pitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
@@ -14864,7 +14893,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
           }
           toneCount++;
           tone.pitches = pitches.getArray();
-          tone.pitchCount = pitches.size();
+          tone.pitchCount = pitches.size;
           tone.chordSize = 1;
           tone.instrumentIndex = instrumentIndex;
           tone.note = tone.prevNote = tone.nextNote = null;
@@ -14875,7 +14904,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
         } else {
           this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
           pitches.pointToBeginning();
-          for (let i = 0; i < pitches.size(); i++) {
+          for (let i = 0; i < pitches.size; i++) {
             let tone;
             if (this.tempMatchedPitchTones[toneCount] != null) {
               tone = this.tempMatchedPitchTones[toneCount];
@@ -14891,9 +14920,9 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
             }
             toneCount++;
             const pitch = pitches.grab();
-            if (pitch) tone.pitches[0] = pitch;
+            if (pitch !== void 0) tone.pitches[0] = pitch;
             tone.pitchCount = 1;
-            tone.chordSize = pitches.size();
+            tone.chordSize = pitches.size;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
             tone.atNoteStart = Boolean(this.liveInputValues[2 /* liveInputStarted */]);
@@ -14903,7 +14932,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
           }
         }
       }
-      if (this.liveInputValues[1 /* liveBassInputDuration */] > 0 && channelIndex == this.liveInputValues[5 /* liveBassInputChannel */] && bassPitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+      if (this.liveInputValues[1 /* liveBassInputDuration */] > 0 && channelIndex == this.liveInputValues[5 /* liveBassInputChannel */] && bassPitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
@@ -14919,7 +14948,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
           }
           toneCount++;
           tone.pitches = bassPitches.getArray();
-          tone.pitchCount = bassPitches.size();
+          tone.pitchCount = bassPitches.size;
           tone.chordSize = 1;
           tone.instrumentIndex = instrumentIndex;
           tone.note = tone.prevNote = tone.nextNote = null;
@@ -14929,7 +14958,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
           this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
         } else {
           this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
-          for (let i = 0; i < bassPitches.size(); i++) {
+          for (let i = 0; i < bassPitches.size; i++) {
             let tone;
             if (this.tempMatchedPitchTones[toneCount] != null) {
               tone = this.tempMatchedPitchTones[toneCount];
@@ -14947,7 +14976,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
             const pitch = bassPitches.grab();
             if (pitch) tone.pitches[0] = pitch;
             tone.pitchCount = 1;
-            tone.chordSize = bassPitches.size();
+            tone.chordSize = bassPitches.size;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
             tone.atNoteStart = Boolean(this.liveInputValues[3 /* liveBassInputStarted */]);
@@ -15010,7 +15039,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
    * @param notePitches The ordered array of new pitches
    */
   moveTonesIntoOrderedTempMatchedList(toneList, notePitches) {
-    if (!(notePitches instanceof DenseSet)) {
+    if (!(notePitches instanceof BeepboxSet)) {
       for (let i = 0; i < toneList.count(); i++) {
         const tone = toneList.get(i);
         const pitch = tone.pitches[0] + tone.lastInterval;

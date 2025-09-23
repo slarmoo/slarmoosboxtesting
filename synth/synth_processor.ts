@@ -7,7 +7,7 @@ import { Deque } from "./Deque";
 import { xxHash32 } from "js-xxhash";
 import { DeactivateMessage, LiveInputValues, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
-import { DenseSet } from "./DenseSet";
+import { BeepboxSet } from "./Set";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -2524,8 +2524,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
      * liveBassInputChannel [5]: integer
      */
     public liveInputValues: Uint32Array;
-    private readonly liveInputPitches: DenseSet = new DenseSet();
-    private readonly liveBassInputPitches: DenseSet = new DenseSet();
+    private readonly liveInputPitches: BeepboxSet = new BeepboxSet();
+    private readonly liveBassInputPitches: BeepboxSet = new BeepboxSet();
     private liveInputPitchesOnOffRequests: RingBuffer;
 
     // public liveInputChannel: number = 0;
@@ -3129,7 +3129,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
             this.computeSongState(samplesPerTick);
 
-            if (!this.isPlayingSong && (this.liveInputPitches.size() > 0 || this.liveBassInputPitches.size() > 0)) { //set up modulation for live input tones
+            if (!this.isPlayingSong && (this.liveInputPitches.size > 0 || this.liveBassInputPitches.size > 0)) { //set up modulation for live input tones
                 this.computeLatestModValues();
             }
 
@@ -3610,15 +3610,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private determineLiveInputTones(song: Song, channelIndex: number, samplesPerTick: number): void {
         const channel: Channel = song.channels[channelIndex];
         const channelState: ChannelState = this.channels[channelIndex];
-        const pitches: DenseSet = this.liveInputPitches;
-        const bassPitches: DenseSet = this.liveBassInputPitches;
+        const pitches: BeepboxSet = this.liveInputPitches;
+        const bassPitches: BeepboxSet = this.liveBassInputPitches;
 
         for (let instrumentIndex: number = 0; instrumentIndex < channel.instruments.length; instrumentIndex++) {
             const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];
             const toneList: Deque<Tone> = instrumentState.liveInputTones;
             let toneCount: number = 0;
             const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
-            if (this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel]) && pitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+            if (this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel]) && pitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
                 if (instrument.getChord().singleTone) {
                     let tone: Tone;
@@ -3635,7 +3635,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     toneCount++;
 
                     tone.pitches = pitches.getArray();
-                    tone.pitchCount = pitches.size();
+                    tone.pitchCount = pitches.size;
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
@@ -3648,7 +3648,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
                     this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
                     pitches.pointToBeginning();
-                    for (let i: number = 0; i < pitches.size(); i++) {
+                    for (let i: number = 0; i < pitches.size; i++) {
 
                         let tone: Tone;
                         if (this.tempMatchedPitchTones[toneCount] != null) {
@@ -3666,9 +3666,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         toneCount++;
 
                         const pitch: number | undefined = pitches.grab();
-                        if(pitch) tone.pitches[0] = pitch;
+                        if(pitch !== undefined) tone.pitches[0] = pitch;
                         tone.pitchCount = 1;
-                        tone.chordSize = pitches.size();
+                        tone.chordSize = pitches.size;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveInputStarted]);
@@ -3679,7 +3679,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel]) && bassPitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel]) && bassPitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
                 if (instrument.getChord().singleTone) {
@@ -3697,7 +3697,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     toneCount++;
 
                     tone.pitches = bassPitches.getArray();
-                    tone.pitchCount = bassPitches.size();
+                    tone.pitchCount = bassPitches.size;
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
@@ -3710,7 +3710,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
                     this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
 
-                    for (let i: number = 0; i < bassPitches.size(); i++) {
+                    for (let i: number = 0; i < bassPitches.size; i++) {
                         //const strumOffsetParts: number = i * instrument.getChord().strumParts;
 
                         let tone: Tone;
@@ -3731,7 +3731,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         const pitch: number | undefined = bassPitches.grab();
                         if (pitch) tone.pitches[0] = pitch;
                         tone.pitchCount = 1;
-                        tone.chordSize = bassPitches.size();
+                        tone.chordSize = bassPitches.size;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveBassInputStarted]);
@@ -3812,8 +3812,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
      * @param toneList The deque of old tones
      * @param notePitches The ordered array of new pitches
      */
-    private moveTonesIntoOrderedTempMatchedList(toneList: Deque<Tone>, notePitches: DenseSet | number[]): void {
-        if (!(notePitches instanceof DenseSet)) {
+    private moveTonesIntoOrderedTempMatchedList(toneList: Deque<Tone>, notePitches: BeepboxSet | number[]): void {
+        if (!(notePitches instanceof BeepboxSet)) {
             for (let i: number = 0; i < toneList.count(); i++) {
                 const tone: Tone = toneList.get(i);
                 const pitch: number = tone.pitches[0] + tone.lastInterval;
