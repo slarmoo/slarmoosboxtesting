@@ -820,7 +820,7 @@ export class SpectrumWave {
     }
 
     public markCustomWaveDirty(): void {
-        const hashMult: number = Synth.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
+        const hashMult: number = SynthMessenger.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
         let hash: number = 0;
         for (const point of this.spectrum) hash = ((hash * hashMult) + point) >>> 0;
         this.hash = hash;
@@ -846,7 +846,7 @@ export class HarmonicsWave {
     }
 
     public markCustomWaveDirty(): void {
-        const hashMult: number = Synth.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
+        const hashMult: number = SynthMessenger.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
         let hash: number = 0;
         for (const point of this.harmonics) hash = ((hash * hashMult) + point) >>> 0;
         this.hash = hash;
@@ -1893,7 +1893,7 @@ export class Instrument {
             instrumentObject["pitchShiftSemitones"] = this.pitchShift;
         }
         if (effectsIncludeDetune(this.effects)) {
-            instrumentObject["detuneCents"] = Synth.detuneToCents(this.detune);
+            instrumentObject["detuneCents"] = SynthMessenger.detuneToCents(this.detune);
         }
         if (effectsIncludeVibrato(this.effects)) {
             if (this.vibrato == -1) {
@@ -1961,8 +1961,8 @@ export class Instrument {
         }
 
         if (this.type != InstrumentType.drumset) {
-            instrumentObject["fadeInSeconds"] = Math.round(10000 * Synth.fadeInSettingToSeconds(this.fadeIn)) / 10000;
-            instrumentObject["fadeOutTicks"] = Synth.fadeOutSettingToTicks(this.fadeOut);
+            instrumentObject["fadeInSeconds"] = Math.round(10000 * SynthMessenger.fadeInSettingToSeconds(this.fadeIn)) / 10000;
+            instrumentObject["fadeOutTicks"] = SynthMessenger.fadeOutSettingToTicks(this.fadeOut);
         }
 
         if (this.type == InstrumentType.harmonics || this.type == InstrumentType.pickedString) {
@@ -2227,8 +2227,8 @@ export class Instrument {
                 if (legacySettings != undefined) {
                     transition = Config.transitions.dictionary[legacySettings.transition];
                     // These may be overridden below.
-                    this.fadeIn = Synth.secondsToFadeInSetting(legacySettings.fadeInSeconds);
-                    this.fadeOut = Synth.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
+                    this.fadeIn = SynthMessenger.secondsToFadeInSetting(legacySettings.fadeInSeconds);
+                    this.fadeOut = SynthMessenger.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
                 }
             }
             if (transition != undefined) this.transition = transition.index;
@@ -2241,10 +2241,10 @@ export class Instrument {
 
         // Overrides legacy settings in transition above.
         if (instrumentObject["fadeInSeconds"] != undefined) {
-            this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
+            this.fadeIn = SynthMessenger.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
         }
         if (instrumentObject["fadeOutTicks"] != undefined) {
-            this.fadeOut = Synth.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
+            this.fadeOut = SynthMessenger.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
         }
 
         {
@@ -2316,7 +2316,7 @@ export class Instrument {
             }
         }
         if (instrumentObject["detuneCents"] != undefined) {
-            this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(Synth.centsToDetune(+instrumentObject["detuneCents"])));
+            this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(SynthMessenger.centsToDetune(+instrumentObject["detuneCents"])));
         }
 
         this.vibrato = Config.vibratos.dictionary["none"].index; // default value.
@@ -3004,11 +3004,11 @@ export class Instrument {
     }
 
     public getFadeInSeconds(): number {
-        return (this.type == InstrumentType.drumset) ? 0.0 : Synth.fadeInSettingToSeconds(this.fadeIn);
+        return (this.type == InstrumentType.drumset) ? 0.0 : SynthMessenger.fadeInSettingToSeconds(this.fadeIn);
     }
 
     public getFadeOutTicks(): number {
-        return (this.type == InstrumentType.drumset) ? Config.drumsetFadeOutTicks : Synth.fadeOutSettingToTicks(this.fadeOut)
+        return (this.type == InstrumentType.drumset) ? Config.drumsetFadeOutTicks : SynthMessenger.fadeOutSettingToTicks(this.fadeOut)
     }
 
     public getChord(): Chord {
@@ -3326,11 +3326,11 @@ export class Song {
         this.eqFilter.reset();
         //clear plugin data
         this.pluginurl = null;
-        Synth.pluginValueNames = [];
-        Synth.pluginInstrumentStateFunction = null;
-        Synth.pluginFunction = null;
-        Synth.pluginIndex = 0;
-        Synth.PluginDelayLineSize = 0;
+        SynthMessenger.pluginValueNames = [];
+        SynthMessenger.pluginInstrumentStateFunction = null;
+        SynthMessenger.pluginFunction = null;
+        SynthMessenger.pluginIndex = 0;
+        SynthMessenger.PluginDelayLineSize = 0;
         PluginConfig.pluginUIElements = [];
         PluginConfig.pluginName = "";
 
@@ -4943,8 +4943,8 @@ export class Song {
                         const channelIndex: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                         const instrument: Instrument = this.channels[channelIndex].instruments[0];
-                        instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                        instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                        instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                        instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                         instrument.transition = Config.transitions.dictionary[settings.transition].index;
                         if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                             // Enable transition if it was used.
@@ -4954,8 +4954,8 @@ export class Song {
                         for (let channelIndex: number = 0; channelIndex < this.getChannelCount(); channelIndex++) {
                             for (const instrument of this.channels[channelIndex].instruments) {
                                 const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
-                                instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                                instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                                instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                                instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                                 instrument.transition = Config.transitions.dictionary[settings.transition].index;
                                 if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                                     // Enable transition if it was used.
@@ -4966,8 +4966,8 @@ export class Song {
                     } else if ((beforeFour && !fromGoldBox && !fromUltraBox && !fromSlarmoosBox) || fromBeepBox) {
                         const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                         const instrument: Instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-                        instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                        instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                        instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                        instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                         instrument.transition = Config.transitions.dictionary[settings.transition].index;
                         if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                             // Enable transition if it was used.
@@ -4976,8 +4976,8 @@ export class Song {
                     } else {
                         const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                         const instrument: Instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-                        instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                        instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                        instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                        instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                         instrument.transition = Config.transitions.dictionary[settings.transition].index;
 
                         // Read tie-note 
@@ -6423,15 +6423,15 @@ export class Song {
                 return response.json();
             }).then((plugin) => {
                 //decode and store the data
-                Synth.pluginValueNames = plugin.variableNames || [];
-                Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-                Synth.pluginFunction = plugin.synthFunction || "";
-                Synth.pluginIndex = plugin.effectOrderIndex || 0;
-                Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
+                SynthMessenger.pluginValueNames = plugin.variableNames || [];
+                SynthMessenger.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
+                SynthMessenger.pluginFunction = plugin.synthFunction || "";
+                SynthMessenger.pluginIndex = plugin.effectOrderIndex || 0;
+                SynthMessenger.PluginDelayLineSize = plugin.delayLineSize || 0;
                 PluginConfig.pluginUIElements = plugin.elements || [];
                 PluginConfig.pluginName = plugin.pluginName || "plugin";
             }).then(() => {
-                if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
+                if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
              }).catch(() => {
                 window.alert("couldn't load plugin "+ pluginurl);
             })
@@ -7445,13 +7445,7 @@ export class Song {
     }
 }
 
-export class Synth {
-
-    public panningDelayBufferSize: number;
-    public panningDelayBufferMask: number;
-    public chorusDelayBufferSize: number;
-    public chorusDelayBufferMask: number;
-    // TODO: reverb
+export class SynthMessenger {
 
     public preferLowerLatency: boolean = false; // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     public anticipatePoorPerformance: boolean = false; // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
@@ -7475,11 +7469,11 @@ export class Synth {
      * liveBassInputChannel [5]: integer
      */
     public liveInputValues: Uint32Array = new Uint32Array(new SharedArrayBuffer(6 * 4));
-    public liveInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-    public liveBassInputPitches: Int8Array = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-    // public liveInputChannel: number = 0;
-    // public liveBassInputChannel: number = 0;
-    
+    // public liveInputPitches: number[];
+    // public liveBassInputPitches: number[];
+    private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch)
+    private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array)
+
     public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
@@ -7656,6 +7650,26 @@ export class Synth {
         }
     }
 
+    private readonly pushArray: Uint16Array = new Uint16Array(1);
+    public addRemoveLiveInputTone(pitches: number | number[], isBass: boolean, turnOn: boolean) {
+        if (typeof pitches === "number") {
+            let val: number = pitches; val = val << 1;
+            val += +turnOn; val = val << 1;
+            val += +isBass;
+            this.pushArray[0] = val;
+            this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+        } else if (pitches instanceof Array && pitches.length > 0) {
+            const pushArray: Uint16Array = new Uint16Array(pitches.length)
+            for (let i: number = 0; i < pitches.length; i++) {
+                let val: number = pitches[i]; val = val << 1;
+                val += +turnOn; val = val << 1;
+                val += +isBass;
+                pushArray[i] = val
+            }
+            this.liveInputPitchesOnOffRequests.push(pushArray);
+        }
+    }
+
     //TODO: Channel muting
 
     private async activateAudio(): Promise<void> {
@@ -7664,9 +7678,10 @@ export class Synth {
             // make sure that the workletNode has access to the shared array buffers and the song
             const sabMessage: SendSharedArrayBuffers = {
                 flag: MessageFlag.sharedArrayBuffers,
-                livePitches: this.liveInputPitches,
-                bassLivePitches: this.liveBassInputPitches,
+                // livePitches: this.liveInputPitches,
+                // bassLivePitches: this.liveBassInputPitches,
                 liveInputValues: this.liveInputValues,
+                liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
                 //add more here if needed
             }
             this.sendMessage(sabMessage);

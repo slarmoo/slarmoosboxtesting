@@ -35,7 +35,7 @@ var beepbox = (() => {
     Song: () => Song,
     SongDocument: () => SongDocument,
     SongEditor: () => SongEditor,
-    Synth: () => Synth
+    Synth: () => SynthMessenger
   });
 
   // synth/SynthConfig.ts
@@ -12834,6 +12834,326 @@ li.select2-results__option[role=group] > strong:hover {
     }
   };
 
+  // node_modules/ringbuf.js/dist/index.mjs
+  var RingBuffer = class {
+    static {
+      __name(this, "RingBuffer");
+    }
+    /** Allocate the SharedArrayBuffer for a RingBuffer, based on the type and
+     * capacity required
+     * @param capacity The number of elements the ring buffer will be
+     * able to hold.
+     * @param type A typed array constructor, the type that this ring
+     * buffer will hold.
+     * @return A SharedArrayBuffer of the right size.
+     */
+    static getStorageForCapacity(capacity, type) {
+      if (!type.BYTES_PER_ELEMENT) {
+        throw TypeError("Pass in an ArrayBuffer subclass");
+      }
+      const bytes = 8 + (capacity + 1) * type.BYTES_PER_ELEMENT;
+      return new SharedArrayBuffer(bytes);
+    }
+    /**
+     * @param sab A SharedArrayBuffer obtained by calling
+     * {@link RingBuffer.getStorageForCapacity}.
+     * @param type A typed array constructor, the type that this ring
+     * buffer will hold.
+     */
+    constructor(sab, type) {
+      if (type.BYTES_PER_ELEMENT === void 0) {
+        throw TypeError("Pass a concrete typed array class as second argument");
+      }
+      this._type = type;
+      this._capacity = (sab.byteLength - 8) / type.BYTES_PER_ELEMENT;
+      this.buf = sab;
+      this.write_ptr = new Uint32Array(this.buf, 0, 1);
+      this.read_ptr = new Uint32Array(this.buf, 4, 1);
+      this.storage = new type(this.buf, 8, this._capacity);
+    }
+    /**
+     * @return the type of the underlying ArrayBuffer for this RingBuffer. This
+     * allows implementing crude type checking.
+     */
+    type() {
+      return this._type.name;
+    }
+    /**
+     * Push elements to the ring buffer.
+     * @param elements A typed array of the same type as passed in the ctor, to be written to the queue.
+     * @param length If passed, the maximum number of elements to push.
+     * If not passed, all elements in the input array are pushed.
+     * @param offset If passed, a starting index in elements from which
+     * the elements are read. If not passed, elements are read from index 0.
+     * @return the number of elements written to the queue.
+     */
+    push(elements, length, offset = 0) {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      if ((wr + 1) % this._storage_capacity() === rd) {
+        return 0;
+      }
+      const len = length !== void 0 ? length : elements.length;
+      const to_write = Math.min(this._available_write(rd, wr), len);
+      const first_part = Math.min(this._storage_capacity() - wr, to_write);
+      const second_part = to_write - first_part;
+      this._copy(elements, offset, this.storage, wr, first_part);
+      this._copy(elements, offset + first_part, this.storage, 0, second_part);
+      Atomics.store(
+        this.write_ptr,
+        0,
+        (wr + to_write) % this._storage_capacity()
+      );
+      return to_write;
+    }
+    /**
+     * Write bytes to the ring buffer using callbacks. This create wrapper
+     * objects and can GC, so it's best to no use this variant from a real-time
+     * thread such as an AudioWorklerProcessor `process` method.
+     * The callback is passed two typed arrays of the same type, to be filled.
+     * This allows skipping copies if the API that produces the data writes is
+     * passed arrays to write to, such as `AudioData.copyTo`.
+     * @param amount The maximum number of elements to write to the ring
+     * buffer. If amount is more than the number of slots available for writing,
+     * then the number of slots available for writing will be made available: no
+     * overwriting of elements can happen.
+     * @param cb A callback with two parameters, that are two typed
+     * array of the correct type, in which the data need to be copied. If the
+     * callback doesn't return anything, it is assumed all the elements
+     * have been written to. Otherwise, it is assumed that the returned number is
+     * the number of elements that have been written to, and those elements have
+     * been written started at the beginning of the requested buffer space.
+     *
+     * @return The number of elements written to the queue.
+     */
+    writeCallback(amount, cb) {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      if ((wr + 1) % this._storage_capacity() === rd) {
+        return 0;
+      }
+      const to_write = Math.min(this._available_write(rd, wr), amount);
+      const first_part = Math.min(this._storage_capacity() - wr, to_write);
+      const second_part = to_write - first_part;
+      const first_part_buf = new this._type(
+        this.storage.buffer,
+        8 + wr * this.storage.BYTES_PER_ELEMENT,
+        first_part
+      );
+      const second_part_buf = new this._type(
+        this.storage.buffer,
+        8 + 0,
+        second_part
+      );
+      const written = cb(first_part_buf, second_part_buf) || to_write;
+      Atomics.store(this.write_ptr, 0, (wr + written) % this._storage_capacity());
+      return written;
+    }
+    /**
+     * Write bytes to the ring buffer using a callback.
+     *
+     * This allows skipping copies if the API that produces the data writes is
+     * passed arrays to write to, such as `AudioData.copyTo`.
+     *
+     * @param amount The maximum number of elements to write to the ring
+     * buffer. If amount is more than the number of slots available for writing,
+     * then the number of slots available for writing will be made available: no
+     * overwriting of elements can happen.
+     * @param cb A callback with five parameters:
+     *
+     * (1) The internal storage of the ring buffer as a typed array
+     * (2) An offset to start writing from
+     * (3) A number of elements to write at this offset
+     * (4) Another offset to start writing from
+     * (5) A number of elements to write at this second offset
+     *
+     * If the callback doesn't return anything, it is assumed all the elements
+     * have been written to. Otherwise, it is assumed that the returned number is
+     * the number of elements that have been written to, and those elements have
+     * been written started at the beginning of the requested buffer space.
+     * @return The number of elements written to the queue.
+     */
+    writeCallbackWithOffset(amount, cb) {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      if ((wr + 1) % this._storage_capacity() === rd) {
+        return 0;
+      }
+      const to_write = Math.min(this._available_write(rd, wr), amount);
+      const first_part = Math.min(this._storage_capacity() - wr, to_write);
+      const second_part = to_write - first_part;
+      const written = cb(this.storage, wr, first_part, 0, second_part) || to_write;
+      Atomics.store(this.write_ptr, 0, (wr + written) % this._storage_capacity());
+      return written;
+    }
+    /**
+     * Read up to `elements.length` elements from the ring buffer. `elements` is a typed
+     * array of the same type as passed in the ctor.
+     * Returns the number of elements read from the queue, they are placed at the
+     * beginning of the array passed as parameter.
+     * @param elements An array in which the elements read from the
+     * queue will be written, starting at the beginning of the array.
+     * @param length If passed, the maximum number of elements to pop. If
+     * not passed, up to elements.length are popped.
+     * @param offset If passed, an index in elements in which the data is
+     * written to. `elements.length - offset` must be greater or equal to
+     * `length`.
+     * @return The number of elements read from the queue.
+     */
+    pop(elements, length, offset = 0) {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      if (wr === rd) {
+        return 0;
+      }
+      const len = length !== void 0 ? length : elements.length;
+      const to_read = Math.min(this._available_read(rd, wr), len);
+      const first_part = Math.min(this._storage_capacity() - rd, to_read);
+      const second_part = to_read - first_part;
+      this._copy(this.storage, rd, elements, offset, first_part);
+      this._copy(this.storage, 0, elements, offset + first_part, second_part);
+      Atomics.store(this.read_ptr, 0, (rd + to_read) % this._storage_capacity());
+      return to_read;
+    }
+    /**
+     * @return True if the ring buffer is empty false otherwise. This can be late
+     * on the reader side: it can return true even if something has just been
+     * pushed.
+     */
+    empty() {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      return wr === rd;
+    }
+    /**
+     * @return True if the ring buffer is full, false otherwise. This can be late
+     * on the write side: it can return true when something has just been popped.
+     */
+    full() {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      return (wr + 1) % this._storage_capacity() === rd;
+    }
+    /**
+     * @return The usable capacity for the ring buffer: the number of elements
+     * that can be stored.
+     */
+    capacity() {
+      return this._capacity - 1;
+    }
+    /**
+     * @return The number of elements available for reading. This can be late, and
+     * report less elements that is actually in the queue, when something has just
+     * been enqueued.
+     */
+    availableRead() {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      return this._available_read(rd, wr);
+    }
+    /**
+     * Compatibility alias for availableRead().
+     *
+     * @return The number of elements available for reading. This can be late, and
+     * report less elements that is actually in the queue, when something has just
+     * been enqueued.
+     *
+     * @deprecated
+     */
+    available_read() {
+      return this.availableRead();
+    }
+    /**
+     * @return The number of elements available for writing. This can be late, and
+     * report less elements that is actually available for writing, when something
+     * has just been dequeued.
+     */
+    availableWrite() {
+      const rd = Atomics.load(this.read_ptr, 0);
+      const wr = Atomics.load(this.write_ptr, 0);
+      return this._available_write(rd, wr);
+    }
+    /**
+     * Compatibility alias for availableWrite.
+     *
+     * @return The number of elements available for writing. This can be late, and
+     * report less elements that is actually available for writing, when something
+     * has just been dequeued.
+     *
+     * @deprecated
+     */
+    available_write() {
+      return this.availableWrite();
+    }
+    // private methods //
+    /**
+     * @return Number of elements available for reading, given a read and write
+     * pointer.
+     * @private
+     */
+    _available_read(rd, wr) {
+      return (wr + this._storage_capacity() - rd) % this._storage_capacity();
+    }
+    /**
+     * @return Number of elements available from writing, given a read and write
+     * pointer.
+     * @private
+     */
+    _available_write(rd, wr) {
+      return this.capacity() - this._available_read(rd, wr);
+    }
+    /**
+     * @return The size of the storage for elements not accounting the space for
+     * the index, counting the empty slot.
+     * @private
+     */
+    _storage_capacity() {
+      return this._capacity;
+    }
+    /**
+     * Copy `size` elements from `input`, starting at offset `offset_input`, to
+     * `output`, starting at offset `offset_output`.
+     * @param input The array to copy from
+     * @param offset_input The index at which to start the copy
+     * @param output The array to copy to
+     * @param offset_output The index at which to start copying the elements to
+     * @param size The number of elements to copy
+     * @private
+     */
+    _copy(input20, offset_input, output, offset_output, size) {
+      if (!size) {
+        return;
+      }
+      if (offset_input === 0 && offset_output + input20.length <= this._storage_capacity() && input20.length === size) {
+        output.set(input20, offset_output);
+        return;
+      }
+      let i = 0;
+      const unrollFactor = 16;
+      for (; i <= size - unrollFactor; i += unrollFactor) {
+        output[offset_output + i] = input20[offset_input + i];
+        output[offset_output + i + 1] = input20[offset_input + i + 1];
+        output[offset_output + i + 2] = input20[offset_input + i + 2];
+        output[offset_output + i + 3] = input20[offset_input + i + 3];
+        output[offset_output + i + 4] = input20[offset_input + i + 4];
+        output[offset_output + i + 5] = input20[offset_input + i + 5];
+        output[offset_output + i + 6] = input20[offset_input + i + 6];
+        output[offset_output + i + 7] = input20[offset_input + i + 7];
+        output[offset_output + i + 8] = input20[offset_input + i + 8];
+        output[offset_output + i + 9] = input20[offset_input + i + 9];
+        output[offset_output + i + 10] = input20[offset_input + i + 10];
+        output[offset_output + i + 11] = input20[offset_input + i + 11];
+        output[offset_output + i + 12] = input20[offset_input + i + 12];
+        output[offset_output + i + 13] = input20[offset_input + i + 13];
+        output[offset_output + i + 14] = input20[offset_input + i + 14];
+        output[offset_output + i + 15] = input20[offset_input + i + 15];
+      }
+      for (; i < size; i++) {
+        output[offset_output + i] = input20[offset_input + i];
+      }
+    }
+  };
+
   // synth/synth.ts
   function clamp(min, max, val) {
     max = max - 1;
@@ -13400,7 +13720,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.markCustomWaveDirty();
     }
     markCustomWaveDirty() {
-      const hashMult = Synth.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
+      const hashMult = SynthMessenger.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
       let hash = 0;
       for (const point of this.spectrum) hash = hash * hashMult + point >>> 0;
       this.hash = hash;
@@ -13425,7 +13745,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.markCustomWaveDirty();
     }
     markCustomWaveDirty() {
-      const hashMult = Synth.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
+      const hashMult = SynthMessenger.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
       let hash = 0;
       for (const point of this.harmonics) hash = hash * hashMult + point >>> 0;
       this.hash = hash;
@@ -14313,7 +14633,7 @@ li.select2-results__option[role=group] > strong:hover {
         instrumentObject["pitchShiftSemitones"] = this.pitchShift;
       }
       if (effectsIncludeDetune(this.effects)) {
-        instrumentObject["detuneCents"] = Synth.detuneToCents(this.detune);
+        instrumentObject["detuneCents"] = SynthMessenger.detuneToCents(this.detune);
       }
       if (effectsIncludeVibrato(this.effects)) {
         if (this.vibrato == -1) {
@@ -14378,8 +14698,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
       }
       if (this.type != 4 /* drumset */) {
-        instrumentObject["fadeInSeconds"] = Math.round(1e4 * Synth.fadeInSettingToSeconds(this.fadeIn)) / 1e4;
-        instrumentObject["fadeOutTicks"] = Synth.fadeOutSettingToTicks(this.fadeOut);
+        instrumentObject["fadeInSeconds"] = Math.round(1e4 * SynthMessenger.fadeInSettingToSeconds(this.fadeIn)) / 1e4;
+        instrumentObject["fadeOutTicks"] = SynthMessenger.fadeOutSettingToTicks(this.fadeOut);
       }
       if (this.type == 5 /* harmonics */ || this.type == 7 /* pickedString */) {
         instrumentObject["harmonics"] = [];
@@ -14618,8 +14938,8 @@ li.select2-results__option[role=group] > strong:hover {
           }[transitionProperty];
           if (legacySettings != void 0) {
             transition = Config.transitions.dictionary[legacySettings.transition];
-            this.fadeIn = Synth.secondsToFadeInSetting(legacySettings.fadeInSeconds);
-            this.fadeOut = Synth.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
+            this.fadeIn = SynthMessenger.secondsToFadeInSetting(legacySettings.fadeInSeconds);
+            this.fadeOut = SynthMessenger.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
           }
         }
         if (transition != void 0) this.transition = transition.index;
@@ -14628,10 +14948,10 @@ li.select2-results__option[role=group] > strong:hover {
         }
       }
       if (instrumentObject["fadeInSeconds"] != void 0) {
-        this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
+        this.fadeIn = SynthMessenger.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
       }
       if (instrumentObject["fadeOutTicks"] != void 0) {
-        this.fadeOut = Synth.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
+        this.fadeOut = SynthMessenger.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
       }
       {
         const chordProperty = instrumentObject["chord"];
@@ -14692,7 +15012,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
       }
       if (instrumentObject["detuneCents"] != void 0) {
-        this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(Synth.centsToDetune(+instrumentObject["detuneCents"])));
+        this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(SynthMessenger.centsToDetune(+instrumentObject["detuneCents"])));
       }
       this.vibrato = Config.vibratos.dictionary["none"].index;
       const vibratoProperty = instrumentObject["vibrato"] || instrumentObject["effect"];
@@ -15288,10 +15608,10 @@ li.select2-results__option[role=group] > strong:hover {
       return effectsIncludeTransition(this.effects) ? Config.transitions[this.transition] : this.type == 10 /* mod */ ? Config.transitions.dictionary["interrupt"] : Config.transitions.dictionary["normal"];
     }
     getFadeInSeconds() {
-      return this.type == 4 /* drumset */ ? 0 : Synth.fadeInSettingToSeconds(this.fadeIn);
+      return this.type == 4 /* drumset */ ? 0 : SynthMessenger.fadeInSettingToSeconds(this.fadeIn);
     }
     getFadeOutTicks() {
-      return this.type == 4 /* drumset */ ? Config.drumsetFadeOutTicks : Synth.fadeOutSettingToTicks(this.fadeOut);
+      return this.type == 4 /* drumset */ ? Config.drumsetFadeOutTicks : SynthMessenger.fadeOutSettingToTicks(this.fadeOut);
     }
     getChord() {
       return effectsIncludeChord(this.effects) ? Config.chords[this.chord] : Config.chords.dictionary["simultaneous"];
@@ -15581,11 +15901,11 @@ li.select2-results__option[role=group] > strong:hover {
       this.patternInstruments = false;
       this.eqFilter.reset();
       this.pluginurl = null;
-      Synth.pluginValueNames = [];
-      Synth.pluginInstrumentStateFunction = null;
-      Synth.pluginFunction = null;
-      Synth.pluginIndex = 0;
-      Synth.PluginDelayLineSize = 0;
+      SynthMessenger.pluginValueNames = [];
+      SynthMessenger.pluginInstrumentStateFunction = null;
+      SynthMessenger.pluginFunction = null;
+      SynthMessenger.pluginIndex = 0;
+      SynthMessenger.PluginDelayLineSize = 0;
       PluginConfig.pluginUIElements = [];
       PluginConfig.pluginName = "";
       for (let i = 0; i < Config.filterMorphCount - 1; i++) {
@@ -16972,8 +17292,8 @@ li.select2-results__option[role=group] > strong:hover {
                 const channelIndex = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                 const instrument = this.channels[channelIndex].instruments[0];
-                instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                 instrument.transition = Config.transitions.dictionary[settings.transition].index;
                 if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                   instrument.effects |= 1 << 10 /* transition */;
@@ -16982,8 +17302,8 @@ li.select2-results__option[role=group] > strong:hover {
                 for (let channelIndex = 0; channelIndex < this.getChannelCount(); channelIndex++) {
                   for (const instrument of this.channels[channelIndex].instruments) {
                     const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
-                    instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                    instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                    instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                    instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                     instrument.transition = Config.transitions.dictionary[settings.transition].index;
                     if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                       instrument.effects |= 1 << 10 /* transition */;
@@ -16993,8 +17313,8 @@ li.select2-results__option[role=group] > strong:hover {
               } else if (beforeFour && !fromGoldBox && !fromUltraBox && !fromSlarmoosBox || fromBeepBox) {
                 const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                 const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-                instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                 instrument.transition = Config.transitions.dictionary[settings.transition].index;
                 if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                   instrument.effects |= 1 << 10 /* transition */;
@@ -17002,8 +17322,8 @@ li.select2-results__option[role=group] > strong:hover {
               } else {
                 const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
                 const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-                instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                 instrument.transition = Config.transitions.dictionary[settings.transition].index;
                 if (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] > 0) {
                   instrument.legacyTieOver = true;
@@ -18296,15 +18616,15 @@ li.select2-results__option[role=group] > strong:hover {
         }).then((response) => {
           return response.json();
         }).then((plugin) => {
-          Synth.pluginValueNames = plugin.variableNames || [];
-          Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-          Synth.pluginFunction = plugin.synthFunction || "";
-          Synth.pluginIndex = plugin.effectOrderIndex || 0;
-          Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
+          SynthMessenger.pluginValueNames = plugin.variableNames || [];
+          SynthMessenger.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
+          SynthMessenger.pluginFunction = plugin.synthFunction || "";
+          SynthMessenger.pluginIndex = plugin.effectOrderIndex || 0;
+          SynthMessenger.PluginDelayLineSize = plugin.delayLineSize || 0;
           PluginConfig.pluginUIElements = plugin.elements || [];
           PluginConfig.pluginName = plugin.pluginName || "plugin";
         }).then(() => {
-          if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
+          if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
         }).catch(() => {
           window.alert("couldn't load plugin " + pluginurl);
         });
@@ -19170,9 +19490,8 @@ li.select2-results__option[role=group] > strong:hover {
       this.masterGain = 1;
     }
   };
-  var Synth = class {
+  var SynthMessenger = class {
     constructor(song = null) {
-      // TODO: reverb
       this.preferLowerLatency = false;
       // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
       this.anticipatePoorPerformance = false;
@@ -19196,10 +19515,10 @@ li.select2-results__option[role=group] > strong:hover {
        * liveBassInputChannel [5]: integer
        */
       this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
-      this.liveInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-      this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-      // public liveInputChannel: number = 0;
-      // public liveBassInputChannel: number = 0;
+      // public liveInputPitches: number[];
+      // public liveBassInputPitches: number[];
+      this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
+      this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
       this.volume = 1;
       this.oscRefreshEventTimer = 0;
       this.oscEnabled = true;
@@ -19232,12 +19551,13 @@ li.select2-results__option[role=group] > strong:hover {
       this.loopBarEnd = -1;
       this.liveInputEndTime = 0;
       this.messageQueue = [];
+      this.pushArray = new Uint16Array(1);
       if (song != null) this.setSong(song);
       this.activateAudio();
       this.update();
     }
     static {
-      __name(this, "Synth");
+      __name(this, "SynthMessenger");
     }
     static {
       this.pluginFunction = null;
@@ -19360,15 +19680,38 @@ li.select2-results__option[role=group] > strong:hover {
         this.song = song;
       }
     }
+    addRemoveLiveInputTone(pitches, isBass, turnOn) {
+      if (typeof pitches === "number") {
+        let val = pitches;
+        val = val << 1;
+        val += +turnOn;
+        val = val << 1;
+        val += +isBass;
+        this.pushArray[0] = val;
+        this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+      } else if (pitches instanceof Array && pitches.length > 0) {
+        const pushArray = new Uint16Array(pitches.length);
+        for (let i = 0; i < pitches.length; i++) {
+          let val = pitches[i];
+          val = val << 1;
+          val += +turnOn;
+          val = val << 1;
+          val += +isBass;
+          pushArray[i] = val;
+        }
+        this.liveInputPitchesOnOffRequests.push(pushArray);
+      }
+    }
     //TODO: Channel muting
     async activateAudio() {
       if (this.audioContext == null || this.workletNode == null) {
         if (this.workletNode != null) this.deactivateAudio();
         const sabMessage = {
           flag: 7 /* sharedArrayBuffers */,
-          livePitches: this.liveInputPitches,
-          bassLivePitches: this.liveBassInputPitches,
-          liveInputValues: this.liveInputValues
+          // livePitches: this.liveInputPitches,
+          // bassLivePitches: this.liveBassInputPitches,
+          liveInputValues: this.liveInputValues,
+          liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
           //add more here if needed
         };
         this.sendMessage(sabMessage);
@@ -20987,7 +21330,7 @@ li.select2-results__option[role=group] > strong:hover {
       newNote.continuesLastPattern = false;
       if (newNotes.length > 0 && oldNote.continuesLastPattern) {
         const prevNote = newNotes[newNotes.length - 1];
-        if (prevNote.end == newNote.start && Synth.adjacentNotesHaveMatchingPitches(prevNote, newNote)) {
+        if (prevNote.end == newNote.start && SynthMessenger.adjacentNotesHaveMatchingPitches(prevNote, newNote)) {
           joinedWithPrevNote = true;
           const newIntervalOffset = prevNote.pins[prevNote.pins.length - 1].interval;
           const newTimeOffset = prevNote.end - prevNote.start;
@@ -26533,20 +26876,21 @@ li.select2-results__option[role=group] > strong:hover {
       this._onAnimationFrame = /* @__PURE__ */ __name(() => {
         window.requestAnimationFrame(this._onAnimationFrame);
         let liveInputChanged = false;
-        let liveInputPitchCount = !this._doc.performance.pitchesAreTemporary() ? this._doc.synth.liveInputPitches[0] : 0;
-        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.synth.liveBassInputPitches[0] : 0;
+        let liveInputPitchCount = !this._doc.performance.pitchesAreTemporary() ? this._doc.performance.liveInputPitches.length : 0;
+        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.performance.liveInputBassPitches.length : 0;
         if (this._renderedLiveInputPitches.length != liveInputPitchCount) {
           liveInputChanged = true;
         }
-        for (let i = 0; i < this._doc.synth.liveInputPitches[0]; i++) {
-          if (this._renderedLiveInputPitches[i] != this._doc.synth.liveInputPitches[i + 1]) {
-            this._renderedLiveInputPitches[i] = this._doc.synth.liveInputPitches[i + 1];
+        for (let i = 0; i < this._doc.performance.liveInputPitches.length; i++) {
+          if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputPitches[i]) {
+            this._renderedLiveInputPitches[i] = this._doc.performance.liveInputPitches[i];
             liveInputChanged = true;
           }
         }
-        for (let i = this._doc.synth.liveInputPitches.length; i < liveInputPitchCount; i++) {
-          if (this._renderedLiveInputPitches[i] != this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]]) {
-            this._renderedLiveInputPitches[i] = this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]];
+        const liveInputPitchesLength = this._doc.performance.liveInputPitches.length;
+        for (let i = liveInputPitchesLength; i < liveInputPitchCount; i++) {
+          if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength]) {
+            this._renderedLiveInputPitches[i] = this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength];
             liveInputChanged = true;
           }
         }
@@ -26919,6 +27263,8 @@ li.select2-results__option[role=group] > strong:hover {
       this._songKey = -1;
       this._pitchesAreTemporary = false;
       this._bassPitchesAreTemporary = false;
+      this.liveInputPitches = [];
+      this.liveInputBassPitches = [];
       this._recentlyAddedPitches = [];
       // Pitches that are rapidly added then removed within a minimum rhythm duration wouldn't get recorded until I explicitly track recently added notes and check if any are no longer held.
       this._recentlyAddedBassPitches = [];
@@ -26946,9 +27292,9 @@ li.select2-results__option[role=group] > strong:hover {
       this._documentChanged = /* @__PURE__ */ __name(() => {
         const isDrum = this._doc.song.getChannelIsNoise(this._doc.channel);
         const octave = this._doc.song.channels[this._doc.channel].octave;
-        if (this._doc.synth.liveInputValues[4] != this._doc.channel || this._doc.synth.liveInputValues[5] != this._getBassOffsetChannel() || this._channelIsDrum != isDrum || this._channelOctave != octave || this._songKey != this._doc.song.key) {
-          this._doc.synth.liveInputValues[4] = this._doc.channel;
-          this._doc.synth.liveInputValues[5] = this._getBassOffsetChannel();
+        if (this._doc.synth.liveInputValues[4 /* liveInputChannel */] != this._doc.channel || this._doc.synth.liveInputValues[5 /* liveBassInputChannel */] != this._getBassOffsetChannel() || this._channelIsDrum != isDrum || this._channelOctave != octave || this._songKey != this._doc.song.key) {
+          this._doc.synth.liveInputValues[4 /* liveInputChannel */] = this._doc.channel;
+          this._doc.synth.liveInputValues[5 /* liveBassInputChannel */] = this._getBassOffsetChannel();
           this._channelIsDrum = isDrum;
           this._channelOctave = octave;
           this._songKey = this._doc.song.key;
@@ -27096,7 +27442,7 @@ li.select2-results__option[role=group] > strong:hover {
         const startPart = bar == oldBar ? oldPart : 0;
         const endPart = bar == newBar ? newPart : partsPerBar;
         if (startPart == endPart) break;
-        if (this._lastNote != null && !this._pitchesChanged && startPart > 0 && this._doc.synth.liveInputPitches[0] > 0) {
+        if (this._lastNote != null && !this._pitchesChanged && startPart > 0 && this.liveInputPitches.length > 0) {
           this._recordingChange.append(new ChangePinTime(this._doc, this._lastNote, 1, endPart, this._lastNote.continuesLastPattern));
           this._doc.currentPatternIsDirty = true;
         } else {
@@ -27107,27 +27453,27 @@ li.select2-results__option[role=group] > strong:hover {
           let noteEndPart = endPart;
           while (noteStartPart < endPart) {
             let addedAlreadyReleasedPitch = false;
-            if (this._recentlyAddedPitches.length > 0 || this._doc.synth.liveInputPitches[0] > 0) {
+            if (this._recentlyAddedPitches.length > 0 || this.liveInputPitches.length > 0) {
               if (this._playheadPattern == null) {
-                this._doc.selection.erasePatternInBar(this._recordingChange, this._doc.synth.liveInputValues[4], bar);
-                this._recordingChange.append(new ChangeEnsurePatternExists(this._doc, this._doc.synth.liveInputValues[4], bar));
-                this._playheadPattern = this._doc.song.getPattern(this._doc.synth.liveInputValues[4], bar);
+                this._doc.selection.erasePatternInBar(this._recordingChange, this._doc.synth.liveInputValues[4 /* liveInputChannel */], bar);
+                this._recordingChange.append(new ChangeEnsurePatternExists(this._doc, this._doc.synth.liveInputValues[4 /* liveInputChannel */], bar));
+                this._playheadPattern = this._doc.song.getPattern(this._doc.synth.liveInputValues[4 /* liveInputChannel */], bar);
               }
               if (this._playheadPattern == null) throw new Error();
-              this._lastNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[4]));
+              this._lastNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[4 /* liveInputChannel */]));
               this._lastNote.continuesLastPattern = noteStartPart == 0 && !this._pitchesChanged;
               this._lastNote.pitches.length = 0;
               while (this._recentlyAddedPitches.length > 0) {
                 if (this._lastNote.pitches.length >= Config.maxChordSize) break;
                 const recentPitch = this._recentlyAddedPitches.shift();
-                if (this._doc.synth.liveInputPitches.indexOf(recentPitch) == -1) {
+                if (this.liveInputPitches.indexOf(recentPitch) == -1) {
                   this._lastNote.pitches.push(recentPitch);
                   addedAlreadyReleasedPitch = true;
                 }
               }
-              for (let i = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
+              for (let i = 0; i < this.liveInputPitches.length; i++) {
                 if (this._lastNote.pitches.length >= Config.maxChordSize) break;
-                this._lastNote.pitches.push(this._doc.synth.liveInputPitches[i]);
+                this._lastNote.pitches.push(this.liveInputPitches[i]);
               }
               this._recordingChange.append(new ChangeNoteAdded(this._doc, this._playheadPattern, this._lastNote, this._playheadPattern.notes.length));
               if (addedAlreadyReleasedPitch) {
@@ -27185,7 +27531,7 @@ li.select2-results__option[role=group] > strong:hover {
         const startPart = bar == oldBar ? oldPart : 0;
         const endPart = bar == newBar ? newPart : partsPerBar;
         if (startPart == endPart) break;
-        if (this._lastBassNote != null && !this._bassPitchesChanged && startPart > 0 && this._doc.synth.liveBassInputPitches[0] > 0) {
+        if (this._lastBassNote != null && !this._bassPitchesChanged && startPart > 0 && this.liveInputBassPitches.length > 0) {
           this._recordingChange.append(new ChangePinTime(this._doc, this._lastBassNote, 1, endPart, this._lastBassNote.continuesLastPattern));
           this._doc.currentPatternIsDirty = true;
         } else {
@@ -27196,27 +27542,27 @@ li.select2-results__option[role=group] > strong:hover {
           let noteEndPart = endPart;
           while (noteStartPart < endPart) {
             let addedAlreadyReleasedPitch = false;
-            if (this._recentlyAddedBassPitches.length > 0 || this._doc.synth.liveBassInputPitches[0] > 0) {
+            if (this._recentlyAddedBassPitches.length > 0 || this.liveInputBassPitches.length > 0) {
               if (this._bassPlayheadPattern == null) {
-                this._doc.selection.erasePatternInBar(this._recordingChange, this._doc.synth.liveInputValues[5], bar);
-                this._recordingChange.append(new ChangeEnsurePatternExists(this._doc, this._doc.synth.liveInputValues[5], bar));
-                this._bassPlayheadPattern = this._doc.song.getPattern(this._doc.synth.liveInputValues[5], bar);
+                this._doc.selection.erasePatternInBar(this._recordingChange, this._doc.synth.liveInputValues[5 /* liveBassInputChannel */], bar);
+                this._recordingChange.append(new ChangeEnsurePatternExists(this._doc, this._doc.synth.liveInputValues[5 /* liveBassInputChannel */], bar));
+                this._bassPlayheadPattern = this._doc.song.getPattern(this._doc.synth.liveInputValues[5 /* liveBassInputChannel */], bar);
               }
               if (this._bassPlayheadPattern == null) throw new Error();
-              this._lastBassNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[5]));
+              this._lastBassNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[5 /* liveBassInputChannel */]));
               this._lastBassNote.continuesLastPattern = noteStartPart == 0 && !this._bassPitchesChanged;
               this._lastBassNote.pitches.length = 0;
               while (this._recentlyAddedBassPitches.length > 0) {
                 if (this._lastBassNote.pitches.length >= Config.maxChordSize) break;
                 const recentPitch = this._recentlyAddedBassPitches.shift();
-                if (this._doc.synth.liveBassInputPitches.indexOf(recentPitch) == -1) {
+                if (this.liveInputBassPitches.indexOf(recentPitch) == -1) {
                   this._lastBassNote.pitches.push(recentPitch);
                   addedAlreadyReleasedPitch = true;
                 }
               }
-              for (let i = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
+              for (let i = 0; i < this.liveInputBassPitches.length; i++) {
                 if (this._lastBassNote.pitches.length >= Config.maxChordSize) break;
-                this._lastBassNote.pitches.push(this._doc.synth.liveBassInputPitches[i]);
+                this._lastBassNote.pitches.push(this.liveInputBassPitches[i]);
               }
               this._recordingChange.append(new ChangeNoteAdded(this._doc, this._bassPlayheadPattern, this._lastBassNote, this._bassPlayheadPattern.notes.length));
               if (addedAlreadyReleasedPitch) {
@@ -27243,23 +27589,20 @@ li.select2-results__option[role=group] > strong:hover {
     }
     setTemporaryPitches(pitches, duration) {
       this._updateRecordedNotes();
-      for (let i = 0; i < pitches.length; i++) {
-        this._doc.synth.liveInputPitches[i + 1] = pitches[i];
-      }
-      this._doc.synth.liveInputPitches[0] = Math.min(pitches.length, Config.maxChordSize);
-      this._doc.synth.liveInputValues[0] = duration;
-      this._doc.synth.liveInputValues[2] = 1;
+      this.liveInputPitches = pitches.slice();
+      this._doc.synth.addRemoveLiveInputTone(this.liveInputPitches, false, true);
+      this._doc.synth.liveInputValues[0 /* liveInputDuration */] = duration;
+      this._doc.synth.liveInputValues[2 /* liveInputStarted */] = 1;
       this._pitchesAreTemporary = true;
       this._pitchesChanged = true;
     }
     setTemporaryBassPitches(pitches, duration) {
       this._updateRecordedBassNotes();
-      for (let i = 0; i < pitches.length; i++) {
-        this._doc.synth.liveBassInputPitches[i + 1] = pitches[i];
-      }
-      this._doc.synth.liveBassInputPitches[0] = Math.min(pitches.length, Config.maxChordSize);
-      this._doc.synth.liveInputValues[1] = duration;
-      this._doc.synth.liveInputValues[3] = 1;
+      this.liveInputBassPitches = pitches.slice();
+      this.liveInputBassPitches.length = Math.min(pitches.length, Config.maxChordSize);
+      this._doc.synth.addRemoveLiveInputTone(this.liveInputBassPitches, true, true);
+      this._doc.synth.liveInputValues[1 /* liveBassInputDuration */] = duration;
+      this._doc.synth.liveInputValues[3 /* liveBassInputStarted */] = 1;
       this._bassPitchesAreTemporary = true;
       this._bassPitchesChanged = true;
     }
@@ -27274,24 +27617,15 @@ li.select2-results__option[role=group] > strong:hover {
         if (this._doc.prefs.ignorePerformedNotesNotInScale && !Config.scales[this._doc.song.scale].flags[pitch % Config.pitchesPerOctave]) {
           return;
         }
-        let foundPitch = false;
-        for (let i = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
-          if (this._doc.synth.liveInputPitches[i] == pitch) {
-            foundPitch = true;
-            break;
-          }
-        }
-        if (!foundPitch) {
-          this._doc.synth.liveInputPitches[this._doc.synth.liveInputPitches[0] + 1] = pitch;
-          this._doc.synth.liveInputPitches[0]++;
+        if (this.liveInputPitches.indexOf(pitch) == -1) {
+          this.liveInputPitches.push(pitch);
+          this._doc.synth.addRemoveLiveInputTone(pitch, false, true);
           this._pitchesChanged = true;
-          while (this._doc.synth.liveInputPitches[0] > Config.maxChordSize) {
-            for (let i = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
-              this._doc.synth.liveInputPitches[i] = this._doc.synth.liveInputPitches[i + 1];
-            }
-            this._doc.synth.liveInputPitches[0]--;
+          while (this.liveInputPitches.length > Config.maxChordSize) {
+            const removedPitch = this.liveInputPitches.shift();
+            if (removedPitch) this._doc.synth.addRemoveLiveInputTone(removedPitch, false, false);
           }
-          this._doc.synth.liveInputValues[0] = Number.MAX_SAFE_INTEGER;
+          this._doc.synth.liveInputValues[0 /* liveInputDuration */] = Number.MAX_SAFE_INTEGER;
           if (this._recordingChange != null) {
             const recentIndex = this._recentlyAddedPitches.indexOf(pitch);
             if (recentIndex != -1) {
@@ -27312,24 +27646,15 @@ li.select2-results__option[role=group] > strong:hover {
         if (this._doc.prefs.ignorePerformedNotesNotInScale && !Config.scales[this._doc.song.scale].flags[pitch % Config.pitchesPerOctave]) {
           return;
         }
-        let foundPitch = false;
-        for (let i = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
-          if (this._doc.synth.liveBassInputPitches[i] == pitch) {
-            foundPitch = true;
-            break;
+        if (this.liveInputBassPitches.indexOf(pitch) == -1) {
+          this.liveInputBassPitches.push(pitch);
+          this._doc.synth.addRemoveLiveInputTone(pitch, false, true);
+          this._pitchesChanged = true;
+          while (this.liveInputBassPitches.length > Config.maxChordSize) {
+            const removedPitch = this.liveInputBassPitches.shift();
+            if (removedPitch) this._doc.synth.addRemoveLiveInputTone(removedPitch, false, false);
           }
-        }
-        if (!foundPitch) {
-          this._doc.synth.liveBassInputPitches[this._doc.synth.liveBassInputPitches[0] + 1] = pitch;
-          this._doc.synth.liveBassInputPitches[0]++;
-          this._bassPitchesChanged = true;
-          while (this._doc.synth.liveBassInputPitches[0] > Config.maxChordSize) {
-            for (let i = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
-              this._doc.synth.liveBassInputPitches[i] = this._doc.synth.liveBassInputPitches[i + 1];
-            }
-            this._doc.synth.liveBassInputPitches[0]--;
-          }
-          this._doc.synth.liveInputValues[1] = Number.MAX_SAFE_INTEGER;
+          this._doc.synth.liveInputValues[1 /* liveBassInputDuration */] = Number.MAX_SAFE_INTEGER;
           if (this._recordingChange != null) {
             const recentIndex = this._recentlyAddedPitches.indexOf(pitch);
             if (recentIndex != -1) {
@@ -27346,38 +27671,36 @@ li.select2-results__option[role=group] > strong:hover {
     removePerformedPitch(pitch) {
       if (pitch > Piano.getBassCutoffPitch(this._doc) || this._getBassOffsetChannel() == this._doc.channel) {
         this._updateRecordedNotes();
-        for (let i = 1; i <= this._doc.synth.liveInputPitches[0]; i++) {
-          if (this._doc.synth.liveInputPitches[i] == pitch) {
-            for (let j = i; j <= this._doc.synth.liveInputPitches[0]; j++) {
-              this._doc.synth.liveInputPitches[j] = this._doc.synth.liveInputPitches[j + 1];
-            }
-            this._doc.synth.liveInputPitches[0]--;
+        for (let i = 0; i < this.liveInputPitches.length; i++) {
+          if (this.liveInputPitches[i] == pitch) {
+            this.liveInputPitches.splice(i, 1);
             this._pitchesChanged = true;
             i--;
+            this._doc.synth.addRemoveLiveInputTone(pitch, false, false);
           }
         }
       } else {
         this._updateRecordedBassNotes();
-        for (let i = 1; i <= this._doc.synth.liveBassInputPitches[0]; i++) {
-          if (this._doc.synth.liveBassInputPitches[i] == pitch) {
-            for (let j = i; j <= this._doc.synth.liveBassInputPitches[0]; j++) {
-              this._doc.synth.liveBassInputPitches[j] = this._doc.synth.liveBassInputPitches[j + 1];
-            }
-            this._doc.synth.liveBassInputPitches[0]--;
-            this._bassPitchesChanged = true;
+        for (let i = 0; i < this.liveInputBassPitches.length; i++) {
+          if (this.liveInputBassPitches[i] == pitch) {
+            this.liveInputBassPitches.splice(i, 1);
+            this._pitchesChanged = true;
             i--;
+            this._doc.synth.addRemoveLiveInputTone(pitch, true, false);
           }
         }
       }
     }
     clearAllPitches() {
       this._updateRecordedNotes();
-      this._doc.synth.liveInputPitches[0] = 0;
+      this._doc.synth.addRemoveLiveInputTone(this.liveInputPitches, false, false);
+      this.liveInputPitches.length = 0;
       this._pitchesChanged = true;
     }
     clearAllBassPitches() {
       this._updateRecordedBassNotes();
-      this._doc.synth.liveBassInputPitches[0] = 0;
+      this._doc.synth.addRemoveLiveInputTone(this.liveInputBassPitches, true, false);
+      this.liveInputBassPitches.length = 0;
       this._bassPitchesChanged = true;
     }
   };
@@ -28439,7 +28762,7 @@ li.select2-results__option[role=group] > strong:hover {
         errorAlert(error);
       }
       songString = this.song.toBase64String();
-      this.synth = new Synth(this.song);
+      this.synth = new SynthMessenger(this.song);
       this.synth.volume = this._calcVolume();
       this.synth.anticipatePoorPerformance = isMobile;
       let state = this._getHistoryState();
@@ -29172,7 +29495,7 @@ li.select2-results__option[role=group] > strong:hover {
     _exportTo(type) {
       this.thenExportTo = type;
       this.currentChunk = 0;
-      this.synth = new Synth(this._doc.song);
+      this.synth = new SynthMessenger(this._doc.song);
       if (type == "wav") {
         this.synth.samplesPerSecond = 48e3;
       } else if (type == "mp3") {
@@ -29455,7 +29778,7 @@ li.select2-results__option[role=group] > strong:hover {
                 writer.writeMidi7Bits(instrumentProgram);
               }
               writeEventTime(barStartTime);
-              let instrumentVolume = volumeMultToMidiVolume(Synth.instrumentVolumeToVolumeMult(instrument.volume));
+              let instrumentVolume = volumeMultToMidiVolume(SynthMessenger.instrumentVolumeToVolumeMult(instrument.volume));
               writeControlEvent(7 /* volumeMSB */, Math.min(127, Math.round(instrumentVolume)));
               writeEventTime(barStartTime);
               let instrumentPan = (instrument.pan / Config.panCenter - 1) * 63 + 64;
@@ -29541,7 +29864,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const linearInterval = lerp(pinInterval, nextPinInterval, midiTick / length);
                     const interval = linearInterval * intervalScale - pitchOffset;
                     const pitchBend = Math.max(0, Math.min(16383, Math.round(8192 * (1 + interval / pitchBendRange))));
-                    const expression = Math.min(127, Math.round(volumeMultToMidiExpression(Synth.noteSizeToVolumeMult(linearSize))));
+                    const expression = Math.min(127, Math.round(volumeMultToMidiExpression(SynthMessenger.noteSizeToVolumeMult(linearSize))));
                     if (pitchBend != prevPitchBend) {
                       writeEventTime(midiTickTime);
                       writer.writeUint8(224 /* pitchBend */ | midiChannel);
@@ -33219,7 +33542,7 @@ You should be redirected to the song at:<br /><br />
                     noteEvents[eventChannel].push({ midiTick: currentMidiTick, pitch, velocity: 0, program: -1, instrumentVolume: -1, instrumentPan: -1, on: false });
                   } else {
                     const volume = Math.max(0, Math.min(Config.volumeRange - 1, Math.round(
-                      Synth.volumeMultToInstrumentVolume(midiVolumeToVolumeMult(currentInstrumentVolumes[eventChannel]))
+                      SynthMessenger.volumeMultToInstrumentVolume(midiVolumeToVolumeMult(currentInstrumentVolumes[eventChannel]))
                     )));
                     const pan = Math.max(0, Math.min(Config.panMax, Math.round(
                       ((currentInstrumentPans[eventChannel] - 64) / 63 + 1) * Config.panCenter
@@ -33266,7 +33589,7 @@ You should be redirected to the song at:<br /><br />
                       break;
                     case 11 /* expressionMSB */:
                       {
-                        noteSizeEvents[eventChannel].push({ midiTick: currentMidiTick, size: Synth.volumeMultToNoteSize(midiExpressionToVolumeMult(value)) });
+                        noteSizeEvents[eventChannel].push({ midiTick: currentMidiTick, size: SynthMessenger.volumeMultToNoteSize(midiExpressionToVolumeMult(value)) });
                       }
                       break;
                     case 38 /* setParameterLSB */:
@@ -34811,7 +35134,7 @@ You should be redirected to the song at:<br /><br />
       let fadePath = "";
       fadePath += `M 0 ${this._editorHeight} `;
       fadePath += `L ${fadeInX} 0 `;
-      if (Synth.fadeOutSettingToTicks(instrument.fadeOut) > 0) {
+      if (SynthMessenger.fadeOutSettingToTicks(instrument.fadeOut) > 0) {
         fadePath += `L ${dottedLineX} 0 `;
         fadePath += `L ${fadeOutX} ${this._editorHeight} `;
       } else {
@@ -45060,7 +45383,7 @@ You should be redirected to the song at:<br /><br />
           if (effectsIncludeDetune(instrument.effects)) {
             this._detuneSliderRow.style.display = "";
             this._detuneSlider.updateValue(instrument.detune - Config.detuneCenter);
-            this._detuneSlider.input.title = Synth.detuneToCents(instrument.detune) + " cent(s)";
+            this._detuneSlider.input.title = SynthMessenger.detuneToCents(instrument.detune) + " cent(s)";
           } else {
             this._detuneSliderRow.style.display = "none";
           }
@@ -47222,7 +47545,7 @@ You should be redirected to the song at:<br /><br />
         this.doc.prefs.save();
       }, "_customWavePresetHandler");
       this.doc.notifier.watch(this.whenUpdated);
-      Synth.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this);
+      SynthMessenger.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this);
       this.doc.modRecordingHandler = () => {
         this.handleModRecording();
       };

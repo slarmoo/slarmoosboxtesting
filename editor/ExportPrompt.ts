@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { InstrumentType, /*EnvelopeType,*/ Config, getArpeggioPitchIndex } from "../synth/SynthConfig";
-import { Instrument, Pattern, Note, Song, Synth } from "../synth/synth";
+import { Instrument, Pattern, Note, Song, SynthMessenger } from "../synth/synth";
 import { ColorConfig } from "./ColorConfig";
 import { Preset, EditorConfig } from "./EditorConfig";
 import { SongDocument } from "./SongDocument";
@@ -40,7 +40,7 @@ function save(blob: Blob, name: string): void {
 }
 
 export class ExportPrompt implements Prompt {
-    private synth: Synth;
+    private synth: SynthMessenger;
     private thenExportTo: string;
     private recordedSamplesL: Float32Array;
     private recordedSamplesR: Float32Array;
@@ -314,7 +314,7 @@ export class ExportPrompt implements Prompt {
         // Batch the export operation
         this.thenExportTo = type;
         this.currentChunk = 0;
-        this.synth = new Synth(this._doc.song);
+        this.synth = new SynthMessenger(this._doc.song);
         if (type == "wav") {
             this.synth.samplesPerSecond = 48000; // Use professional video editing standard sample rate for .wav file export.
         }
@@ -651,7 +651,7 @@ export class ExportPrompt implements Prompt {
 
                         // Instrument volume:
                         writeEventTime(barStartTime);
-                        let instrumentVolume: number = volumeMultToMidiVolume(Synth.instrumentVolumeToVolumeMult(instrument.volume));
+                        let instrumentVolume: number = volumeMultToMidiVolume(SynthMessenger.instrumentVolumeToVolumeMult(instrument.volume));
                         writeControlEvent(MidiControlEventMessage.volumeMSB, Math.min(0x7f, Math.round(instrumentVolume)));
 
                         // Instrument pan:
@@ -753,7 +753,7 @@ export class ExportPrompt implements Prompt {
 
                                     const pitchBend: number = Math.max(0, Math.min(0x3fff, Math.round(0x2000 * (1.0 + interval / pitchBendRange))));
 
-                                    const expression: number = Math.min(0x7f, Math.round(volumeMultToMidiExpression(Synth.noteSizeToVolumeMult(linearSize))));
+                                    const expression: number = Math.min(0x7f, Math.round(volumeMultToMidiExpression(SynthMessenger.noteSizeToVolumeMult(linearSize))));
 
                                     if (pitchBend != prevPitchBend) {
                                         writeEventTime(midiTickTime);

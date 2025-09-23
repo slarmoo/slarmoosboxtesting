@@ -230,20 +230,21 @@ export class Piano {
         window.requestAnimationFrame(this._onAnimationFrame);
 
         let liveInputChanged: boolean = false;
-        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.synth.liveInputPitches[0] : 0;
-        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.synth.liveBassInputPitches[0] : 0;
+        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.performance.liveInputPitches.length : 0;
+        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.performance.liveInputBassPitches.length : 0;
         if (this._renderedLiveInputPitches.length != liveInputPitchCount) {
             liveInputChanged = true;
         }
-        for (let i: number = 0; i < this._doc.synth.liveInputPitches[0]; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveInputPitches[i + 1]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveInputPitches[i + 1];
+        for (let i: number = 0; i < this._doc.performance.liveInputPitches.length; i++) {
+            if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputPitches[i]) {
+                this._renderedLiveInputPitches[i] = this._doc.performance.liveInputPitches[i];
                 liveInputChanged = true;
             }
         }
-        for (let i: number = this._doc.synth.liveInputPitches.length; i < liveInputPitchCount; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveBassInputPitches[i + 1 - this._doc.synth.liveInputPitches[0]];
+        const liveInputPitchesLength: number = this._doc.performance.liveInputPitches.length
+        for (let i: number = liveInputPitchesLength; i < liveInputPitchCount; i++) {
+            if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength]) {
+                this._renderedLiveInputPitches[i] = this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength];
                 liveInputChanged = true;
             }
         }

@@ -2,7 +2,7 @@
 
 import { Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, Chord, Envelope, Config, sampleLoadEvents, SampleLoadedEvent } from "../synth/SynthConfig";
 import { ColorConfig } from "../editor/ColorConfig";
-import { NotePin, Note, Pattern, Instrument, Channel, Synth } from "../synth/synth";
+import { NotePin, Note, Pattern, Instrument, Channel, SynthMessenger } from "../synth/synth";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 
@@ -161,7 +161,7 @@ let timelineWidth: number = 1;
 let outVolumeHistoricTimer: number = 0;
 let outVolumeHistoricCap: number = 0;
 
-const synth: Synth = new Synth();
+const synth: SynthMessenger = new SynthMessenger();
 const oscilloscope: oscilloscopeCanvas = new oscilloscopeCanvas(canvas({ width: isMobile? 144:288, height: isMobile?32:64, style: `border:2px solid ${ColorConfig.uiWidgetBackground}; overflow: hidden;` , id: "oscilloscopeAll" }), isMobile?1:2);
 const showOscilloscope: boolean = getLocalStorage("showOscilloscope") != "false";
 if (!showOscilloscope) {
@@ -844,4 +844,4 @@ window.addEventListener("hashchange", hashUpdatedExternally);
 sampleLoadEvents.addEventListener("sampleloaded", updateSampleLoadingBar.bind(this));
 
 // When compiling synth.ts as a standalone module named "beepbox", expose these classes as members to JavaScript:
-	export {Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, Chord, Envelope, Config, NotePin, Note, Pattern, Instrument, Channel, Synth};
+	export {Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, Chord, Envelope, Config, NotePin, Note, Pattern, Instrument, Channel, SynthMessenger as Synth};

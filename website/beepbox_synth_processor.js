@@ -3856,6 +3856,326 @@ function warpInfinityToNyquist(radians) {
 }
 __name(warpInfinityToNyquist, "warpInfinityToNyquist");
 
+// node_modules/ringbuf.js/dist/index.mjs
+var RingBuffer = class {
+  static {
+    __name(this, "RingBuffer");
+  }
+  /** Allocate the SharedArrayBuffer for a RingBuffer, based on the type and
+   * capacity required
+   * @param capacity The number of elements the ring buffer will be
+   * able to hold.
+   * @param type A typed array constructor, the type that this ring
+   * buffer will hold.
+   * @return A SharedArrayBuffer of the right size.
+   */
+  static getStorageForCapacity(capacity, type) {
+    if (!type.BYTES_PER_ELEMENT) {
+      throw TypeError("Pass in an ArrayBuffer subclass");
+    }
+    const bytes = 8 + (capacity + 1) * type.BYTES_PER_ELEMENT;
+    return new SharedArrayBuffer(bytes);
+  }
+  /**
+   * @param sab A SharedArrayBuffer obtained by calling
+   * {@link RingBuffer.getStorageForCapacity}.
+   * @param type A typed array constructor, the type that this ring
+   * buffer will hold.
+   */
+  constructor(sab, type) {
+    if (type.BYTES_PER_ELEMENT === void 0) {
+      throw TypeError("Pass a concrete typed array class as second argument");
+    }
+    this._type = type;
+    this._capacity = (sab.byteLength - 8) / type.BYTES_PER_ELEMENT;
+    this.buf = sab;
+    this.write_ptr = new Uint32Array(this.buf, 0, 1);
+    this.read_ptr = new Uint32Array(this.buf, 4, 1);
+    this.storage = new type(this.buf, 8, this._capacity);
+  }
+  /**
+   * @return the type of the underlying ArrayBuffer for this RingBuffer. This
+   * allows implementing crude type checking.
+   */
+  type() {
+    return this._type.name;
+  }
+  /**
+   * Push elements to the ring buffer.
+   * @param elements A typed array of the same type as passed in the ctor, to be written to the queue.
+   * @param length If passed, the maximum number of elements to push.
+   * If not passed, all elements in the input array are pushed.
+   * @param offset If passed, a starting index in elements from which
+   * the elements are read. If not passed, elements are read from index 0.
+   * @return the number of elements written to the queue.
+   */
+  push(elements, length, offset = 0) {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    if ((wr + 1) % this._storage_capacity() === rd) {
+      return 0;
+    }
+    const len = length !== void 0 ? length : elements.length;
+    const to_write = Math.min(this._available_write(rd, wr), len);
+    const first_part = Math.min(this._storage_capacity() - wr, to_write);
+    const second_part = to_write - first_part;
+    this._copy(elements, offset, this.storage, wr, first_part);
+    this._copy(elements, offset + first_part, this.storage, 0, second_part);
+    Atomics.store(
+      this.write_ptr,
+      0,
+      (wr + to_write) % this._storage_capacity()
+    );
+    return to_write;
+  }
+  /**
+   * Write bytes to the ring buffer using callbacks. This create wrapper
+   * objects and can GC, so it's best to no use this variant from a real-time
+   * thread such as an AudioWorklerProcessor `process` method.
+   * The callback is passed two typed arrays of the same type, to be filled.
+   * This allows skipping copies if the API that produces the data writes is
+   * passed arrays to write to, such as `AudioData.copyTo`.
+   * @param amount The maximum number of elements to write to the ring
+   * buffer. If amount is more than the number of slots available for writing,
+   * then the number of slots available for writing will be made available: no
+   * overwriting of elements can happen.
+   * @param cb A callback with two parameters, that are two typed
+   * array of the correct type, in which the data need to be copied. If the
+   * callback doesn't return anything, it is assumed all the elements
+   * have been written to. Otherwise, it is assumed that the returned number is
+   * the number of elements that have been written to, and those elements have
+   * been written started at the beginning of the requested buffer space.
+   *
+   * @return The number of elements written to the queue.
+   */
+  writeCallback(amount, cb) {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    if ((wr + 1) % this._storage_capacity() === rd) {
+      return 0;
+    }
+    const to_write = Math.min(this._available_write(rd, wr), amount);
+    const first_part = Math.min(this._storage_capacity() - wr, to_write);
+    const second_part = to_write - first_part;
+    const first_part_buf = new this._type(
+      this.storage.buffer,
+      8 + wr * this.storage.BYTES_PER_ELEMENT,
+      first_part
+    );
+    const second_part_buf = new this._type(
+      this.storage.buffer,
+      8 + 0,
+      second_part
+    );
+    const written = cb(first_part_buf, second_part_buf) || to_write;
+    Atomics.store(this.write_ptr, 0, (wr + written) % this._storage_capacity());
+    return written;
+  }
+  /**
+   * Write bytes to the ring buffer using a callback.
+   *
+   * This allows skipping copies if the API that produces the data writes is
+   * passed arrays to write to, such as `AudioData.copyTo`.
+   *
+   * @param amount The maximum number of elements to write to the ring
+   * buffer. If amount is more than the number of slots available for writing,
+   * then the number of slots available for writing will be made available: no
+   * overwriting of elements can happen.
+   * @param cb A callback with five parameters:
+   *
+   * (1) The internal storage of the ring buffer as a typed array
+   * (2) An offset to start writing from
+   * (3) A number of elements to write at this offset
+   * (4) Another offset to start writing from
+   * (5) A number of elements to write at this second offset
+   *
+   * If the callback doesn't return anything, it is assumed all the elements
+   * have been written to. Otherwise, it is assumed that the returned number is
+   * the number of elements that have been written to, and those elements have
+   * been written started at the beginning of the requested buffer space.
+   * @return The number of elements written to the queue.
+   */
+  writeCallbackWithOffset(amount, cb) {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    if ((wr + 1) % this._storage_capacity() === rd) {
+      return 0;
+    }
+    const to_write = Math.min(this._available_write(rd, wr), amount);
+    const first_part = Math.min(this._storage_capacity() - wr, to_write);
+    const second_part = to_write - first_part;
+    const written = cb(this.storage, wr, first_part, 0, second_part) || to_write;
+    Atomics.store(this.write_ptr, 0, (wr + written) % this._storage_capacity());
+    return written;
+  }
+  /**
+   * Read up to `elements.length` elements from the ring buffer. `elements` is a typed
+   * array of the same type as passed in the ctor.
+   * Returns the number of elements read from the queue, they are placed at the
+   * beginning of the array passed as parameter.
+   * @param elements An array in which the elements read from the
+   * queue will be written, starting at the beginning of the array.
+   * @param length If passed, the maximum number of elements to pop. If
+   * not passed, up to elements.length are popped.
+   * @param offset If passed, an index in elements in which the data is
+   * written to. `elements.length - offset` must be greater or equal to
+   * `length`.
+   * @return The number of elements read from the queue.
+   */
+  pop(elements, length, offset = 0) {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    if (wr === rd) {
+      return 0;
+    }
+    const len = length !== void 0 ? length : elements.length;
+    const to_read = Math.min(this._available_read(rd, wr), len);
+    const first_part = Math.min(this._storage_capacity() - rd, to_read);
+    const second_part = to_read - first_part;
+    this._copy(this.storage, rd, elements, offset, first_part);
+    this._copy(this.storage, 0, elements, offset + first_part, second_part);
+    Atomics.store(this.read_ptr, 0, (rd + to_read) % this._storage_capacity());
+    return to_read;
+  }
+  /**
+   * @return True if the ring buffer is empty false otherwise. This can be late
+   * on the reader side: it can return true even if something has just been
+   * pushed.
+   */
+  empty() {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    return wr === rd;
+  }
+  /**
+   * @return True if the ring buffer is full, false otherwise. This can be late
+   * on the write side: it can return true when something has just been popped.
+   */
+  full() {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    return (wr + 1) % this._storage_capacity() === rd;
+  }
+  /**
+   * @return The usable capacity for the ring buffer: the number of elements
+   * that can be stored.
+   */
+  capacity() {
+    return this._capacity - 1;
+  }
+  /**
+   * @return The number of elements available for reading. This can be late, and
+   * report less elements that is actually in the queue, when something has just
+   * been enqueued.
+   */
+  availableRead() {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    return this._available_read(rd, wr);
+  }
+  /**
+   * Compatibility alias for availableRead().
+   *
+   * @return The number of elements available for reading. This can be late, and
+   * report less elements that is actually in the queue, when something has just
+   * been enqueued.
+   *
+   * @deprecated
+   */
+  available_read() {
+    return this.availableRead();
+  }
+  /**
+   * @return The number of elements available for writing. This can be late, and
+   * report less elements that is actually available for writing, when something
+   * has just been dequeued.
+   */
+  availableWrite() {
+    const rd = Atomics.load(this.read_ptr, 0);
+    const wr = Atomics.load(this.write_ptr, 0);
+    return this._available_write(rd, wr);
+  }
+  /**
+   * Compatibility alias for availableWrite.
+   *
+   * @return The number of elements available for writing. This can be late, and
+   * report less elements that is actually available for writing, when something
+   * has just been dequeued.
+   *
+   * @deprecated
+   */
+  available_write() {
+    return this.availableWrite();
+  }
+  // private methods //
+  /**
+   * @return Number of elements available for reading, given a read and write
+   * pointer.
+   * @private
+   */
+  _available_read(rd, wr) {
+    return (wr + this._storage_capacity() - rd) % this._storage_capacity();
+  }
+  /**
+   * @return Number of elements available from writing, given a read and write
+   * pointer.
+   * @private
+   */
+  _available_write(rd, wr) {
+    return this.capacity() - this._available_read(rd, wr);
+  }
+  /**
+   * @return The size of the storage for elements not accounting the space for
+   * the index, counting the empty slot.
+   * @private
+   */
+  _storage_capacity() {
+    return this._capacity;
+  }
+  /**
+   * Copy `size` elements from `input`, starting at offset `offset_input`, to
+   * `output`, starting at offset `offset_output`.
+   * @param input The array to copy from
+   * @param offset_input The index at which to start the copy
+   * @param output The array to copy to
+   * @param offset_output The index at which to start copying the elements to
+   * @param size The number of elements to copy
+   * @private
+   */
+  _copy(input, offset_input, output, offset_output, size) {
+    if (!size) {
+      return;
+    }
+    if (offset_input === 0 && offset_output + input.length <= this._storage_capacity() && input.length === size) {
+      output.set(input, offset_output);
+      return;
+    }
+    let i = 0;
+    const unrollFactor = 16;
+    for (; i <= size - unrollFactor; i += unrollFactor) {
+      output[offset_output + i] = input[offset_input + i];
+      output[offset_output + i + 1] = input[offset_input + i + 1];
+      output[offset_output + i + 2] = input[offset_input + i + 2];
+      output[offset_output + i + 3] = input[offset_input + i + 3];
+      output[offset_output + i + 4] = input[offset_input + i + 4];
+      output[offset_output + i + 5] = input[offset_input + i + 5];
+      output[offset_output + i + 6] = input[offset_input + i + 6];
+      output[offset_output + i + 7] = input[offset_input + i + 7];
+      output[offset_output + i + 8] = input[offset_input + i + 8];
+      output[offset_output + i + 9] = input[offset_input + i + 9];
+      output[offset_output + i + 10] = input[offset_input + i + 10];
+      output[offset_output + i + 11] = input[offset_input + i + 11];
+      output[offset_output + i + 12] = input[offset_input + i + 12];
+      output[offset_output + i + 13] = input[offset_input + i + 13];
+      output[offset_output + i + 14] = input[offset_input + i + 14];
+      output[offset_output + i + 15] = input[offset_input + i + 15];
+    }
+    for (; i < size; i++) {
+      output[offset_output + i] = input[offset_input + i];
+    }
+  }
+};
+
 // synth/synth.ts
 function clamp(min, max, val) {
   max = max - 1;
@@ -4422,7 +4742,7 @@ var SpectrumWave = class {
     this.markCustomWaveDirty();
   }
   markCustomWaveDirty() {
-    const hashMult = Synth.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
+    const hashMult = SynthMessenger.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
     let hash = 0;
     for (const point of this.spectrum) hash = hash * hashMult + point >>> 0;
     this.hash = hash;
@@ -4447,7 +4767,7 @@ var HarmonicsWave = class {
     this.markCustomWaveDirty();
   }
   markCustomWaveDirty() {
-    const hashMult = Synth.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
+    const hashMult = SynthMessenger.fittingPowerOfTwo(Config.harmonicsMax + 2) - 1;
     let hash = 0;
     for (const point of this.harmonics) hash = hash * hashMult + point >>> 0;
     this.hash = hash;
@@ -5335,7 +5655,7 @@ var Instrument = class {
       instrumentObject["pitchShiftSemitones"] = this.pitchShift;
     }
     if (effectsIncludeDetune(this.effects)) {
-      instrumentObject["detuneCents"] = Synth.detuneToCents(this.detune);
+      instrumentObject["detuneCents"] = SynthMessenger.detuneToCents(this.detune);
     }
     if (effectsIncludeVibrato(this.effects)) {
       if (this.vibrato == -1) {
@@ -5400,8 +5720,8 @@ var Instrument = class {
       instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
     }
     if (this.type != 4 /* drumset */) {
-      instrumentObject["fadeInSeconds"] = Math.round(1e4 * Synth.fadeInSettingToSeconds(this.fadeIn)) / 1e4;
-      instrumentObject["fadeOutTicks"] = Synth.fadeOutSettingToTicks(this.fadeOut);
+      instrumentObject["fadeInSeconds"] = Math.round(1e4 * SynthMessenger.fadeInSettingToSeconds(this.fadeIn)) / 1e4;
+      instrumentObject["fadeOutTicks"] = SynthMessenger.fadeOutSettingToTicks(this.fadeOut);
     }
     if (this.type == 5 /* harmonics */ || this.type == 7 /* pickedString */) {
       instrumentObject["harmonics"] = [];
@@ -5640,8 +5960,8 @@ var Instrument = class {
         }[transitionProperty];
         if (legacySettings != void 0) {
           transition = Config.transitions.dictionary[legacySettings.transition];
-          this.fadeIn = Synth.secondsToFadeInSetting(legacySettings.fadeInSeconds);
-          this.fadeOut = Synth.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
+          this.fadeIn = SynthMessenger.secondsToFadeInSetting(legacySettings.fadeInSeconds);
+          this.fadeOut = SynthMessenger.ticksToFadeOutSetting(legacySettings.fadeOutTicks);
         }
       }
       if (transition != void 0) this.transition = transition.index;
@@ -5650,10 +5970,10 @@ var Instrument = class {
       }
     }
     if (instrumentObject["fadeInSeconds"] != void 0) {
-      this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
+      this.fadeIn = SynthMessenger.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
     }
     if (instrumentObject["fadeOutTicks"] != void 0) {
-      this.fadeOut = Synth.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
+      this.fadeOut = SynthMessenger.ticksToFadeOutSetting(+instrumentObject["fadeOutTicks"]);
     }
     {
       const chordProperty = instrumentObject["chord"];
@@ -5714,7 +6034,7 @@ var Instrument = class {
       }
     }
     if (instrumentObject["detuneCents"] != void 0) {
-      this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(Synth.centsToDetune(+instrumentObject["detuneCents"])));
+      this.detune = clamp(Config.detuneMin, Config.detuneMax + 1, Math.round(SynthMessenger.centsToDetune(+instrumentObject["detuneCents"])));
     }
     this.vibrato = Config.vibratos.dictionary["none"].index;
     const vibratoProperty = instrumentObject["vibrato"] || instrumentObject["effect"];
@@ -6310,10 +6630,10 @@ var Instrument = class {
     return effectsIncludeTransition(this.effects) ? Config.transitions[this.transition] : this.type == 10 /* mod */ ? Config.transitions.dictionary["interrupt"] : Config.transitions.dictionary["normal"];
   }
   getFadeInSeconds() {
-    return this.type == 4 /* drumset */ ? 0 : Synth.fadeInSettingToSeconds(this.fadeIn);
+    return this.type == 4 /* drumset */ ? 0 : SynthMessenger.fadeInSettingToSeconds(this.fadeIn);
   }
   getFadeOutTicks() {
-    return this.type == 4 /* drumset */ ? Config.drumsetFadeOutTicks : Synth.fadeOutSettingToTicks(this.fadeOut);
+    return this.type == 4 /* drumset */ ? Config.drumsetFadeOutTicks : SynthMessenger.fadeOutSettingToTicks(this.fadeOut);
   }
   getChord() {
     return effectsIncludeChord(this.effects) ? Config.chords[this.chord] : Config.chords.dictionary["simultaneous"];
@@ -6603,11 +6923,11 @@ var Song = class _Song {
     this.patternInstruments = false;
     this.eqFilter.reset();
     this.pluginurl = null;
-    Synth.pluginValueNames = [];
-    Synth.pluginInstrumentStateFunction = null;
-    Synth.pluginFunction = null;
-    Synth.pluginIndex = 0;
-    Synth.PluginDelayLineSize = 0;
+    SynthMessenger.pluginValueNames = [];
+    SynthMessenger.pluginInstrumentStateFunction = null;
+    SynthMessenger.pluginFunction = null;
+    SynthMessenger.pluginIndex = 0;
+    SynthMessenger.PluginDelayLineSize = 0;
     PluginConfig.pluginUIElements = [];
     PluginConfig.pluginName = "";
     for (let i = 0; i < Config.filterMorphCount - 1; i++) {
@@ -7994,8 +8314,8 @@ var Song = class _Song {
               const channelIndex = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
               const instrument = this.channels[channelIndex].instruments[0];
-              instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-              instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+              instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+              instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
               instrument.transition = Config.transitions.dictionary[settings.transition].index;
               if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                 instrument.effects |= 1 << 10 /* transition */;
@@ -8004,8 +8324,8 @@ var Song = class _Song {
               for (let channelIndex = 0; channelIndex < this.getChannelCount(); channelIndex++) {
                 for (const instrument of this.channels[channelIndex].instruments) {
                   const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
-                  instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-                  instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+                  instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+                  instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
                   instrument.transition = Config.transitions.dictionary[settings.transition].index;
                   if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                     instrument.effects |= 1 << 10 /* transition */;
@@ -8015,8 +8335,8 @@ var Song = class _Song {
             } else if (beforeFour && !fromGoldBox && !fromUltraBox && !fromSlarmoosBox || fromBeepBox) {
               const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
               const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-              instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-              instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+              instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+              instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
               instrument.transition = Config.transitions.dictionary[settings.transition].index;
               if (instrument.transition != Config.transitions.dictionary["normal"].index) {
                 instrument.effects |= 1 << 10 /* transition */;
@@ -8024,8 +8344,8 @@ var Song = class _Song {
             } else {
               const settings = legacySettings[clamp(0, legacySettings.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)])];
               const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-              instrument.fadeIn = Synth.secondsToFadeInSetting(settings.fadeInSeconds);
-              instrument.fadeOut = Synth.ticksToFadeOutSetting(settings.fadeOutTicks);
+              instrument.fadeIn = SynthMessenger.secondsToFadeInSetting(settings.fadeInSeconds);
+              instrument.fadeOut = SynthMessenger.ticksToFadeOutSetting(settings.fadeOutTicks);
               instrument.transition = Config.transitions.dictionary[settings.transition].index;
               if (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] > 0) {
                 instrument.legacyTieOver = true;
@@ -9318,15 +9638,15 @@ var Song = class _Song {
       }).then((response) => {
         return response.json();
       }).then((plugin) => {
-        Synth.pluginValueNames = plugin.variableNames || [];
-        Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-        Synth.pluginFunction = plugin.synthFunction || "";
-        Synth.pluginIndex = plugin.effectOrderIndex || 0;
-        Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
+        SynthMessenger.pluginValueNames = plugin.variableNames || [];
+        SynthMessenger.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
+        SynthMessenger.pluginFunction = plugin.synthFunction || "";
+        SynthMessenger.pluginIndex = plugin.effectOrderIndex || 0;
+        SynthMessenger.PluginDelayLineSize = plugin.delayLineSize || 0;
         PluginConfig.pluginUIElements = plugin.elements || [];
         PluginConfig.pluginName = plugin.pluginName || "plugin";
       }).then(() => {
-        if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
+        if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
       }).catch(() => {
         window.alert("couldn't load plugin " + pluginurl);
       });
@@ -10192,9 +10512,8 @@ var Song = class _Song {
     this.masterGain = 1;
   }
 };
-var Synth = class {
+var SynthMessenger = class {
   constructor(song = null) {
-    // TODO: reverb
     this.preferLowerLatency = false;
     // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     this.anticipatePoorPerformance = false;
@@ -10218,10 +10537,10 @@ var Synth = class {
      * liveBassInputChannel [5]: integer
      */
     this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
-    this.liveInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-    this.liveBassInputPitches = new Int8Array(new SharedArrayBuffer(Config.maxPitch));
-    // public liveInputChannel: number = 0;
-    // public liveBassInputChannel: number = 0;
+    // public liveInputPitches: number[];
+    // public liveBassInputPitches: number[];
+    this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
+    this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
     this.volume = 1;
     this.oscRefreshEventTimer = 0;
     this.oscEnabled = true;
@@ -10254,12 +10573,13 @@ var Synth = class {
     this.loopBarEnd = -1;
     this.liveInputEndTime = 0;
     this.messageQueue = [];
+    this.pushArray = new Uint16Array(1);
     if (song != null) this.setSong(song);
     this.activateAudio();
     this.update();
   }
   static {
-    __name(this, "Synth");
+    __name(this, "SynthMessenger");
   }
   static {
     this.pluginFunction = null;
@@ -10382,15 +10702,38 @@ var Synth = class {
       this.song = song;
     }
   }
+  addRemoveLiveInputTone(pitches, isBass, turnOn) {
+    if (typeof pitches === "number") {
+      let val = pitches;
+      val = val << 1;
+      val += +turnOn;
+      val = val << 1;
+      val += +isBass;
+      this.pushArray[0] = val;
+      this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+    } else if (pitches instanceof Array && pitches.length > 0) {
+      const pushArray = new Uint16Array(pitches.length);
+      for (let i = 0; i < pitches.length; i++) {
+        let val = pitches[i];
+        val = val << 1;
+        val += +turnOn;
+        val = val << 1;
+        val += +isBass;
+        pushArray[i] = val;
+      }
+      this.liveInputPitchesOnOffRequests.push(pushArray);
+    }
+  }
   //TODO: Channel muting
   async activateAudio() {
     if (this.audioContext == null || this.workletNode == null) {
       if (this.workletNode != null) this.deactivateAudio();
       const sabMessage = {
         flag: 7 /* sharedArrayBuffers */,
-        livePitches: this.liveInputPitches,
-        bassLivePitches: this.liveBassInputPitches,
-        liveInputValues: this.liveInputValues
+        // livePitches: this.liveInputPitches,
+        // bassLivePitches: this.liveBassInputPitches,
+        liveInputValues: this.liveInputValues,
+        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
         //add more here if needed
       };
       this.sendMessage(sabMessage);
@@ -11173,17 +11516,29 @@ var Deque = class {
   static {
     __name(this, "Deque");
   }
+  /**
+   * Pushes an element to the front of the deque
+   * @param element The element to push
+   */
   pushFront(element) {
     if (this._count >= this._capacity) this._expandCapacity();
     this._offset = this._offset - 1 & this._mask;
     this._buffer[this._offset] = element;
     this._count++;
   }
+  /**
+   * Pushes an element to the back of the deque
+   * @param element The element to push
+   */
   pushBack(element) {
     if (this._count >= this._capacity) this._expandCapacity();
     this._buffer[this._offset + this._count & this._mask] = element;
     this._count++;
   }
+  /**
+   * Removes and returns the frontmost element
+   * @returns The frontmost element in the deque
+   */
   popFront() {
     if (this._count <= 0) throw new Error("No elements left to pop.");
     const element = this._buffer[this._offset];
@@ -11192,6 +11547,10 @@ var Deque = class {
     this._count--;
     return element;
   }
+  /**
+   * Removes and returns the backmost element
+   * @returns The backmost element in the deque
+   */
   popBack() {
     if (this._count <= 0) throw new Error("No elements left to pop.");
     this._count--;
@@ -11200,25 +11559,48 @@ var Deque = class {
     this._buffer[index] = void 0;
     return element;
   }
+  /**
+   * @returns The frontmost element in the deque
+   */
   peakFront() {
     if (this._count <= 0) throw new Error("No elements left to pop.");
     return this._buffer[this._offset];
   }
+  /**
+   * @returns The backmost element in the deque
+   */
   peakBack() {
     if (this._count <= 0) throw new Error("No elements left to pop.");
     return this._buffer[this._offset + this._count - 1 & this._mask];
   }
+  /**
+   * @returns The size of the deque
+   */
   count() {
     return this._count;
   }
+  /**
+   * Update an element at an index of the deque
+   * @param index The index of the element
+   * @param element The new element to replace the old one
+   */
   set(index, element) {
     if (index < 0 || index >= this._count) throw new Error("Invalid index");
     this._buffer[this._offset + index & this._mask] = element;
   }
+  /**
+   * Get an element at an index from the deque
+   * @param index The index of the element
+   * @returns The element at that index
+   */
   get(index) {
     if (index < 0 || index >= this._count) throw new Error("Invalid index");
     return this._buffer[this._offset + index & this._mask];
   }
+  /**
+   * Removes an element from the deque at a specified index
+   * @param index The index of the element that you want to remove
+   */
   remove(index) {
     if (index < 0 || index >= this._count) throw new Error("Invalid index");
     if (index <= this._count >> 1) {
@@ -11316,6 +11698,86 @@ function xxHash32(input, seed = 0) {
   return acc < 0 ? acc + 4294967296 : acc;
 }
 __name(xxHash32, "xxHash32");
+
+// synth/DenseSet.ts
+var DenseSet = class {
+  constructor(initialize) {
+    this._size = 0;
+    this.set = [];
+    this._maxVal = 0;
+    this._lastGrabbed = 0;
+    for (const val in initialize) {
+      const element = Number(val);
+      if (!Number.isNaN(element)) {
+        this.add(Number(element));
+      }
+    }
+  }
+  static {
+    __name(this, "DenseSet");
+  }
+  add(element) {
+    if (this.set[element] === void 0) {
+      this.set[element] = element;
+      this._size++;
+      if (element > this._maxVal) this._maxVal = element;
+    }
+  }
+  has(element) {
+    return this.set[element] !== void 0;
+  }
+  delete(element) {
+    if (this.set[element] !== void 0) {
+      this.set[element] = void 0;
+      this._size--;
+    }
+  }
+  size() {
+    return this._size;
+  }
+  /**
+   * Makes sure that grabbing results in an ordered list
+   */
+  pointToBeginning() {
+    this._lastGrabbed = 0;
+  }
+  /**
+   * Combined with a for loop over the size of the dense set, this will grab every item in the set
+   * @returns a value in the set
+   */
+  grab() {
+    for (let i = this._lastGrabbed; i <= this._maxVal; i++) {
+      if (this.set[i] !== void 0) {
+        this._lastGrabbed = i + 1;
+        return i;
+      }
+    }
+    for (let i = 0; i < this._lastGrabbed; i++) {
+      if (this.set[i] !== void 0) {
+        this._lastGrabbed = i + 1;
+        return i;
+      }
+    }
+    this._lastGrabbed = 0;
+    this._maxVal = 0;
+    return void 0;
+  }
+  clear() {
+    this.set = [];
+    this._size = 0;
+    this._maxVal = 0;
+    this._lastGrabbed = 0;
+  }
+  getArray() {
+    const arr = [];
+    for (let i = 0; i <= this._maxVal; i++) {
+      if (this.set[i] !== void 0) {
+        arr.push(i);
+      }
+    }
+    return arr;
+  }
+};
 
 // synth/synth_processor.ts
 var epsilon = 1e-24;
@@ -13231,6 +13693,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.samplesPerSecond = 44100;
     // TODO: reverb
     this.song = null;
+    this.liveInputPitches = new DenseSet();
+    this.liveBassInputPitches = new DenseSet();
     // public liveInputChannel: number = 0;
     // public liveBassInputChannel: number = 0;
     this.loopRepeatCount = -1;
@@ -13263,6 +13727,9 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.loopBarStart = -1;
     this.loopBarEnd = -1;
     this.channels = [];
+    /**
+     * We reuse already allocated tones to save performance from garbage collection 
+     */
     this.tonePool = new Deque();
     this.tempMatchedPitchTones = Array(Config.maxChordSize).fill(null);
     this.startedMetronome = false;
@@ -13634,9 +14101,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       }
       case 7 /* sharedArrayBuffers */: {
         console.log("LOADING SABS");
-        this.liveInputPitches = event.data.livePitches;
-        this.liveBassInputPitches = event.data.bassLivePitches;
         this.liveInputValues = event.data.liveInputValues;
+        this.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
         break;
       }
       case 8 /* setPrevBar */: {
@@ -13676,6 +14142,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.modValues = [];
     this.nextModValues = [];
     this.heldMods = [];
+    this.liveInputPitches.clear();
+    this.liveBassInputPitches.clear();
     if (this.song != null) {
       this.song.inVolumeCap = 0;
       this.song.outVolumeCap = 0;
@@ -13861,7 +14329,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     this.songEqFilterVolumeDelta = (eqFilterVolumeEnd - eqFilterVolumeStart) / roundedSamplesPerTick;
   }
   synthesize(outputDataL, outputDataR, outputDataLLength, playSong = true) {
-    if (this.song == null || this.liveInputPitches == void 0 || this.liveBassInputPitches == void 0 || this.liveInputValues == void 0) {
+    if (this.song == null || this.liveInputValues == void 0 || this.liveInputPitchesOnOffRequests == void 0) {
       outputDataL.fill(0);
       outputDataR.fill(0);
       this.deactivateAudio();
@@ -13973,9 +14441,10 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
         continue;
       }
       this.computeSongState(samplesPerTick);
-      if (!this.isPlayingSong && (this.liveInputPitches[0] > 0 || this.liveBassInputPitches[0] > 0)) {
+      if (!this.isPlayingSong && (this.liveInputPitches.size() > 0 || this.liveBassInputPitches.size() > 0)) {
         this.computeLatestModValues();
       }
+      this.dequeueLivePitches();
       for (let channelIndex = 0; channelIndex < song.pitchChannelCount + song.noiseChannelCount; channelIndex++) {
         const channel = song.channels[channelIndex];
         const channelState = this.channels[channelIndex];
@@ -14235,8 +14704,8 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
         if (this.tick == Config.ticksPerPart) {
           this.tick = 0;
           this.part++;
-          this.liveInputValues[0]--;
-          this.liveInputValues[1]--;
+          this.liveInputValues[0 /* liveInputDuration */]--;
+          this.liveInputValues[1 /* liveBassInputDuration */]--;
           for (let i = 0; i < this.heldMods.length; i++) {
             this.heldMods[i].holdFor--;
             if (this.heldMods[i].holdFor <= 0) {
@@ -14341,30 +14810,52 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       }
     }
   }
+  dequeueLivePitches() {
+    const queuedTones = this.liveInputPitchesOnOffRequests.availableRead();
+    if (queuedTones > 0) {
+      const vals = new Uint16Array(queuedTones);
+      this.liveInputPitchesOnOffRequests.pop(vals, queuedTones);
+      for (let i = 0; i < queuedTones; i++) {
+        let val = vals[i];
+        const isBass = Boolean(val & 1);
+        val = val >> 1;
+        const turnOn = Boolean(val & 1);
+        val = val >> 1;
+        const pitch = val;
+        if (!isBass) {
+          if (turnOn) {
+            this.liveInputPitches.add(pitch);
+          } else {
+            this.liveInputPitches.delete(pitch);
+          }
+        } else {
+          if (turnOn) {
+            this.liveBassInputPitches.add(pitch);
+          } else {
+            this.liveBassInputPitches.delete(pitch);
+          }
+        }
+      }
+    }
+  }
   determineLiveInputTones(song, channelIndex, samplesPerTick) {
     const channel = song.channels[channelIndex];
     const channelState = this.channels[channelIndex];
-    const pitches = [];
-    const bassPitches = [];
-    for (let i = 1; i <= this.liveInputPitches[0]; i++) {
-      pitches.push(this.liveInputPitches[i]);
-    }
-    for (let i = 1; i <= this.liveBassInputPitches[0]; i++) {
-      bassPitches.push(this.liveBassInputPitches[i]);
-    }
+    const pitches = this.liveInputPitches;
+    const bassPitches = this.liveBassInputPitches;
     for (let instrumentIndex = 0; instrumentIndex < channel.instruments.length; instrumentIndex++) {
       const instrumentState = channelState.instruments[instrumentIndex];
       const toneList = instrumentState.liveInputTones;
       let toneCount = 0;
       const pattern = song.getPattern(channelIndex, this.bar);
-      if (this.liveInputValues[0] > 0 && channelIndex == this.liveInputValues[4] && pitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+      if (this.liveInputValues[0 /* liveInputDuration */] > 0 && channelIndex == this.liveInputValues[4 /* liveInputChannel */] && pitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
           if (toneList.count() <= toneCount) {
             tone = this.newTone();
             toneList.pushBack(tone);
-          } else if (!instrument.getTransition().isSeamless && this.liveInputValues[2]) {
+          } else if (!instrument.getTransition().isSeamless && this.liveInputValues[3 /* liveBassInputStarted */]) {
             this.releaseTone(instrumentState, toneList.get(toneCount));
             tone = this.newTone();
             toneList.set(toneCount, tone);
@@ -14372,25 +14863,24 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
             tone = toneList.get(toneCount);
           }
           toneCount++;
-          for (let i = 0; i < pitches.length; i++) {
-            tone.pitches[i] = pitches[i];
-          }
-          tone.pitchCount = pitches.length;
+          tone.pitches = pitches.getArray();
+          tone.pitchCount = pitches.size();
           tone.chordSize = 1;
           tone.instrumentIndex = instrumentIndex;
           tone.note = tone.prevNote = tone.nextNote = null;
-          tone.atNoteStart = Boolean(this.liveInputValues[2]);
+          tone.atNoteStart = Boolean(this.liveInputValues[2 /* liveInputStarted */]);
           tone.forceContinueAtStart = false;
           tone.forceContinueAtEnd = false;
           this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
         } else {
           this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
-          for (let i = 0; i < pitches.length; i++) {
+          pitches.pointToBeginning();
+          for (let i = 0; i < pitches.size(); i++) {
             let tone;
             if (this.tempMatchedPitchTones[toneCount] != null) {
               tone = this.tempMatchedPitchTones[toneCount];
               this.tempMatchedPitchTones[toneCount] = null;
-              if (tone.pitchCount != 1 || tone.pitches[0] != pitches[i]) {
+              if (tone.pitchCount != 1 || !pitches.has(tone.pitches[0])) {
                 this.releaseTone(instrumentState, tone);
                 tone = this.newTone();
               }
@@ -14400,26 +14890,27 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
               toneList.pushBack(tone);
             }
             toneCount++;
-            tone.pitches[0] = pitches[i];
+            const pitch = pitches.grab();
+            if (pitch) tone.pitches[0] = pitch;
             tone.pitchCount = 1;
-            tone.chordSize = pitches.length;
+            tone.chordSize = pitches.size();
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
-            tone.atNoteStart = Boolean(this.liveInputValues[2]);
+            tone.atNoteStart = Boolean(this.liveInputValues[2 /* liveInputStarted */]);
             tone.forceContinueAtStart = false;
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
           }
         }
       }
-      if (this.liveInputValues[1] > 0 && channelIndex == this.liveInputValues[5] && bassPitches.length > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
+      if (this.liveInputValues[1 /* liveBassInputDuration */] > 0 && channelIndex == this.liveInputValues[5 /* liveBassInputChannel */] && bassPitches.size() > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
         const instrument = channel.instruments[instrumentIndex];
         if (instrument.getChord().singleTone) {
           let tone;
           if (toneList.count() <= toneCount) {
             tone = this.newTone();
             toneList.pushBack(tone);
-          } else if (!instrument.getTransition().isSeamless && this.liveInputValues[2]) {
+          } else if (!instrument.getTransition().isSeamless && this.liveInputValues[3 /* liveBassInputStarted */]) {
             this.releaseTone(instrumentState, toneList.get(toneCount));
             tone = this.newTone();
             toneList.set(toneCount, tone);
@@ -14427,25 +14918,23 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
             tone = toneList.get(toneCount);
           }
           toneCount++;
-          for (let i = 0; i < bassPitches.length; i++) {
-            tone.pitches[i] = bassPitches[i];
-          }
-          tone.pitchCount = bassPitches.length;
+          tone.pitches = bassPitches.getArray();
+          tone.pitchCount = bassPitches.size();
           tone.chordSize = 1;
           tone.instrumentIndex = instrumentIndex;
           tone.note = tone.prevNote = tone.nextNote = null;
-          tone.atNoteStart = Boolean(this.liveInputValues[3]);
+          tone.atNoteStart = Boolean(this.liveInputValues[3 /* liveBassInputStarted */]);
           tone.forceContinueAtStart = false;
           tone.forceContinueAtEnd = false;
           this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
         } else {
           this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
-          for (let i = 0; i < bassPitches.length; i++) {
+          for (let i = 0; i < bassPitches.size(); i++) {
             let tone;
             if (this.tempMatchedPitchTones[toneCount] != null) {
               tone = this.tempMatchedPitchTones[toneCount];
               this.tempMatchedPitchTones[toneCount] = null;
-              if (tone.pitchCount != 1 || tone.pitches[0] != bassPitches[i]) {
+              if (tone.pitchCount != 1 || !bassPitches.has(tone.pitches[0])) {
                 this.releaseTone(instrumentState, tone);
                 tone = this.newTone();
               }
@@ -14455,12 +14944,13 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
               toneList.pushBack(tone);
             }
             toneCount++;
-            tone.pitches[0] = bassPitches[i];
+            const pitch = bassPitches.grab();
+            if (pitch) tone.pitches[0] = pitch;
             tone.pitchCount = 1;
-            tone.chordSize = bassPitches.length;
+            tone.chordSize = bassPitches.size();
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
-            tone.atNoteStart = Boolean(this.liveInputValues[3]);
+            tone.atNoteStart = Boolean(this.liveInputValues[3 /* liveBassInputStarted */]);
             tone.forceContinueAtStart = false;
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
@@ -14472,8 +14962,14 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       }
       this.clearTempMatchedPitchTones(toneCount, instrumentState);
     }
-    this.liveInputValues[2] = 0;
-    this.liveInputValues[3] = 0;
+    this.liveInputValues[2 /* liveInputStarted */] = 0;
+    this.liveInputValues[3 /* liveBassInputStarted */] = 0;
+    if (this.liveInputValues[0 /* liveInputDuration */] <= 0) {
+      this.liveInputPitches.clear();
+    }
+    if (this.liveInputValues[1 /* liveBassInputDuration */] <= 0) {
+      this.liveBassInputPitches.clear();
+    }
   }
   // Returns the chord type of the instrument in the adjacent pattern if it is compatible for a
   // seamless transition across patterns, otherwise returns null.
@@ -14504,25 +15000,40 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
     }
     return true;
   }
+  /**
+   * The tones are about to seamlessly transition to a new note. The pitches
+   * from the old note may or may not match any of the pitches in the new
+   * note, and not necessarily in order, but if any do match, they'll sound
+   * better if those tones continue to have the same pitch. Attempt to find
+   * the right spot for each old tone in the new chord if possible.
+   * @param toneList The deque of old tones
+   * @param notePitches The ordered array of new pitches
+   */
   moveTonesIntoOrderedTempMatchedList(toneList, notePitches) {
-    for (let i = 0; i < toneList.count(); i++) {
-      const tone = toneList.get(i);
-      const pitch = tone.pitches[0] + tone.lastInterval;
-      for (let j = 0; j < notePitches.length; j++) {
-        if (notePitches[j] == pitch) {
-          this.tempMatchedPitchTones[j] = tone;
-          toneList.remove(i);
-          i--;
-          break;
+    if (!(notePitches instanceof DenseSet)) {
+      for (let i = 0; i < toneList.count(); i++) {
+        const tone = toneList.get(i);
+        const pitch = tone.pitches[0] + tone.lastInterval;
+        for (let j = 0; j < notePitches.length; j++) {
+          if (notePitches[j] == pitch) {
+            this.tempMatchedPitchTones[j] = tone;
+            toneList.remove(i);
+            i--;
+            break;
+          }
         }
       }
     }
+    let tonesPushed = 0;
     while (toneList.count() > 0) {
       const tone = toneList.popFront();
-      for (let j = 0; j < this.tempMatchedPitchTones.length; j++) {
+      for (let j = tonesPushed; j < this.tempMatchedPitchTones.length; j++) {
         if (this.tempMatchedPitchTones[j] == null) {
           this.tempMatchedPitchTones[j] = tone;
+          tonesPushed++;
           break;
+        } else {
+          tonesPushed++;
         }
       }
     }
@@ -14631,7 +15142,7 @@ var SynthProcessor = class _SynthProcessor extends AudioWorkletProcessor {
       let note = null;
       let prevNote = null;
       let nextNote = null;
-      if (playSong && pattern != null && !channel.muted && (!this.isRecording || this.liveInputValues[4] != channelIndex)) {
+      if (playSong && pattern != null && !channel.muted && (!this.isRecording || this.liveInputValues[4 /* liveInputChannel */] != channelIndex)) {
         for (let i = 0; i < pattern.notes.length; i++) {
           if (pattern.notes[i].end <= currentPart) {
             prevNote = pattern.notes[i];

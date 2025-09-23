@@ -17,7 +17,7 @@ import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdo
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
 import "./Layout"; // Imported here for the sake of ensuring this code is transpiled early.
-import { Instrument, Channel, Synth } from "../synth/synth";
+import { Instrument, Channel, SynthMessenger } from "../synth/synth";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Preferences } from "./Preferences";
 import { HarmonicsEditor, HarmonicsEditorPrompt } from "./HarmonicsEditor";
@@ -1473,7 +1473,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
-        Synth.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
+        SynthMessenger.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);
@@ -2864,7 +2864,7 @@ export class SongEditor {
             if (effectsIncludeDetune(instrument.effects)) {
                 this._detuneSliderRow.style.display = "";
                 this._detuneSlider.updateValue(instrument.detune - Config.detuneCenter);
-                this._detuneSlider.input.title = (Synth.detuneToCents(instrument.detune)) + " cent(s)";
+                this._detuneSlider.input.title = (SynthMessenger.detuneToCents(instrument.detune)) + " cent(s)";
             } else {
                 this._detuneSliderRow.style.display = "none";
             }

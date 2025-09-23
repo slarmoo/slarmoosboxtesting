@@ -12,6 +12,15 @@ export enum MessageFlag {
     setPrevBar,
 }
 
+export enum LiveInputValues {
+    liveInputDuration,
+    liveBassInputDuration,
+    liveInputStarted,
+    liveBassInputStarted,
+    liveInputChannel,
+    liveBassInputChannel,
+}
+
 export interface Message {
     flag: MessageFlag
 }
@@ -52,9 +61,10 @@ export interface ComputeModsMessage extends Message {
 
 export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
-    livePitches: Int8Array,
-    bassLivePitches: Int8Array,
-    liveInputValues: Uint32Array
+    // livePitches: Int8Array,
+    // bassLivePitches: Int8Array,
+    liveInputValues: Uint32Array,
+    liveInputPitchesOnOffRequests: SharedArrayBuffer
 }
 
 export interface SetPrevBarMessage extends Message {
