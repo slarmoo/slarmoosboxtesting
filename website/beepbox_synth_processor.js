@@ -5828,6 +5828,14 @@ var Instrument = class {
         instrumentObject["unisonSign"] = this.unisonSign;
       }
     } else if (this.type == 1 /* fm */) {
+      instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+      if (this.unison == Config.unisons.length) {
+        instrumentObject["unisonVoices"] = this.unisonVoices;
+        instrumentObject["unisonSpread"] = this.unisonSpread;
+        instrumentObject["unisonOffset"] = this.unisonOffset;
+        instrumentObject["unisonExpression"] = this.unisonExpression;
+        instrumentObject["unisonSign"] = this.unisonSign;
+      }
       const operatorArray = [];
       for (let i = 0; i < Config.operatorCount; i++) {
         const operator = this.operators[i];
@@ -5843,6 +5851,14 @@ var Instrument = class {
       instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
       instrumentObject["operators"] = operatorArray;
     } else if (this.type == 11 /* fm6op */) {
+      instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+      if (this.unison == Config.unisons.length) {
+        instrumentObject["unisonVoices"] = this.unisonVoices;
+        instrumentObject["unisonSpread"] = this.unisonSpread;
+        instrumentObject["unisonOffset"] = this.unisonOffset;
+        instrumentObject["unisonExpression"] = this.unisonExpression;
+        instrumentObject["unisonSign"] = this.unisonSign;
+      }
       const operatorArray = [];
       for (const operator of this.operators) {
         operatorArray.push({
@@ -10518,11 +10534,6 @@ var SynthMessenger = class {
     // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     this.anticipatePoorPerformance = false;
     // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
-    // public liveInputDuration: number = 0;
-    // public liveBassInputDuration: number = 0;
-    // public liveInputStarted: boolean = false;
-    // public liveBassInputStarted: boolean = false;
-    //TODO: Make an enum in synthConfig for this
     /**
      * liveInputDuration [0]: number
      * 
@@ -10537,8 +10548,6 @@ var SynthMessenger = class {
      * liveBassInputChannel [5]: integer
      */
     this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
-    // public liveInputPitches: number[];
-    // public liveBassInputPitches: number[];
     this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
     this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
     this.volume = 1;
@@ -10549,8 +10558,6 @@ var SynthMessenger = class {
     this.renderingSong = false;
     this.playheadInternal = 0;
     this.bar = 0;
-    // private prevBar: number | null = null;
-    // private nextBar: number | null = null;
     this.beat = 0;
     this.part = 0;
     this.tick = 0;
@@ -10700,6 +10707,13 @@ var SynthMessenger = class {
       };
       this.sendMessage(songMessage);
       this.song = song;
+    }
+  }
+  updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting) {
+    if (songSetting == 35 /* updateInstrument */) {
+      if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
+        throw new Error("missing index or setting number");
+      }
     }
   }
   addRemoveLiveInputTone(pitches, isBass, turnOn) {

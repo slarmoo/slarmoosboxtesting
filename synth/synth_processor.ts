@@ -2687,6 +2687,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.setPrevBar: {
                 this.prevBar = event.data.prevBar;
             }
+            
         }
     }
 

@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 
 declare global {
@@ -2076,6 +2076,14 @@ export class Instrument {
                 instrumentObject["unisonSign"] = this.unisonSign;
             }
         } else if (this.type == InstrumentType.fm) {
+            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+            if (this.unison == Config.unisons.length) {
+                instrumentObject["unisonVoices"] = this.unisonVoices;
+                instrumentObject["unisonSpread"] = this.unisonSpread;
+                instrumentObject["unisonOffset"] = this.unisonOffset;
+                instrumentObject["unisonExpression"] = this.unisonExpression;
+                instrumentObject["unisonSign"] = this.unisonSign;
+            }
             const operatorArray: Object[] = [];
             for (let i = 0; i < Config.operatorCount; i++) {
                 const operator = this.operators[i];
@@ -2091,6 +2099,14 @@ export class Instrument {
             instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
             instrumentObject["operators"] = operatorArray;
         } else if (this.type == InstrumentType.fm6op) {
+            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+            if (this.unison == Config.unisons.length) {
+                instrumentObject["unisonVoices"] = this.unisonVoices;
+                instrumentObject["unisonSpread"] = this.unisonSpread;
+                instrumentObject["unisonOffset"] = this.unisonOffset;
+                instrumentObject["unisonExpression"] = this.unisonExpression;
+                instrumentObject["unisonSign"] = this.unisonSign;
+            }
             const operatorArray: Object[] = [];
             for (const operator of this.operators) {
                 operatorArray.push({
@@ -7449,12 +7465,6 @@ export class SynthMessenger {
 
     public preferLowerLatency: boolean = false; // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     public anticipatePoorPerformance: boolean = false; // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
-    
-    // public liveInputDuration: number = 0;
-    // public liveBassInputDuration: number = 0;
-    // public liveInputStarted: boolean = false;
-    // public liveBassInputStarted: boolean = false;
-    //TODO: Make an enum in synthConfig for this
     /**
      * liveInputDuration [0]: number
      * 
@@ -7469,8 +7479,6 @@ export class SynthMessenger {
      * liveBassInputChannel [5]: integer
      */
     public liveInputValues: Uint32Array = new Uint32Array(new SharedArrayBuffer(6 * 4));
-    // public liveInputPitches: number[];
-    // public liveBassInputPitches: number[];
     private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch)
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array)
 
@@ -7482,8 +7490,6 @@ export class SynthMessenger {
     public renderingSong: boolean = false;
     private playheadInternal: number = 0.0;
     private bar: number = 0;
-    // private prevBar: number | null = null;
-    // private nextBar: number | null = null;
     private beat: number = 0;
     private part: number = 0;
     private tick: number = 0;
@@ -7647,6 +7653,14 @@ export class SynthMessenger {
             }
             this.sendMessage(songMessage);
             this.song = song;
+        }
+    }
+
+    public updateSong(data: number | string | null, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings) {
+        if (songSetting == SongSettings.updateInstrument) {
+            if (channelIndex === undefined || instrumentIndex === undefined || instrumentSetting === undefined) {
+                throw new Error("missing index or setting number");
+            }
         }
     }
 
