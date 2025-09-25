@@ -1427,13 +1427,13 @@ export class Config {
         { name: "flare", type: EnvelopeType.flare, speed: 32.0 },
         { name: "twang", type: EnvelopeType.twang, speed: 32.0 },
         { name: "swell", type: EnvelopeType.swell, speed: 32.0 },
-        { name: "lfo", type: EnvelopeType.lfo, speed: 4.0 }, //replaced tremolo and tremolo2 Slarmoo's Box 1.3
+        { name: "lfo", type: EnvelopeType.lfo, speed: 1.0 }, //replaced tremolo and tremolo2 Slarmoo's Box 1.3
         { name: "decay", type: EnvelopeType.decay, speed: 10.0 },
         { name: "wibble", type: EnvelopeType.wibble, speed: 24.0 },
         { name: "linear", type: EnvelopeType.linear, speed: 32.0 },
         { name: "rise", type: EnvelopeType.rise, speed: 32.0 },
         { name: "blip", type: EnvelopeType.blip, speed: 6.0 },
-        { name: "fall", type: EnvelopeType.fall, speed: 2.0 },
+        { name: "fall", type: EnvelopeType.fall, speed: 6.0 },
     ]);
 
 

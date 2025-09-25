@@ -5733,6 +5733,7 @@ export class ColorConfig {
 			--text-selection: #c2a855;
 			--loop-accent: #fff570;
 			--link-accent: #fff570;
+			--fifth-note: #a0cd7c;
 			--ui-widget-background: #191721;
 			--ui-widget-focus: #2d293b;
 			--pitch-background: #44444A;

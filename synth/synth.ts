@@ -2257,7 +2257,22 @@ export class Instrument {
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
             }
-        } else if (this.type == InstrumentType.fm || this.type == InstrumentType.fm6op) {
+        } else if (this.type == InstrumentType.fm) {
+            const operatorArray: Object[] = [];
+            for (let i = 0; i < Config.operatorCount; i++) {
+                const operator = this.operators[i];
+                operatorArray.push({
+                    "frequency": Config.operatorFrequencies[operator.frequency].name,
+                    "amplitude": operator.amplitude,
+                    "waveform": Config.operatorWaves[operator.waveform].name,
+                    "pulseWidth": operator.pulseWidth,
+                });
+            }
+            instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
+            instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
+            instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+            instrumentObject["operators"] = operatorArray;
+        } else if (this.type == InstrumentType.fm6op) {
             const operatorArray: Object[] = [];
             for (const operator of this.operators) {
                 operatorArray.push({
@@ -2267,29 +2282,22 @@ export class Instrument {
                     "pulseWidth": operator.pulseWidth,
                 });
             }
-            if (this.type == InstrumentType.fm) {
-                instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
-                instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
-                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                instrumentObject["operators"] = operatorArray;
-            } else {
-                instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
-                instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
-                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                if (this.algorithm6Op == 0) {
-                    const customAlgorithm: any = {};
-                    customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
-                    customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
-                    instrumentObject["customAlgorithm"] = customAlgorithm;
-                }
-                if (this.feedbackType6Op == 0) {
-                    const customFeedback: any = {};
-                    customFeedback["mods"] = this.customFeedbackType.indices;
-                    instrumentObject["customFeedback"] = customFeedback;
-                }
-
-                instrumentObject["operators"] = operatorArray;
+            instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
+            instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
+            instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+            if (this.algorithm6Op == 0) {
+                const customAlgorithm: any = {};
+                customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
+                customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
+                instrumentObject["customAlgorithm"] = customAlgorithm;
             }
+            if (this.feedbackType6Op == 0) {
+                const customFeedback: any = {};
+                customFeedback["mods"] = this.customFeedbackType.indices;
+                instrumentObject["customFeedback"] = customFeedback;
+            }
+
+            instrumentObject["operators"] = operatorArray;
         } else if (this.type == InstrumentType.customChipWave) {
             instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
             instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
@@ -8310,7 +8318,7 @@ class EnvelopeComputer {
             startNote = 0;
             endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
         }
-        const range = endNote - startNote + 1;
+        const range = endNote - startNote;
         if (!inverse) {
             if (pitch <= startNote) {
                 return envelopeLowerBound;
