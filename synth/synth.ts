@@ -12757,20 +12757,16 @@ export class Synth {
                     useSpreadEnd = (this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, true)) / Config.supersawSpreadMax;
                 }
 
-                //clamp the spread values to prevent negative ones polluting the output
-                useSpreadStart = Math.max(0, useSpreadStart);
-                useSpreadEnd = Math.max(0, useSpreadEnd);
-
-                const spreadSliderStart: number = useSpreadStart * envelopeStarts[EnvelopeComputeIndex.supersawSpread];
-                const spreadSliderEnd: number = useSpreadEnd * envelopeEnds[EnvelopeComputeIndex.supersawSpread];
-                // Just use the average detune for the current tick in the below loop.
-                const averageSpreadSlider: number = (spreadSliderStart + spreadSliderEnd) * 0.5;
-                const curvedSpread: number = Math.pow(1.0 - Math.sqrt(Math.max(0.0, 1.0 - averageSpreadSlider)), 1.75);
-                for (let i = 0; i < Config.supersawVoiceCount; i++) {
-                    // Spread out the detunes around the center;
-                    const offset: number = (i == 0) ? 0.0 : Math.pow((((i + 1) >> 1) - 0.5 + 0.025 * ((i & 2) - 1)) / (Config.supersawVoiceCount >> 1), 1.1) * ((i & 1) * 2 - 1);
-                    tone.supersawUnisonDetunes[i] = Math.pow(2.0, curvedSpread * offset / 12.0);
-                }
+				const spreadSliderStart: number = Math.max(0, useSpreadStart) * envelopeStarts[EnvelopeComputeIndex.supersawSpread];
+				const spreadSliderEnd:   number = Math.max(0, useSpreadEnd) * envelopeEnds[EnvelopeComputeIndex.supersawSpread];
+				// Just use the average detune for the current tick in the below loop.
+				const averageSpreadSlider: number = (spreadSliderStart + spreadSliderEnd) * 0.5;
+				const curvedSpread: number = Math.pow(1.0 - Math.sqrt(Math.max(0.0, 1.0 - averageSpreadSlider)), 1.75);
+				for (let i = 0; i < Config.supersawVoiceCount; i++) {
+					// Spread out the detunes around the center;
+					const offset: number = (i == 0) ? 0.0 : Math.pow((((i + 1) >> 1) - 0.5 + 0.025 * ((i & 2) - 1)) / (Config.supersawVoiceCount >> 1), 1.1) * ((i & 1) * 2 - 1);
+					tone.supersawUnisonDetunes[i] = Math.pow(2.0, curvedSpread * offset / 12.0);
+				}
 
                 const baseShape: number = instrument.supersawShape / Config.supersawShapeMax;
                 // Saw shape mods
