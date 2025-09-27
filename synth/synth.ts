@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 
 declare global {
@@ -816,7 +816,7 @@ export class SpectrumWave {
                 this.spectrum[i] = isHarmonic ? Math.max(0, Math.round(Config.spectrumMax * (1 - i / 30))) : 0;
             }
         }
-        this.markCustomWaveDirty();
+        // this.markCustomWaveDirty();
     }
 
     public markCustomWaveDirty(): void {
@@ -3068,7 +3068,6 @@ export class Song {
     public key: number;
     public octave: number;
     public tempo: number;
-    public reverb: number;
     public beatsPerBar: number;
     public barCount: number;
     public patternsPerChannel: number;
@@ -3091,9 +3090,6 @@ export class Song {
     public inVolumeCap: number = 0.0;
     public outVolumeCap: number = 0.0;
     public eqFilter: FilterSettings = new FilterSettings();
-    public eqFilterType: boolean = false;
-    public eqFilterSimpleCut: number = Config.filterSimpleCutRange - 1;
-    public eqFilterSimplePeak: number = 0;
     public eqSubFilters: (FilterSettings | null)[] = [];
     public tmpEqFilterStart: FilterSettings | null;
     public tmpEqFilterEnd: FilterSettings | null;
@@ -3332,7 +3328,6 @@ export class Song {
         this.loopStart = 0;
         this.loopLength = 4;
         this.tempo = 150; //Default tempo returned to 150 for consistency with BeepBox and JummBox
-        this.reverb = 0;
         this.beatsPerBar = 8;
         this.barCount = 16;
         this.patternsPerChannel = 8;
@@ -6745,6 +6740,419 @@ export class Song {
         ));
     }
 
+    public parseUpdateCommand(data: number | string | null, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings | ChannelSettings, settingIndex?: number) {
+        const stringData: string = data + "";
+        const numberData: number = typeof data == "number" ? data : data == null ? 0 : parseInt(data);
+        switch (songSetting) {
+            case SongSettings.title:
+                this.title = stringData;
+                break;
+            case SongSettings.scale:
+                this.scale = numberData;
+                break;
+            case SongSettings.scaleCustom:
+                let scale: number = numberData;
+                for (let i: number = 0; i < Config.pitchesPerOctave; i++) {
+                    this.scaleCustom[i] = (scale & 1) == 1;
+                    scale = scale << 1;
+                }
+                break;
+            case SongSettings.key:
+                this.key = numberData;
+                break;
+            case SongSettings.octave:
+                this.octave = numberData;
+                break;
+            case SongSettings.tempo:
+                this.tempo = numberData;
+                break;
+            case SongSettings.beatsPerBar:
+                this.beatsPerBar = numberData;
+                break;
+            case SongSettings.barCount:
+                this.barCount = numberData;
+                break;
+            case SongSettings.patternsPerChannel:
+                this.patternsPerChannel = numberData;
+                break;
+            case SongSettings.rhythm:
+                this.rhythm = numberData;
+                break;
+            case SongSettings.layeredInstruments:
+                this.layeredInstruments = numberData == 1;
+                break;
+            case SongSettings.patternInstruments:
+                this.patternInstruments = numberData == 1;
+                break;
+            case SongSettings.loopStart:
+                this.loopStart = numberData;
+                break;
+            case SongSettings.loopLength:
+                this.loopLength = numberData;
+                break;
+            case SongSettings.pitchChannelCount:
+                this.pitchChannelCount = numberData;
+                break;
+            case SongSettings.noiseChannelCount:
+                this.noiseChannelCount = numberData;
+                break;
+            case SongSettings.modChannelCount:
+                this.modChannelCount = numberData;
+                break;
+            case SongSettings.limiterSettings:
+                const limiterSettings = JSON.parse(stringData);
+                this.limitDecay = limiterSettings.limitDecay;
+                this.limitRise = limiterSettings.limitRise;
+                this.compressionThreshold = limiterSettings.compressionThreshold;
+                this.limitThreshold = limiterSettings.limitThreshold;
+                this.compressionRatio = limiterSettings.compressionRatio;
+                this.limitRatio = limiterSettings.limitRatio;
+                this.masterGain = limiterSettings.masterGain;
+                break;
+            case SongSettings.inVolumeCap:
+                this.inVolumeCap = numberData;
+                break;
+            case SongSettings.outVolumeCap:
+                this.outVolumeCap = numberData;
+                break;
+            case SongSettings.eqFilter:
+                this.eqFilter.fromJsonObject(stringData);
+                break;
+            case SongSettings.eqSubFilters:
+                //channelIndex hijacked for subfilter index
+                if (this.eqSubFilters[channelIndex!] == null) this.eqSubFilters[channelIndex!] = new FilterSettings();
+                this.eqSubFilters[channelIndex!]!.fromJsonObject(stringData);
+                break;
+            case SongSettings.pluginurl:
+                //do plugin stuff?
+                break;
+            case SongSettings.updateChannel:
+                const channel: Channel = this.channels[channelIndex!];
+                switch (instrumentSetting) {
+                    case ChannelSettings.patterns:
+                        //instrumentIndex hijacked for a pattern/bar index
+                        const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
+                        const isMod: boolean = this.getChannelIsMod(channelIndex!);
+                        channel.patterns[instrumentIndex!].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+                        break;
+                    case ChannelSettings.bars:
+                        channel.bars[instrumentIndex!] = numberData;
+                        break;
+                    case ChannelSettings.muted:
+                        channel.muted = numberData == 1;
+                        break;
+                }
+                break;
+            case SongSettings.updateInstrument:
+                const instrument: Instrument = this.channels[channelIndex!].instruments[instrumentIndex!];
+                switch (instrumentSetting) {
+                    case InstrumentSettings.fromJson:
+                        const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
+                        const isMod: boolean = this.getChannelIsMod(channelIndex!);
+                        instrument.fromJsonObject(JSON.parse(stringData), isNoise, isMod, this.rhythm == 0 || this.rhythm == 2, this.rhythm >= 2);
+                        break;
+                    case InstrumentSettings.type:
+                        instrument.type = numberData;
+                        break;
+                    case InstrumentSettings.preset:
+                        instrument.preset = numberData;
+                        break;
+                    case InstrumentSettings.chipWave:
+                        instrument.chipWave = numberData;
+                        break;
+                    case InstrumentSettings.isUsingAdvancedLoopControls:
+                        instrument.isUsingAdvancedLoopControls = numberData == 1;
+                        break;
+                    case InstrumentSettings.chipWaveLoopStart:
+                        instrument.chipWaveLoopStart = numberData;
+                        break;
+                    case InstrumentSettings.chipWaveLoopEnd:
+                        instrument.chipWaveLoopEnd = numberData;
+                        break;
+                    case InstrumentSettings.chipWaveLoopMode:
+                        instrument.chipWaveLoopMode = numberData;
+                        break;
+                    case InstrumentSettings.chipWavePlayBackwards:
+                        instrument.chipWavePlayBackwards = numberData == 1;
+                        break;
+                    case InstrumentSettings.chipWaveStartOffset:
+                        instrument.chipWaveStartOffset = numberData;
+                        break;
+                    case InstrumentSettings.chipNoise:
+                        instrument.chipNoise = numberData;
+                        break;
+                    case InstrumentSettings.eqFilter:
+                        instrument.eqFilter.fromJsonObject(stringData);
+                        break;
+                    case InstrumentSettings.eqFilterType:
+                        instrument.eqFilterType = numberData == 1;
+                        break;
+                    case InstrumentSettings.eqFilterSimpleCut:
+                        instrument.eqFilterSimpleCut = numberData;
+                        break;
+                    case InstrumentSettings.eqFilterSimplePeak:
+                        instrument.eqFilterSimplePeak = numberData;
+                        break;
+                    case InstrumentSettings.noteFilter:
+                        instrument.noteFilter.fromJsonObject(stringData);
+                        break;
+                    case InstrumentSettings.noteFilterType:
+                        instrument.noteFilterType = numberData == 1;
+                        break;
+                    case InstrumentSettings.noteFilterSimpleCut:
+                        instrument.noteFilterSimpleCut = numberData;
+                        break;
+                    case InstrumentSettings.noteFilterSimplePeak:
+                        instrument.noteFilterSimplePeak = numberData;
+                        break;
+                    case InstrumentSettings.eqSubFilters:
+                        if (instrument.eqSubFilters[settingIndex!] == null) instrument.eqSubFilters[settingIndex!] = new FilterSettings();
+                        instrument.eqSubFilters[settingIndex!]!.fromJsonObject(stringData);
+                        break;
+                    case InstrumentSettings.noteSubFilters:
+                        if (instrument.noteSubFilters[settingIndex!] == null) instrument.noteSubFilters[settingIndex!] = new FilterSettings();
+                        instrument.noteSubFilters[settingIndex!]!.fromJsonObject(stringData);
+                        break;
+                    case InstrumentSettings.envelopes:
+                        //hmm... I guess I could send over the whole envelope...
+                        //I probably shouldn't though
+                        instrument.envelopes[settingIndex!].fromJsonObject(stringData, "slarmoosbox");
+                        break;
+                    case InstrumentSettings.fadeIn:
+                        instrument.fadeIn = numberData;
+                        break;
+                    case InstrumentSettings.fadeOut:
+                        instrument.fadeOut = numberData;
+                        break;
+                    case InstrumentSettings.envelopeCount:
+                        instrument.envelopeCount = numberData;
+                        break;
+                    case InstrumentSettings.transition:
+                        instrument.transition = numberData;
+                        break;
+                    case InstrumentSettings.pitchShift:
+                        instrument.pitchShift = numberData;
+                        break;
+                    case InstrumentSettings.detune:
+                        instrument.detune = numberData;
+                        break;
+                    case InstrumentSettings.vibrato:
+                        instrument.vibrato = numberData;
+                        break;
+                    case InstrumentSettings.interval:
+                        instrument.interval = numberData;
+                        break;
+                    case InstrumentSettings.vibratoDepth:
+                        instrument.vibratoDepth = numberData;
+                        break;
+                    case InstrumentSettings.vibratoSpeed:
+                        instrument.vibratoSpeed = numberData;
+                        break;
+                    case InstrumentSettings.vibratoDelay:
+                        instrument.vibratoDelay = numberData;
+                        break;
+                    case InstrumentSettings.vibratoType:
+                        instrument.vibratoType = numberData;
+                        break;
+                    case InstrumentSettings.envelopeSpeed:
+                        instrument.envelopeSpeed = numberData;
+                        break;
+                    case InstrumentSettings.unison:
+                        instrument.unison = numberData;
+                        break;
+                    case InstrumentSettings.unisonVoices:
+                        instrument.unisonVoices = numberData;
+                        break;
+                    case InstrumentSettings.unisonSpread:
+                        instrument.unisonSpread = numberData;
+                        break;
+                    case InstrumentSettings.unisonOffset:
+                        instrument.unisonOffset = numberData;
+                        break;
+                    case InstrumentSettings.unisonExpression:
+                        instrument.unisonExpression = numberData;
+                        break;
+                    case InstrumentSettings.unisonSign:
+                        instrument.unisonSign = numberData;
+                        break;
+                    case InstrumentSettings.effects:
+                        instrument.effects = numberData;
+                        break;
+                    case InstrumentSettings.chord:
+                        instrument.chord = numberData;
+                        break;
+                    case InstrumentSettings.volume:
+                        instrument.volume = numberData;
+                        break;
+                    case InstrumentSettings.pan:
+                        instrument.pan = numberData;
+                        break;
+                    case InstrumentSettings.panDelay:
+                        instrument.panDelay = numberData;
+                        break;
+                    case InstrumentSettings.arpeggioSpeed:
+                        instrument.arpeggioSpeed = numberData;
+                        break;
+                    case InstrumentSettings.monoChordTone:
+                        instrument.monoChordTone = numberData;
+                        break;
+                    case InstrumentSettings.fastTwoNoteArp:
+                        instrument.fastTwoNoteArp = numberData == 1;
+                        break;
+                    case InstrumentSettings.legacyTieOver:
+                        instrument.legacyTieOver = numberData == 1;
+                        break;
+                    case InstrumentSettings.clicklessTransition:
+                        instrument.clicklessTransition = numberData == 1;
+                        break;
+                    case InstrumentSettings.aliases:
+                        instrument.aliases = numberData == 1;
+                        break;
+                    case InstrumentSettings.pulseWidth:
+                        instrument.pulseWidth = numberData;
+                        break;
+                    case InstrumentSettings.decimalOffset:
+                        instrument.decimalOffset = numberData;
+                        break;
+                    case InstrumentSettings.supersawDynamism:
+                        instrument.supersawDynamism = numberData;
+                        break;
+                    case InstrumentSettings.supersawSpread:
+                        instrument.supersawSpread = numberData;
+                        break;
+                    case InstrumentSettings.supersawShape:
+                        instrument.supersawShape = numberData;
+                        break;
+                    case InstrumentSettings.stringSustain:
+                        instrument.stringSustain = numberData;
+                        break;
+                    case InstrumentSettings.stringSustainType:
+                        instrument.stringSustainType = numberData;
+                        break;
+                    case InstrumentSettings.distortion:
+                        instrument.distortion = numberData;
+                        break;
+                    case InstrumentSettings.bitcrusherFreq:
+                        instrument.bitcrusherFreq = numberData;
+                        break;
+                    case InstrumentSettings.bitcrusherQuantization:
+                        instrument.bitcrusherQuantization = numberData;
+                        break;
+                    case InstrumentSettings.ringModulation:
+                        instrument.ringModulation = numberData;
+                        break;
+                    case InstrumentSettings.ringModulationHz:
+                        instrument.ringModulationHz = numberData;
+                        break;
+                    case InstrumentSettings.ringModWaveformIndex:
+                        instrument.ringModWaveformIndex = numberData;
+                        break;
+                    case InstrumentSettings.ringModPulseWidth:
+                        instrument.ringModPulseWidth = numberData;
+                        break;
+                    case InstrumentSettings.ringModHzOffset:
+                        instrument.ringModHzOffset = numberData;
+                        break;
+                    case InstrumentSettings.granular:
+                        instrument.granular = numberData;
+                        break;
+                    case InstrumentSettings.grainSize:
+                        instrument.grainSize = numberData;
+                        break;
+                    case InstrumentSettings.grainAmounts:
+                        instrument.grainAmounts = numberData;
+                        break;
+                    case InstrumentSettings.grainRange:
+                        instrument.grainRange = numberData;
+                        break;
+                    case InstrumentSettings.chorus:
+                        instrument.chorus = numberData;
+                        break;
+                    case InstrumentSettings.reverb:
+                        instrument.reverb = numberData;
+                        break;
+                    case InstrumentSettings.echoSustain:
+                        instrument.echoSustain = numberData;
+                        break;
+                    case InstrumentSettings.echoDelay:
+                        instrument.echoDelay = numberData;
+                        break;
+                    case InstrumentSettings.pluginValues:
+                        //TODO: Plugin
+                        break;
+                    case InstrumentSettings.algorithm:
+                        instrument.algorithm = numberData;
+                        break;
+                    case InstrumentSettings.feedbackType:
+                        instrument.feedbackType = numberData;
+                        break;
+                    case InstrumentSettings.algorithm6Op:
+                        instrument.algorithm6Op = numberData;
+                        break;
+                    case InstrumentSettings.feedbackType6Op:
+                        instrument.feedbackType6Op = numberData;
+                        break;
+                    case InstrumentSettings.customAlgorithm:
+                        instrument.customAlgorithm = new CustomAlgorithm();
+                        const CA = JSON.parse(stringData);
+                        instrument.customAlgorithm.set(CA.carriers, CA.modulation);
+                        break;
+                    case InstrumentSettings.customFeedbackType:
+                        instrument.customFeedbackType = new CustomFeedBack();
+                        const CF = JSON.parse(stringData);
+                        instrument.customFeedbackType.set(CF);
+                        break;
+                    case InstrumentSettings.feedbackAmplitude:
+                        instrument.feedbackAmplitude = numberData;
+                        break;
+                    case InstrumentSettings.customChipWave:
+                        instrument.customChipWave = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.customChipWaveIntegral:
+                        instrument.customChipWaveIntegral = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.operators:
+                        instrument.operators[settingIndex!] = new Operator(settingIndex!)
+                        const operatorSettings = JSON.parse(stringData);
+                        instrument.operators[settingIndex!].frequency = operatorSettings.frequency;
+                        instrument.operators[settingIndex!].amplitude = operatorSettings.amplitude;
+                        instrument.operators[settingIndex!].waveform = operatorSettings.waveform;
+                        instrument.operators[settingIndex!].pulseWidth = operatorSettings.pulseWidth;
+                        break;
+                    case InstrumentSettings.spectrumWave:
+                        instrument.spectrumWave.spectrum = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.harmonicsWave:
+                        instrument.harmonicsWave.harmonics = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.drumsetEnvelopes:
+                        instrument.drumsetEnvelopes[settingIndex!] = numberData;
+                        break;
+                    case InstrumentSettings.drumsetSpectrumWaves:
+                        instrument.drumsetSpectrumWaves[settingIndex!] = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.modChannels:
+                        instrument.modChannels = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.modInstruments:
+                        instrument.modInstruments = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.modulators:
+                        instrument.modulators = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.modFilterTypes:
+                        instrument.modFilterTypes = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.modEnvelopeNumbers:
+                        instrument.modEnvelopeNumbers = JSON.parse(stringData);
+                        break;
+                    case InstrumentSettings.invalidModulators:
+                        instrument.invalidModulators = JSON.parse(stringData);
+                        break;
+                }
+        }
+    }
+
     public toJsonObject(enableIntro: boolean = true, loopCount: number = 1, enableOutro: boolean = true): Object {
         const channelArray: Object[] = [];
         for (let channelIndex: number = 0; channelIndex < this.getChannelCount(); channelIndex++) {
@@ -6799,7 +7207,6 @@ export class Song {
             "beatsPerBar": this.beatsPerBar,
             "ticksPerBeat": Config.rhythms[this.rhythm].stepsPerBeat,
             "beatsPerMinute": this.tempo,
-            "reverb": this.reverb,
             "masterGain": this.masterGain,
             "compressionThreshold": this.compressionThreshold,
             "limitThreshold": this.limitThreshold,
@@ -7656,12 +8063,22 @@ export class SynthMessenger {
         }
     }
 
-    public updateSong(data: number | string | null, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings) {
-        if (songSetting == SongSettings.updateInstrument) {
+    public updateSong(data: number | string | null, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings | ChannelSettings, settingIndex?: number) {
+        if (songSetting == SongSettings.updateInstrument || songSetting == SongSettings.updateChannel) {
             if (channelIndex === undefined || instrumentIndex === undefined || instrumentSetting === undefined) {
                 throw new Error("missing index or setting number");
             }
         }
+        const updateMessage: UpdateSongMessage = {
+            flag: MessageFlag.updateSong,
+            songSetting: SongSettings.updateInstrument,
+            channelIndex: channelIndex,
+            instrumentIndex: instrumentIndex,
+            instrumentSetting: instrumentSetting,
+            settingIndex: settingIndex,
+            data: data
+        }
+        this.sendMessage(updateMessage);
     }
 
     private readonly pushArray: Uint16Array = new Uint16Array(1);

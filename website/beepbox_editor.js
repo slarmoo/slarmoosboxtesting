@@ -13717,7 +13717,6 @@ li.select2-results__option[role=group] > strong:hover {
           this.spectrum[i] = isHarmonic ? Math.max(0, Math.round(Config.spectrumMax * (1 - i / 30))) : 0;
         }
       }
-      this.markCustomWaveDirty();
     }
     markCustomWaveDirty() {
       const hashMult = SynthMessenger.fittingPowerOfTwo(Config.spectrumMax + 2) - 1;
@@ -15664,9 +15663,6 @@ li.select2-results__option[role=group] > strong:hover {
       this.inVolumeCap = 0;
       this.outVolumeCap = 0;
       this.eqFilter = new FilterSettings();
-      this.eqFilterType = false;
-      this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
-      this.eqFilterSimplePeak = 0;
       this.eqSubFilters = [];
       this.pluginurl = null;
       // Returns the ideal new note volume when dragging (max volume for a normal note, a "neutral" value for mod notes based on how they work)
@@ -15908,7 +15904,6 @@ li.select2-results__option[role=group] > strong:hover {
       this.loopStart = 0;
       this.loopLength = 4;
       this.tempo = 150;
-      this.reverb = 0;
       this.beatsPerBar = 8;
       this.barCount = 16;
       this.patternsPerChannel = 8;
@@ -18895,6 +18890,412 @@ li.select2-results__option[role=group] > strong:hover {
         sampleLoadingState.samplesLoaded
       ));
     }
+    parseUpdateCommand(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
+      const stringData = data + "";
+      const numberData = typeof data == "number" ? data : data == null ? 0 : parseInt(data);
+      switch (songSetting) {
+        case 0 /* title */:
+          this.title = stringData;
+          break;
+        case 1 /* scale */:
+          this.scale = numberData;
+          break;
+        case 2 /* scaleCustom */:
+          let scale = numberData;
+          for (let i = 0; i < Config.pitchesPerOctave; i++) {
+            this.scaleCustom[i] = (scale & 1) == 1;
+            scale = scale << 1;
+          }
+          break;
+        case 3 /* key */:
+          this.key = numberData;
+          break;
+        case 4 /* octave */:
+          this.octave = numberData;
+          break;
+        case 5 /* tempo */:
+          this.tempo = numberData;
+          break;
+        case 6 /* beatsPerBar */:
+          this.beatsPerBar = numberData;
+          break;
+        case 7 /* barCount */:
+          this.barCount = numberData;
+          break;
+        case 8 /* patternsPerChannel */:
+          this.patternsPerChannel = numberData;
+          break;
+        case 9 /* rhythm */:
+          this.rhythm = numberData;
+          break;
+        case 10 /* layeredInstruments */:
+          this.layeredInstruments = numberData == 1;
+          break;
+        case 11 /* patternInstruments */:
+          this.patternInstruments = numberData == 1;
+          break;
+        case 12 /* loopStart */:
+          this.loopStart = numberData;
+          break;
+        case 13 /* loopLength */:
+          this.loopLength = numberData;
+          break;
+        case 14 /* pitchChannelCount */:
+          this.pitchChannelCount = numberData;
+          break;
+        case 15 /* noiseChannelCount */:
+          this.noiseChannelCount = numberData;
+          break;
+        case 16 /* modChannelCount */:
+          this.modChannelCount = numberData;
+          break;
+        case 17 /* limiterSettings */:
+          const limiterSettings = JSON.parse(stringData);
+          this.limitDecay = limiterSettings.limitDecay;
+          this.limitRise = limiterSettings.limitRise;
+          this.compressionThreshold = limiterSettings.compressionThreshold;
+          this.limitThreshold = limiterSettings.limitThreshold;
+          this.compressionRatio = limiterSettings.compressionRatio;
+          this.limitRatio = limiterSettings.limitRatio;
+          this.masterGain = limiterSettings.masterGain;
+          break;
+        case 18 /* inVolumeCap */:
+          this.inVolumeCap = numberData;
+          break;
+        case 19 /* outVolumeCap */:
+          this.outVolumeCap = numberData;
+          break;
+        case 20 /* eqFilter */:
+          this.eqFilter.fromJsonObject(stringData);
+          break;
+        case 21 /* eqSubFilters */:
+          if (this.eqSubFilters[channelIndex] == null) this.eqSubFilters[channelIndex] = new FilterSettings();
+          this.eqSubFilters[channelIndex].fromJsonObject(stringData);
+          break;
+        case 22 /* pluginurl */:
+          break;
+        case 23 /* updateChannel */:
+          const channel = this.channels[channelIndex];
+          switch (instrumentSetting) {
+            case 0 /* patterns */:
+              const isNoise = this.getChannelIsNoise(channelIndex);
+              const isMod = this.getChannelIsMod(channelIndex);
+              channel.patterns[instrumentIndex].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+              break;
+            case 1 /* bars */:
+              channel.bars[instrumentIndex] = numberData;
+              break;
+            case 2 /* muted */:
+              channel.muted = numberData == 1;
+              break;
+          }
+          break;
+        case 24 /* updateInstrument */:
+          const instrument = this.channels[channelIndex].instruments[instrumentIndex];
+          switch (instrumentSetting) {
+            case 0 /* fromJson */:
+              const isNoise = this.getChannelIsNoise(channelIndex);
+              const isMod = this.getChannelIsMod(channelIndex);
+              instrument.fromJsonObject(JSON.parse(stringData), isNoise, isMod, this.rhythm == 0 || this.rhythm == 2, this.rhythm >= 2);
+              break;
+            case 1 /* type */:
+              instrument.type = numberData;
+              break;
+            case 2 /* preset */:
+              instrument.preset = numberData;
+              break;
+            case 3 /* chipWave */:
+              instrument.chipWave = numberData;
+              break;
+            case 4 /* isUsingAdvancedLoopControls */:
+              instrument.isUsingAdvancedLoopControls = numberData == 1;
+              break;
+            case 5 /* chipWaveLoopStart */:
+              instrument.chipWaveLoopStart = numberData;
+              break;
+            case 6 /* chipWaveLoopEnd */:
+              instrument.chipWaveLoopEnd = numberData;
+              break;
+            case 7 /* chipWaveLoopMode */:
+              instrument.chipWaveLoopMode = numberData;
+              break;
+            case 8 /* chipWavePlayBackwards */:
+              instrument.chipWavePlayBackwards = numberData == 1;
+              break;
+            case 9 /* chipWaveStartOffset */:
+              instrument.chipWaveStartOffset = numberData;
+              break;
+            case 10 /* chipNoise */:
+              instrument.chipNoise = numberData;
+              break;
+            case 11 /* eqFilter */:
+              instrument.eqFilter.fromJsonObject(stringData);
+              break;
+            case 12 /* eqFilterType */:
+              instrument.eqFilterType = numberData == 1;
+              break;
+            case 13 /* eqFilterSimpleCut */:
+              instrument.eqFilterSimpleCut = numberData;
+              break;
+            case 14 /* eqFilterSimplePeak */:
+              instrument.eqFilterSimplePeak = numberData;
+              break;
+            case 15 /* noteFilter */:
+              instrument.noteFilter.fromJsonObject(stringData);
+              break;
+            case 16 /* noteFilterType */:
+              instrument.noteFilterType = numberData == 1;
+              break;
+            case 17 /* noteFilterSimpleCut */:
+              instrument.noteFilterSimpleCut = numberData;
+              break;
+            case 18 /* noteFilterSimplePeak */:
+              instrument.noteFilterSimplePeak = numberData;
+              break;
+            case 19 /* eqSubFilters */:
+              if (instrument.eqSubFilters[settingIndex] == null) instrument.eqSubFilters[settingIndex] = new FilterSettings();
+              instrument.eqSubFilters[settingIndex].fromJsonObject(stringData);
+              break;
+            case 20 /* noteSubFilters */:
+              if (instrument.noteSubFilters[settingIndex] == null) instrument.noteSubFilters[settingIndex] = new FilterSettings();
+              instrument.noteSubFilters[settingIndex].fromJsonObject(stringData);
+              break;
+            case 21 /* envelopes */:
+              instrument.envelopes[settingIndex].fromJsonObject(stringData, "slarmoosbox");
+              break;
+            case 22 /* fadeIn */:
+              instrument.fadeIn = numberData;
+              break;
+            case 23 /* fadeOut */:
+              instrument.fadeOut = numberData;
+              break;
+            case 24 /* envelopeCount */:
+              instrument.envelopeCount = numberData;
+              break;
+            case 25 /* transition */:
+              instrument.transition = numberData;
+              break;
+            case 26 /* pitchShift */:
+              instrument.pitchShift = numberData;
+              break;
+            case 27 /* detune */:
+              instrument.detune = numberData;
+              break;
+            case 28 /* vibrato */:
+              instrument.vibrato = numberData;
+              break;
+            case 29 /* interval */:
+              instrument.interval = numberData;
+              break;
+            case 30 /* vibratoDepth */:
+              instrument.vibratoDepth = numberData;
+              break;
+            case 31 /* vibratoSpeed */:
+              instrument.vibratoSpeed = numberData;
+              break;
+            case 32 /* vibratoDelay */:
+              instrument.vibratoDelay = numberData;
+              break;
+            case 33 /* vibratoType */:
+              instrument.vibratoType = numberData;
+              break;
+            case 34 /* envelopeSpeed */:
+              instrument.envelopeSpeed = numberData;
+              break;
+            case 35 /* unison */:
+              instrument.unison = numberData;
+              break;
+            case 36 /* unisonVoices */:
+              instrument.unisonVoices = numberData;
+              break;
+            case 37 /* unisonSpread */:
+              instrument.unisonSpread = numberData;
+              break;
+            case 38 /* unisonOffset */:
+              instrument.unisonOffset = numberData;
+              break;
+            case 39 /* unisonExpression */:
+              instrument.unisonExpression = numberData;
+              break;
+            case 40 /* unisonSign */:
+              instrument.unisonSign = numberData;
+              break;
+            case 41 /* effects */:
+              instrument.effects = numberData;
+              break;
+            case 42 /* chord */:
+              instrument.chord = numberData;
+              break;
+            case 43 /* volume */:
+              instrument.volume = numberData;
+              break;
+            case 44 /* pan */:
+              instrument.pan = numberData;
+              break;
+            case 45 /* panDelay */:
+              instrument.panDelay = numberData;
+              break;
+            case 46 /* arpeggioSpeed */:
+              instrument.arpeggioSpeed = numberData;
+              break;
+            case 47 /* monoChordTone */:
+              instrument.monoChordTone = numberData;
+              break;
+            case 48 /* fastTwoNoteArp */:
+              instrument.fastTwoNoteArp = numberData == 1;
+              break;
+            case 49 /* legacyTieOver */:
+              instrument.legacyTieOver = numberData == 1;
+              break;
+            case 50 /* clicklessTransition */:
+              instrument.clicklessTransition = numberData == 1;
+              break;
+            case 51 /* aliases */:
+              instrument.aliases = numberData == 1;
+              break;
+            case 52 /* pulseWidth */:
+              instrument.pulseWidth = numberData;
+              break;
+            case 53 /* decimalOffset */:
+              instrument.decimalOffset = numberData;
+              break;
+            case 54 /* supersawDynamism */:
+              instrument.supersawDynamism = numberData;
+              break;
+            case 55 /* supersawSpread */:
+              instrument.supersawSpread = numberData;
+              break;
+            case 56 /* supersawShape */:
+              instrument.supersawShape = numberData;
+              break;
+            case 57 /* stringSustain */:
+              instrument.stringSustain = numberData;
+              break;
+            case 58 /* stringSustainType */:
+              instrument.stringSustainType = numberData;
+              break;
+            case 59 /* distortion */:
+              instrument.distortion = numberData;
+              break;
+            case 60 /* bitcrusherFreq */:
+              instrument.bitcrusherFreq = numberData;
+              break;
+            case 61 /* bitcrusherQuantization */:
+              instrument.bitcrusherQuantization = numberData;
+              break;
+            case 62 /* ringModulation */:
+              instrument.ringModulation = numberData;
+              break;
+            case 63 /* ringModulationHz */:
+              instrument.ringModulationHz = numberData;
+              break;
+            case 64 /* ringModWaveformIndex */:
+              instrument.ringModWaveformIndex = numberData;
+              break;
+            case 65 /* ringModPulseWidth */:
+              instrument.ringModPulseWidth = numberData;
+              break;
+            case 66 /* ringModHzOffset */:
+              instrument.ringModHzOffset = numberData;
+              break;
+            case 67 /* granular */:
+              instrument.granular = numberData;
+              break;
+            case 68 /* grainSize */:
+              instrument.grainSize = numberData;
+              break;
+            case 69 /* grainAmounts */:
+              instrument.grainAmounts = numberData;
+              break;
+            case 70 /* grainRange */:
+              instrument.grainRange = numberData;
+              break;
+            case 71 /* chorus */:
+              instrument.chorus = numberData;
+              break;
+            case 72 /* reverb */:
+              instrument.reverb = numberData;
+              break;
+            case 73 /* echoSustain */:
+              instrument.echoSustain = numberData;
+              break;
+            case 74 /* echoDelay */:
+              instrument.echoDelay = numberData;
+              break;
+            case 75 /* pluginValues */:
+              break;
+            case 76 /* algorithm */:
+              instrument.algorithm = numberData;
+              break;
+            case 77 /* feedbackType */:
+              instrument.feedbackType = numberData;
+              break;
+            case 78 /* algorithm6Op */:
+              instrument.algorithm6Op = numberData;
+              break;
+            case 79 /* feedbackType6Op */:
+              instrument.feedbackType6Op = numberData;
+              break;
+            case 80 /* customAlgorithm */:
+              instrument.customAlgorithm = new CustomAlgorithm();
+              const CA = JSON.parse(stringData);
+              instrument.customAlgorithm.set(CA.carriers, CA.modulation);
+              break;
+            case 81 /* customFeedbackType */:
+              instrument.customFeedbackType = new CustomFeedBack();
+              const CF = JSON.parse(stringData);
+              instrument.customFeedbackType.set(CF);
+              break;
+            case 82 /* feedbackAmplitude */:
+              instrument.feedbackAmplitude = numberData;
+              break;
+            case 83 /* customChipWave */:
+              instrument.customChipWave = JSON.parse(stringData);
+              break;
+            case 84 /* customChipWaveIntegral */:
+              instrument.customChipWaveIntegral = JSON.parse(stringData);
+              break;
+            case 85 /* operators */:
+              instrument.operators[settingIndex] = new Operator(settingIndex);
+              const operatorSettings = JSON.parse(stringData);
+              instrument.operators[settingIndex].frequency = operatorSettings.frequency;
+              instrument.operators[settingIndex].amplitude = operatorSettings.amplitude;
+              instrument.operators[settingIndex].waveform = operatorSettings.waveform;
+              instrument.operators[settingIndex].pulseWidth = operatorSettings.pulseWidth;
+              break;
+            case 86 /* spectrumWave */:
+              instrument.spectrumWave.spectrum = JSON.parse(stringData);
+              break;
+            case 87 /* harmonicsWave */:
+              instrument.harmonicsWave.harmonics = JSON.parse(stringData);
+              break;
+            case 88 /* drumsetEnvelopes */:
+              instrument.drumsetEnvelopes[settingIndex] = numberData;
+              break;
+            case 89 /* drumsetSpectrumWaves */:
+              instrument.drumsetSpectrumWaves[settingIndex] = JSON.parse(stringData);
+              break;
+            case 90 /* modChannels */:
+              instrument.modChannels = JSON.parse(stringData);
+              break;
+            case 91 /* modInstruments */:
+              instrument.modInstruments = JSON.parse(stringData);
+              break;
+            case 92 /* modulators */:
+              instrument.modulators = JSON.parse(stringData);
+              break;
+            case 93 /* modFilterTypes */:
+              instrument.modFilterTypes = JSON.parse(stringData);
+              break;
+            case 94 /* modEnvelopeNumbers */:
+              instrument.modEnvelopeNumbers = JSON.parse(stringData);
+              break;
+            case 95 /* invalidModulators */:
+              instrument.invalidModulators = JSON.parse(stringData);
+              break;
+          }
+      }
+    }
     toJsonObject(enableIntro = true, loopCount = 1, enableOutro = true) {
       const channelArray = [];
       for (let channelIndex = 0; channelIndex < this.getChannelCount(); channelIndex++) {
@@ -18944,7 +19345,6 @@ li.select2-results__option[role=group] > strong:hover {
         "beatsPerBar": this.beatsPerBar,
         "ticksPerBeat": Config.rhythms[this.rhythm].stepsPerBeat,
         "beatsPerMinute": this.tempo,
-        "reverb": this.reverb,
         "masterGain": this.masterGain,
         "compressionThreshold": this.compressionThreshold,
         "limitThreshold": this.limitThreshold,
@@ -19687,12 +20087,22 @@ li.select2-results__option[role=group] > strong:hover {
         this.song = song;
       }
     }
-    updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting) {
-      if (songSetting == 35 /* updateInstrument */) {
+    updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
+      if (songSetting == 24 /* updateInstrument */ || songSetting == 23 /* updateChannel */) {
         if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
           throw new Error("missing index or setting number");
         }
       }
+      const updateMessage = {
+        flag: 9 /* updateSong */,
+        songSetting: 24 /* updateInstrument */,
+        channelIndex,
+        instrumentIndex,
+        instrumentSetting,
+        settingIndex,
+        data
+      };
+      this.sendMessage(updateMessage);
     }
     addRemoveLiveInputTone(pitches, isBass, turnOn) {
       if (typeof pitches === "number") {
@@ -21679,15 +22089,17 @@ li.select2-results__option[role=group] > strong:hover {
           instrument.customChipWaveIntegral[i] = cumulative;
         }
         instrument.customChipWaveIntegral[64] = 0;
+        doc.synth.updateSong(JSON.stringify(instrument.customChipWave), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 83 /* customChipWave */);
+        doc.synth.updateSong(JSON.stringify(instrument.customChipWaveIntegral), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 84 /* customChipWaveIntegral */);
         instrument.preset = instrument.type;
         doc.notifier.changed();
         this._didSomething();
       }
     }
   };
-  var ChangeCustomAlgorythmorFeedback = class extends Change {
+  var ChangeCustomAlgorithmFeedback = class extends Change {
     static {
-      __name(this, "ChangeCustomAlgorythmorFeedback");
+      __name(this, "ChangeCustomAlgorithmFeedback");
     }
     constructor(doc, newArray, carry, mode) {
       super();
@@ -21716,6 +22128,11 @@ li.select2-results__option[role=group] > strong:hover {
           let instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
           instrument.customAlgorithm.set(carry, newArray);
           instrument.algorithm6Op = 0;
+          doc.synth.updateSong(JSON.stringify({
+            carriers: carry,
+            modulation: newArray
+          }), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 80 /* customAlgorithm */);
+          doc.synth.updateSong(instrument.algorithm6Op, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 78 /* algorithm6Op */);
           doc.notifier.changed();
           this._didSomething();
         }
@@ -21739,6 +22156,8 @@ li.select2-results__option[role=group] > strong:hover {
           let instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
           instrument.customFeedbackType.set(newArray);
           instrument.feedbackType6Op = 0;
+          doc.synth.updateSong(JSON.stringify(newArray), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 81 /* customFeedbackType */);
+          doc.synth.updateSong(instrument.feedbackType6Op, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 79 /* feedbackType6Op */);
           doc.notifier.changed();
           this._didSomething();
         }
@@ -21775,6 +22194,7 @@ li.select2-results__option[role=group] > strong:hover {
           }
         }
         instrument.preset = newValue;
+        doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23081,6 +23501,7 @@ li.select2-results__option[role=group] > strong:hover {
             throw new Error("Unhandled pitched instrument type in random generator.");
         }
       }
+      doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23096,6 +23517,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         this._didSomething();
         instrument.transition = newValue;
+        doc.synth.updateSong(newValue, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 25 /* transition */);
         instrument.preset = instrument.type;
         doc.notifier.changed();
       }
@@ -23118,6 +23540,8 @@ li.select2-results__option[role=group] > strong:hover {
       if (toggleFlag == 3 /* distortion */ && wasSelected)
         instrument.aliases = false;
       if (wasSelected) instrument.clearInvalidEnvelopeTargets();
+      doc.synth.updateSong(newValue, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 41 /* effects */);
+      doc.synth.updateSong(+instrument.aliases, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 51 /* aliases */);
       this._didSomething();
       doc.notifier.changed();
     }
@@ -23133,6 +23557,7 @@ li.select2-results__option[role=group] > strong:hover {
         for (let channelIndex = startChannel; channelIndex < startChannel + height; channelIndex++) {
           if (doc.song.channels[channelIndex].bars[bar] != value) {
             doc.song.channels[channelIndex].bars[bar] = value;
+            doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, bar, 1 /* bars */);
             this._didSomething();
           }
         }
@@ -23169,6 +23594,9 @@ li.select2-results__option[role=group] > strong:hover {
             }
             channel.bars.length = newValue;
           }
+          channel.bars.forEach((value, index) => {
+            doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+          });
         }
         if (atBeginning) {
           const diff = newValue - doc.song.barCount;
@@ -23182,6 +23610,9 @@ li.select2-results__option[role=group] > strong:hover {
         doc.song.loopLength = Math.min(newValue, doc.song.loopLength);
         doc.song.loopStart = Math.min(newValue - doc.song.loopLength, doc.song.loopStart);
         doc.song.barCount = newValue;
+        doc.synth.updateSong(doc.song.barCount, 7 /* barCount */);
+        doc.synth.updateSong(doc.song.loopLength, 13 /* loopLength */);
+        doc.synth.updateSong(doc.song.loopStart, 12 /* loopStart */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23200,6 +23631,9 @@ li.select2-results__option[role=group] > strong:hover {
         while (channel.bars.length < newLength) {
           channel.bars.splice(start, 0, 0);
         }
+        channel.bars.forEach((value, index) => {
+          doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+        });
       }
       doc.song.barCount = newLength;
       doc.bar += count;
@@ -23209,6 +23643,9 @@ li.select2-results__option[role=group] > strong:hover {
       } else if (doc.song.loopStart + doc.song.loopLength >= start) {
         doc.song.loopLength += count;
       }
+      doc.synth.updateSong(doc.song.barCount, 7 /* barCount */);
+      doc.synth.updateSong(doc.song.loopLength, 13 /* loopLength */);
+      doc.synth.updateSong(doc.song.loopStart, 12 /* loopStart */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23222,6 +23659,9 @@ li.select2-results__option[role=group] > strong:hover {
       for (const channel of doc.song.channels) {
         channel.bars.splice(start, count);
         if (channel.bars.length == 0) channel.bars.push(0);
+        channel.bars.forEach((value, index) => {
+          doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+        });
       }
       doc.song.barCount = Math.max(1, doc.song.barCount - count);
       doc.bar = Math.max(0, doc.bar - count);
@@ -23232,6 +23672,9 @@ li.select2-results__option[role=group] > strong:hover {
         doc.song.loopLength -= count;
       }
       doc.song.loopLength = Math.max(1, Math.min(doc.song.barCount - doc.song.loopStart, doc.song.loopLength));
+      doc.synth.updateSong(doc.song.barCount, 7 /* barCount */);
+      doc.synth.updateSong(doc.song.loopLength, 13 /* loopLength */);
+      doc.synth.updateSong(doc.song.loopStart, 12 /* loopStart */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23249,6 +23692,15 @@ li.select2-results__option[role=group] > strong:hover {
       doc.song.limitRise = limitRise;
       doc.song.limitDecay = limitDecay;
       doc.song.masterGain = masterGain;
+      doc.synth.updateSong(JSON.stringify({
+        limitRatio,
+        compressionRatio,
+        limitThreshold,
+        compressionThreshold,
+        limitRise,
+        limitDecay,
+        masterGain
+      }), 17 /* limiterSettings */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -44525,7 +44977,7 @@ You should be redirected to the song at:<br /><br />
       this._feedback6OpTypeSelect = buildOptions(select14(), Config.feedbacks6Op.map((feedback) => feedback.name));
       this._feedback6OpRow1 = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("feedbackType"), "onclick") }, "Feedback:"), div26({ class: "selectContainer" }, this._feedback6OpTypeSelect));
       this._algorithmCanvasSwitch = button25({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: /* @__PURE__ */ __name((e) => this._toggleAlgorithmCanvas(e), "onclick") }, "A");
-      this._customAlgorithmCanvas = new CustomAlgorythmCanvas(canvas2({ width: 144, height: 144, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customAlgorithmCanvas" }), this.doc, (newArray, carry, mode) => new ChangeCustomAlgorythmorFeedback(this.doc, newArray, carry, mode));
+      this._customAlgorithmCanvas = new CustomAlgorythmCanvas(canvas2({ width: 144, height: 144, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customAlgorithmCanvas" }), this.doc, (newArray, carry, mode) => new ChangeCustomAlgorithmFeedback(this.doc, newArray, carry, mode));
       this._algorithm6OpSelect = buildOptions(select14(), Config.algorithms6Op.map((algorithm) => algorithm.name));
       this._algorithm6OpSelectRow = div26(
         div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("algorithm"), "onclick") }, "Algorithm: "), div26({ class: "selectContainer" }, this._algorithm6OpSelect)),

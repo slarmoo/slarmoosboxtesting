@@ -5,7 +5,7 @@ import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 // import { events } from "../global/Events";
 import { xxHash32 } from "js-xxhash";
-import { DeactivateMessage, LiveInputValues, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
+import { DeactivateMessage, InstrumentSettings, LiveInputValues, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage, SongSettings } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { BeepboxSet } from "./Set";
 
@@ -2687,6 +2687,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.setPrevBar: {
                 this.prevBar = event.data.prevBar;
             }
+            case MessageFlag.updateSong: {
+                if (!this.song) this.song = new Song();
+                this.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting)
+            }
             
         }
     }
@@ -2892,79 +2896,79 @@ export class SynthProcessor extends AudioWorkletProcessor {
         const samplesPerSecond: number = this.samplesPerSecond;
 
         let eqFilterVolume: number = 1.0; //this.envelopeComputer.lowpassCutoffDecayVolumeCompensation;
-        if (this.song.eqFilterType) {
-            // Simple EQ filter (old style). For analysis, using random filters from normal style since they are N/A in this context.
-            const eqFilterSettingsStart: FilterSettings = this.song.eqFilter;
-            if (this.song.eqSubFilters[1] == null)
-                this.song.eqSubFilters[1] = new FilterSettings();
-            const eqFilterSettingsEnd: FilterSettings = this.song.eqSubFilters[1];
+        // if (this.song.eqFilterType) {
+        //     // Simple EQ filter (old style). For analysis, using random filters from normal style since they are N/A in this context.
+        //     const eqFilterSettingsStart: FilterSettings = this.song.eqFilter;
+        //     if (this.song.eqSubFilters[1] == null)
+        //         this.song.eqSubFilters[1] = new FilterSettings();
+        //     const eqFilterSettingsEnd: FilterSettings = this.song.eqSubFilters[1];
 
-            // Change location based on slider values
-            let startSimpleFreq: number = this.song.eqFilterSimpleCut;
-            let startSimpleGain: number = this.song.eqFilterSimplePeak;
-            let endSimpleFreq: number = this.song.eqFilterSimpleCut;
-            let endSimpleGain: number = this.song.eqFilterSimplePeak;
+        //     // Change location based on slider values
+        //     let startSimpleFreq: number = this.song.eqFilterSimpleCut;
+        //     let startSimpleGain: number = this.song.eqFilterSimplePeak;
+        //     let endSimpleFreq: number = this.song.eqFilterSimpleCut;
+        //     let endSimpleGain: number = this.song.eqFilterSimplePeak;
 
-            let filterChanges: boolean = false;
+        //     let filterChanges: boolean = false;
 
-            let startPoint: FilterControlPoint;
+        //     let startPoint: FilterControlPoint;
 
-            if (filterChanges) {
-                eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain);
-                eqFilterSettingsEnd.convertLegacySettingsForSynth(endSimpleFreq, endSimpleGain);
+        //     if (filterChanges) {
+        //         eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain);
+        //         eqFilterSettingsEnd.convertLegacySettingsForSynth(endSimpleFreq, endSimpleGain);
 
-                startPoint = eqFilterSettingsStart.controlPoints[0];
-                let endPoint: FilterControlPoint = eqFilterSettingsEnd.controlPoints[0];
+        //         startPoint = eqFilterSettingsStart.controlPoints[0];
+        //         let endPoint: FilterControlPoint = eqFilterSettingsEnd.controlPoints[0];
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
-                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
+        //         startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+        //         endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
 
-                if (this.songEqFiltersL.length < 1) this.songEqFiltersL[0] = new DynamicBiquadFilter();
-                this.songEqFiltersL[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
-                if (this.songEqFiltersR.length < 1) this.songEqFiltersR[0] = new DynamicBiquadFilter();
-                this.songEqFiltersR[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+        //         if (this.songEqFiltersL.length < 1) this.songEqFiltersL[0] = new DynamicBiquadFilter();
+        //         this.songEqFiltersL[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+        //         if (this.songEqFiltersR.length < 1) this.songEqFiltersR[0] = new DynamicBiquadFilter();
+        //         this.songEqFiltersR[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
 
-            } else {
-                eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain, true);
+        //     } else {
+        //         eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain, true);
 
-                startPoint = eqFilterSettingsStart.controlPoints[0];
+        //         startPoint = eqFilterSettingsStart.controlPoints[0];
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+        //         startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
 
-                if (this.songEqFiltersL.length < 1) this.songEqFiltersL[0] = new DynamicBiquadFilter();
-                this.songEqFiltersL[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
-                if (this.songEqFiltersR.length < 1) this.songEqFiltersR[0] = new DynamicBiquadFilter();
-                this.songEqFiltersR[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+        //         if (this.songEqFiltersL.length < 1) this.songEqFiltersL[0] = new DynamicBiquadFilter();
+        //         this.songEqFiltersL[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+        //         if (this.songEqFiltersR.length < 1) this.songEqFiltersR[0] = new DynamicBiquadFilter();
+        //         this.songEqFiltersR[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
 
+        //     }
+
+        //     eqFilterVolume *= startPoint.getVolumeCompensationMult();
+
+        //     this.songEqFilterCount = 1;
+        //     eqFilterVolume = Math.min(3.0, eqFilterVolume);
+        // } else {
+        const eqFilterSettings: FilterSettings = (this.song.tmpEqFilterStart != null) ? this.song.tmpEqFilterStart : this.song.eqFilter;
+        for (let i: number = 0; i < eqFilterSettings.controlPointCount; i++) {
+            let startPoint: FilterControlPoint = eqFilterSettings.controlPoints[i];
+            let endPoint: FilterControlPoint = (this.song.tmpEqFilterEnd != null && this.song.tmpEqFilterEnd.controlPoints[i] != null) ? this.song.tmpEqFilterEnd.controlPoints[i] : eqFilterSettings.controlPoints[i];
+
+            // If switching dot type, do it all at once and do not try to interpolate since no valid interpolation exists.
+            if (startPoint.type != endPoint.type) {
+                startPoint = endPoint;
             }
 
+            startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+            endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
+            if (this.songEqFiltersL.length <= i) this.songEqFiltersL[i] = new DynamicBiquadFilter();
+            this.songEqFiltersL[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+            if (this.songEqFiltersR.length <= i) this.songEqFiltersR[i] = new DynamicBiquadFilter();
+            this.songEqFiltersR[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
             eqFilterVolume *= startPoint.getVolumeCompensationMult();
 
-            this.songEqFilterCount = 1;
-            eqFilterVolume = Math.min(3.0, eqFilterVolume);
-        } else {
-            const eqFilterSettings: FilterSettings = (this.song.tmpEqFilterStart != null) ? this.song.tmpEqFilterStart : this.song.eqFilter;
-            for (let i: number = 0; i < eqFilterSettings.controlPointCount; i++) {
-                let startPoint: FilterControlPoint = eqFilterSettings.controlPoints[i];
-                let endPoint: FilterControlPoint = (this.song.tmpEqFilterEnd != null && this.song.tmpEqFilterEnd.controlPoints[i] != null) ? this.song.tmpEqFilterEnd.controlPoints[i] : eqFilterSettings.controlPoints[i];
-
-                // If switching dot type, do it all at once and do not try to interpolate since no valid interpolation exists.
-                if (startPoint.type != endPoint.type) {
-                    startPoint = endPoint;
-                }
-
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
-                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
-                if (this.songEqFiltersL.length <= i) this.songEqFiltersL[i] = new DynamicBiquadFilter();
-                this.songEqFiltersL[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
-                if (this.songEqFiltersR.length <= i) this.songEqFiltersR[i] = new DynamicBiquadFilter();
-                this.songEqFiltersR[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
-                eqFilterVolume *= startPoint.getVolumeCompensationMult();
-
-            }
-            this.songEqFilterCount = eqFilterSettings.controlPointCount;
-            eqFilterVolume = Math.min(3.0, eqFilterVolume);
         }
+        this.songEqFilterCount = eqFilterSettings.controlPointCount;
+        eqFilterVolume = Math.min(3.0, eqFilterVolume);
+        // }
 
         let eqFilterVolumeStart: number = eqFilterVolume;
         let eqFilterVolumeEnd: number = eqFilterVolume;

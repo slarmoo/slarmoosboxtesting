@@ -76,7 +76,8 @@ export interface UpdateSongMessage extends Message {
     songSetting: SongSettings,
     channelIndex?: number,
     instrumentIndex?: number,
-    instrumentSetting?: InstrumentSettings,
+    instrumentSetting?: InstrumentSettings | ChannelSettings,
+    settingIndex?: number, 
     data: number | string | null
 
 }
@@ -88,7 +89,6 @@ export enum SongSettings {
     key,
     octave,
     tempo,
-    reverb,
     beatsPerBar,
     barCount,
     patternsPerChannel,
@@ -100,27 +100,24 @@ export enum SongSettings {
     pitchChannelCount,
     noiseChannelCount,
     modChannelCount,
-    limitDecay,
-    limitRise,
-    compressionThreshold,
-    limitThreshold,
-    compressionRatio,
-    limitRatio,
-    masterGain,
+    limiterSettings,
     inVolumeCap,
     outVolumeCap,
     eqFilter,
-    eqFilterType,
-    eqFilterSimpleCut,
-    eqFilterSimplePeak,
     eqSubFilters,
-    tmpEqFilterStart,
-    tmpEqFilterEnd,
     pluginurl, 
+    updateChannel,
     updateInstrument,
 }
 
+export enum ChannelSettings {
+    patterns,
+    bars,
+    muted,
+}
+
 export enum InstrumentSettings {
+    fromJson, //for things like choosing a different preset or importing a json
     type,
     preset,
     chipWave,
@@ -141,10 +138,6 @@ export enum InstrumentSettings {
     noteFilterSimplePeak,
     eqSubFilters,
     noteSubFilters,
-    tmpEqFilterStart,
-    tmpEqFilterEnd,
-    tmpNoteFilterStart,
-    tmpNoteFilterEnd,
     envelopes,
     fadeIn,
     fadeOut,
