@@ -1012,11 +1012,11 @@ export class PatternEditor {
         else if (change instanceof ChangeGrainAmounts) {
             var modulator = Config.modulators.dictionary["grain freq"];
             applyToMods.push(modulator.index);
-            if (toApply) applyValues.push(instrument.grainAmounts - modulator.convertRealFactor);
+            if (toApply) applyValues.push(instrument.grainFreq - modulator.convertRealFactor);
             // Move the actual value back, since we just want to update the modulated value and not the base slider.
             slider = songEditor.getSliderForModSetting(modulator.index);
             if (slider != null) {
-                instrument.grainAmounts = slider.getValueBeforeProspectiveChange();                
+                instrument.grainFreq = slider.getValueBeforeProspectiveChange();                
             }
         }
         else if (change instanceof ChangeGrainSize) {

@@ -2985,7 +2985,7 @@ export class SongEditor {
                 this._granularContainerRow.style.display = "";
                 this._granularSlider.updateValue(instrument.granular);
                 this._grainSizeSlider.updateValue(instrument.grainSize);
-                this._grainAmountsSlider.updateValue(instrument.grainAmounts);
+                this._grainAmountsSlider.updateValue(instrument.grainFreq);
                 this._grainRangeSlider.updateValue(instrument.grainRange);
             } else {
                 this._granularContainerRow.style.display = "none";

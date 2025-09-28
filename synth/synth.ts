@@ -1478,7 +1478,7 @@ export class Instrument {
     public ringModHzOffset: number = 200;
     public granular: number = 4;
     public grainSize: number = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-    public grainAmounts: number = Config.grainAmountsMax;
+    public grainFreq: number = Config.grainAmountsMax;
     public grainRange: number = 40;
     public chorus: number = 0;
     public reverb: number = 0;
@@ -1606,7 +1606,7 @@ export class Instrument {
         this.ringModHzOffset = 200;
         this.granular = 4;
         this.grainSize = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-        this.grainAmounts = Config.grainAmountsMax;
+        this.grainFreq = Config.grainAmountsMax;
         this.grainRange = 40;
         this.pan = Config.panCenter;
         this.panDelay = 0;
@@ -1923,7 +1923,7 @@ export class Instrument {
         if (effectsIncludeGranular(this.effects)) {
             instrumentObject["granular"] = this.granular;
             instrumentObject["grainSize"] = this.grainSize;
-            instrumentObject["grainAmounts"] = this.grainAmounts;
+            instrumentObject["grainAmounts"] = this.grainFreq;
             instrumentObject["grainRange"] = this.grainRange;
         }
         if (effectsIncludeRingModulation(this.effects)) {
@@ -2415,7 +2415,7 @@ export class Instrument {
             this.grainSize = instrumentObject["grainSize"];
         }
         if (instrumentObject["grainAmounts"] != undefined) {
-            this.grainAmounts = instrumentObject["grainAmounts"];
+            this.grainFreq = instrumentObject["grainAmounts"];
         }
         if (instrumentObject["grainRange"] != undefined) {
             this.grainRange = clamp(0, Config.grainRangeMax / Config.grainSizeStep + 1, instrumentObject["grainRange"]);
@@ -3203,7 +3203,7 @@ export class Song {
                         vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].granular - Config.modulators[granularIndex].convertRealFactor;
                         break;
                     case grainAmountIndex:
-                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainAmounts - Config.modulators[grainAmountIndex].convertRealFactor;
+                        vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainFreq - Config.modulators[grainAmountIndex].convertRealFactor;
                         break;
                     case grainSizeIndex:
                         vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainSize - Config.modulators[grainSizeIndex].convertRealFactor;
@@ -3639,7 +3639,7 @@ export class Song {
                 if (effectsIncludeGranular(instrument.effects)) {
                     buffer.push(base64IntToCharCode[instrument.granular]);
                     buffer.push(base64IntToCharCode[instrument.grainSize]);
-                    buffer.push(base64IntToCharCode[instrument.grainAmounts]);
+                    buffer.push(base64IntToCharCode[instrument.grainFreq]);
                     buffer.push(base64IntToCharCode[instrument.grainRange]);
                 }
                 if (effectsIncludeRingModulation(instrument.effects)) {
@@ -5440,7 +5440,7 @@ export class Song {
                     if (effectsIncludeGranular(instrument.effects)) {
                         instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         instrument.grainSize = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-                        instrument.grainAmounts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        instrument.grainFreq = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         instrument.grainRange = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                     }
                     if (effectsIncludeRingModulation(instrument.effects)) {
@@ -6752,7 +6752,7 @@ export class Song {
                 break;
             case SongSettings.scaleCustom:
                 let scale: number = numberData;
-                for (let i: number = 0; i < Config.pitchesPerOctave; i++) {
+                for (let i: number = Config.pitchesPerOctave - 1; i >= 0 ; i--) {
                     this.scaleCustom[i] = (scale & 1) == 1;
                     scale = scale << 1;
                 }
@@ -6792,12 +6792,15 @@ export class Song {
                 break;
             case SongSettings.pitchChannelCount:
                 this.pitchChannelCount = numberData;
+                this.channels.length = this.getChannelCount();
                 break;
             case SongSettings.noiseChannelCount:
                 this.noiseChannelCount = numberData;
+                this.channels.length = this.getChannelCount();
                 break;
             case SongSettings.modChannelCount:
                 this.modChannelCount = numberData;
+                this.channels.length = this.getChannelCount();
                 break;
             case SongSettings.limiterSettings:
                 const limiterSettings = JSON.parse(stringData);
@@ -6826,20 +6829,38 @@ export class Song {
             case SongSettings.pluginurl:
                 //do plugin stuff?
                 break;
+            case SongSettings.channelOrder:
+                const parsed = JSON.parse(stringData);
+                const selectionMin: number = parsed.selectionMin;
+                const selectionMax: number = parsed.selectionMax;
+                const offset: number = parsed.offset;
+                this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
+                break
             case SongSettings.updateChannel:
                 const channel: Channel = this.channels[channelIndex!];
                 switch (instrumentSetting) {
-                    case ChannelSettings.patterns:
+                    case ChannelSettings.fromJson:
+                        this.channels[channelIndex!] = JSON.parse(stringData);
+                        break;
+                    case ChannelSettings.patterns:{
                         //instrumentIndex hijacked for a pattern/bar index
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
                         channel.patterns[instrumentIndex!].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
                         break;
-                    case ChannelSettings.bars:
+                    } case ChannelSettings.bars:
                         channel.bars[instrumentIndex!] = numberData;
                         break;
                     case ChannelSettings.muted:
                         channel.muted = numberData == 1;
+                        break;
+                    case ChannelSettings.newInstrument:
+                        const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
+                        const isMod: boolean = this.getChannelIsMod(channelIndex!);
+                        channel.instruments.push(new Instrument(isNoise, isMod))
+                        channel.instruments[channel.instruments.length - 1].fromJsonObject(JSON.parse(stringData), isNoise, isMod, this.rhythm == 0 || this.rhythm == 2, this.rhythm >= 2);
+                        break;
+                    case ChannelSettings.instruments:
                         break;
                 }
                 break;
@@ -6886,6 +6907,16 @@ export class Song {
                         break;
                     case InstrumentSettings.eqFilterType:
                         instrument.eqFilterType = numberData == 1;
+                        if (instrument.eqFilterType == true) {
+                            // To Simple - clear eq filter
+                            instrument.eqFilter.reset();
+                        } else {
+                            // To Advanced - convert filter
+                            instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+                        }
+                        instrument.tmpEqFilterStart = instrument.eqFilter;
+                        instrument.tmpEqFilterEnd = null;
+                        instrument.clearInvalidEnvelopeTargets();
                         break;
                     case InstrumentSettings.eqFilterSimpleCut:
                         instrument.eqFilterSimpleCut = numberData;
@@ -6898,6 +6929,16 @@ export class Song {
                         break;
                     case InstrumentSettings.noteFilterType:
                         instrument.noteFilterType = numberData == 1;
+                        if (instrument.eqFilterType == true) {
+                            // To Simple - clear eq filter
+                            instrument.noteFilter.reset();
+                        } else {
+                            // To Advanced - convert filter
+                            instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+                        }
+                        instrument.tmpNoteFilterStart = instrument.eqFilter;
+                        instrument.tmpNoteFilterEnd = null;
+                        instrument.clearInvalidEnvelopeTargets();
                         break;
                     case InstrumentSettings.noteFilterSimpleCut:
                         instrument.noteFilterSimpleCut = numberData;
@@ -7059,8 +7100,8 @@ export class Song {
                     case InstrumentSettings.grainSize:
                         instrument.grainSize = numberData;
                         break;
-                    case InstrumentSettings.grainAmounts:
-                        instrument.grainAmounts = numberData;
+                    case InstrumentSettings.grainFreq:
+                        instrument.grainFreq = numberData;
                         break;
                     case InstrumentSettings.grainRange:
                         instrument.grainRange = numberData;
@@ -7078,7 +7119,7 @@ export class Song {
                         instrument.echoDelay = numberData;
                         break;
                     case InstrumentSettings.pluginValues:
-                        //TODO: Plugin
+                        instrument.pluginValues[settingIndex!] = numberData;
                         break;
                     case InstrumentSettings.algorithm:
                         instrument.algorithm = numberData;

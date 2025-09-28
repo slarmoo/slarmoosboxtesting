@@ -6448,8 +6448,7 @@ export class ColorConfig {
             // Determine if color is cached
 			if (ColorConfig.colorLookup.has(channel)) {
                 return ColorConfig.colorLookup.get(channel) as ChannelColors;
-            }
-            else {
+            } else {
                 // Formulaic color definition
 				let colorFormulaPitchLimit: number = this.c_colorFormulaPitchLimit;
 				let colorFormulaNoiseLimit: number = this.c_colorFormulaNoiseLimit;
@@ -6474,8 +6473,7 @@ export class ColorConfig {
                     ColorConfig.colorLookup.set(channel, newChannelColors);
                     return newChannelColors;
 
-                }
-                else if (channel < song.pitchChannelCount + song.noiseChannelCount) {
+                } else if (channel < song.pitchChannelCount + song.noiseChannelCount) {
                     // Noise formula
 					
 				let newChannelSecondary: string = "hsl(" + ((this.c_noiseSecondaryChannelHue + (((channel - song.pitchChannelCount) * this.c_noiseSecondaryChannelHueScale) / this.c_noiseChannelCountOverride) * 256) % colorFormulaNoiseLimit) + ","
@@ -6494,8 +6492,7 @@ export class ColorConfig {
                     let newChannelColors = <ChannelColors>{ secondaryChannel: newChannelSecondary, primaryChannel: newChannelPrimary, secondaryNote: newNoteSecondary, primaryNote: newNotePrimary };
                     ColorConfig.colorLookup.set(channel, newChannelColors);
                     return newChannelColors;
-                }
-                else {
+                } else {
                     // Mod formula
 
 					let newChannelSecondary: string = "hsl(" + ((this.c_modSecondaryChannelHue + (((channel - song.pitchChannelCount - song.noiseChannelCount) * this.c_modSecondaryChannelHueScale) / this.c_modChannelCountOverride) * 256) % colorFormulaModLimit) + ","

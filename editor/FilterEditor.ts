@@ -9,6 +9,7 @@ import { ColorConfig } from "./ColorConfig";
 import { ChangeSequence, UndoableChange } from "./Change";
 import { ChangeSongFilterAddPoint, ChangeSongFilterMovePoint, ChangeSongFilterSettings, ChangeFilterAddPoint, ChangeFilterMovePoint, ChangeFilterSettings, FilterMoveData } from "./changes";
 import { prettyNumber } from "./EditorConfig";
+import { InstrumentSettings, SongSettings } from "../synth/synthMessages";
 
 export class FilterEditor {
     private _editorWidth: number = 120;
@@ -404,6 +405,11 @@ export class FilterEditor {
         if (this._mouseDown || this._mouseOver) {
             this._updatePath();
         }
+        if (this._forSong) {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        }
     }
 
     private _whenCursorReleased = (event: Event): void => {
@@ -449,6 +455,11 @@ export class FilterEditor {
         this._mouseDown = false;
         this._writingMods = false;
         this._updateCursor();
+        if (this._forSong) {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        }
     }
 
     private _findNearestFreqSlot(filterSettings: FilterSettings, targetFreq: number, ignoreIndex: number): number {
@@ -617,6 +628,10 @@ export class FilterEditor {
                 savedFilter.fromJsonObject(JSON.parse(String(this.selfUndoSettings[this.selfUndoHistoryPos])));
                 this.swapToSettings(savedFilter, false);
             }
+        } if (this._forSong) {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         }
         return -1;
     }
@@ -637,8 +652,12 @@ export class FilterEditor {
                 this.swapToSettings(savedFilter, false);
             }
         }
+        if (this._forSong) {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        }
         return -1;
-
     }
 
     public resetToInitial() {

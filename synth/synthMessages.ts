@@ -106,14 +106,18 @@ export enum SongSettings {
     eqFilter,
     eqSubFilters,
     pluginurl, 
+    channelOrder,
     updateChannel,
     updateInstrument,
 }
 
 export enum ChannelSettings {
+    fromJson,
     patterns,
     bars,
     muted,
+    newInstrument,
+    instruments,
 }
 
 export enum InstrumentSettings {
@@ -186,7 +190,7 @@ export enum InstrumentSettings {
     ringModHzOffset,
     granular,
     grainSize,
-    grainAmounts,
+    grainFreq,
     grainRange,
     chorus,
     reverb,

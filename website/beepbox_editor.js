@@ -14274,7 +14274,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.ringModHzOffset = 200;
       this.granular = 4;
       this.grainSize = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-      this.grainAmounts = Config.grainAmountsMax;
+      this.grainFreq = Config.grainAmountsMax;
       this.grainRange = 40;
       this.chorus = 0;
       this.reverb = 0;
@@ -14375,7 +14375,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.ringModHzOffset = 200;
       this.granular = 4;
       this.grainSize = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-      this.grainAmounts = Config.grainAmountsMax;
+      this.grainFreq = Config.grainAmountsMax;
       this.grainRange = 40;
       this.pan = Config.panCenter;
       this.panDelay = 0;
@@ -14661,7 +14661,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (effectsIncludeGranular(this.effects)) {
         instrumentObject["granular"] = this.granular;
         instrumentObject["grainSize"] = this.grainSize;
-        instrumentObject["grainAmounts"] = this.grainAmounts;
+        instrumentObject["grainAmounts"] = this.grainFreq;
         instrumentObject["grainRange"] = this.grainRange;
       }
       if (effectsIncludeRingModulation(this.effects)) {
@@ -15095,7 +15095,7 @@ li.select2-results__option[role=group] > strong:hover {
         this.grainSize = instrumentObject["grainSize"];
       }
       if (instrumentObject["grainAmounts"] != void 0) {
-        this.grainAmounts = instrumentObject["grainAmounts"];
+        this.grainFreq = instrumentObject["grainAmounts"];
       }
       if (instrumentObject["grainRange"] != void 0) {
         this.grainRange = clamp(0, Config.grainRangeMax / Config.grainSizeStep + 1, instrumentObject["grainRange"]);
@@ -15759,7 +15759,7 @@ li.select2-results__option[role=group] > strong:hover {
                 vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].granular - Config.modulators[granularIndex].convertRealFactor;
                 break;
               case grainAmountIndex:
-                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainAmounts - Config.modulators[grainAmountIndex].convertRealFactor;
+                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainFreq - Config.modulators[grainAmountIndex].convertRealFactor;
                 break;
               case grainSizeIndex:
                 vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainSize - Config.modulators[grainSizeIndex].convertRealFactor;
@@ -16162,7 +16162,7 @@ li.select2-results__option[role=group] > strong:hover {
           if (effectsIncludeGranular(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.granular]);
             buffer.push(base64IntToCharCode[instrument.grainSize]);
-            buffer.push(base64IntToCharCode[instrument.grainAmounts]);
+            buffer.push(base64IntToCharCode[instrument.grainFreq]);
             buffer.push(base64IntToCharCode[instrument.grainRange]);
           }
           if (effectsIncludeRingModulation(instrument.effects)) {
@@ -17729,7 +17729,7 @@ li.select2-results__option[role=group] > strong:hover {
               if (effectsIncludeGranular(instrument.effects)) {
                 instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 instrument.grainSize = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-                instrument.grainAmounts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                instrument.grainFreq = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 instrument.grainRange = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
               if (effectsIncludeRingModulation(instrument.effects)) {
@@ -18902,7 +18902,7 @@ li.select2-results__option[role=group] > strong:hover {
           break;
         case 2 /* scaleCustom */:
           let scale = numberData;
-          for (let i = 0; i < Config.pitchesPerOctave; i++) {
+          for (let i = Config.pitchesPerOctave - 1; i >= 0; i--) {
             this.scaleCustom[i] = (scale & 1) == 1;
             scale = scale << 1;
           }
@@ -18942,12 +18942,15 @@ li.select2-results__option[role=group] > strong:hover {
           break;
         case 14 /* pitchChannelCount */:
           this.pitchChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 15 /* noiseChannelCount */:
           this.noiseChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 16 /* modChannelCount */:
           this.modChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 17 /* limiterSettings */:
           const limiterSettings = JSON.parse(stringData);
@@ -18974,23 +18977,42 @@ li.select2-results__option[role=group] > strong:hover {
           break;
         case 22 /* pluginurl */:
           break;
-        case 23 /* updateChannel */:
+        case 23 /* channelOrder */:
+          const parsed = JSON.parse(stringData);
+          const selectionMin = parsed.selectionMin;
+          const selectionMax = parsed.selectionMax;
+          const offset = parsed.offset;
+          this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
+          break;
+        case 24 /* updateChannel */:
           const channel = this.channels[channelIndex];
           switch (instrumentSetting) {
-            case 0 /* patterns */:
-              const isNoise = this.getChannelIsNoise(channelIndex);
-              const isMod = this.getChannelIsMod(channelIndex);
-              channel.patterns[instrumentIndex].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+            case 0 /* fromJson */:
+              this.channels[channelIndex] = JSON.parse(stringData);
               break;
-            case 1 /* bars */:
+            case 1 /* patterns */: {
+              const isNoise2 = this.getChannelIsNoise(channelIndex);
+              const isMod2 = this.getChannelIsMod(channelIndex);
+              channel.patterns[instrumentIndex].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise2, isMod2);
+              break;
+            }
+            case 2 /* bars */:
               channel.bars[instrumentIndex] = numberData;
               break;
-            case 2 /* muted */:
+            case 3 /* muted */:
               channel.muted = numberData == 1;
+              break;
+            case 4 /* newInstrument */:
+              const isNoise = this.getChannelIsNoise(channelIndex);
+              const isMod = this.getChannelIsMod(channelIndex);
+              channel.instruments.push(new Instrument(isNoise, isMod));
+              channel.instruments[channel.instruments.length - 1].fromJsonObject(JSON.parse(stringData), isNoise, isMod, this.rhythm == 0 || this.rhythm == 2, this.rhythm >= 2);
+              break;
+            case 5 /* instruments */:
               break;
           }
           break;
-        case 24 /* updateInstrument */:
+        case 25 /* updateInstrument */:
           const instrument = this.channels[channelIndex].instruments[instrumentIndex];
           switch (instrumentSetting) {
             case 0 /* fromJson */:
@@ -19033,6 +19055,14 @@ li.select2-results__option[role=group] > strong:hover {
               break;
             case 12 /* eqFilterType */:
               instrument.eqFilterType = numberData == 1;
+              if (instrument.eqFilterType == true) {
+                instrument.eqFilter.reset();
+              } else {
+                instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+              }
+              instrument.tmpEqFilterStart = instrument.eqFilter;
+              instrument.tmpEqFilterEnd = null;
+              instrument.clearInvalidEnvelopeTargets();
               break;
             case 13 /* eqFilterSimpleCut */:
               instrument.eqFilterSimpleCut = numberData;
@@ -19045,6 +19075,14 @@ li.select2-results__option[role=group] > strong:hover {
               break;
             case 16 /* noteFilterType */:
               instrument.noteFilterType = numberData == 1;
+              if (instrument.eqFilterType == true) {
+                instrument.noteFilter.reset();
+              } else {
+                instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+              }
+              instrument.tmpNoteFilterStart = instrument.eqFilter;
+              instrument.tmpNoteFilterEnd = null;
+              instrument.clearInvalidEnvelopeTargets();
               break;
             case 17 /* noteFilterSimpleCut */:
               instrument.noteFilterSimpleCut = numberData;
@@ -19204,8 +19242,8 @@ li.select2-results__option[role=group] > strong:hover {
             case 68 /* grainSize */:
               instrument.grainSize = numberData;
               break;
-            case 69 /* grainAmounts */:
-              instrument.grainAmounts = numberData;
+            case 69 /* grainFreq */:
+              instrument.grainFreq = numberData;
               break;
             case 70 /* grainRange */:
               instrument.grainRange = numberData;
@@ -19223,6 +19261,7 @@ li.select2-results__option[role=group] > strong:hover {
               instrument.echoDelay = numberData;
               break;
             case 75 /* pluginValues */:
+              instrument.pluginValues[settingIndex] = numberData;
               break;
             case 76 /* algorithm */:
               instrument.algorithm = numberData;
@@ -20088,14 +20127,14 @@ li.select2-results__option[role=group] > strong:hover {
       }
     }
     updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
-      if (songSetting == 24 /* updateInstrument */ || songSetting == 23 /* updateChannel */) {
+      if (songSetting == 25 /* updateInstrument */ || songSetting == 24 /* updateChannel */) {
         if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
           throw new Error("missing index or setting number");
         }
       }
       const updateMessage = {
         flag: 9 /* updateSong */,
-        songSetting: 24 /* updateInstrument */,
+        songSetting: 25 /* updateInstrument */,
         channelIndex,
         instrumentIndex,
         instrumentSetting,
@@ -22089,8 +22128,8 @@ li.select2-results__option[role=group] > strong:hover {
           instrument.customChipWaveIntegral[i] = cumulative;
         }
         instrument.customChipWaveIntegral[64] = 0;
-        doc.synth.updateSong(JSON.stringify(instrument.customChipWave), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 83 /* customChipWave */);
-        doc.synth.updateSong(JSON.stringify(instrument.customChipWaveIntegral), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 84 /* customChipWaveIntegral */);
+        doc.synth.updateSong(JSON.stringify(instrument.customChipWave), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 83 /* customChipWave */);
+        doc.synth.updateSong(JSON.stringify(instrument.customChipWaveIntegral), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 84 /* customChipWaveIntegral */);
         instrument.preset = instrument.type;
         doc.notifier.changed();
         this._didSomething();
@@ -22131,8 +22170,8 @@ li.select2-results__option[role=group] > strong:hover {
           doc.synth.updateSong(JSON.stringify({
             carriers: carry,
             modulation: newArray
-          }), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 80 /* customAlgorithm */);
-          doc.synth.updateSong(instrument.algorithm6Op, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 78 /* algorithm6Op */);
+          }), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 80 /* customAlgorithm */);
+          doc.synth.updateSong(instrument.algorithm6Op, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 78 /* algorithm6Op */);
           doc.notifier.changed();
           this._didSomething();
         }
@@ -22156,8 +22195,8 @@ li.select2-results__option[role=group] > strong:hover {
           let instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
           instrument.customFeedbackType.set(newArray);
           instrument.feedbackType6Op = 0;
-          doc.synth.updateSong(JSON.stringify(newArray), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 81 /* customFeedbackType */);
-          doc.synth.updateSong(instrument.feedbackType6Op, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 79 /* feedbackType6Op */);
+          doc.synth.updateSong(JSON.stringify(newArray), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 81 /* customFeedbackType */);
+          doc.synth.updateSong(instrument.feedbackType6Op, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 79 /* feedbackType6Op */);
           doc.notifier.changed();
           this._didSomething();
         }
@@ -22194,7 +22233,7 @@ li.select2-results__option[role=group] > strong:hover {
           }
         }
         instrument.preset = newValue;
-        doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
+        doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -22961,7 +23000,7 @@ li.select2-results__option[role=group] > strong:hover {
         if (Math.random() < 0.1) {
           instrument.effects |= 1 << 14 /* granular */;
           instrument.granular = selectCurvedDistribution(1, Config.granularRange - 1, Config.granularRange / 2, Config.granularRange / 3);
-          instrument.grainAmounts = selectCurvedDistribution(1, Config.grainAmountsMax - 1, Config.grainAmountsMax - 2, 3);
+          instrument.grainFreq = selectCurvedDistribution(1, Config.grainAmountsMax - 1, Config.grainAmountsMax - 2, 3);
           instrument.grainSize = selectCurvedDistribution(Config.grainSizeMin / Config.grainSizeStep, Config.grainSizeMax / Config.grainSizeStep, Config.grainSizeMax / Config.grainSizeStep, Config.grainSizeMax / Config.grainSizeStep / 2);
           instrument.grainRange = selectCurvedDistribution(0, Config.grainRangeMax / Config.grainSizeStep, Config.grainRangeMax / Config.grainSizeStep / 2, Config.grainSizeMax / Config.grainSizeStep / 2);
           if (Math.random() < 0.2) {
@@ -23501,7 +23540,7 @@ li.select2-results__option[role=group] > strong:hover {
             throw new Error("Unhandled pitched instrument type in random generator.");
         }
       }
-      doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
+      doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 0 /* fromJson */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23517,7 +23556,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         this._didSomething();
         instrument.transition = newValue;
-        doc.synth.updateSong(newValue, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 25 /* transition */);
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 25 /* transition */);
         instrument.preset = instrument.type;
         doc.notifier.changed();
       }
@@ -23540,8 +23579,8 @@ li.select2-results__option[role=group] > strong:hover {
       if (toggleFlag == 3 /* distortion */ && wasSelected)
         instrument.aliases = false;
       if (wasSelected) instrument.clearInvalidEnvelopeTargets();
-      doc.synth.updateSong(newValue, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 41 /* effects */);
-      doc.synth.updateSong(+instrument.aliases, 24 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 51 /* aliases */);
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 41 /* effects */);
+      doc.synth.updateSong(+instrument.aliases, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 51 /* aliases */);
       this._didSomething();
       doc.notifier.changed();
     }
@@ -23557,7 +23596,7 @@ li.select2-results__option[role=group] > strong:hover {
         for (let channelIndex = startChannel; channelIndex < startChannel + height; channelIndex++) {
           if (doc.song.channels[channelIndex].bars[bar] != value) {
             doc.song.channels[channelIndex].bars[bar] = value;
-            doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, bar, 1 /* bars */);
+            doc.synth.updateSong(value, 24 /* updateChannel */, doc.channel, bar, 2 /* bars */);
             this._didSomething();
           }
         }
@@ -23595,7 +23634,7 @@ li.select2-results__option[role=group] > strong:hover {
             channel.bars.length = newValue;
           }
           channel.bars.forEach((value, index) => {
-            doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+            doc.synth.updateSong(value, 24 /* updateChannel */, doc.channel, index, 2 /* bars */);
           });
         }
         if (atBeginning) {
@@ -23632,7 +23671,7 @@ li.select2-results__option[role=group] > strong:hover {
           channel.bars.splice(start, 0, 0);
         }
         channel.bars.forEach((value, index) => {
-          doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+          doc.synth.updateSong(value, 24 /* updateChannel */, doc.channel, index, 2 /* bars */);
         });
       }
       doc.song.barCount = newLength;
@@ -23660,7 +23699,7 @@ li.select2-results__option[role=group] > strong:hover {
         channel.bars.splice(start, count);
         if (channel.bars.length == 0) channel.bars.push(0);
         channel.bars.forEach((value, index) => {
-          doc.synth.updateSong(value, 23 /* updateChannel */, doc.channel, index, 1 /* bars */);
+          doc.synth.updateSong(value, 24 /* updateChannel */, doc.channel, index, 2 /* bars */);
         });
       }
       doc.song.barCount = Math.max(1, doc.song.barCount - count);
@@ -23723,8 +23762,14 @@ li.select2-results__option[role=group] > strong:hover {
               instrument.modChannels[i] -= offset * (selectionMax - selectionMin + 1);
             }
           }
+          doc.synth.updateSong(JSON.stringify(instrument.modChannels), 25 /* updateInstrument */, channelIndex, instrumentIdx, 90 /* modChannels */);
         }
       }
+      doc.synth.updateSong(JSON.stringify({
+        selectionMin,
+        selectionMax,
+        offset
+      }), 23 /* channelOrder */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23735,9 +23780,13 @@ li.select2-results__option[role=group] > strong:hover {
     }
     constructor(doc, flags) {
       super();
+      let hash = 0;
       for (let i = 0; i < Config.pitchesPerOctave; i++) {
         doc.song.scaleCustom[i] = flags[i];
+        hash += +flags[i];
+        hash = hash << 1;
       }
+      doc.synth.updateSong(hash, 2 /* scaleCustom */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -23789,15 +23838,19 @@ li.select2-results__option[role=group] > strong:hover {
         doc.song.pitchChannelCount = newPitchChannelCount;
         doc.song.noiseChannelCount = newNoiseChannelCount;
         doc.song.modChannelCount = newModChannelCount;
+        doc.synth.updateSong(newPitchChannelCount, 14 /* pitchChannelCount */);
+        doc.synth.updateSong(newNoiseChannelCount, 15 /* noiseChannelCount */);
+        doc.synth.updateSong(newModChannelCount, 16 /* modChannelCount */);
         for (let channelIndex = 0; channelIndex < doc.song.getChannelCount(); channelIndex++) {
           doc.song.channels[channelIndex] = newChannels[channelIndex];
+          doc.synth.updateSong(JSON.stringify(newChannels[channelIndex].patterns), 24 /* updateChannel */, channelIndex, 0, 0 /* fromJson */);
         }
         doc.song.channels.length = doc.song.getChannelCount();
         doc.channel = Math.min(doc.channel, newPitchChannelCount + newNoiseChannelCount + newModChannelCount - 1);
         for (let channelIndex = doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex < doc.song.getChannelCount(); channelIndex++) {
           for (let instrumentIdx = 0; instrumentIdx < doc.song.channels[channelIndex].instruments.length; instrumentIdx++) {
+            let instrument = doc.song.channels[channelIndex].instruments[instrumentIdx];
             for (let mod2 = 0; mod2 < Config.modCount; mod2++) {
-              let instrument = doc.song.channels[channelIndex].instruments[instrumentIdx];
               let modChannel = instrument.modChannels[mod2];
               if (modChannel >= doc.song.pitchChannelCount && modChannel < oldPitchCount || modChannel >= doc.song.pitchChannelCount + doc.song.noiseChannelCount) {
                 instrument.modulators[mod2] = Config.modulators.dictionary["none"].index;
@@ -23806,6 +23859,8 @@ li.select2-results__option[role=group] > strong:hover {
                 instrument.modChannels[mod2] += newPitchChannelCount - oldPitchCount;
               }
             }
+            doc.synth.updateSong(JSON.stringify(instrument.modChannels), 25 /* updateInstrument */, channelIndex, instrumentIdx, 90 /* modChannels */);
+            doc.synth.updateSong(JSON.stringify(instrument.modulators), 25 /* updateInstrument */, channelIndex, instrumentIdx, 92 /* modulators */);
           }
         }
         doc.notifier.changed();
@@ -23866,6 +23921,9 @@ li.select2-results__option[role=group] > strong:hover {
         }
         maxIndex--;
       }
+      doc.synth.updateSong(doc.song.pitchChannelCount, 14 /* pitchChannelCount */);
+      doc.synth.updateSong(doc.song.noiseChannelCount, 15 /* noiseChannelCount */);
+      doc.synth.updateSong(doc.song.modChannelCount, 16 /* modChannelCount */);
       if (doc.song.pitchChannelCount < Config.pitchChannelCountMin) {
         this.append(new ChangeChannelCount(doc, Config.pitchChannelCountMin, doc.song.noiseChannelCount, doc.song.modChannelCount));
       }
@@ -23917,6 +23975,12 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonExpression = Config.unisons[instrument.unison].expression;
         instrument.unisonSign = Config.unisons[instrument.unison].sign;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(instrument.unison, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonVoices, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 36 /* unisonVoices */);
+        doc.synth.updateSong(instrument.unisonSpread, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 37 /* unisonSpread */);
+        doc.synth.updateSong(instrument.unisonOffset, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 38 /* unisonOffset */);
+        doc.synth.updateSong(instrument.unisonExpression, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 39 /* unisonExpression */);
+        doc.synth.updateSong(instrument.unisonSign, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 40 /* unisonSign */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23934,6 +23998,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonVoices = newValue;
         instrument.unison = Config.unisons.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.unisons.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonVoices, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 36 /* unisonVoices */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23951,6 +24017,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonSpread = newValue;
         instrument.unison = Config.unisons.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.unisons.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonSpread, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 37 /* unisonSpread */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23968,6 +24036,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonOffset = newValue;
         instrument.unison = Config.unisons.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.unisons.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonOffset, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 38 /* unisonOffset */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -23985,6 +24055,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonExpression = newValue;
         instrument.unison = Config.unisons.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.unisons.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonExpression, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 39 /* unisonExpression */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24002,6 +24074,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.unisonSign = newValue;
         instrument.unison = Config.unisons.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.unisons.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 35 /* unison */);
+        doc.synth.updateSong(instrument.unisonSign, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 40 /* unisonSign */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24019,6 +24093,7 @@ li.select2-results__option[role=group] > strong:hover {
         this._didSomething();
         instrument.chord = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 42 /* chord */);
         doc.notifier.changed();
       }
     }
@@ -24038,6 +24113,11 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.vibratoSpeed = 10;
         instrument.vibratoType = Config.vibratos[instrument.vibrato].type;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 28 /* vibrato */);
+        doc.synth.updateSong(instrument.vibratoDepth, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 30 /* vibratoDepth */);
+        doc.synth.updateSong(instrument.vibratoDelay, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 32 /* vibratoDelay */);
+        doc.synth.updateSong(instrument.vibratoSpeed, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 31 /* vibratoSpeed */);
+        doc.synth.updateSong(instrument.vibratoType, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 33 /* vibratoType */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24057,6 +24137,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.vibratoDepth = newValue / 25;
         instrument.vibrato = Config.vibratos.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.vibratos.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 28 /* vibrato */);
+        doc.synth.updateSong(instrument.vibratoDepth, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 30 /* vibratoDepth */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24074,6 +24156,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.envelopeSpeed = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 34 /* envelopeSpeed */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24093,6 +24176,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.vibratoSpeed = newValue;
         instrument.vibrato = Config.vibratos.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.vibratos.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 28 /* vibrato */);
+        doc.synth.updateSong(instrument.vibratoSpeed, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 31 /* vibratoSpeed */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24112,6 +24197,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.vibratoDelay = newValue;
         instrument.vibrato = Config.vibratos.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.vibratos.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 28 /* vibrato */);
+        doc.synth.updateSong(instrument.vibratoDelay, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 32 /* vibratoDelay */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24131,6 +24218,8 @@ li.select2-results__option[role=group] > strong:hover {
         instrument.vibratoType = newValue;
         instrument.vibrato = Config.vibratos.length;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(Config.vibratos.length, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 28 /* vibrato */);
+        doc.synth.updateSong(instrument.vibratoType, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 33 /* vibratoType */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24148,6 +24237,7 @@ li.select2-results__option[role=group] > strong:hover {
       doc.notifier.changed();
       if (oldValue != newValue) {
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 46 /* arpeggioSpeed */);
         this._didSomething();
       }
     }
@@ -24164,6 +24254,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.fastTwoNoteArp = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(+newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 48 /* fastTwoNoteArp */);
         this._didSomething();
       }
     }
@@ -24179,6 +24270,7 @@ li.select2-results__option[role=group] > strong:hover {
       doc.notifier.changed();
       if (oldValue != newValue) {
         instrument.monoChordTone = newValue;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 47 /* monoChordTone */);
         this._didSomething();
       }
     }
@@ -24195,6 +24287,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.clicklessTransition = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(+newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 50 /* clicklessTransition */);
         this._didSomething();
       }
     }
@@ -24211,6 +24304,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.aliases = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(+newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 51 /* aliases */);
         this._didSomething();
       }
     }
@@ -24223,6 +24317,7 @@ li.select2-results__option[role=group] > strong:hover {
       super();
       spectrumWave.markCustomWaveDirty();
       instrument.preset = instrument.type;
+      doc.synth.updateSong(JSON.stringify(spectrumWave.spectrum), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 86 /* spectrumWave */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -24235,6 +24330,7 @@ li.select2-results__option[role=group] > strong:hover {
       super();
       harmonicsWave.markCustomWaveDirty();
       instrument.preset = instrument.type;
+      doc.synth.updateSong(JSON.stringify(harmonicsWave.harmonics), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 87 /* harmonicsWave */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -24250,6 +24346,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.drumsetEnvelopes[drumIndex] = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 88 /* drumsetEnvelopes */, drumIndex);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24292,6 +24389,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.pulseWidth = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["pulse width"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 52 /* pulseWidth */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24304,6 +24402,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.decimalOffset = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["decimal offset"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 53 /* decimalOffset */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24316,6 +24415,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.supersawDynamism = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["dynamism"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 54 /* supersawDynamism */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24328,6 +24428,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.supersawSpread = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["spread"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 55 /* supersawSpread */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24340,6 +24441,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.supersawShape = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["saw shape"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 56 /* supersawShape */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24351,6 +24453,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.pitchShift = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 26 /* pitchShift */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24362,6 +24465,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.detune = newValue + Config.detuneCenter;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 27 /* detune */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["detune"].index, doc.channel, doc.getCurrentInstrument());
       if (oldValue != newValue) this._didSomething();
@@ -24374,6 +24478,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.ringModulation = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 62 /* ringModulation */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["ring modulation"].index, doc.channel, doc.getCurrentInstrument());
       if (oldValue != newValue) this._didSomething();
@@ -24386,6 +24491,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.ringModulationHz = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 63 /* ringModulationHz */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["ring mod hertz"].index, doc.channel, doc.getCurrentInstrument());
       if (oldValue != newValue) this._didSomething();
@@ -24400,6 +24506,7 @@ li.select2-results__option[role=group] > strong:hover {
       const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
       if (instrument.ringModWaveformIndex != newValue) {
         instrument.ringModWaveformIndex = newValue;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 64 /* ringModWaveformIndex */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24412,6 +24519,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.ringModPulseWidth = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 65 /* ringModPulseWidth */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24423,6 +24531,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.granular = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 67 /* granular */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["granular"].index, doc.channel, doc.getCurrentInstrument());
       if (oldValue != newValue) this._didSomething();
@@ -24435,6 +24544,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.grainSize = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 68 /* grainSize */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["grain size"].index, doc.channel, doc.getCurrentInstrument());
       if (oldValue != newValue) this._didSomething();
@@ -24446,7 +24556,8 @@ li.select2-results__option[role=group] > strong:hover {
     }
     constructor(doc, oldValue, newValue) {
       super(doc);
-      this._instrument.grainAmounts = newValue;
+      this._instrument.grainFreq = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 69 /* grainFreq */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24458,6 +24569,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.grainRange = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 70 /* grainRange */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24469,8 +24581,22 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.distortion = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 59 /* distortion */);
       doc.notifier.changed();
       doc.synth.unsetMod(Config.modulators.dictionary["distortion"].index, doc.channel, doc.getCurrentInstrument());
+      if (oldValue != newValue) this._didSomething();
+    }
+  };
+  var ChangeBitcrusherQuantization = class extends ChangeInstrumentSlider {
+    static {
+      __name(this, "ChangeBitcrusherQuantization");
+    }
+    constructor(doc, oldValue, newValue) {
+      super(doc);
+      doc.synth.unsetMod(Config.modulators.dictionary["bit crush"].index, doc.channel, doc.getCurrentInstrument());
+      this._instrument.bitcrusherQuantization = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 61 /* bitcrusherQuantization */);
+      doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
   };
@@ -24481,19 +24607,8 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.bitcrusherFreq = newValue;
-      doc.synth.unsetMod(Config.modulators.dictionary["bit crush"].index, doc.channel, doc.getCurrentInstrument());
-      doc.notifier.changed();
-      if (oldValue != newValue) this._didSomething();
-    }
-  };
-  var ChangeBitcrusherQuantization = class extends ChangeInstrumentSlider {
-    static {
-      __name(this, "ChangeBitcrusherQuantization");
-    }
-    constructor(doc, oldValue, newValue) {
-      super(doc);
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 60 /* bitcrusherFreq */);
       doc.synth.unsetMod(Config.modulators.dictionary["freq crush"].index, doc.channel, doc.getCurrentInstrument());
-      this._instrument.bitcrusherQuantization = newValue;
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24505,6 +24620,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue, index) {
       super(doc);
       this._instrument.pluginValues[index] = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 75 /* pluginValues */, index);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24518,6 +24634,7 @@ li.select2-results__option[role=group] > strong:hover {
       const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
       if (oldValue != newValue) {
         instrument.pluginValues[index] = newValue;
+        doc.synth.updateSong(index, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 75 /* pluginValues */);
         this._didSomething();
       }
       doc.notifier.changed();
@@ -24545,6 +24662,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.stringSustain = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["sustain"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 57 /* stringSustain */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24560,6 +24678,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.stringSustainType = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 58 /* stringSustainType */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24574,15 +24693,12 @@ li.select2-results__option[role=group] > strong:hover {
       instrument.eqFilterType = newValue;
       if (newValue == true) {
         instrument.eqFilter.reset();
-        instrument.tmpEqFilterStart = instrument.eqFilter;
-        instrument.tmpEqFilterEnd = null;
       } else {
         instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
-        instrument.tmpEqFilterStart = instrument.eqFilter;
-        instrument.tmpEqFilterEnd = null;
       }
       instrument.clearInvalidEnvelopeTargets();
       instrument.preset = instrument.type;
+      doc.synth.updateSong(+newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 12 /* eqFilterType */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -24596,15 +24712,12 @@ li.select2-results__option[role=group] > strong:hover {
       instrument.noteFilterType = newValue;
       if (newValue == true) {
         instrument.noteFilter.reset();
-        instrument.tmpNoteFilterStart = instrument.noteFilter;
-        instrument.tmpNoteFilterEnd = null;
       } else {
         instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
-        instrument.tmpNoteFilterStart = instrument.noteFilter;
-        instrument.tmpNoteFilterEnd = null;
       }
       instrument.clearInvalidEnvelopeTargets();
       instrument.preset = instrument.type;
+      doc.synth.updateSong(+newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 16 /* noteFilterType */);
       doc.notifier.changed();
       this._didSomething();
     }
@@ -24617,6 +24730,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.eqFilterSimpleCut = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["eq filt cut"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 13 /* eqFilterSimpleCut */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24629,6 +24743,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.eqFilterSimplePeak = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["eq filt peak"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 14 /* eqFilterSimplePeak */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24641,6 +24756,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.noteFilterSimpleCut = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["note filt cut"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 17 /* noteFilterSimpleCut */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24653,6 +24769,7 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.noteFilterSimplePeak = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["note filt peak"].index, doc.channel, doc.getCurrentInstrument());
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 18 /* noteFilterSimplePeak */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -24741,6 +24858,7 @@ li.select2-results__option[role=group] > strong:hover {
       for (let envelopeIndex = 0; envelopeIndex < this._instrument.envelopeCount; envelopeIndex++) {
         this._instrument.envelopes[envelopeIndex].target = this._envelopeTargetsAdd[envelopeIndex];
         this._instrument.envelopes[envelopeIndex].index = this._envelopeIndicesAdd[envelopeIndex];
+        this._doc.synth.updateSong(JSON.stringify(this._instrument.envelopes[envelopeIndex].toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 21 /* envelopes */, envelopeIndex);
       }
       this._instrument.tmpEqFilterStart = this._instrument.eqFilter;
       this._instrument.tmpEqFilterEnd = null;
@@ -24756,6 +24874,7 @@ li.select2-results__option[role=group] > strong:hover {
       for (let envelopeIndex = 0; envelopeIndex < this._instrument.envelopeCount; envelopeIndex++) {
         this._instrument.envelopes[envelopeIndex].target = this._envelopeTargetsRemove[envelopeIndex];
         this._instrument.envelopes[envelopeIndex].index = this._envelopeIndicesRemove[envelopeIndex];
+        this._doc.synth.updateSong(JSON.stringify(this._instrument.envelopes[envelopeIndex].toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 21 /* envelopes */, envelopeIndex);
       }
       this._instrument.tmpEqFilterStart = this._instrument.eqFilter;
       this._instrument.tmpEqFilterEnd = null;
@@ -24960,12 +25079,16 @@ li.select2-results__option[role=group] > strong:hover {
       this._instrument.fadeIn = this._newFadeIn;
       this._instrument.fadeOut = this._newFadeOut;
       this._instrument.preset = this._instrumentNextPreset;
+      this._doc.synth.updateSong(this._newFadeIn, 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 22 /* fadeIn */);
+      this._doc.synth.updateSong(this._newFadeOut, 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 23 /* fadeOut */);
       this._doc.notifier.changed();
     }
     _doBackwards() {
       this._instrument.fadeIn = this._oldFadeIn;
       this._instrument.fadeOut = this._oldFadeOut;
       this._instrument.preset = this._instrumentPrevPreset;
+      this._doc.synth.updateSong(this._oldFadeIn, 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 22 /* fadeIn */);
+      this._doc.synth.updateSong(this._oldFadeOut, 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 23 /* fadeOut */);
       this._doc.notifier.changed();
     }
   };
@@ -24980,6 +25103,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.algorithm = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 76 /* algorithm */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -24996,6 +25120,7 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.feedbackType = newValue;
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 77 /* feedbackType */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -25015,6 +25140,7 @@ li.select2-results__option[role=group] > strong:hover {
           instrument.customAlgorithm.fromPreset(newValue);
         }
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 78 /* algorithm6Op */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -25034,6 +25160,7 @@ li.select2-results__option[role=group] > strong:hover {
           instrument.customFeedbackType.fromPreset(newValue);
         }
         instrument.preset = instrument.type;
+        doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 79 /* feedbackType6Op */);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -25050,6 +25177,13 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) {
         instrument.operators[operatorIndex].waveform = newValue;
         instrument.preset = instrument.type;
+        const operator = instrument.operators[operatorIndex];
+        doc.synth.updateSong(JSON.stringify({
+          frequency: operator.frequency,
+          amplitude: operator.amplitude,
+          waveform: operator.waveform,
+          pulseWidth: operator.pulseWidth
+        }), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 85 /* operators */, operatorIndex);
         doc.notifier.changed();
         this._didSomething();
       }
@@ -25063,6 +25197,13 @@ li.select2-results__option[role=group] > strong:hover {
       super();
       const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
       instrument.operators[operatorIndex].pulseWidth = newValue;
+      const operator = instrument.operators[operatorIndex];
+      doc.synth.updateSong(JSON.stringify({
+        frequency: operator.frequency,
+        amplitude: operator.amplitude,
+        waveform: operator.waveform,
+        pulseWidth: operator.pulseWidth
+      }), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 85 /* operators */, operatorIndex);
       doc.notifier.changed();
       if (oldValue != newValue) {
         instrument.preset = instrument.type;
@@ -25078,6 +25219,13 @@ li.select2-results__option[role=group] > strong:hover {
       super();
       const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
       const oldValue = instrument.operators[operatorIndex].frequency;
+      const operator = instrument.operators[operatorIndex];
+      doc.synth.updateSong(JSON.stringify({
+        frequency: operator.frequency,
+        amplitude: operator.amplitude,
+        waveform: operator.waveform,
+        pulseWidth: operator.pulseWidth
+      }), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 85 /* operators */, operatorIndex);
       if (oldValue != newValue) {
         instrument.operators[operatorIndex].frequency = newValue;
         instrument.preset = instrument.type;
@@ -25092,6 +25240,13 @@ li.select2-results__option[role=group] > strong:hover {
       this.operatorIndex = 0;
       this.operatorIndex = operatorIndex;
       this._instrument.operators[operatorIndex].amplitude = newValue;
+      const operator = this._instrument.operators[operatorIndex];
+      doc.synth.updateSong(JSON.stringify({
+        frequency: operator.frequency,
+        amplitude: operator.amplitude,
+        waveform: operator.waveform,
+        pulseWidth: operator.pulseWidth
+      }), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 85 /* operators */, operatorIndex);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -25106,6 +25261,7 @@ li.select2-results__option[role=group] > strong:hover {
     constructor(doc, oldValue, newValue) {
       super(doc);
       this._instrument.feedbackAmplitude = newValue;
+      doc.synth.updateSong(newValue, 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 82 /* feedbackAmplitude */);
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -25129,6 +25285,7 @@ li.select2-results__option[role=group] > strong:hover {
       instrument.effects |= 1 << 2 /* panning */;
       instrument.volume = 0;
       channel.instruments.push(instrument);
+      doc.synth.updateSong(JSON.stringify(instrument.toJsonObject()), 25 /* updateInstrument */, doc.channel, 0, 4 /* newInstrument */);
       if (!isMod) {
         doc.viewedInstrument[doc.channel] = channel.instruments.length - 1;
       }
@@ -25141,6 +25298,7 @@ li.select2-results__option[role=group] > strong:hover {
             if (modChannel == doc.channel && modInstrument >= doc.song.channels[modChannel].instruments.length - 1) {
               instrument2.modInstruments[mod2]++;
             }
+            doc.synth.updateSong(JSON.stringify(instrument2.modInstruments), 25 /* updateInstrument */, doc.channel, doc.getCurrentInstrument(), 91 /* modInstruments */);
           }
         }
       }
@@ -31203,6 +31361,11 @@ You should be redirected to the song at:<br /><br />
         this._mouseDown = false;
         this._writingMods = false;
         this._updateCursor();
+        if (this._forSong) {
+          this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 20 /* eqFilter */);
+        } else {
+          this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? 15 /* noteFilter */ : 11 /* eqFilter */);
+        }
       }, "_whenCursorReleased");
       this._useNoteFilter = useNoteFilter;
       this._larger = larger;
@@ -31447,6 +31610,11 @@ You should be redirected to the song at:<br /><br />
       if (this._mouseDown || this._mouseOver) {
         this._updatePath();
       }
+      if (this._forSong) {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 20 /* eqFilter */);
+      } else {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? 15 /* noteFilter */ : 11 /* eqFilter */);
+      }
     }
     _findNearestFreqSlot(filterSettings, targetFreq, ignoreIndex) {
       const roundedFreq = Math.round(targetFreq);
@@ -31592,6 +31760,11 @@ You should be redirected to the song at:<br /><br />
           this.swapToSettings(savedFilter, false);
         }
       }
+      if (this._forSong) {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 20 /* eqFilter */);
+      } else {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? 15 /* noteFilter */ : 11 /* eqFilter */);
+      }
       return -1;
     }
     // Returns the subfilter index to swap to, if any
@@ -31608,6 +31781,11 @@ You should be redirected to the song at:<br /><br />
           savedFilter.fromJsonObject(JSON.parse(String(this.selfUndoSettings[this.selfUndoHistoryPos])));
           this.swapToSettings(savedFilter, false);
         }
+      }
+      if (this._forSong) {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 20 /* eqFilter */);
+      } else {
+        this._doc.synth.updateSong(JSON.stringify(this._filterSettings.toJsonObject()), 25 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? 15 /* noteFilter */ : 11 /* eqFilter */);
       }
       return -1;
     }
@@ -38190,10 +38368,10 @@ You should be redirected to the song at:<br /><br />
       } else if (change instanceof ChangeGrainAmounts) {
         var modulator = Config.modulators.dictionary["grain freq"];
         applyToMods.push(modulator.index);
-        if (toApply) applyValues.push(instrument.grainAmounts - modulator.convertRealFactor);
+        if (toApply) applyValues.push(instrument.grainFreq - modulator.convertRealFactor);
         slider = songEditor.getSliderForModSetting(modulator.index);
         if (slider != null) {
-          instrument.grainAmounts = slider.getValueBeforeProspectiveChange();
+          instrument.grainFreq = slider.getValueBeforeProspectiveChange();
         }
       } else if (change instanceof ChangeGrainSize) {
         var modulator = Config.modulators.dictionary["grain size"];
@@ -45956,7 +46134,7 @@ You should be redirected to the song at:<br /><br />
             this._granularContainerRow.style.display = "";
             this._granularSlider.updateValue(instrument.granular);
             this._grainSizeSlider.updateValue(instrument.grainSize);
-            this._grainAmountsSlider.updateValue(instrument.grainAmounts);
+            this._grainAmountsSlider.updateValue(instrument.grainFreq);
             this._grainRangeSlider.updateValue(instrument.grainRange);
           } else {
             this._granularContainerRow.style.display = "none";

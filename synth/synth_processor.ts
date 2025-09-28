@@ -1586,8 +1586,8 @@ class InstrumentState {
 
         let granularChance: number = 0;
         if (usesGranular) { //has to happen before buffer allocation
-            granularChance = (instrument.grainAmounts + 1);
-            this.granularMaximumGrains = instrument.grainAmounts;
+            granularChance = (instrument.grainFreq + 1);
+            this.granularMaximumGrains = instrument.grainFreq;
             if (synth.isModActive(Config.modulators.dictionary["grain freq"].index, channelIndex, instrumentIndex)) {
                 this.granularMaximumGrains = synth.getModValue(Config.modulators.dictionary["grain freq"].index, channelIndex, instrumentIndex, false);
                 granularChance = (synth.getModValue(Config.modulators.dictionary["grain freq"].index, channelIndex, instrumentIndex, false) + 1);

@@ -5137,7 +5137,7 @@ var beepbox = (() => {
       this.ringModHzOffset = 200;
       this.granular = 4;
       this.grainSize = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-      this.grainAmounts = Config.grainAmountsMax;
+      this.grainFreq = Config.grainAmountsMax;
       this.grainRange = 40;
       this.chorus = 0;
       this.reverb = 0;
@@ -5238,7 +5238,7 @@ var beepbox = (() => {
       this.ringModHzOffset = 200;
       this.granular = 4;
       this.grainSize = (Config.grainSizeMax - Config.grainSizeMin) / Config.grainSizeStep;
-      this.grainAmounts = Config.grainAmountsMax;
+      this.grainFreq = Config.grainAmountsMax;
       this.grainRange = 40;
       this.pan = Config.panCenter;
       this.panDelay = 0;
@@ -5524,7 +5524,7 @@ var beepbox = (() => {
       if (effectsIncludeGranular(this.effects)) {
         instrumentObject["granular"] = this.granular;
         instrumentObject["grainSize"] = this.grainSize;
-        instrumentObject["grainAmounts"] = this.grainAmounts;
+        instrumentObject["grainAmounts"] = this.grainFreq;
         instrumentObject["grainRange"] = this.grainRange;
       }
       if (effectsIncludeRingModulation(this.effects)) {
@@ -5958,7 +5958,7 @@ var beepbox = (() => {
         this.grainSize = instrumentObject["grainSize"];
       }
       if (instrumentObject["grainAmounts"] != void 0) {
-        this.grainAmounts = instrumentObject["grainAmounts"];
+        this.grainFreq = instrumentObject["grainAmounts"];
       }
       if (instrumentObject["grainRange"] != void 0) {
         this.grainRange = clamp(0, Config.grainRangeMax / Config.grainSizeStep + 1, instrumentObject["grainRange"]);
@@ -6622,7 +6622,7 @@ var beepbox = (() => {
                 vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].granular - Config.modulators[granularIndex].convertRealFactor;
                 break;
               case grainAmountIndex:
-                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainAmounts - Config.modulators[grainAmountIndex].convertRealFactor;
+                vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainFreq - Config.modulators[grainAmountIndex].convertRealFactor;
                 break;
               case grainSizeIndex:
                 vol = this.channels[instrument.modChannels[modCount]].instruments[instrumentIndex].grainSize - Config.modulators[grainSizeIndex].convertRealFactor;
@@ -7025,7 +7025,7 @@ var beepbox = (() => {
           if (effectsIncludeGranular(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.granular]);
             buffer.push(base64IntToCharCode[instrument.grainSize]);
-            buffer.push(base64IntToCharCode[instrument.grainAmounts]);
+            buffer.push(base64IntToCharCode[instrument.grainFreq]);
             buffer.push(base64IntToCharCode[instrument.grainRange]);
           }
           if (effectsIncludeRingModulation(instrument.effects)) {
@@ -8592,7 +8592,7 @@ var beepbox = (() => {
               if (effectsIncludeGranular(instrument.effects)) {
                 instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 instrument.grainSize = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-                instrument.grainAmounts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                instrument.grainFreq = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 instrument.grainRange = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
               if (effectsIncludeRingModulation(instrument.effects)) {
@@ -9765,7 +9765,7 @@ var beepbox = (() => {
           break;
         case 2 /* scaleCustom */:
           let scale = numberData;
-          for (let i = 0; i < Config.pitchesPerOctave; i++) {
+          for (let i = Config.pitchesPerOctave - 1; i >= 0; i--) {
             this.scaleCustom[i] = (scale & 1) == 1;
             scale = scale << 1;
           }
@@ -9805,12 +9805,15 @@ var beepbox = (() => {
           break;
         case 14 /* pitchChannelCount */:
           this.pitchChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 15 /* noiseChannelCount */:
           this.noiseChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 16 /* modChannelCount */:
           this.modChannelCount = numberData;
+          this.channels.length = this.getChannelCount();
           break;
         case 17 /* limiterSettings */:
           const limiterSettings = JSON.parse(stringData);
@@ -9837,23 +9840,42 @@ var beepbox = (() => {
           break;
         case 22 /* pluginurl */:
           break;
-        case 23 /* updateChannel */:
+        case 23 /* channelOrder */:
+          const parsed = JSON.parse(stringData);
+          const selectionMin = parsed.selectionMin;
+          const selectionMax = parsed.selectionMax;
+          const offset = parsed.offset;
+          this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
+          break;
+        case 24 /* updateChannel */:
           const channel = this.channels[channelIndex];
           switch (instrumentSetting) {
-            case 0 /* patterns */:
-              const isNoise = this.getChannelIsNoise(channelIndex);
-              const isMod = this.getChannelIsMod(channelIndex);
-              channel.patterns[instrumentIndex].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+            case 0 /* fromJson */:
+              this.channels[channelIndex] = JSON.parse(stringData);
               break;
-            case 1 /* bars */:
+            case 1 /* patterns */: {
+              const isNoise2 = this.getChannelIsNoise(channelIndex);
+              const isMod2 = this.getChannelIsMod(channelIndex);
+              channel.patterns[instrumentIndex].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise2, isMod2);
+              break;
+            }
+            case 2 /* bars */:
               channel.bars[instrumentIndex] = numberData;
               break;
-            case 2 /* muted */:
+            case 3 /* muted */:
               channel.muted = numberData == 1;
+              break;
+            case 4 /* newInstrument */:
+              const isNoise = this.getChannelIsNoise(channelIndex);
+              const isMod = this.getChannelIsMod(channelIndex);
+              channel.instruments.push(new Instrument(isNoise, isMod));
+              channel.instruments[channel.instruments.length - 1].fromJsonObject(JSON.parse(stringData), isNoise, isMod, this.rhythm == 0 || this.rhythm == 2, this.rhythm >= 2);
+              break;
+            case 5 /* instruments */:
               break;
           }
           break;
-        case 24 /* updateInstrument */:
+        case 25 /* updateInstrument */:
           const instrument = this.channels[channelIndex].instruments[instrumentIndex];
           switch (instrumentSetting) {
             case 0 /* fromJson */:
@@ -9896,6 +9918,14 @@ var beepbox = (() => {
               break;
             case 12 /* eqFilterType */:
               instrument.eqFilterType = numberData == 1;
+              if (instrument.eqFilterType == true) {
+                instrument.eqFilter.reset();
+              } else {
+                instrument.eqFilter.convertLegacySettings(instrument.eqFilterSimpleCut, instrument.eqFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+              }
+              instrument.tmpEqFilterStart = instrument.eqFilter;
+              instrument.tmpEqFilterEnd = null;
+              instrument.clearInvalidEnvelopeTargets();
               break;
             case 13 /* eqFilterSimpleCut */:
               instrument.eqFilterSimpleCut = numberData;
@@ -9908,6 +9938,14 @@ var beepbox = (() => {
               break;
             case 16 /* noteFilterType */:
               instrument.noteFilterType = numberData == 1;
+              if (instrument.eqFilterType == true) {
+                instrument.noteFilter.reset();
+              } else {
+                instrument.noteFilter.convertLegacySettings(instrument.noteFilterSimpleCut, instrument.noteFilterSimplePeak, Config.envelopePresets.dictionary["none"]);
+              }
+              instrument.tmpNoteFilterStart = instrument.eqFilter;
+              instrument.tmpNoteFilterEnd = null;
+              instrument.clearInvalidEnvelopeTargets();
               break;
             case 17 /* noteFilterSimpleCut */:
               instrument.noteFilterSimpleCut = numberData;
@@ -10067,8 +10105,8 @@ var beepbox = (() => {
             case 68 /* grainSize */:
               instrument.grainSize = numberData;
               break;
-            case 69 /* grainAmounts */:
-              instrument.grainAmounts = numberData;
+            case 69 /* grainFreq */:
+              instrument.grainFreq = numberData;
               break;
             case 70 /* grainRange */:
               instrument.grainRange = numberData;
@@ -10086,6 +10124,7 @@ var beepbox = (() => {
               instrument.echoDelay = numberData;
               break;
             case 75 /* pluginValues */:
+              instrument.pluginValues[settingIndex] = numberData;
               break;
             case 76 /* algorithm */:
               instrument.algorithm = numberData;
@@ -10951,14 +10990,14 @@ var beepbox = (() => {
       }
     }
     updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
-      if (songSetting == 24 /* updateInstrument */ || songSetting == 23 /* updateChannel */) {
+      if (songSetting == 25 /* updateInstrument */ || songSetting == 24 /* updateChannel */) {
         if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
           throw new Error("missing index or setting number");
         }
       }
       const updateMessage = {
         flag: 9 /* updateSong */,
-        songSetting: 24 /* updateInstrument */,
+        songSetting: 25 /* updateInstrument */,
         channelIndex,
         instrumentIndex,
         instrumentSetting,
