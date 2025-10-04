@@ -6774,15 +6774,43 @@ export class Song {
                 break;
             case SongSettings.patternsPerChannel:
                 this.patternsPerChannel = numberData;
+                for (let i: number = 0; i < this.getChannelCount(); i++) {
+                    const channelBars: number[] = this.channels[i].bars;
+                    const channelPatterns: Pattern[] = this.channels[i].patterns;
+                    for (let j: number = 0; j < channelBars.length; j++) {
+                        if (channelBars[j] > numberData) channelBars[j] = 0;
+                    }
+                    for (let j: number = channelPatterns.length; j < numberData; j++) {
+                        channelPatterns[j] = new Pattern();
+                    }
+                    channelPatterns.length = numberData;
+                }
                 break;
             case SongSettings.rhythm:
                 this.rhythm = numberData;
                 break;
-            case SongSettings.layeredInstruments:
-                this.layeredInstruments = numberData == 1;
-                break;
-            case SongSettings.patternInstruments:
-                this.patternInstruments = numberData == 1;
+            case SongSettings.instrumentFlags:
+                const oldPatternInstruments = this.patternInstruments;
+                this.layeredInstruments = (numberData & 1) == 1;
+                this.patternInstruments = (numberData >> 1) == 1;
+
+                for (let channelIndex: number = 0; channelIndex < this.getChannelCount(); channelIndex++) {
+                            const channel: Channel = this.channels[channelIndex];
+                            if (channel.instruments.length > this.getMaxInstrumentsPerChannel()) {
+                                channel.instruments.length = this.getMaxInstrumentsPerChannel();
+                            }
+                            for (let j: number = 0; j < this.patternsPerChannel; j++) {
+                                const pattern: Pattern = channel.patterns[j];
+                                if (!oldPatternInstruments && this.patternInstruments) {
+                                    // patternInstruments was enabled, set up pattern instruments as appropriate.
+                                    for (let i: number = 0; i < channel.instruments.length; i++) {
+                                        pattern.instruments[i] = i;
+                                    }
+                                    pattern.instruments.length = channel.instruments.length;
+                                }
+                                discardInvalidPatternInstruments(pattern.instruments, this, channelIndex);
+                            }
+                        }
                 break;
             case SongSettings.loopStart:
                 this.loopStart = numberData;
@@ -6842,11 +6870,21 @@ export class Song {
                     case ChannelSettings.fromJson:
                         this.channels[channelIndex!] = JSON.parse(stringData);
                         break;
-                    case ChannelSettings.patterns:{
+                    case ChannelSettings.allPatterns: {
+                        const patterns: object[] = JSON.parse(stringData);
+                        const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
+                        const isMod: boolean = this.getChannelIsMod(channelIndex!);
+                        for (const pattern of patterns) {
+                            channel.patterns[instrumentIndex!].fromJsonObject(pattern, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+                        }
+                        break;
+                    } case ChannelSettings.pattern:{
                         //instrumentIndex hijacked for a pattern/bar index
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
                         channel.patterns[instrumentIndex!].fromJsonObject(stringData, this, channel, Config.rhythms[this.rhythm].stepsPerBeat, isNoise, isMod);
+                        
+                        discardInvalidPatternInstruments(channel.patterns[instrumentIndex!].instruments, this, channelIndex!);
                         break;
                     } case ChannelSettings.bars:
                         channel.bars[instrumentIndex!] = numberData;
@@ -7906,6 +7944,24 @@ export class Song {
         this.limitThreshold = 1.0;
         this.compressionThreshold = 1.0;
         this.masterGain = 1.0;
+    }
+}
+
+export function discardInvalidPatternInstruments(instruments: number[], song: Song, channelIndex: number) {
+    const uniqueInstruments: Set<number> = new Set(instruments);
+    instruments.length = 0;
+    instruments.push(...uniqueInstruments);
+    for (let i: number = 0; i < instruments.length; i++) {
+        if (instruments[i] >= song.channels[channelIndex].instruments.length) {
+            instruments.splice(i, 1);
+            i--;
+        }
+    }
+    if (instruments.length > song.getMaxInstrumentsPerPattern(channelIndex)) {
+        instruments.length = song.getMaxInstrumentsPerPattern(channelIndex);
+    }
+    if (instruments.length <= 0) {
+        instruments[0] = 0;
     }
 }
 

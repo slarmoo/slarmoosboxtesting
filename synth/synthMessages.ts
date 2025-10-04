@@ -93,8 +93,7 @@ export enum SongSettings {
     barCount,
     patternsPerChannel,
     rhythm,
-    layeredInstruments,
-    patternInstruments,
+    instrumentFlags,
     loopStart,
     loopLength,
     pitchChannelCount,
@@ -113,7 +112,8 @@ export enum SongSettings {
 
 export enum ChannelSettings {
     fromJson,
-    patterns,
+    pattern,
+    allPatterns,
     bars,
     muted,
     newInstrument,

@@ -2696,7 +2696,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 
     public setSong(song: string): void {
-        if (typeof (song) == "string") {
+        if (this.song) {
+            this.song.fromBase64String(song);
+        } else {
             this.song = new Song(song);
         }
         this.prevBar = null;

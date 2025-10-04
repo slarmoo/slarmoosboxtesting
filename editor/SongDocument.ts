@@ -2,7 +2,7 @@
 
 import { Config } from "../synth/SynthConfig";
 import { isMobile } from "./DeviceConfig";
-import { Pattern, Channel, Song, SynthMessenger } from "../synth/synth";
+import { Pattern, Channel, Song, SynthMessenger, discardInvalidPatternInstruments } from "../synth/synth";
 import { SongRecovery, generateUid, errorAlert } from "./SongRecovery";
 import { ColorConfig } from "./ColorConfig";
 import { Layout } from "./Layout";
@@ -11,7 +11,7 @@ import { Selection } from "./Selection";
 import { Preferences } from "./Preferences";
 import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
-import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
+import { ChangeSong, setDefaultInstruments, ChangeHoldingModRecording } from "./changes";
 
 interface HistoryState {
     canUndo: boolean;
