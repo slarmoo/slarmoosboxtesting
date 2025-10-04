@@ -995,7 +995,7 @@ class EnvelopeComputer {
             startNote = 0;
             endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
         }
-        const range = endNote - startNote + 1;
+        const range = endNote - startNote;
         if (!inverse) {
             if (pitch <= startNote) {
                 return envelopeLowerBound;
