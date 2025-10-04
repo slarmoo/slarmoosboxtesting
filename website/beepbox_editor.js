@@ -9432,14 +9432,23 @@ var beepbox = (() => {
 		:root {
 			--page-margin: #020009;
 			--editor-background: #020009;
+			--hover-preview: white;
+			--playhead: white;
+			--primary-text: white;
 			--secondary-text: white;
+			--inverted-text: black;
 			--text-selection: #c2a855;
+			--box-selection-fill: rgba(255, 255, 255, 0.2);
 			--loop-accent: #fff570;
 			--link-accent: #fff570;
 			--ui-widget-background: #191721;
 			--ui-widget-focus: #2d293b;
-			--pitch-background: #44444A;
+			--pitch-background: #443d4a;
 			--tonic: #c2a855;
+			--fifth-note: #a0cd7c;
+			--third-note: #486;
+			--white-piano-key: #bbb;
+			--black-piano-key: #444;
 			--white-piano-key-text: #131200;
 			--black-piano-key-text: #fff;
 			--use-color-formula: false;
@@ -9501,13 +9510,38 @@ var beepbox = (() => {
 
 			--pitch9-secondary-channel: #c42f6b;
 			--pitch9-primary-channel: #fc5d9d;
-			--pitch9-secondary-note: #cf3b77;
+			--pitch9-secondary-note: #cf3b77;   
 			--pitch9-primary-note: #e36f9e;
 
 			--pitch10-secondary-channel: #d53c5e;
 			--pitch10-primary-channel: #f65a7e;
 			--pitch10-secondary-note: #e13e60;
 			--pitch10-primary-note: #ed8090;
+
+			--noise1-secondary-channel: #6F6F6F;
+			--noise1-primary-channel: #AAAAAA;
+			--noise1-secondary-note: #A7A7A7;
+			--noise1-primary-note: #E0E0E0;
+
+			--noise2-secondary-channel: #996633;
+			--noise2-primary-channel: #DDAA77;
+			--noise2-secondary-note: #CC9966;
+			--noise2-primary-note: #F0D0BB;
+
+			--noise3-secondary-channel: #4A6D8F;
+			--noise3-primary-channel: #77AADD;
+			--noise3-secondary-note: #6F9FCF;
+			--noise3-primary-note: #BBD7FF;
+
+			--noise4-secondary-channel: #7A4F9A;
+			--noise4-primary-channel: #AF82D2;
+			--noise4-secondary-note: #9E71C1;
+			--noise4-primary-note: #D4C1EA;
+
+			--noise5-secondary-channel: #607837;
+			--noise5-primary-channel: #A2BB77;
+			--noise5-secondary-note: #91AA66;
+			--noise5-primary-note: #C5E2B2;
 
 			--mod1-secondary-channel: #339955;
 			--mod1-primary-channel: #77fc55;
@@ -23879,7 +23913,7 @@ li.select2-results__option[role=group] > strong:hover {
       const newNoiseChannelCount = doc.song.noiseChannelCount + (!isNoise || isMod ? 0 : 1);
       const newModChannelCount = doc.song.modChannelCount + (isNoise || !isMod ? 0 : 1);
       if (newPitchChannelCount <= Config.pitchChannelCountMax && newNoiseChannelCount <= Config.noiseChannelCountMax && newModChannelCount <= Config.modChannelCountMax) {
-        const addedChannelIndex = isMod ? doc.song.pitchChannelCount + doc.song.noiseChannelCount + doc.song.modChannelCount : isNoise ? doc.song.pitchChannelCount + doc.song.noiseChannelCount : doc.song.pitchChannelCount;
+        const addedChannelIndex = doc.song.pitchChannelCount + (isNoise ? doc.song.noiseChannelCount : 0) + (isMod ? doc.song.modChannelCount : 0);
         this.append(new ChangeChannelCount(doc, newPitchChannelCount, newNoiseChannelCount, newModChannelCount));
         if (addedChannelIndex - 1 >= index) {
           this.append(new ChangeChannelOrder(doc, index, addedChannelIndex - 1, 1));
@@ -43453,7 +43487,7 @@ You should be redirected to the song at:<br /><br />
   };
 
   // editor/AddSamplesPrompt.ts
-  var { div: div24, input: input18, button: button23, a: a4, code: code2, textarea, details, summary, span: span6, ul, li, select: select12, option: option12, h2: h224 } = HTML;
+  var { div: div24, input: input18, button: button23, a: a4, code: code2, textarea, details, summary, span: span6, ul, li, select: select12, option: option12, h2: h224, p: p10 } = HTML;
   var AddSamplesPrompt = class {
     constructor(_doc) {
       this._maxSamples = 64;
@@ -43469,13 +43503,15 @@ You should be redirected to the song at:<br /><br />
         this._addSampleButton,
         this._addMultipleSamplesButton
       );
-      this._instructionsLink = a4({ href: "#" }, "Here's more information and some instructions on how to use custom samples in Slarmoo's Box.");
+      this._instructionsLink = a4({ href: "#", style: "color:var(--loop-accent, red); font-weight:bold;" }, "> Click Here for instructions on adding samples <");
       this._description = div24(
         div24(
           { style: "margin-bottom: 0.5em; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; cursor: text;" },
           "In order to use the old Slarmoo's Box samples, you should add ",
           code2("legacySamples"),
-          " as an URL. You can also use ",
+          " for the PaandorasBox Samples.",
+          p10({}),
+          "You can also use ",
           code2("nintariboxSamples"),
           " and ",
           code2("marioPaintboxSamples"),
@@ -43483,10 +43519,10 @@ You should be redirected to the song at:<br /><br />
         ),
         div24(
           { style: "margin-bottom: 0.5em;" },
-          "The order of these samples is important - if you change it you'll break your song!"
+          "The order of these samples is important - if you change their order or remove them you'll break your song!"
         ),
         div24(
-          { style: "margin-bottom: 0.5em;" },
+          { style: "margin-bottom: 0.5em; font-size: 17px;" },
           this._instructionsLink
         )
       );
@@ -43515,7 +43551,10 @@ You should be redirected to the song at:<br /><br />
             " This is always an issue with servers: it may run out of space,",
             " stop working, and so on. With arbitrary URLs, you can always ",
             " change them to different ones if they stop working."
-          )
+          ),
+          p10({}),
+          "Simply go and upload your samples to a website we suggest down below, once you do that you can copy that URL and paste it into the text input you can find after pressing the 'Add Sample' button.",
+          "You know the sample works once you see the name of the sample appear above the text input! Then just press 'Okay' and your sample will appear! To use samples just change your instrument to a chip wave instrument type and scroll down until you find the samples."
         ),
         div24(
           { style: "margin-top: 0.5em; margin-bottom: 0.5em;" },
