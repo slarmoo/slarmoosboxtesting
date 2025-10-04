@@ -5729,15 +5729,23 @@ export class ColorConfig {
 		:root {
 			--page-margin: #020009;
 			--editor-background: #020009;
+			--hover-preview: white;
+			--playhead: white;
+			--primary-text: white;
 			--secondary-text: white;
+			--inverted-text: black;
 			--text-selection: #c2a855;
+			--box-selection-fill: rgba(255, 255, 255, 0.2);
 			--loop-accent: #fff570;
 			--link-accent: #fff570;
-			--fifth-note: #a0cd7c;
 			--ui-widget-background: #191721;
 			--ui-widget-focus: #2d293b;
-			--pitch-background: #44444A;
+			--pitch-background: #443d4a;
 			--tonic: #c2a855;
+			--fifth-note: #a0cd7c;
+			--third-note: #486;
+			--white-piano-key: #bbb;
+			--black-piano-key: #444;
 			--white-piano-key-text: #131200;
 			--black-piano-key-text: #fff;
 			--use-color-formula: false;
@@ -5799,13 +5807,38 @@ export class ColorConfig {
 
 			--pitch9-secondary-channel: #c42f6b;
 			--pitch9-primary-channel: #fc5d9d;
-			--pitch9-secondary-note: #cf3b77;
+			--pitch9-secondary-note: #cf3b77;   
 			--pitch9-primary-note: #e36f9e;
 
 			--pitch10-secondary-channel: #d53c5e;
 			--pitch10-primary-channel: #f65a7e;
 			--pitch10-secondary-note: #e13e60;
 			--pitch10-primary-note: #ed8090;
+
+			--noise1-secondary-channel: #6F6F6F;
+			--noise1-primary-channel: #AAAAAA;
+			--noise1-secondary-note: #A7A7A7;
+			--noise1-primary-note: #E0E0E0;
+
+			--noise2-secondary-channel: #996633;
+			--noise2-primary-channel: #DDAA77;
+			--noise2-secondary-note: #CC9966;
+			--noise2-primary-note: #F0D0BB;
+
+			--noise3-secondary-channel: #4A6D8F;
+			--noise3-primary-channel: #77AADD;
+			--noise3-secondary-note: #6F9FCF;
+			--noise3-primary-note: #BBD7FF;
+
+			--noise4-secondary-channel: #7A4F9A;
+			--noise4-primary-channel: #AF82D2;
+			--noise4-secondary-note: #9E71C1;
+			--noise4-primary-note: #D4C1EA;
+
+			--noise5-secondary-channel: #607837;
+			--noise5-primary-channel: #A2BB77;
+			--noise5-secondary-note: #91AA66;
+			--noise5-primary-note: #C5E2B2;
 
 			--mod1-secondary-channel: #339955;
 			--mod1-primary-channel: #77fc55;
