@@ -942,13 +942,13 @@ var beepbox = (function (exports) {
         { name: "flare", type: 5, speed: 32.0 },
         { name: "twang", type: 6, speed: 32.0 },
         { name: "swell", type: 7, speed: 32.0 },
-        { name: "lfo", type: 8, speed: 4.0 },
+        { name: "lfo", type: 8, speed: 1.0 },
         { name: "decay", type: 10, speed: 10.0 },
         { name: "wibble", type: 11, speed: 24.0 },
         { name: "linear", type: 12, speed: 32.0 },
         { name: "rise", type: 13, speed: 32.0 },
         { name: "blip", type: 14, speed: 6.0 },
-        { name: "fall", type: 15, speed: 2.0 },
+        { name: "fall", type: 15, speed: 6.0 },
     ]);
     Config.feedbacks = toNameMap([
         { name: "1⟲", indices: [[1], [], [], []] },
@@ -8049,14 +8049,23 @@ var beepbox = (function (exports) {
 		:root {
 			--page-margin: #020009;
 			--editor-background: #020009;
+			--hover-preview: white;
+			--playhead: white;
+			--primary-text: white;
 			--secondary-text: white;
+			--inverted-text: black;
 			--text-selection: #c2a855;
+			--box-selection-fill: rgba(255, 255, 255, 0.2);
 			--loop-accent: #fff570;
 			--link-accent: #fff570;
 			--ui-widget-background: #191721;
 			--ui-widget-focus: #2d293b;
-			--pitch-background: #44444A;
+			--pitch-background: #443d4a;
 			--tonic: #c2a855;
+			--fifth-note: #a0cd7c;
+			--third-note: #486;
+			--white-piano-key: #bbb;
+			--black-piano-key: #444;
 			--white-piano-key-text: #131200;
 			--black-piano-key-text: #fff;
 			--use-color-formula: false;
@@ -8118,13 +8127,38 @@ var beepbox = (function (exports) {
 
 			--pitch9-secondary-channel: #c42f6b;
 			--pitch9-primary-channel: #fc5d9d;
-			--pitch9-secondary-note: #cf3b77;
+			--pitch9-secondary-note: #cf3b77;   
 			--pitch9-primary-note: #e36f9e;
 
 			--pitch10-secondary-channel: #d53c5e;
 			--pitch10-primary-channel: #f65a7e;
 			--pitch10-secondary-note: #e13e60;
 			--pitch10-primary-note: #ed8090;
+
+			--noise1-secondary-channel: #6F6F6F;
+			--noise1-primary-channel: #AAAAAA;
+			--noise1-secondary-note: #A7A7A7;
+			--noise1-primary-note: #E0E0E0;
+
+			--noise2-secondary-channel: #996633;
+			--noise2-primary-channel: #DDAA77;
+			--noise2-secondary-note: #CC9966;
+			--noise2-primary-note: #F0D0BB;
+
+			--noise3-secondary-channel: #4A6D8F;
+			--noise3-primary-channel: #77AADD;
+			--noise3-secondary-note: #6F9FCF;
+			--noise3-primary-note: #BBD7FF;
+
+			--noise4-secondary-channel: #7A4F9A;
+			--noise4-primary-channel: #AF82D2;
+			--noise4-secondary-note: #9E71C1;
+			--noise4-primary-note: #D4C1EA;
+
+			--noise5-secondary-channel: #607837;
+			--noise5-primary-channel: #A2BB77;
+			--noise5-secondary-note: #91AA66;
+			--noise5-primary-note: #C5E2B2;
 
 			--mod1-secondary-channel: #339955;
 			--mod1-primary-channel: #77fc55;
@@ -8662,7 +8696,7 @@ var beepbox = (function (exports) {
             return (_a = EditorConfig.presetCategories[0].presets.dictionary) === null || _a === void 0 ? void 0 : _a[TypePresets === null || TypePresets === void 0 ? void 0 : TypePresets[instrument]];
         }
     }
-    EditorConfig.version = "1.4.9";
+    EditorConfig.version = "1.4.10";
     EditorConfig.versionDisplayName = "Slarmoo's Box " + EditorConfig.version;
     EditorConfig.releaseNotesURL = "./patch_notes.html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
@@ -11436,7 +11470,23 @@ var beepbox = (function (exports) {
                     instrumentObject["unisonSign"] = this.unisonSign;
                 }
             }
-            else if (this.type == 1 || this.type == 11) {
+            else if (this.type == 1) {
+                const operatorArray = [];
+                for (let i = 0; i < Config.operatorCount; i++) {
+                    const operator = this.operators[i];
+                    operatorArray.push({
+                        "frequency": Config.operatorFrequencies[operator.frequency].name,
+                        "amplitude": operator.amplitude,
+                        "waveform": Config.operatorWaves[operator.waveform].name,
+                        "pulseWidth": operator.pulseWidth,
+                    });
+                }
+                instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
+                instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
+                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+                instrumentObject["operators"] = operatorArray;
+            }
+            else if (this.type == 11) {
                 const operatorArray = [];
                 for (const operator of this.operators) {
                     operatorArray.push({
@@ -11446,29 +11496,21 @@ var beepbox = (function (exports) {
                         "pulseWidth": operator.pulseWidth,
                     });
                 }
-                if (this.type == 1) {
-                    instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
-                    instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
-                    instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                    instrumentObject["operators"] = operatorArray;
+                instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
+                instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
+                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+                if (this.algorithm6Op == 0) {
+                    const customAlgorithm = {};
+                    customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
+                    customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
+                    instrumentObject["customAlgorithm"] = customAlgorithm;
                 }
-                else {
-                    instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
-                    instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
-                    instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                    if (this.algorithm6Op == 0) {
-                        const customAlgorithm = {};
-                        customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
-                        customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
-                        instrumentObject["customAlgorithm"] = customAlgorithm;
-                    }
-                    if (this.feedbackType6Op == 0) {
-                        const customFeedback = {};
-                        customFeedback["mods"] = this.customFeedbackType.indices;
-                        instrumentObject["customFeedback"] = customFeedback;
-                    }
-                    instrumentObject["operators"] = operatorArray;
+                if (this.feedbackType6Op == 0) {
+                    const customFeedback = {};
+                    customFeedback["mods"] = this.customFeedbackType.indices;
+                    instrumentObject["customFeedback"] = customFeedback;
                 }
+                instrumentObject["operators"] = operatorArray;
             }
             else if (this.type == 9) {
                 instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
@@ -17096,7 +17138,7 @@ var beepbox = (function (exports) {
                 startNote = 0;
                 endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
             }
-            const range = endNote - startNote;
+            const range = endNote - startNote + 1;
             if (!inverse) {
                 if (pitch <= startNote) {
                     return envelopeLowerBound;
@@ -20851,10 +20893,8 @@ var beepbox = (function (exports) {
                         useSpreadStart = (this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, false)) / Config.supersawSpreadMax;
                         useSpreadEnd = (this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, true)) / Config.supersawSpreadMax;
                     }
-                    useSpreadStart = Math.max(0, useSpreadStart);
-                    useSpreadEnd = Math.max(0, useSpreadEnd);
-                    const spreadSliderStart = useSpreadStart * envelopeStarts[39];
-                    const spreadSliderEnd = useSpreadEnd * envelopeEnds[39];
+                    const spreadSliderStart = Math.max(0, useSpreadStart) * envelopeStarts[39];
+                    const spreadSliderEnd = Math.max(0, useSpreadEnd) * envelopeEnds[39];
                     const averageSpreadSlider = (spreadSliderStart + spreadSliderEnd) * 0.5;
                     const curvedSpread = Math.pow(1.0 - Math.sqrt(Math.max(0.0, 1.0 - averageSpreadSlider)), 1.75);
                     for (let i = 0; i < Config.supersawVoiceCount; i++) {
@@ -23856,6 +23896,7 @@ var beepbox = (function (exports) {
         else {
             synth.loopRepeatCount = -1;
         }
+        setLocalStorage("loopMode", synth.loopRepeatCount + "");
         renderLoopIcon();
     }
     function onVolumeChange() {
@@ -23864,6 +23905,7 @@ var beepbox = (function (exports) {
     }
     function onToggleZoom() {
         zoomEnabled = !zoomEnabled;
+        setLocalStorage("zoomMode", zoomEnabled + "");
         renderZoomIcon();
         renderTimeline();
     }
@@ -24179,7 +24221,20 @@ var beepbox = (function (exports) {
     if (getLocalStorage("volume") != null) {
         volumeSlider.value = getLocalStorage("volume");
     }
+    if (getLocalStorage("loopMode") != null) {
+        synth.loopRepeatCount = parseInt(getLocalStorage("loopMode"));
+    }
+    if (getLocalStorage("zoomMode") != null) {
+        zoomEnabled = getLocalStorage("zoomMode") == "true";
+    }
     setSynthVolume();
+    hashUpdatedExternally();
+    renderLoopIcon();
+    renderZoomIcon();
+    renderPlayButton();
+    if (synth.song && synth.song.title) {
+        titleText.innerText = synth.song.title;
+    }
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("keydown", onKeyPressed);
     timeline.addEventListener("mousedown", onTimelineMouseDown);
@@ -24197,10 +24252,6 @@ var beepbox = (function (exports) {
     shareLink.addEventListener("click", onShareClicked);
     window.addEventListener("hashchange", hashUpdatedExternally);
     sampleLoadEvents.addEventListener("sampleloaded", updateSampleLoadingBar.bind(exports));
-    hashUpdatedExternally();
-    renderLoopIcon();
-    renderZoomIcon();
-    renderPlayButton();
 
     exports.Channel = Channel;
     exports.Config = Config;
