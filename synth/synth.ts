@@ -2264,7 +2264,22 @@ export class Instrument {
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
             }
-        } else if (this.type == InstrumentType.fm || this.type == InstrumentType.fm6op) {
+        } else if (this.type == InstrumentType.fm) {
+            const operatorArray: Object[] = [];
+            for (let i = 0; i < Config.operatorCount; i++) {
+                const operator = this.operators[i];
+                operatorArray.push({
+                    "frequency": Config.operatorFrequencies[operator.frequency].name,
+                    "amplitude": operator.amplitude,
+                    "waveform": Config.operatorWaves[operator.waveform].name,
+                    "pulseWidth": operator.pulseWidth,
+                });
+            }
+            instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
+            instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
+            instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+            instrumentObject["operators"] = operatorArray;
+        } else if (this.type == InstrumentType.fm6op) {
             const operatorArray: Object[] = [];
             for (const operator of this.operators) {
                 operatorArray.push({
@@ -2274,29 +2289,22 @@ export class Instrument {
                     "pulseWidth": operator.pulseWidth,
                 });
             }
-            if (this.type == InstrumentType.fm) {
-                instrumentObject["algorithm"] = Config.algorithms[this.algorithm].name;
-                instrumentObject["feedbackType"] = Config.feedbacks[this.feedbackType].name;
-                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                instrumentObject["operators"] = operatorArray;
-            } else {
-                instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
-                instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
-                instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
-                if (this.algorithm6Op == 0) {
-                    const customAlgorithm: any = {};
-                    customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
-                    customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
-                    instrumentObject["customAlgorithm"] = customAlgorithm;
-                }
-                if (this.feedbackType6Op == 0) {
-                    const customFeedback: any = {};
-                    customFeedback["mods"] = this.customFeedbackType.indices;
-                    instrumentObject["customFeedback"] = customFeedback;
-                }
-
-                instrumentObject["operators"] = operatorArray;
+            instrumentObject["algorithm"] = Config.algorithms6Op[this.algorithm6Op].name;
+            instrumentObject["feedbackType"] = Config.feedbacks6Op[this.feedbackType6Op].name;
+            instrumentObject["feedbackAmplitude"] = this.feedbackAmplitude;
+            if (this.algorithm6Op == 0) {
+                const customAlgorithm: any = {};
+                customAlgorithm["mods"] = this.customAlgorithm.modulatedBy;
+                customAlgorithm["carrierCount"] = this.customAlgorithm.carrierCount;
+                instrumentObject["customAlgorithm"] = customAlgorithm;
             }
+            if (this.feedbackType6Op == 0) {
+                const customFeedback: any = {};
+                customFeedback["mods"] = this.customFeedbackType.indices;
+                instrumentObject["customFeedback"] = customFeedback;
+            }
+
+            instrumentObject["operators"] = operatorArray;
         } else if (this.type == InstrumentType.customChipWave) {
             instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
             instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
@@ -8400,7 +8408,7 @@ class EnvelopeComputer {
             startNote = 0;
             endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
         }
-        const range = endNote - startNote + 1;
+        const range = endNote - startNote + 1; //TODO: fix range
         if (!inverse) {
             if (pitch <= startNote) {
                 return envelopeLowerBound;
@@ -9707,7 +9715,6 @@ export class Synth {
 
 
     public computeLatestModValues(): void {
-
         if (this.song != null && this.song.modChannelCount > 0) {
 
             // Clear all mod values, and set up temp variables for the time a mod would be set at.
@@ -12892,20 +12899,16 @@ export class Synth {
                     useSpreadEnd = (this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, true)) / Config.supersawSpreadMax;
                 }
 
-                //clamp the spread values to prevent negative ones polluting the output
-                useSpreadStart = Math.max(0, useSpreadStart);
-                useSpreadEnd = Math.max(0, useSpreadEnd);
-
-                const spreadSliderStart: number = useSpreadStart * envelopeStarts[EnvelopeComputeIndex.supersawSpread];
-                const spreadSliderEnd: number = useSpreadEnd * envelopeEnds[EnvelopeComputeIndex.supersawSpread];
-                // Just use the average detune for the current tick in the below loop.
-                const averageSpreadSlider: number = (spreadSliderStart + spreadSliderEnd) * 0.5;
-                const curvedSpread: number = Math.pow(1.0 - Math.sqrt(Math.max(0.0, 1.0 - averageSpreadSlider)), 1.75);
-                for (let i = 0; i < Config.supersawVoiceCount; i++) {
-                    // Spread out the detunes around the center;
-                    const offset: number = (i == 0) ? 0.0 : Math.pow((((i + 1) >> 1) - 0.5 + 0.025 * ((i & 2) - 1)) / (Config.supersawVoiceCount >> 1), 1.1) * ((i & 1) * 2 - 1);
-                    tone.supersawUnisonDetunes[i] = Math.pow(2.0, curvedSpread * offset / 12.0);
-                }
+				const spreadSliderStart: number = Math.max(0, useSpreadStart) * envelopeStarts[EnvelopeComputeIndex.supersawSpread];
+				const spreadSliderEnd:   number = Math.max(0, useSpreadEnd) * envelopeEnds[EnvelopeComputeIndex.supersawSpread];
+				// Just use the average detune for the current tick in the below loop.
+				const averageSpreadSlider: number = (spreadSliderStart + spreadSliderEnd) * 0.5;
+				const curvedSpread: number = Math.pow(1.0 - Math.sqrt(Math.max(0.0, 1.0 - averageSpreadSlider)), 1.75);
+				for (let i = 0; i < Config.supersawVoiceCount; i++) {
+					// Spread out the detunes around the center;
+					const offset: number = (i == 0) ? 0.0 : Math.pow((((i + 1) >> 1) - 0.5 + 0.025 * ((i & 2) - 1)) / (Config.supersawVoiceCount >> 1), 1.1) * ((i & 1) * 2 - 1);
+					tone.supersawUnisonDetunes[i] = Math.pow(2.0, curvedSpread * offset / 12.0);
+				}
 
                 const baseShape: number = instrument.supersawShape / Config.supersawShapeMax;
                 // Saw shape mods

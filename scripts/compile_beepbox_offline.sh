@@ -44,9 +44,8 @@ npx terser \
 	--mangle \
 	--mangle-props regex="/^_.+/;"
 
-cp ./website/offline/icon.ico to_deploy/
+cp ./website/offline/favicon.ico to_deploy/
 cp ./website/offline/icon.png to_deploy/
-cp ./website/offline/icon.ico to_deploy/
 cp ./website/offline/main.js to_deploy/
 cp ./website/offline/preload.js to_deploy/
 cp ./website/offline/3JnySDDxiSz36j6yGQ.woff2 to_deploy/
