@@ -7,6 +7,7 @@ import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 import { events } from "../global/Events";
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
+import { loadPlugin, TickContext, type PluginModule } from "./loadPlugin";
 import { xxHash32 } from "js-xxhash";
 
 declare global {
@@ -3515,11 +3516,8 @@ export class Song {
         this.eqFilter.reset();
         //clear plugin data
         this.pluginurl = null;
-        Synth.pluginValueNames = [];
-        Synth.pluginInstrumentStateFunction = null;
-        Synth.pluginFunction = null;
-        Synth.pluginIndex = 0;
-        Synth.PluginDelayLineSize = 0;
+        // Synth.pluginModule?.destroy();
+        // Synth.pluginModule = undefined;
         PluginConfig.pluginUIElements = [];
         PluginConfig.pluginName = "";
 
@@ -3825,11 +3823,12 @@ export class Song {
                     buffer.push(base64IntToCharCode[instrument.ringModulationHz]);
                     buffer.push(base64IntToCharCode[instrument.ringModWaveformIndex]);
                     buffer.push(base64IntToCharCode[(instrument.ringModPulseWidth)]);
+                    // TODO: skip character on url update. I don't need ringModHzOffset
                     buffer.push(base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) >> 6], base64IntToCharCode[(instrument.ringModHzOffset - Config.rmHzOffsetMin) & 0x3F]);
                 }
                 if (effectsIncludePlugin(instrument.effects)) {
                     let pluginValueCount: number = PluginConfig.pluginUIElements.length
-                    if (PluginConfig.pluginUIElements.length == 0) {
+                    if (pluginValueCount) {
                         for (let i = 0; i < instrument.pluginValues.length; i++) {
                             if (instrument.pluginValues[pluginValueCount]) pluginValueCount = i;
                         }
@@ -4485,6 +4484,7 @@ export class Song {
             //set the pluginurl
             if (this.pluginurl != pluginurl) {
                 this.pluginurl = pluginurl;
+                console.log("fetching plugin url");
                 if(pluginurl) this.fetchPlugin(pluginurl);
             }
         }
@@ -6608,21 +6608,29 @@ export class Song {
                     throw new Error("Couldn't load plugin");
                 }
                 return response;
-            }).then((response) => {
-                return response.json();
-            }).then((plugin) => {
-                //decode and store the data
-                Synth.pluginValueNames = plugin.variableNames || [];
-                Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-                Synth.pluginFunction = plugin.synthFunction || "";
-                Synth.pluginIndex = plugin.effectOrderIndex || 0;
-                Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
-                PluginConfig.pluginUIElements = plugin.elements || [];
-                PluginConfig.pluginName = plugin.pluginName || "plugin";
-            }).then(() => {
+            }).then((wasm) => wasm.arrayBuffer())
+            .then((wasmBytes) => 
+                loadPlugin(wasmBytes)
+            ).then((plugin: PluginModule | undefined) => {
+                Synth.pluginModule = plugin;
+                PluginConfig.pluginUIElements = plugin?.uielements || [];
+            }
+            // }).then((response) => {
+            //     return response.json();
+            // }).then((plugin) => {
+            //     //decode and store the data
+            //     Synth.pluginValueNames = plugin.variableNames || [];
+            //     Synth.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
+            //     Synth.pluginFunction = plugin.synthFunction || "";
+            //     Synth.pluginIndex = plugin.effectOrderIndex || 0;
+            //     Synth.PluginDelayLineSize = plugin.delayLineSize || 0;
+            //     PluginConfig.pluginUIElements = plugin.elements || [];
+            //     PluginConfig.pluginName = plugin.pluginName || "plugin";
+            ).then(() => {
                 if (Synth.rerenderSongEditorAfterPluginLoad) Synth.rerenderSongEditorAfterPluginLoad();
-             }).catch(() => {
-                window.alert("couldn't load plugin "+ pluginurl);
+            }).catch((e: Error) => {
+                console.error("Plugin load error:", e);
+                // window.alert("couldn't load plugin " + pluginurl + "; " + e);
             })
         }
     }
@@ -8754,9 +8762,8 @@ class InstrumentState {
     public reverbShelfPrevInput2: number = 0.0;
     public reverbShelfPrevInput3: number = 0.0;
 
-    public pluginValues: number[] = [];
     public pluginDelayLine: Float32Array | null = null;
-    public pluginDelayLineSize: number = Synth.PluginDelayLineSize;
+    public pluginDelayLineSize: number = 0;
     public pluginDelayLineDirty: boolean = false
 
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
@@ -9450,11 +9457,17 @@ class InstrumentState {
             this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
             this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
         }
-        if (usesPlugin && Synth.pluginInstrumentStateFunction) {
+        if (usesPlugin && Synth.pluginModule) {
             //default delay line size. Can be updated in plugin function
-            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-            //fill plugin array
-            new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
+            this.pluginDelayLineSize = Synth.pluginModule?.getDelayLineLength();
+            //tick plugin
+            for (let i: number = 0; i < instrument.pluginValues.length; i++) {
+                Synth.pluginModule.setParam(i, instrument.pluginValues[i]);
+            }
+            const tickContext: TickContext = {
+                samplesPerTick: samplesPerTick
+            }
+            Synth.pluginModule.tick(tickContext);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -9502,7 +9515,7 @@ class InstrumentState {
             }
 
             if (usesPlugin) {
-                delayDuration += Synth.PluginDelayLineSize;
+                delayDuration += Synth.pluginModule?.getDelayLineLength();
             }
 
             const secondsInTick: number = samplesPerTick / samplesPerSecond;
@@ -9528,7 +9541,7 @@ class InstrumentState {
             if (usesEcho) totalDelaySamples += this.echoDelayLineL!.length;
             if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
             if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
-            if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
+            if (usesPlugin) totalDelaySamples += Synth.pluginModule?.getDelayLineLength();
 
             this.flushedSamples += roundedSamplesPerTick;
             if (this.flushedSamples >= totalDelaySamples) {
@@ -10028,11 +10041,13 @@ export class Synth {
     private static readonly harmonicsFunctionCache: Function[] = [];
     private static readonly loopableChipFunctionCache: Function[] = Array(Config.unisonVoicesMax + 1).fill(undefined); //For loopable chips, we have a matrix where the rows represent voices and the columns represent loop types
 
-    public static pluginFunction: string | null = null;
-    public static pluginIndex: number = 0;
-    public static pluginValueNames: string[] = [];
-    public static pluginInstrumentStateFunction: string | null = null;
-    public static PluginDelayLineSize: number = 0;
+    public static pluginModule: PluginModule | undefined = undefined;
+    // public pluginInstance: PluginInstance | null = null;
+    // public static pluginFunction: string | null = null;
+    // public static pluginIndex: number = 0;
+    // public static pluginValueNames: string[] = [];
+    // public static pluginInstrumentStateFunction: string | null = null;
+    // public static PluginDelayLineSize: number = 0;
     public static rerenderSongEditorAfterPluginLoad: Function | null = null;
 
     public readonly channels: ChannelState[] = [];
@@ -14232,13 +14247,18 @@ export class Synth {
             }
 
             if (usesPlugin) {
-                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
-                }
                 effectsSource += `
                 const pluginDelayLine = instrumentState.pluginDelayLine;
                 instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                
+                const renderContext = {
+                    runLength: runLength,
+                    startIndex: bufferIndex,
+                    samples: [tempMonoInstrumentSampleBuffer]
+                };
+                Synth.pluginModule.render(renderContext);
                 `
+                
             }
 
             effectsSource += `
@@ -14566,10 +14586,6 @@ export class Synth {
                 effectOrder.push("");
             }
 
-
-            if (usesPlugin && Synth.pluginFunction) {
-                effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
-            }
             effectsSource += effectOrder.join("");
 
             effectsSource += `
@@ -14736,12 +14752,6 @@ export class Synth {
 				instrumentState.reverbShelfPrevInput1 = reverbShelfPrevInput1;
 				instrumentState.reverbShelfPrevInput2 = reverbShelfPrevInput2;
 				instrumentState.reverbShelfPrevInput3 = reverbShelfPrevInput3;`
-            }
-
-            if (usesPlugin) {
-                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "instrumentState.pluginValues[" + i + "] = " + Synth.pluginValueNames[i] + "; \n";
-                }
             }
 
             effectsSource += "}";
