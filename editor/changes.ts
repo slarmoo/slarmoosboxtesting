@@ -2109,7 +2109,7 @@ export class ChangeAddChannel extends ChangeGroup {
 
         if (newPitchChannelCount <= Config.pitchChannelCountMax && newNoiseChannelCount <= Config.noiseChannelCountMax && newModChannelCount <= Config.modChannelCountMax) {
             const addedChannelIndex: number = doc.song.pitchChannelCount
-                + (isNoise ? doc.song.noiseChannelCount : 0)
+                + (isNoise || isMod ? doc.song.noiseChannelCount : 0)
                 + (isMod ? doc.song.modChannelCount : 0);
 
             this.append(new ChangeChannelCount(doc, newPitchChannelCount, newNoiseChannelCount, newModChannelCount));

@@ -28092,7 +28092,7 @@ li.select2-results__option[role=group] > strong:hover {
             const newModChannelCount = doc.song.modChannelCount + (isNoise || !isMod ? 0 : 1);
             if (newPitchChannelCount <= Config.pitchChannelCountMax && newNoiseChannelCount <= Config.noiseChannelCountMax && newModChannelCount <= Config.modChannelCountMax) {
                 const addedChannelIndex = doc.song.pitchChannelCount
-                    + (isNoise ? doc.song.noiseChannelCount : 0)
+                    + (isNoise || isMod ? doc.song.noiseChannelCount : 0)
                     + (isMod ? doc.song.modChannelCount : 0);
                 this.append(new ChangeChannelCount(doc, newPitchChannelCount, newNoiseChannelCount, newModChannelCount));
                 if (addedChannelIndex - 1 >= index) {
