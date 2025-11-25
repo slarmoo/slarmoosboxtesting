@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { InstrumentType, Config, DropdownID, LFOEnvelopeTypes, RandomEnvelopeTypes } from "../synth/SynthConfig";
+import { InstrumentType, Config, DropdownID, LFOEnvelopeTypes, RandomEnvelopeTypes, EnvelopeType } from "../synth/SynthConfig";
 import { Instrument } from "../synth/synth";
 import { SongDocument } from "./SongDocument";
 import { ChangeSetEnvelopeTarget, ChangeSetEnvelopeType, ChangeRemoveEnvelope, ChangeEnvelopePitchStart, ChangeEnvelopePitchEnd, ChangeEnvelopeInverse, ChangePerEnvelopeSpeed, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeRandomEnvelopeSteps, ChangeRandomEnvelopeSeed, PasteEnvelope, ChangeSetEnvelopeWaveform, ChangeDiscreteEnvelope, } from "./changes";
@@ -22,6 +22,7 @@ export class EnvelopeEditor {
 	public readonly extraSettingsDropdownGroups: HTMLDivElement[] = [];
 	public readonly extraRandomSettingsGroups: HTMLDivElement[] = [];
 	public readonly extraLFODropdownGroups: HTMLDivElement[] = [];
+	public readonly extraSequenceSettingsGroups: HTMLDivElement[] = [];
 	public readonly openExtraSettingsDropdowns: Boolean[] = [];
 	public readonly perEnvelopeSpeedGroups: HTMLElement[] = [];
 
@@ -59,6 +60,8 @@ export class EnvelopeEditor {
 	public readonly LFOStepsBoxes: HTMLInputElement[] = [];
 	private readonly _LFOStepsSliders: HTMLInputElement[] = [];
 	private readonly _LFOStepsWrappers: HTMLDivElement[] = [];
+	//sequence
+	private readonly _sequenceSelects: HTMLSelectElement[] = [];
 
 	private _renderedEnvelopeCount: number = 0;
 	private _renderedEqFilterCount: number = -1;
@@ -91,6 +94,7 @@ export class EnvelopeEditor {
 		const randomSeedSliderIndex: number = this._randomSeedSliders.indexOf(<any>event.target);
 		const waveformSelectIndex: number = this._waveformSelects.indexOf(<any>event.target);
 		const randomTypeSelectIndex: number = this._randomEnvelopeTypeSelects.indexOf(<any>event.target);
+		const sequenceSelectIndex: number = this._sequenceSelects.indexOf(<any>event.target);
 		const LFOStepsBoxIndex: number = this.LFOStepsBoxes.indexOf(<any>event.target);
 		const LFOStepsSliderIndex: number = this._LFOStepsSliders.indexOf(<any>event.target);
 		if (targetSelectIndex != -1) {
@@ -110,6 +114,12 @@ export class EnvelopeEditor {
 			this._doc.record(new ChangeSetEnvelopeWaveform(this._doc, this._waveformSelects[waveformSelectIndex].value, waveformSelectIndex));
 		} else if (randomTypeSelectIndex != -1) {
 			this._doc.record(new ChangeSetEnvelopeWaveform(this._doc, this._randomEnvelopeTypeSelects[randomTypeSelectIndex].value, randomTypeSelectIndex));
+		} else if (sequenceSelectIndex != -1) {
+			if (this._sequenceSelects[sequenceSelectIndex].value == this._doc.song.sequences.length + "") {
+				this._openPrompt("sequenceSettings", { "sequenceIndex": this._doc.song.sequences.length, "envelopeIndex": sequenceSelectIndex });
+			} else {
+				this._doc.record(new ChangeSetEnvelopeWaveform(this._doc, this._sequenceSelects[sequenceSelectIndex].value, sequenceSelectIndex));
+			}
 		} else if (inverterIndex != -1) {
 			this._doc.record(new ChangeEnvelopeInverse(this._doc, this._inverters[inverterIndex].checked, inverterIndex));
 		} else if (discreterIndex != -1) {
@@ -247,9 +257,14 @@ export class EnvelopeEditor {
 			} else if (this.openExtraSettingsDropdowns[i]) {
 				this.extraSettingsDropdownGroups[i].style.display = "flex";
 				this.extraSettingsDropdowns[i].style.display = "inline";
+				this.extraSequenceSettingsGroups[i].style.display = "none";
+				this.perEnvelopeSpeedGroups[i].style.display = "none";
+				this.extraRandomSettingsGroups[i].style.display = "none";
+				this.extraLFODropdownGroups[i].style.display = "none";
+				this.extraPitchSettingsGroups[i].style.display = "none";
 				this.updateSpeedDisplay(i);
 
-				if (Config.envelopes[instrument.envelopes[i].envelope].name == "pitch") {
+				if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.pitch) {
 					//update values
 					this.pitchStartBoxes[i].value = instrument.envelopes[i].pitchEnvelopeStart.toString();
 					this.pitchEndBoxes[i].value = instrument.envelopes[i].pitchEnvelopeEnd.toString();
@@ -269,11 +284,8 @@ export class EnvelopeEditor {
 					this._endNoteDisplays[i].textContent = "End " + this._pitchToNote(parseInt(this.pitchEndBoxes[i].value), instrument.isNoiseInstrument) + ": ";
 					//show pitch, hide others
 					this.extraPitchSettingsGroups[i].style.display = "flex";
-					this.perEnvelopeSpeedGroups[i].style.display = "none";
-					this.extraRandomSettingsGroups[i].style.display = "none";
-					this.extraLFODropdownGroups[i].style.display = "none";
 
-				} else if (Config.envelopes[instrument.envelopes[i].envelope].name == "random") {
+				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.pseudorandom) {
 					
 					//update values
 					const isRandomTime: boolean = instrument.envelopes[i].waveform == RandomEnvelopeTypes.time || instrument.envelopes[i].waveform == RandomEnvelopeTypes.timeSmooth;
@@ -286,15 +298,11 @@ export class EnvelopeEditor {
 					this._randomStepsWrappers[i].style.display = instrument.envelopes[i].waveform == RandomEnvelopeTypes.time || instrument.envelopes[i].waveform == RandomEnvelopeTypes.note ? "flex" : "none";
 					this._randomEnvelopeTypeSelects[i].selectedIndex = instrument.envelopes[i].waveform;
 					
-					//hide other dropdown groups, show perEnvelopeSpeed
+					//show perEnvelopeSpeed if needed
 					this.perEnvelopeSpeedGroups[i].style.display = isRandomTime ? "" : "none";
-					this.extraSettingsDropdownGroups[i].style.display = "flex";
-					this.extraSettingsDropdowns[i].style.display = "inline";
-					this.extraPitchSettingsGroups[i].style.display = "none";
 					this.extraRandomSettingsGroups[i].style.display = "";
-					this.extraLFODropdownGroups[i].style.display = "none";
 
-				} else if (Config.envelopes[instrument.envelopes[i].envelope].name == "lfo") {
+				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.lfo) {
 
 					//update values
 					this._waveformSelects[i].value = instrument.envelopes[i].waveform.toString();
@@ -307,18 +315,21 @@ export class EnvelopeEditor {
 						this._LFOStepsWrappers[i].style.display = "none";
 					}
 
-					//hide other dropdown groups, show lfo settings and speed
+					//show lfo settings and speed
 					this.extraLFODropdownGroups[i].style.display = "";
 					this.perEnvelopeSpeedGroups[i].style.display = "flex"
-					this.extraSettingsDropdownGroups[i].style.display = "flex";
-					this.extraSettingsDropdowns[i].style.display = "inline";
-					this.extraPitchSettingsGroups[i].style.display = "none";
-					this.extraRandomSettingsGroups[i].style.display = "none";
+				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.sequence) {
+
+					//update values
+					this._sequenceSelects[i].value = instrument.envelopes[i].waveform.toString();
+					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
+
+					//show sequence settings and speed
+					this.perEnvelopeSpeedGroups[i].style.display = "flex"
+					this.extraSequenceSettingsGroups[i].style.display = "";
 				} else {
-					this.extraPitchSettingsGroups[i].style.display = "none";
 					this.extraRandomSettingsGroups[i].style.display = "none";
-					this.extraLFODropdownGroups[i].style.display = "none";
-					if (Config.envelopes[instrument.envelopes[i].envelope].name == "punch" || Config.envelopes[instrument.envelopes[i].envelope].name == "none" || Config.envelopes[instrument.envelopes[i].envelope].name == "note size") {
+					if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.punch || Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.none || Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.noteSize) {
 						this.perEnvelopeSpeedGroups[i].style.display = "none"
 					} else {
 						//perEnvelopeSpeed
@@ -414,11 +425,11 @@ export class EnvelopeEditor {
 			//Create HTML structure for the dropdowns
 
 			//pitch settings
-			const pitchStartNoteSlider: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, step: "1" });
-			const pitchStartNoteBox: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart ? instrument.envelopes[envelopeIndex].pitchEnvelopeStart : 0, style: "width: 4em; font-size: 80%; ", id: "startNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
+			const pitchStartNoteSlider: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart || 0, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, step: "1" });
+			const pitchStartNoteBox: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeStart || 0, style: "width: 4em; font-size: 80%; ", id: "startNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
 
-			const pitchEndNoteSlider: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, step: "1" });
-			const pitchEndNoteBox: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd ? instrument.envelopes[envelopeIndex].pitchEnvelopeEnd : instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, style: "width: 4em; font-size: 80%; ", id: "endNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
+			const pitchEndNoteSlider: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd || instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, step: "1" });
+			const pitchEndNoteBox: HTMLInputElement = HTML.input({ value: instrument.envelopes[envelopeIndex].pitchEnvelopeEnd || instrument.isNoiseInstrument ? Config.drumCount-1 : Config.maxPitch, style: "width: 4em; font-size: 80%; ", id: "endNoteBox", type: "number", step: "1", min: "0", max: instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch });
 			
 			const pitchStartNoteDisplay: HTMLSpanElement = HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "Start " + this._pitchToNote(parseInt(pitchStartNoteBox.value), instrument.isNoiseInstrument) + ": ");
 			const pitchEndNoteDisplay: HTMLSpanElement = HTML.span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "End " + this._pitchToNote(parseInt(pitchEndNoteBox.value), instrument.isNoiseInstrument) + ": ");
@@ -472,6 +483,17 @@ export class EnvelopeEditor {
 			const extraLFOSettingsGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, waveformWrapper, LFOStepsWrapper);
 			extraLFOSettingsGroup.style.display = "none";
 
+			//sequence settings
+			const sequenceSelect: HTMLSelectElement = HTML.select({ style: "width: 115px;" });
+			// sequenceSelect.appendChild(HTML.option({ value: 0 }, "no sequence"));
+			for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
+				sequenceSelect.appendChild(HTML.option({ value: sequence }, "sequence " + sequence));
+			}
+			sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
+			const SequenceWrapper: HTMLDivElement = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
+			const editSequenceButton: HTMLButtonElement = HTML.button({ style: "margin-top: 3px; height: 26px;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit Sequence")
+			const extraSequenceSettingsGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
+
 			//speed settings
 			const perEnvelopeSpeedSlider: Slider = new Slider(HTML.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed: number, newSpeed: number) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);
 			const perEnvelopeSpeedDisplay: HTMLSpanElement = HTML.span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(EnvelopeEditor.convertIndexSpeed(perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
@@ -520,7 +542,7 @@ export class EnvelopeEditor {
 			const extraSettingsDropdown: HTMLButtonElement = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(DropdownID.EnvelopeSettings, envelopeIndex, Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
 			extraSettingsDropdown.style.display = "inline";
 
-			const extraSettingsDropdownGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
+			const extraSettingsDropdownGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraSequenceSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
 			extraSettingsDropdownGroup.style.display = "none";
 
 
@@ -573,6 +595,9 @@ export class EnvelopeEditor {
 			this.LFOStepsBoxes[envelopeIndex] = LFOStepsBox;
 			this._LFOStepsSliders[envelopeIndex] = LFOStepsSlider;
 			this._LFOStepsWrappers[envelopeIndex] = LFOStepsWrapper;
+
+			this.extraSequenceSettingsGroups[envelopeIndex] = extraSequenceSettingsGroup;
+			this._sequenceSelects[envelopeIndex] = sequenceSelect;
 
 			this._envelopeCopyButtons[envelopeIndex] = envelopeCopyButton;
 			this._envelopePasteButtons[envelopeIndex] = envelopePasteButton;

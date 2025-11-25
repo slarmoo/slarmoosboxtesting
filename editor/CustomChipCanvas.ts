@@ -117,8 +117,7 @@ export class CustomChipCanvas {
                     this.newArray[Math.floor(i / 2)] = (j - 26);
                 }
 
-            }
-            else {
+            } else {
 
                 ctx.fillStyle = ColorConfig.getComputed("--editor-background");
                 ctx.fillRect(Math.floor(x / 2) * 2, 0, 2, 52);

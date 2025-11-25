@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, Synth, clamp } from "../synth/synth";
+import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, Synth, clamp, SequenceSettings } from "../synth/synth";
 import { Preset, PresetCategory, EditorConfig } from "./EditorConfig";
 import { Change, ChangeGroup, ChangeSequence, UndoableChange } from "./Change";
 import { SongDocument } from "./SongDocument";
@@ -2724,6 +2724,75 @@ export class ChangeBitcrusherQuantization extends ChangeInstrumentSlider {
         this._instrument.bitcrusherQuantization = newValue;
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangeAddNewSequence extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number) {
+        super();
+        const oldLength: number = doc.song.sequences.length;
+        while (oldLength < sequenceIndex) {
+            doc.song.sequences.push(new SequenceSettings());
+        }
+        if (oldLength < sequenceIndex) {
+            this._didSomething();
+        }
+        doc.notifier.changed();
+    }
+}
+
+export class ChangeSequenceLength extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number, value: number) {
+        super();
+        const oldValue = doc.song.sequences[sequenceIndex].length;
+        if (oldValue != value) {
+            doc.song.sequences[sequenceIndex].length = value;
+            if (value < oldValue) {
+                doc.song.sequences[sequenceIndex].values.splice(value);
+            } else {
+                doc.song.sequences[sequenceIndex].values.concat(Array(value - oldValue).fill(0));
+            }
+            this._didSomething();
+        }
+        doc.notifier.changed();
+    }
+}
+
+export class ChangeSequenceHeight extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number, value: number) {
+        super();
+        const oldValue = doc.song.sequences[sequenceIndex].height;
+        if (oldValue != value) {
+            doc.song.sequences[sequenceIndex].height = value;
+            if (value < oldValue) {
+                doc.song.sequences[sequenceIndex].values.forEach((v, i) => {
+                    doc.song.sequences[sequenceIndex].values[i] = Math.min(value, v);
+                });
+            } 
+            this._didSomething();
+        }
+        doc.notifier.changed();
+    }
+}
+
+export class ChangeSequenceValues extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number, values: number[]) {
+        super();
+        const oldValues = doc.song.sequences[sequenceIndex].values;
+        let sameCheck = true;
+        console.log(sequenceIndex)
+        for (var i = 0; i < values.length; i++) {
+            console.log(oldValues[i], values[i], oldValues, values)
+            if (oldValues[i] != values[i]) {
+                sameCheck = false; break;
+            }
+        }
+        if (!sameCheck) {
+            doc.song.sequences[sequenceIndex].values = values;
+            console.log("here!")
+            this._didSomething();
+        }
+        doc.notifier.changed();
     }
 }
 

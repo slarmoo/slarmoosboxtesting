@@ -676,6 +676,12 @@ export class TipPrompt implements Prompt {
 					p(`This setting controls the range of randomization for grain sizes. `),
 				);
 			} break;
+			case "sequenceEnvelope": {
+				message = div(
+					h2("Sequence Envelope"),
+					p(`This chooses the editable sequence for your envelope. Similar to the LFO envelope type, this envelope will run through a waveform repeatably. However, this waveform is customizeable`)
+				)
+			} break;
 			case "plugin": {
 				message = div(
 					h2("Plugins"),

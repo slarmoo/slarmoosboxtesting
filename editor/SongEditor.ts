@@ -39,6 +39,7 @@ import { PatternEditor } from "./PatternEditor";
 import { Piano } from "./Piano";
 import { PluginPrompt } from "./PluginPrompt";
 import { Prompt } from "./Prompt";
+import { SequenceEditorPrompt } from "./SequenceEditor"
 import { SongDocument } from "./SongDocument";
 import { SongDurationPrompt } from "./SongDurationPrompt";
 import { SustainPrompt } from "./SustainPrompt";
@@ -542,7 +543,7 @@ export class SongEditor {
     private readonly _harmonicsRow: HTMLElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("harmonics"), style: "font-size: smaller"}, "Harmonics:"), this._harmonicsZoom, this._harmonicsEditor.container);
 
     //SongEditor.ts
-    readonly envelopeEditor: EnvelopeEditor = new EnvelopeEditor(this.doc, (id: number, submenu: number, subtype: string) => this._toggleDropdownMenu(id, submenu, subtype), (name: string) => this._openPrompt(name));
+    readonly envelopeEditor: EnvelopeEditor = new EnvelopeEditor(this.doc, (id: number, submenu: number, subtype: string) => this._toggleDropdownMenu(id, submenu, subtype), (name: string, extraSettings: object = {}) => this._openPrompt(name, extraSettings));
     private readonly _envelopeSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "x1");
     private readonly _envelopeSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.modulators.dictionary["envelope speed"].maxRawVol, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeEnvelopeSpeed(this.doc, oldValue, newValue), false);
     private readonly _envelopeSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("envelopeSpeed") }, "‣ Spd:"), this._envelopeSpeedDisplay, this._envelopeSpeedSlider.container);
@@ -1620,12 +1621,12 @@ export class SongEditor {
 
     }
 
-    private _openPrompt(promptName: string): void {
+    private _openPrompt(promptName: string, extraSettings: any = {}): void {
         this.doc.openPrompt(promptName);
-        this._setPrompt(promptName);
+        this._setPrompt(promptName, extraSettings);
     }
 
-    private _setPrompt(promptName: string | null): void {
+    private _setPrompt(promptName: string | null, extraSettings: any = {}): void {
         if (this._currentPromptName == promptName) return;
         this._currentPromptName = promptName;
 
@@ -1730,6 +1731,9 @@ export class SongEditor {
                     break;
                 case "drumsetSettings":
                     this.prompt = new SpectrumEditorPrompt(this.doc, this, true);
+                    break;
+                case "sequenceSettings":
+                    this.prompt = new SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
                     break;
                 default:
                     this.prompt = new TipPrompt(this.doc, promptName);
