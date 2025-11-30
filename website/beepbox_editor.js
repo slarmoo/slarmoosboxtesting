@@ -13357,8 +13357,7 @@ li.select2-results__option[role=group] > strong:hover {
                     instrumentObject["harmonics"][i] = Math.round(100 * this.harmonicsWave.harmonics[i] / Config.harmonicsMax);
                 }
             }
-            if (this.type == 2) {
-                instrumentObject["wave"] = Config.chipNoises[this.chipNoise].name;
+            if (this.type != 10) {
                 instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
                 if (this.unison == Config.unisons.length) {
                     instrumentObject["unisonVoices"] = this.unisonVoices;
@@ -13367,31 +13366,18 @@ li.select2-results__option[role=group] > strong:hover {
                     instrumentObject["unisonExpression"] = this.unisonExpression;
                     instrumentObject["unisonSign"] = this.unisonSign;
                 }
+            }
+            if (this.type == 2) {
+                instrumentObject["wave"] = Config.chipNoises[this.chipNoise].name;
             }
             else if (this.type == 3) {
                 instrumentObject["spectrum"] = [];
                 for (let i = 0; i < Config.spectrumControlPoints; i++) {
                     instrumentObject["spectrum"][i] = Math.round(100 * this.spectrumWave.spectrum[i] / Config.spectrumMax);
                 }
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
             }
             else if (this.type == 4) {
                 instrumentObject["drums"] = [];
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
                 for (let j = 0; j < Config.drumCount; j++) {
                     const spectrum = [];
                     for (let i = 0; i < Config.spectrumControlPoints; i++) {
@@ -13405,14 +13391,6 @@ li.select2-results__option[role=group] > strong:hover {
             }
             else if (this.type == 0) {
                 instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
                 instrumentObject["isUsingAdvancedLoopControls"] = this.isUsingAdvancedLoopControls;
                 instrumentObject["chipWaveLoopStart"] = this.chipWaveLoopStart;
                 instrumentObject["chipWaveLoopEnd"] = this.chipWaveLoopEnd;
@@ -13423,14 +13401,6 @@ li.select2-results__option[role=group] > strong:hover {
             else if (this.type == 6) {
                 instrumentObject["pulseWidth"] = this.pulseWidth;
                 instrumentObject["decimalOffset"] = this.decimalOffset;
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
             }
             else if (this.type == 8) {
                 instrumentObject["pulseWidth"] = this.pulseWidth;
@@ -13440,27 +13410,9 @@ li.select2-results__option[role=group] > strong:hover {
                 instrumentObject["shape"] = Math.round(100 * this.supersawShape / Config.supersawShapeMax);
             }
             else if (this.type == 7) {
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
                 instrumentObject["stringSustain"] = Math.round(100 * this.stringSustain / (Config.stringSustainRange - 1));
                 if (Config.enableAcousticSustain) {
                     instrumentObject["stringSustainType"] = Config.sustainTypeNames[this.stringSustainType];
-                }
-            }
-            else if (this.type == 5) {
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
                 }
             }
             else if (this.type == 1) {
@@ -13507,14 +13459,6 @@ li.select2-results__option[role=group] > strong:hover {
             }
             else if (this.type == 9) {
                 instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
-                instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-                if (this.unison == Config.unisons.length) {
-                    instrumentObject["unisonVoices"] = this.unisonVoices;
-                    instrumentObject["unisonSpread"] = this.unisonSpread;
-                    instrumentObject["unisonOffset"] = this.unisonOffset;
-                    instrumentObject["unisonExpression"] = this.unisonExpression;
-                    instrumentObject["unisonSign"] = this.unisonSign;
-                }
                 instrumentObject["customChipWave"] = new Float64Array(64);
                 instrumentObject["customChipWaveIntegral"] = new Float64Array(65);
                 for (let i = 0; i < this.customChipWave.length; i++) {
@@ -15064,6 +15008,9 @@ li.select2-results__option[role=group] > strong:hover {
                         buffer.push(120, base64IntToCharCode[instrument.supersawDynamism], base64IntToCharCode[instrument.supersawSpread], base64IntToCharCode[instrument.supersawShape]);
                         buffer.push(87, base64IntToCharCode[instrument.pulseWidth]);
                         buffer.push(base64IntToCharCode[instrument.decimalOffset >> 6], base64IntToCharCode[instrument.decimalOffset & 0x3f]);
+                        buffer.push(104, base64IntToCharCode[instrument.unison]);
+                        if (instrument.unison == Config.unisons.length)
+                            encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign);
                     }
                     else if (instrument.type == 7) {
                         if (Config.stringSustainRange > 0x20 || 2 > 2) {
@@ -22977,12 +22924,30 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                     }
                 }
+                else if (instrument.type == 8) {
+                    const unisonVoices = instrument.unisonVoices;
+                    const unisonSpread = instrument.unisonSpread;
+                    const unisonOffset = instrument.unisonOffset;
+                    const unisonEnvelopeStart = envelopeStarts[4];
+                    const unisonEnvelopeEnd = envelopeEnds[4];
+                    const unisonStartA = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeStart / 12.0);
+                    const unisonEndA = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeEnd / 12.0);
+                    tone.phaseDeltas[0] = startFreq * sampleTime * unisonStartA;
+                    tone.phaseDeltaScales[0] = basePhaseDeltaScale * Math.pow(unisonEndA / unisonStartA, 1.0 / roundedSamplesPerTick);
+                    const divisor = (unisonVoices == 1) ? 1 : (unisonVoices - 1);
+                    for (let voice = 1; voice < unisonVoices; voice++) {
+                        const unisonStart = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeStart / 12.0) * (specialIntervalMult);
+                        const unisonEnd = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeEnd / 12.0) * (specialIntervalMult);
+                        tone.phaseDeltas[voice] = startFreq * sampleTime * unisonStart;
+                        tone.phaseDeltaScales[voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
+                    }
+                }
                 else {
                     tone.phaseDeltas[0] = startFreq * sampleTime;
                     tone.phaseDeltaScales[0] = basePhaseDeltaScale;
                 }
-                let supersawExpressionStart = 1.0;
-                let supersawExpressionEnd = 1.0;
+                let supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+                let supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
                 if (instrument.type == 8) {
                     const minFirstVoiceAmplitude = 1.0 / Math.sqrt(Config.supersawVoiceCount);
                     let useDynamismStart = instrument.supersawDynamism / Config.supersawDynamismMax;
@@ -23039,6 +23004,11 @@ li.select2-results__option[role=group] > strong:hover {
                             const temp = tone.phases[i];
                             tone.phases[i] = tone.phases[swappedIndex];
                             tone.phases[swappedIndex] = temp;
+                        }
+                        for (let i = 1; i < instrument.unisonVoices; i++) {
+                            for (let j = 0; j < Config.supersawVoiceCount; j++) {
+                                tone.phases[i * Config.supersawVoiceCount + j] = tone.phases[j];
+                            }
                         }
                     }
                     const baseSpreadSlider = instrument.supersawSpread / Config.supersawSpreadMax;
@@ -24858,20 +24828,34 @@ li.select2-results__option[role=group] > strong:hover {
         }
         static supersawSynth(synth, bufferIndex, runLength, tone, instrumentState) {
             const voiceCount = Config.supersawVoiceCount | 0;
-            let supersawFunction = Synth.supersawFunctionCache[0];
+            const unisonsVoices = instrumentState.unisonVoices;
+            let supersawFunction = Synth.supersawFunctionCache[unisonsVoices];
             if (supersawFunction == undefined) {
                 let supersawSource = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
                 supersawSource += `
         const data = synth.tempMonoInstrumentSampleBuffer;
 
-        let phaseDelta = tone.phaseDeltas[0];
-        const phaseDeltaScale = +tone.phaseDeltaScales[0];
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
+
+        const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+
         `;
                 for (let i = 0; i < voiceCount; i++) {
+                    for (let j = 0; j < unisonsVoices; j++) {
+                        supersawSource += `
+                    let phase#@ = tone.phases[$];
+                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+                    }
+                }
+                for (let j = 0; j < unisonsVoices; j++) {
                     supersawSource += `
-                let phase# = tone.phases[#];
+                let phaseDelta# = tone.phaseDeltas[#];
+                const phaseDeltaScale# = +tone.phaseDeltaScales[#];
+                `.replaceAll("#", j + "");
+                }
+                for (let i = 0; i < voiceCount; i++) {
+                    supersawSource += `
                 const unisonDetune# = tone.supersawUnisonDetunes[#];
                 `.replaceAll("#", i + "");
                 }
@@ -24897,51 +24881,63 @@ li.select2-results__option[role=group] > strong:hover {
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
             // The phase initially starts at a zero crossing so apply
             // the delta before first sample to get a nonzero value.
-            phase0 = (phase0 + phaseDelta) - ((phase0 + phaseDelta) | 0);
-            let supersawSample = phase0 - 0.5 * (1.0 + (` + voiceCount + ` - 1.0) * dynamism);
+            let supersawSample = 0;
+            `;
+                for (let j = 0; j < unisonsVoices; j++) {
+                    supersawSource += `
+            phase0# = (phase0# + phaseDelta#) - ((phase0# + phaseDelta#) | 0);
+            supersawSample += phase0# - 0.5 * (1.0 + (${voiceCount} - 1.0) * dynamism);
             // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
             if (!instrumentState.aliases) {
-                if (phase0 < phaseDelta) {
-                    var t = phase0 / phaseDelta;
+                if (phase0# < phaseDelta#) {
+                    var t = phase0# / phaseDelta#;
                     supersawSample -= (t + t - t * t - 1) * 0.5;
-                } else if (phase0 > 1.0 - phaseDelta) {
-                    var t = (phase0 - 1.0) / phaseDelta;
+                } else if (phase0# > 1.0 - phaseDelta#) {
+                    var t = (phase0# - 1.0) / phaseDelta#;
                     supersawSample -= (t + t + t * t + 1) * 0.5;
                 }
             }
+                `.replaceAll("#", j + "");
+                }
+                supersawSource += `
 
             if (!instrumentState.aliases) {
             `;
                 for (let i = 1; i < voiceCount; i++) {
-                    supersawSource += `
-                const detunedPhaseDelta# = phaseDelta * unisonDetune#;
+                    for (let j = 0; j < unisonsVoices; j++) {
+                        supersawSource += `
+                const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
-                const aphase# = (phase# + detunedPhaseDelta#) - ((phase# + detunedPhaseDelta#) | 0);
-                supersawSample += aphase# * dynamism;
+                const aphase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
+                let bphase#@ = aphase#@ * dynamism;
 
                 // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
-                if (aphase# < detunedPhaseDelta#) {
-                    const t = aphase# / detunedPhaseDelta#;
-                    supersawSample -= (t + t - t * t - 1) * 0.5 * dynamism;
-                } else if (aphase# > 1.0 - detunedPhaseDelta#) {
-                    const t = (aphase# - 1.0) / detunedPhaseDelta#;
-                    supersawSample -= (t + t + t * t + 1) * 0.5 * dynamism;
+                if (aphase#@ < detunedPhaseDelta#@) {
+                    const t = aphase#@ / detunedPhaseDelta#@;
+                    bphase#@ -= (t + t - t * t - 1) * 0.5 * dynamism;
+                } else if (aphase#@ > 1.0 - detunedPhaseDelta#@) {
+                    const t = (aphase#@ - 1.0) / detunedPhaseDelta#@;
+                    bphase#@ -= (t + t + t * t + 1) * 0.5 * dynamism;
                 }
-                phase# = aphase#;
-                `.replaceAll("#", i + "");
+                supersawSample += bphase#@ * unisonSign;
+                phase#@ = aphase#@;
+                `.replaceAll("#", i + "").replaceAll("@", j + "");
+                    }
                 }
                 supersawSource += `
             } else {
              `;
                 for (let i = 1; i < voiceCount; i++) {
-                    supersawSource += `
-                const detunedPhaseDelta# = phaseDelta * unisonDetune#;
+                    for (let j = 0; j < unisonsVoices; j++) {
+                        supersawSource += `
+                const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
-                phase# = (phase# + detunedPhaseDelta#) - ((phase# + detunedPhaseDelta#) | 0);
-                supersawSample += phase# * dynamism;
-                `.replaceAll("#", i + "");
+                phase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
+                supersawSample += phase#@ * dynamism * unisonSign;
+                `.replaceAll("#", i + "").replaceAll("@", j + "");
+                    }
                 }
                 supersawSource += `
             }
@@ -24959,8 +24955,13 @@ li.select2-results__option[role=group] > strong:hover {
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
-
-            phaseDelta *= phaseDeltaScale;
+            `;
+                for (let j = 0; j < unisonsVoices; j++) {
+                    supersawSource += `
+                phaseDelta# *= phaseDeltaScale#;
+                `.replaceAll("#", j + "");
+                }
+                supersawSource += `
             dynamism += dynamismDelta;
             shape += shapeDelta;
             delayLength += delayLengthDelta;
@@ -24971,12 +24972,20 @@ li.select2-results__option[role=group] > strong:hover {
             data[sampleIndex] += output;
         }`;
                 for (let i = 0; i < voiceCount; i++) {
+                    for (let j = 0; j < unisonsVoices; j++) {
+                        supersawSource += `
+                tone.phases[$] = phase#@;
+                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+                    }
+                }
+                for (let j = 0; j < unisonsVoices; j++) {
                     supersawSource += `
-            tone.phases[#] = phase#;
-            `.replaceAll("#", i + "");
+            tone.phaseDeltas[#] = phaseDelta#;
+            `.replaceAll("#", j + "");
                 }
                 supersawSource += `
-        tone.phaseDeltas[0] = phaseDelta;
+        // tone.phaseDeltas[0] = phaseDelta;
+        
         tone.expression = expression;
         tone.supersawDynamism = dynamism;
         tone.supersawShape = shape;
@@ -24988,7 +24997,7 @@ li.select2-results__option[role=group] > strong:hover {
         tone.initialNoteFilterInput2 = initialFilterInput2;
         }`;
                 supersawFunction = new Function("Config", "Synth", supersawSource)(Config, Synth);
-                Synth.supersawFunctionCache[0] = supersawFunction;
+                Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
             }
             supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);
         }
@@ -48849,7 +48858,7 @@ You should be redirected to the song at:<br /><br />
                     else {
                         this._pluginContainerRow.style.display = "none";
                     }
-                    if (instrument.type == 0 || instrument.type == 9 || instrument.type == 5 || instrument.type == 7 || instrument.type == 3 || instrument.type == 6 || instrument.type == 2 || instrument.type == 4 || instrument.type == 1 || instrument.type == 11) {
+                    if (instrument.type != 10) {
                         this._unisonSelectRow.style.display = "";
                         setSelectedValue(this._unisonSelect, instrument.unison);
                         this._unisonVoicesInputBox.value = instrument.unisonVoices + "";

@@ -2226,9 +2226,9 @@ export class Instrument {
             }
         }
 
-        if (this.type == InstrumentType.noise) {
-            instrumentObject["wave"] = Config.chipNoises[this.chipNoise].name;
+        if (this.type != InstrumentType.mod) {
             instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+            // these don't need to be pushed if custom unisons aren't being used
             if (this.unison == Config.unisons.length) {
                 instrumentObject["unisonVoices"] = this.unisonVoices;
                 instrumentObject["unisonSpread"] = this.unisonSpread;
@@ -2236,29 +2236,17 @@ export class Instrument {
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
             }
+        }
+
+        if (this.type == InstrumentType.noise) {
+            instrumentObject["wave"] = Config.chipNoises[this.chipNoise].name;
         } else if (this.type == InstrumentType.spectrum) {
             instrumentObject["spectrum"] = [];
             for (let i: number = 0; i < Config.spectrumControlPoints; i++) {
                 instrumentObject["spectrum"][i] = Math.round(100 * this.spectrumWave.spectrum[i] / Config.spectrumMax);
             }
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
         } else if (this.type == InstrumentType.drumset) {
             instrumentObject["drums"] = [];
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
             for (let j: number = 0; j < Config.drumCount; j++) {
                 const spectrum: number[] = [];
                 for (let i: number = 0; i < Config.spectrumControlPoints; i++) {
@@ -2271,17 +2259,6 @@ export class Instrument {
             }
         } else if (this.type == InstrumentType.chip) {
             instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
-            // should this unison pushing code be turned into a function..?
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            // these don't need to be pushed if custom unisons aren't being used
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
-
             // advloop addition
             instrumentObject["isUsingAdvancedLoopControls"] = this.isUsingAdvancedLoopControls;
             instrumentObject["chipWaveLoopStart"] = this.chipWaveLoopStart;
@@ -2293,14 +2270,6 @@ export class Instrument {
         } else if (this.type == InstrumentType.pwm) {
             instrumentObject["pulseWidth"] = this.pulseWidth;
             instrumentObject["decimalOffset"] = this.decimalOffset;
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
         } else if (this.type == InstrumentType.supersaw) {
             instrumentObject["pulseWidth"] = this.pulseWidth;
             instrumentObject["decimalOffset"] = this.decimalOffset;
@@ -2308,26 +2277,9 @@ export class Instrument {
             instrumentObject["spread"] = Math.round(100 * this.supersawSpread / Config.supersawSpreadMax);
             instrumentObject["shape"] = Math.round(100 * this.supersawShape / Config.supersawShapeMax);
         } else if (this.type == InstrumentType.pickedString) {
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
             instrumentObject["stringSustain"] = Math.round(100 * this.stringSustain / (Config.stringSustainRange - 1));
             if (Config.enableAcousticSustain) {
                 instrumentObject["stringSustainType"] = Config.sustainTypeNames[this.stringSustainType];
-            }
-        } else if (this.type == InstrumentType.harmonics) {
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
             }
         } else if (this.type == InstrumentType.fm) {
             const operatorArray: Object[] = [];
@@ -2372,14 +2324,6 @@ export class Instrument {
             instrumentObject["operators"] = operatorArray;
         } else if (this.type == InstrumentType.customChipWave) {
             instrumentObject["wave"] = Config.chipWaves[this.chipWave].name;
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-            if (this.unison == Config.unisons.length) {
-                instrumentObject["unisonVoices"] = this.unisonVoices;
-                instrumentObject["unisonSpread"] = this.unisonSpread;
-                instrumentObject["unisonOffset"] = this.unisonOffset;
-                instrumentObject["unisonExpression"] = this.unisonExpression;
-                instrumentObject["unisonSign"] = this.unisonSign;
-            }
             instrumentObject["customChipWave"] = new Float64Array(64);
             instrumentObject["customChipWaveIntegral"] = new Float64Array(65);
             for (let i: number = 0; i < this.customChipWave.length; i++) {
@@ -4090,6 +4034,8 @@ export class Song {
                     buffer.push(SongTagCode.supersaw, base64IntToCharCode[instrument.supersawDynamism], base64IntToCharCode[instrument.supersawSpread], base64IntToCharCode[instrument.supersawShape]);
                     buffer.push(SongTagCode.pulseWidth, base64IntToCharCode[instrument.pulseWidth]);
                     buffer.push(base64IntToCharCode[instrument.decimalOffset >> 6], base64IntToCharCode[instrument.decimalOffset & 0x3f]);
+                    buffer.push(SongTagCode.unison, base64IntToCharCode[instrument.unison]);
+                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign);
                 } else if (instrument.type == InstrumentType.pickedString) {
                     if (Config.stringSustainRange > 0x20 || SustainType.length > 2) {
                         throw new Error("Not enough bits to represent sustain value and type in same base64 character.");
@@ -12899,6 +12845,25 @@ export class Synth {
                     }
                 }
 
+            } else if (instrument.type == InstrumentType.supersaw) {
+                const unisonVoices: number = instrument.unisonVoices;
+                const unisonSpread: number = instrument.unisonSpread;
+                const unisonOffset: number = instrument.unisonOffset;
+                const unisonEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.unison];
+                const unisonEnvelopeEnd = envelopeEnds[EnvelopeComputeIndex.unison];
+
+                const unisonStartA: number = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeStart / 12.0);
+                const unisonEndA: number = Math.pow(2.0, (unisonOffset + unisonSpread) * unisonEnvelopeEnd / 12.0);
+                tone.phaseDeltas[0] = startFreq * sampleTime * unisonStartA;
+                tone.phaseDeltaScales[0] = basePhaseDeltaScale * Math.pow(unisonEndA / unisonStartA, 1.0 / roundedSamplesPerTick);
+
+                const divisor = (unisonVoices == 1) ? 1 : (unisonVoices - 1);
+                for (let voice: number = 1; voice < unisonVoices; voice++) {
+                    const unisonStart: number = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeStart / 12.0) * (specialIntervalMult);
+                    const unisonEnd: number = Math.pow(2.0, (unisonOffset + unisonSpread - (2 * voice * unisonSpread / divisor)) * unisonEnvelopeEnd / 12.0) * (specialIntervalMult);
+                    tone.phaseDeltas[voice] = startFreq * sampleTime * unisonStart;
+                    tone.phaseDeltaScales[voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
+                }
             } else {
                 tone.phaseDeltas[0] = startFreq * sampleTime;
                 tone.phaseDeltaScales[0] = basePhaseDeltaScale;
@@ -12906,8 +12871,9 @@ export class Synth {
 
             // TODO: make expressionStart and expressionEnd variables earlier and modify those
             // instead of these supersawExpression variables.
-            let supersawExpressionStart: number = 1.0;
-            let supersawExpressionEnd: number = 1.0;
+            let supersawExpressionStart: number = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+            let supersawExpressionEnd: number = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+
             if (instrument.type == InstrumentType.supersaw) {
                 const minFirstVoiceAmplitude: number = 1.0 / Math.sqrt(Config.supersawVoiceCount);
 
@@ -12994,6 +12960,13 @@ export class Synth {
                         const temp: number = tone.phases[i];
                         tone.phases[i] = tone.phases[swappedIndex];
                         tone.phases[swappedIndex] = temp;
+                    }
+
+                    //extend phase map to have duplicate phases representing each unison voice
+                    for (let i: number = 1; i < instrument.unisonVoices; i++) {
+                        for (let j: number = 0; j < Config.supersawVoiceCount; j++) {
+                            tone.phases[i * Config.supersawVoiceCount + j] = tone.phases[j];
+                        }
                     }
                 }
 
@@ -14971,7 +14944,8 @@ export class Synth {
 
     private static supersawSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Config.supersawVoiceCount | 0;
-        let supersawFunction: Function = Synth.supersawFunctionCache[0]; //currently only one supersaw function can exist in a given song / mod. Change to an array if you desire to support multiple by, for example, having unisons on supersaws
+        const unisonsVoices: number = instrumentState.unisonVoices;
+        let supersawFunction: Function = Synth.supersawFunctionCache[unisonsVoices]; 
         if (supersawFunction == undefined) {
             let supersawSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -14979,14 +14953,29 @@ export class Synth {
             supersawSource += `
         const data = synth.tempMonoInstrumentSampleBuffer;
 
-        let phaseDelta = tone.phaseDeltas[0];
-        const phaseDeltaScale = +tone.phaseDeltaScales[0];
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
+
+        const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+
         `
             for (let i: number = 0; i < voiceCount; i++) {
+                for (let j: number = 0; j < unisonsVoices; j++) {
+                    supersawSource += `
+                    let phase#@ = tone.phases[$];
+                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+                }
+            }
+
+            for (let j: number = 0; j < unisonsVoices; j++) {
                 supersawSource += `
-                let phase# = tone.phases[#];
+                let phaseDelta# = tone.phaseDeltas[#];
+                const phaseDeltaScale# = +tone.phaseDeltaScales[#];
+                `.replaceAll("#", j + "");
+            }
+
+            for (let i: number = 0; i < voiceCount; i++) {
+                supersawSource += `
                 const unisonDetune# = tone.supersawUnisonDetunes[#];
                 `.replaceAll("#", i + "");
             }
@@ -15013,53 +15002,66 @@ export class Synth {
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
             // The phase initially starts at a zero crossing so apply
             // the delta before first sample to get a nonzero value.
-            phase0 = (phase0 + phaseDelta) - ((phase0 + phaseDelta) | 0);
-            let supersawSample = phase0 - 0.5 * (1.0 + (` + voiceCount + ` - 1.0) * dynamism);
+            let supersawSample = 0;
+            `
+            for (let j: number = 0; j < unisonsVoices; j++) {
+                supersawSource += `
+            phase0# = (phase0# + phaseDelta#) - ((phase0# + phaseDelta#) | 0);
+            supersawSample += phase0# - 0.5 * (1.0 + (${voiceCount} - 1.0) * dynamism);
             // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
             if (!instrumentState.aliases) {
-                if (phase0 < phaseDelta) {
-                    var t = phase0 / phaseDelta;
+                if (phase0# < phaseDelta#) {
+                    var t = phase0# / phaseDelta#;
                     supersawSample -= (t + t - t * t - 1) * 0.5;
-                } else if (phase0 > 1.0 - phaseDelta) {
-                    var t = (phase0 - 1.0) / phaseDelta;
+                } else if (phase0# > 1.0 - phaseDelta#) {
+                    var t = (phase0# - 1.0) / phaseDelta#;
                     supersawSample -= (t + t + t * t + 1) * 0.5;
                 }
             }
+                `.replaceAll("#", j + "");
+            }
+
+            supersawSource += `
 
             if (!instrumentState.aliases) {
             `
 
             for (let i: number = 1; i < voiceCount; i++) {
+                for (let j: number = 0; j < unisonsVoices; j++) {
                 supersawSource += `
-                const detunedPhaseDelta# = phaseDelta * unisonDetune#;
+                const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
-                const aphase# = (phase# + detunedPhaseDelta#) - ((phase# + detunedPhaseDelta#) | 0);
-                supersawSample += aphase# * dynamism;
+                const aphase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
+                let bphase#@ = aphase#@ * dynamism;
 
                 // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
-                if (aphase# < detunedPhaseDelta#) {
-                    const t = aphase# / detunedPhaseDelta#;
-                    supersawSample -= (t + t - t * t - 1) * 0.5 * dynamism;
-                } else if (aphase# > 1.0 - detunedPhaseDelta#) {
-                    const t = (aphase# - 1.0) / detunedPhaseDelta#;
-                    supersawSample -= (t + t + t * t + 1) * 0.5 * dynamism;
+                if (aphase#@ < detunedPhaseDelta#@) {
+                    const t = aphase#@ / detunedPhaseDelta#@;
+                    bphase#@ -= (t + t - t * t - 1) * 0.5 * dynamism;
+                } else if (aphase#@ > 1.0 - detunedPhaseDelta#@) {
+                    const t = (aphase#@ - 1.0) / detunedPhaseDelta#@;
+                    bphase#@ -= (t + t + t * t + 1) * 0.5 * dynamism;
                 }
-                phase# = aphase#;
-                `.replaceAll("#", i + "");
+                supersawSample += bphase#@ * unisonSign;
+                phase#@ = aphase#@;
+                `.replaceAll("#", i + "").replaceAll("@", j + "");
+                }
             }
 
             supersawSource += `
             } else {
              `
             for (let i: number = 1; i < voiceCount; i++) {
+                for (let j: number = 0; j < unisonsVoices; j++) {
                 supersawSource += `
-                const detunedPhaseDelta# = phaseDelta * unisonDetune#;
+                const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
-                phase# = (phase# + detunedPhaseDelta#) - ((phase# + detunedPhaseDelta#) | 0);
-                supersawSample += phase# * dynamism;
-                `.replaceAll("#", i + "");
+                phase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
+                supersawSample += phase#@ * dynamism * unisonSign;
+                `.replaceAll("#", i + "").replaceAll("@", j + "");
+                }
             }
             supersawSource += `
             }
@@ -15077,8 +15079,13 @@ export class Synth {
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
-
-            phaseDelta *= phaseDeltaScale;
+            `
+            for (let j: number = 0; j < unisonsVoices; j++) {
+                supersawSource += `
+                phaseDelta# *= phaseDeltaScale#;
+                `.replaceAll("#", j + "")
+            }
+            supersawSource += `
             dynamism += dynamismDelta;
             shape += shapeDelta;
             delayLength += delayLengthDelta;
@@ -15089,12 +15096,20 @@ export class Synth {
             data[sampleIndex] += output;
         }`
         for (let i: number = 0; i < voiceCount; i++) {
+            for (let j: number = 0; j < unisonsVoices; j++) {
+                supersawSource += `
+                tone.phases[$] = phase#@;
+                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+            }
+        }
+        for (let j: number = 0; j < unisonsVoices; j++) {
             supersawSource += `
-            tone.phases[#] = phase#;
-            `.replaceAll("#", i + "");
+            tone.phaseDeltas[#] = phaseDelta#;
+            `.replaceAll("#", j + "");
         }
         supersawSource += `
-        tone.phaseDeltas[0] = phaseDelta;
+        // tone.phaseDeltas[0] = phaseDelta;
+        
         tone.expression = expression;
         tone.supersawDynamism = dynamism;
         tone.supersawShape = shape;
@@ -15106,7 +15121,7 @@ export class Synth {
         tone.initialNoteFilterInput2 = initialFilterInput2;
         }`
             supersawFunction = new Function("Config", "Synth", supersawSource)(Config, Synth);
-            Synth.supersawFunctionCache[0] = supersawFunction;
+            Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
         }
 
         supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);

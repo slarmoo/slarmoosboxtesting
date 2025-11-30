@@ -318,7 +318,7 @@ const colorConfig = {
             console.log("game over: " + message);
             console.log("score: " + (this.snake.length - 3));
             console.log("speed: " + Math.round(1000 / this.ticks));
-            if(!mute) {
+            if(!mute && beepbox) {
                 const end = new beepbox.Synth("#s4N08Untitledn100s0k02l01e00t2ma0g01j07r1O_c11d700U00i0o2T6v0puj0f0000qQ412813w0Oad040WO00h0E1c092001w00ab40p16FB-k00");
                 end.play();
                 setTimeout(() => end.pause(), 1000);
@@ -386,7 +386,7 @@ const colorConfig = {
                     this.board.spawnApple();
                     
                     scoreboard.innerText = (this.length - 2); //snake hasn't lengthened yet
-                    if (!mute) {
+                    if (!mute && beepbox) {
                         const collect = new beepbox.Synth("#s4N08Untitledn100s0k02l01e00t2ma0g01j07r1O_c11d700U00i0o5T6v0puj0f0000qQ412813w0Oad040WO00h0E1c092001w00ab40p19FyWhcFR00");
                         collect.play();
                         setTimeout(() => collect.pause(), 1000);
