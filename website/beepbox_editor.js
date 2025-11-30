@@ -1171,6 +1171,7 @@ var beepbox = (function (exports) {
     Config.perEnvelopeBoundMax = 2;
     Config.randomEnvelopeSeedMax = 63;
     Config.randomEnvelopeStepsMax = 32;
+    Config.maxEnvelopeSequenceCount = 16;
     Config.envelopeSequenceHeightMax = 16;
     Config.envelopeSequenceLengthMax = 16;
     Config.pickedStringDispersionCenterFreq = 6000.0;
@@ -2066,6 +2067,7 @@ var beepbox = (function (exports) {
                 { name: "flutter", generalMidi: false, settings: { "type": "FM", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 707.11, "linearGain": 1 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 707.11, "linearGain": 1 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }], "effects": ["transition type", "chorus", "reverb", "ring mod"], "transition": "interrupt", "clicklessTransition": false, "ringMod": 100, "ringModHz": 100, "ringModWaveformIndex": 0, "panDelay": 0, "chorus": 14, "reverb": 10, "fadeInSeconds": 0, "fadeOutTicks": 12, "algorithm": "1←3 2←4", "feedbackType": "1⟲", "feedbackAmplitude": 3, "operators": [{ "frequency": "1×", "amplitude": 15, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 10, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "ringModulationHz", "envelope": "fall", "inverse": false, "perEnvelopeSpeed": 1.5, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1.9 }, { "target": "noteVolume", "envelope": "blip", "inverse": false, "perEnvelopeSpeed": 0.25, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }], "isDrum": false } },
                 { name: "vinyl", generalMidi: false, isNoise: true, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 1414.21, "linearGain": 0.3536 }, { "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.25 }], "effects": ["transition type", "note filter", "distortion", "bitcrusher", "chorus", "echo", "reverb"], "transition": "interrupt", "clicklessTransition": false, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "noteSubFilters0": [{ "type": "high-pass", "cutoffHz": 250, "linearGain": 0.5 }, { "type": "low-pass", "cutoffHz": 8000, "linearGain": 1 }], "distortion": 14, "aliases": false, "bitcrusherOctave": 5.5, "bitcrusherQuantization": 14, "chorus": 29, "echoSustain": 14, "echoDelayBeats": 0.083, "reverb": 32, "fadeInSeconds": 0, "fadeOutTicks": 24, "wave": "crackling", "unison": "none", "envelopes": [], "isDrum": false } },
                 { name: "crackle", generalMidi: false, isNoise: true, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters1": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters2": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters3": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.1768 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "effects": ["panning", "granular", "reverb"], "granular": 10, "grainSize": 1, "grainAmounts": 0, "grainRange": 0, "pan": -100, "panDelay": 0, "reverb": 6, "fadeInSeconds": 0, "fadeOutTicks": -3, "wave": "white", "unison": "none", "envelopes": [{ "target": "grainFreq", "envelope": "none", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 0.1, "discrete": false }, { "target": "panning", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": true, "steps": 32, "seed": 2, "waveform": 0 }], "isDrum": true } },
+                { name: "alien radio chatter", generalMidi: false, isNoise: false, settings: { "type": "FM", "eqFilter": [{ "type": "low-pass", "cutoffHz": 707.11, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "effects": ["chord type", "note filter", "granular", "distortion", "reverb"], "chord": "strum", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 1, "noteFilterType": true, "noteSimpleCut": 4, "noteSimplePeak": 1, "noteFilter": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "noteSubFilters1": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "granular": 4, "grainSize": 9, "grainAmounts": 9, "grainRange": 11, "distortion": 86, "aliases": false, "panDelay": 0, "reverb": 10, "fadeInSeconds": 0.0413, "fadeOutTicks": -12, "algorithm": "1←3 2←4", "feedbackType": "2→4", "feedbackAmplitude": 1, "operators": [{ "frequency": "0.5×", "amplitude": 12, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "18×", "amplitude": 15, "waveform": "pulse width", "pulseWidth": 4 }, { "frequency": "7×", "amplitude": 11, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "triangle", "pulseWidth": 5 }], "envelopes": [{ "target": "grainFreq", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 0.3, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "steps": 3, "seed": 29, "waveform": 1 }] } },
             ])
         }
     ]);
@@ -29046,9 +29048,7 @@ li.select2-results__option[role=group] > strong:hover {
             super();
             const oldValues = doc.song.sequences[sequenceIndex].values;
             let sameCheck = true;
-            console.log(sequenceIndex);
             for (var i = 0; i < values.length; i++) {
-                console.log(oldValues[i], values[i], oldValues, values);
                 if (oldValues[i] != values[i]) {
                     sameCheck = false;
                     break;
@@ -29056,7 +29056,6 @@ li.select2-results__option[role=group] > strong:hover {
             }
             if (!sameCheck) {
                 doc.song.sequences[sequenceIndex].values = values;
-                console.log("here!");
                 this._didSomething();
             }
             doc.notifier.changed();
@@ -39182,6 +39181,13 @@ You should be redirected to the song at:<br /><br />
                         this.perEnvelopeSpeedGroups[i].style.display = "flex";
                     }
                     else if (Config.envelopes[instrument.envelopes[i].envelope].type == 16) {
+                        this._sequenceSelects[i].innerHTML = "";
+                        for (let sequence = 0; sequence < this._doc.song.sequences.length; sequence++) {
+                            this._sequenceSelects[i].appendChild(HTML$1.option({ value: sequence }, "sequence " + (sequence + 1)));
+                        }
+                        if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+                            this._sequenceSelects[i].appendChild(HTML$1.option({ value: this._doc.song.sequences.length }, "new sequence"));
+                        }
                         this._sequenceSelects[i].value = instrument.envelopes[i].waveform.toString();
                         this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
                         this.perEnvelopeSpeedGroups[i].style.display = "flex";
@@ -39306,9 +39312,11 @@ You should be redirected to the song at:<br /><br />
                 extraLFOSettingsGroup.style.display = "none";
                 const sequenceSelect = HTML$1.select({ style: "width: 115px;" });
                 for (let sequence = 0; sequence < this._doc.song.sequences.length; sequence++) {
-                    sequenceSelect.appendChild(HTML$1.option({ value: sequence }, "sequence " + sequence));
+                    sequenceSelect.appendChild(HTML$1.option({ value: sequence }, "sequence " + (sequence + 1)));
                 }
-                sequenceSelect.appendChild(HTML$1.option({ value: this._doc.song.sequences.length }, "new sequence"));
+                if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+                    sequenceSelect.appendChild(HTML$1.option({ value: this._doc.song.sequences.length }, "new sequence"));
+                }
                 const SequenceWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
                 const editSequenceButton = HTML$1.button({ style: "margin-top: 3px; height: 26px;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit Sequence");
                 const extraSequenceSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
@@ -43732,6 +43740,8 @@ You should be redirected to the song at:<br /><br />
             this.sequenceIndex = sequenceIndex;
             this._undoHistoryState = 0;
             this._changeQueue = [];
+            this._mouseX = 0;
+            this._mouseY = 0;
             this._mouseDown = false;
             this.canvasHeight = 104;
             this.canvasWidth = 256;
@@ -43763,25 +43773,47 @@ You should be redirected to the song at:<br /><br />
                     this.sequence = this._changeQueue[this._undoHistoryState];
                 }
             };
-            this._onMouseMove = (event) => {
+            this._onCursorMove = () => {
                 if (this._mouseDown) {
-                    var x = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
-                    var y = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
-                    if (y < 2)
-                        y = 2;
-                    if (y > this.canvasHeight - 2)
-                        y = this.canvasHeight;
-                    this.sequence.values[Math.floor(x * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - y * this.sequence.height / this.canvasHeight);
+                    if (this._mouseY < 2)
+                        this._mouseY = 2;
+                    if (this._mouseY > this.canvasHeight - 2)
+                        this._mouseY = this.canvasHeight;
+                    this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
                     this.redrawCanvas();
                 }
             };
             this._onMouseDown = (event) => {
                 this._mouseDown = true;
-                this._onMouseMove(event);
+                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
             };
-            this._onMouseUp = () => {
+            this._whenTouchPressed = (event) => {
+                event.preventDefault();
+                this._mouseDown = true;
+                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._onMouseMove = (event) => {
+                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._whenTouchMoved = (event) => {
+                if (!this._mouseDown)
+                    return;
+                event.preventDefault();
+                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._whenCursorReleased = () => {
                 this._mouseDown = false;
             };
+            if (!this.sequenceIndex)
+                this.sequenceIndex = 0;
             if (this.sequenceIndex >= this._doc.song.sequences.length) {
                 this.sequence = new SequenceSettings();
                 this._doc.song.sequences[this.sequenceIndex] = this.sequence.copy();
@@ -43791,8 +43823,11 @@ You should be redirected to the song at:<br /><br />
             }
             this.canvas.addEventListener("mousemove", this._onMouseMove);
             this.canvas.addEventListener("mousedown", this._onMouseDown);
-            this.canvas.addEventListener("mouseup", this._onMouseUp);
-            this.canvas.addEventListener("mouseleave", this._onMouseUp);
+            this.canvas.addEventListener("mouseup", this._whenCursorReleased);
+            this.canvas.addEventListener("touchstart", this._whenTouchPressed);
+            this.canvas.addEventListener("touchmove", this._whenTouchMoved);
+            this.canvas.addEventListener("touchend", this._whenCursorReleased);
+            this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
             this.redrawCanvas();
         }
         redrawCanvas() {
@@ -43863,7 +43898,8 @@ You should be redirected to the song at:<br /><br />
                 this._doc.prompt = null;
                 this._doc.undo();
                 const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-                instrument.envelopes[this.forEnvelope].waveform = 0;
+                if (!this.forEnvelope == undefined)
+                    instrument.envelopes[this.forEnvelope].waveform = 0;
             };
             this.cleanUp = () => {
                 this._okayButton.removeEventListener("click", this._saveChanges);
@@ -43892,17 +43928,19 @@ You should be redirected to the song at:<br /><br />
                 }
             };
             this._saveChanges = () => {
-                console.log("saving!!", this.sequenceIndex);
                 const group = new ChangeGroup();
                 group.append(new ChangeAddNewSequence(this._doc, this.sequenceIndex));
                 group.append(new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height));
                 group.append(new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length));
                 group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values));
-                group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+                if (this.forEnvelope !== undefined)
+                    group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
                 this._doc.record(group, true);
-                this._editor.envelopeEditor.render();
+                this._editor.envelopeEditor.rerenderExtraSettings();
                 this._doc.prompt = null;
             };
+            if (!this.sequenceIndex)
+                this.sequenceIndex = 0;
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
             this.container.addEventListener("keydown", this.whenKeyPressed);

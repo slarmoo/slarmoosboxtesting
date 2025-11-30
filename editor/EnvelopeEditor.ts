@@ -320,6 +320,15 @@ export class EnvelopeEditor {
 					this.perEnvelopeSpeedGroups[i].style.display = "flex"
 				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.sequence) {
 
+					//make sure the sequence select has the right amount of options
+					this._sequenceSelects[i].innerHTML = ""
+					for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
+						this._sequenceSelects[i].appendChild(HTML.option({ value: sequence }, "sequence " + (sequence + 1)));
+					}
+					if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+						this._sequenceSelects[i].appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
+					}
+
 					//update values
 					this._sequenceSelects[i].value = instrument.envelopes[i].waveform.toString();
 					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
@@ -487,9 +496,11 @@ export class EnvelopeEditor {
 			const sequenceSelect: HTMLSelectElement = HTML.select({ style: "width: 115px;" });
 			// sequenceSelect.appendChild(HTML.option({ value: 0 }, "no sequence"));
 			for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
-				sequenceSelect.appendChild(HTML.option({ value: sequence }, "sequence " + sequence));
+				sequenceSelect.appendChild(HTML.option({ value: sequence }, "sequence " + (sequence + 1)));
 			}
-			sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
+			if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+				sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
+			}
 			const SequenceWrapper: HTMLDivElement = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
 			const editSequenceButton: HTMLButtonElement = HTML.button({ style: "margin-top: 3px; height: 26px;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit Sequence")
 			const extraSequenceSettingsGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);

@@ -2780,16 +2780,13 @@ export class ChangeSequenceValues extends Change {
         super();
         const oldValues = doc.song.sequences[sequenceIndex].values;
         let sameCheck = true;
-        console.log(sequenceIndex)
         for (var i = 0; i < values.length; i++) {
-            console.log(oldValues[i], values[i], oldValues, values)
             if (oldValues[i] != values[i]) {
                 sameCheck = false; break;
             }
         }
         if (!sameCheck) {
             doc.song.sequences[sequenceIndex].values = values;
-            console.log("here!")
             this._didSomething();
         }
         doc.notifier.changed();

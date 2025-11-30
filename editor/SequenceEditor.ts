@@ -14,8 +14,8 @@ class SequenceEditor {
     private _undoHistoryState: number = 0;
     private _changeQueue: SequenceSettings[] = [];
 
-    // private _mouseX: number = 0;
-    // private _mouseY: number = 0;
+    private _mouseX: number = 0;
+    private _mouseY: number = 0;
     private _mouseDown: boolean = false;
 
     private canvasHeight: number = 104;
@@ -27,6 +27,7 @@ class SequenceEditor {
     
 
     constructor(private _doc: SongDocument, private sequenceIndex: number) {
+        if (!this.sequenceIndex) this.sequenceIndex = 0;
         if (this.sequenceIndex >= this._doc.song.sequences.length) {
             this.sequence = new SequenceSettings();
             this._doc.song.sequences[this.sequenceIndex] = this.sequence.copy();
@@ -38,8 +39,13 @@ class SequenceEditor {
 
         this.canvas.addEventListener("mousemove", this._onMouseMove);
         this.canvas.addEventListener("mousedown", this._onMouseDown);
-        this.canvas.addEventListener("mouseup", this._onMouseUp);
-        this.canvas.addEventListener("mouseleave", this._onMouseUp);
+        this.canvas.addEventListener("mouseup", this._whenCursorReleased);
+        // this.canvas.addEventListener("mouseleave", this._whenCursorReleased);
+
+        this.canvas.addEventListener("touchstart", this._whenTouchPressed);
+        this.canvas.addEventListener("touchmove", this._whenTouchMoved);
+        this.canvas.addEventListener("touchend", this._whenCursorReleased);
+        this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
 
         this.redrawCanvas();
     }
@@ -118,22 +124,14 @@ class SequenceEditor {
             ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight-h, this.canvasWidth / this.sequence.length, h);
         }
     }
-    
-    private _onMouseMove = (event: MouseEvent): void => {
+
+    private _onCursorMove = (): void => {
         if (this._mouseDown) {
-            var x = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
-            var y = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
 
-            if (y < 2) y = 2;
-            if (y > this.canvasHeight - 2) y = this.canvasHeight;
+            if (this._mouseY < 2) this._mouseY = 2;
+            if (this._mouseY > this.canvasHeight - 2) this._mouseY = this.canvasHeight;
 
-            // var lowerBound = (x < this._mouseX) ? x : this._mouseX;
-            // var upperBound = (x < this._mouseX) ? this._mouseX : x;
-
-            this.sequence.values[Math.floor(x * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - y * this.sequence.height / this.canvasHeight);
-
-            // this._mouseX = x;
-            // this._mouseY = y;
+            this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
 
             this.redrawCanvas();
         }
@@ -141,12 +139,38 @@ class SequenceEditor {
     
     private _onMouseDown = (event: MouseEvent): void => {
         this._mouseDown = true;
+        this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+        this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
 
         // Allow single-click edit
-        this._onMouseMove(event);
+        this._onCursorMove();
+    }
+
+    private _whenTouchPressed = (event: TouchEvent): void => {
+        event.preventDefault();
+        this._mouseDown = true;
+        this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+        this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+
+        // Allow single-click edit
+        this._onCursorMove();
+    }
+
+    private _onMouseMove = (event: MouseEvent): void => {
+        this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+        this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
+        this._onCursorMove();
+    }
+
+    private _whenTouchMoved = (event: TouchEvent): void => {
+        if (!this._mouseDown) return;
+        event.preventDefault();
+        this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+        this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+        this._onCursorMove();
     }
     
-    private _onMouseUp = (): void => {
+    private _whenCursorReleased = (): void => {
         this._mouseDown = false;
     }
 }
@@ -195,6 +219,7 @@ export class SequenceEditorPrompt implements Prompt {
     );
 
     constructor(private _doc: SongDocument, private _editor: SongEditor, private sequenceIndex: number, private forEnvelope: number) {
+        if (!this.sequenceIndex) this.sequenceIndex = 0;
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);
         this.container.addEventListener("keydown", this.whenKeyPressed);
@@ -221,7 +246,7 @@ export class SequenceEditorPrompt implements Prompt {
         this._doc.undo();
 
         const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-        instrument.envelopes[this.forEnvelope].waveform = 0;
+        if (!this.forEnvelope == undefined) instrument.envelopes[this.forEnvelope].waveform = 0;
     }
 
     public cleanUp = (): void => {
@@ -248,7 +273,7 @@ export class SequenceEditorPrompt implements Prompt {
             this._sequenceEditor.undo();
             event.stopPropagation();
         }
-        else if (event.keyCode == 89) { // y
+        else if (event.keyCode == 89) { // this._mouseY
             this._sequenceEditor.redo();
             event.stopPropagation();
         }
@@ -256,7 +281,6 @@ export class SequenceEditorPrompt implements Prompt {
 
     private _saveChanges = (): void => {
         // Save again just in case
-        console.log("saving!!", this.sequenceIndex)
         const group: ChangeGroup = new ChangeGroup();
         group.append(new ChangeAddNewSequence(this._doc, this.sequenceIndex));
         group.append(new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height));
@@ -264,9 +288,9 @@ export class SequenceEditorPrompt implements Prompt {
         group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values));
         // const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
         // instrument.envelopes[this.forEnvelope].waveform = -1;
-        group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+        if (this.forEnvelope !== undefined) group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
         this._doc.record(group, true);
-        this._editor.envelopeEditor.render();
+        this._editor.envelopeEditor.rerenderExtraSettings();
         this._doc.prompt = null;
     }
 }

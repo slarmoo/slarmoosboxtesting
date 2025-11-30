@@ -1715,6 +1715,7 @@ export class Config {
     public static readonly randomEnvelopeSeedMax: number = 63; //if you increase this you'll need to update the url to support it
     public static readonly randomEnvelopeStepsMax: number = 32; 
 
+    public static readonly maxEnvelopeSequenceCount: number = 16;
     public static readonly envelopeSequenceHeightMax: number = 16;
     public static readonly envelopeSequenceLengthMax: number = 16;
 
