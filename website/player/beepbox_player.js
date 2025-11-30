@@ -21334,6 +21334,7 @@ var beepbox = (function (exports) {
             }
             else if (instrument.type == 11) {
                 const voiceCount = instrument.unisonVoices;
+                console.log(instrument.customAlgorithm);
                 const fingerprint = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
                 if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                     const synthSource = [];
@@ -21349,20 +21350,19 @@ var beepbox = (function (exports) {
                         }
                         else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                             for (let j = Config.operatorCount + 2 - 1; j >= 0; j--) {
-                                for (const operatorLine of Synth.operatorSourceTemplate) {
-                                    const vc = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
-                                    for (let voice = 0; voice < vc; voice++) {
+                                for (let voice = 0; voice < voiceCount; voice++) {
+                                    for (const operatorLine of Synth.operatorSourceTemplate) {
                                         if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                             let modulators = "";
                                             for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
-                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
+                                                modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice;
                                             }
                                             const feedbackIndices = instrument.customFeedbackType.indices[j];
                                             if (feedbackIndices.length > 0) {
                                                 modulators += " + feedbackMult * (";
                                                 const feedbacks = [];
                                                 for (const modulatorNumber of feedbackIndices) {
-                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                                    feedbacks.push("operator" + (modulatorNumber - 1) + "Output" + voice);
                                                 }
                                                 modulators += feedbacks.join(" + ") + ")";
                                             }
@@ -21377,7 +21377,7 @@ var beepbox = (function (exports) {
                         }
                         else if (line.indexOf("#") != -1) {
                             for (let j = 0; j < Config.operatorCount + 2; j++) {
-                                const vc = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1;
+                                const vc = line.indexOf("~") != -1 ? voiceCount : 1;
                                 for (let voice = 0; voice < vc; voice++) {
                                     synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                                 }

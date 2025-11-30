@@ -13178,9 +13178,9 @@ export class Synth {
                     }
                 }
 
-                //console.log(synthSource.join("\n"));
-
                 const wrappedFmSynth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
+
+                // console.log(wrappedFmSynth)
 
                 Synth.fmSynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFmSynth)(Config, Synth);
 
@@ -13213,6 +13213,7 @@ export class Synth {
             return Synth.modSynth;
         } else if (instrument.type == InstrumentType.fm6op) {
             const voiceCount: number = instrument.unisonVoices;
+            console.log(instrument.customAlgorithm)
             const fingerprint: string = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
             if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
@@ -13228,13 +13229,12 @@ export class Synth {
                         synthSource.push(line.replace("/*operator#Scaled*/", outputs.join(" + ")));
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount + 2 - 1; j >= 0; j--) {
-                            for (const operatorLine of Synth.operatorSourceTemplate) {
-                                const vc: number = Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
-                                for (let voice = 0; voice < vc; voice++) {
+                            for (let voice = 0; voice < voiceCount; voice++) {
+                                for (const operatorLine of Synth.operatorSourceTemplate) {
                                     if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                         let modulators = "";
                                         for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
-                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled0";
+                                            modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice; //use the corresponding fm modulator unison value
                                         }
 
                                         const feedbackIndices: ReadonlyArray<number> = instrument.customFeedbackType.indices[j];
@@ -13242,7 +13242,7 @@ export class Synth {
                                             modulators += " + feedbackMult * (";
                                             const feedbacks: string[] = [];
                                             for (const modulatorNumber of feedbackIndices) {
-                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output0");
+                                                feedbacks.push("operator" + (modulatorNumber - 1) + "Output" + voice); //use the corresponding unison output value for feedback
                                             }
                                             modulators += feedbacks.join(" + ") + ")";
                                         }
@@ -13255,7 +13255,7 @@ export class Synth {
                         }
                     } else if (line.indexOf("#") != -1) {
                         for (let j = 0; j < Config.operatorCount + 2; j++) {
-                            const vc: number = line.indexOf("~") != -1 && Config.algorithms[instrument.algorithm].carrierCount > j ? voiceCount : 1; //fm modulators have no unison voices, only carriers
+                            const vc: number = line.indexOf("~") != -1 ? voiceCount : 1;
                             for (let voice = 0; voice < vc; voice++) {
                                 synthSource.push(line.replace(/\#/g, j + "").replace(/\~/g, voice + ""));
                             }
@@ -13265,10 +13265,10 @@ export class Synth {
                     }
                 }
 
-                //console.log(synthSource.join("\n"));
-
                 const wrappedFm6Synth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
-
+                
+                // console.log(wrappedFm6Synth);
+                
                 Synth.fm6SynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFm6Synth)(Config, Synth);
             }
             return Synth.fm6SynthFunctionCache[fingerprint];
