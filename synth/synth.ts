@@ -8692,8 +8692,10 @@ class InstrumentState {
     public volumeScale: number = 0;
     public aliases: boolean = false;
     public arpTime: number = 0;
+    public arpEnvelopeStart: number = 1;
     public vibratoTime: number = 0;
     public nextVibratoTime: number = 0;
+    public vibratoEnvelopeStart: number = 1;
     public envelopeTime: number[] = [];
 
     public eqFilterVolume: number = 1.0;
@@ -8956,7 +8958,9 @@ class InstrumentState {
         // LFOs are reset here rather than in deactivate() for periodic oscillation that stays "on the beat". Resetting in deactivate() will cause it to reset with each note.
         this.vibratoTime = 0;
         this.nextVibratoTime = 0;
+        this.vibratoEnvelopeStart = 1;
         this.arpTime = 0;
+        this.arpEnvelopeStart = 1;
         for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) this.envelopeTime[envelopeIndex] = 0;
         this.envelopeComputer.reset();
 
@@ -9049,6 +9053,8 @@ class InstrumentState {
         const usesEcho: boolean = effectsIncludeEcho(this.effects);
         const usesReverb: boolean = effectsIncludeReverb(this.effects);
         const usesPlugin: boolean = effectsIncludePlugin(this.effects);
+        const usesVibrato: boolean = effectsIncludeVibrato(this.effects);
+        const usesArp: boolean = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
 
         let granularChance: number = 0;
         if (usesGranular) { //has to happen before buffer allocation
@@ -9116,6 +9122,14 @@ class InstrumentState {
                     // }
                 }
             }
+        }
+
+        if (usesVibrato) {
+            this.vibratoEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.vibratoSpeed];
+        }
+
+        if (usesArp) {
+            this.arpEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.arpeggioSpeed];
         }
 
         if (usesDistortion) {
@@ -11063,6 +11077,7 @@ export class Synth {
                     if (this.isModActive(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex)) {
                         useVibratoSpeed = this.getModValue(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex);
                     }
+                    useVibratoSpeed *= instrumentState.vibratoEnvelopeStart;
 
                     if (useVibratoSpeed == 0) {
                         instrumentState.vibratoTime = 0;
@@ -11206,17 +11221,11 @@ export class Synth {
                         instrumentState.tonesAddedInThisTick = false;
                     }
                 }
-                const ticksIntoBar: number = this.getTicksIntoBar();
-                const tickTimeStart: number = ticksIntoBar;
-                const secondsPerTick: number = samplesPerTick / this.samplesPerSecond;
-                const currentPart: number = this.getCurrentPart();
                 for (let channel: number = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
                     for (let instrumentIdx: number = 0; instrumentIdx < this.song.channels[channel].instruments.length; instrumentIdx++) {
                         let instrument: Instrument = this.song.channels[channel].instruments[instrumentIdx];
                         let instrumentState: InstrumentState = this.channels[channel].instruments[instrumentIdx];
 
-                        // Update envelope time, which is used to calculate tone-based envelopes' position position
-                        const envelopeComputer: EnvelopeComputer = instrumentState.envelopeComputer;
                         const envelopeSpeeds: number[] = [];
                         for (let i: number = 0; i < Config.maxEnvelopeCount; i++) {
                             envelopeSpeeds[i] = 0;
@@ -11241,19 +11250,9 @@ export class Synth {
                             }
                         }
 
-                        //annoyingly arp speed is calculated in a completely separate place from everything else, and thus we need to run compute envelopes just for it. 
-                        // This uses the instrumentState envelopeComputer, but is effectively per tone to the user given that arpeggios cause only one tone to play at a time
-                        if (instrumentState.activeTones.count() > 0) {
-                            const tone: Tone = instrumentState.activeTones.get(0);
-                            envelopeComputer.computeEnvelopes(instrument, currentPart, instrumentState.envelopeTime, tickTimeStart, secondsPerTick, tone, envelopeSpeeds, instrumentState, this, channel, instrumentIdx, false);
-                        }
-                        const envelopeStarts: number[] = envelopeComputer.envelopeStarts;
-                        //const envelopeEnds: number[] = envelopeComputer.envelopeEnds;
-
                         // Update arpeggio time, which is used to calculate arpeggio position
 
-                        const arpEnvelopeStart: number = envelopeStarts[EnvelopeComputeIndex.arpeggioSpeed]; //only discrete for now
-                        //const arpEnvelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.arpeggioSpeed];
+                        const arpEnvelopeStart: number = instrumentState.arpEnvelopeStart; //only discrete for now
                         let useArpeggioSpeed: number = instrument.arpeggioSpeed;
                         if (this.isModActive(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx)) {
                             useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, arpEnvelopeStart * this.getModValue(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx, false));
@@ -11273,7 +11272,6 @@ export class Synth {
                                 instrumentState.arpTime += (1 - (useArpeggioSpeed % 1)) * Config.arpSpeedScale[Math.floor(useArpeggioSpeed)] + (useArpeggioSpeed % 1) * Config.arpSpeedScale[Math.ceil(useArpeggioSpeed)];
                             }
                         }
-                        envelopeComputer.clearEnvelopes();
 
                     }
                 }

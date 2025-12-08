@@ -156,6 +156,7 @@ export const enum EnvelopeComputeIndex {
     grainSize,
     grainRange,
     echoDelay,
+    vibratoSpeed,
     //Add more here
 
     length,
@@ -1749,7 +1750,6 @@ export class Config {
         { name: "pitchShift", computeIndex: EnvelopeComputeIndex.pitchShift, displayName: "pitch shift",      perNote:  true, interleave: false, isFilter: false, /*range: Config.pitchShiftRange,         */    maxCount: 1, effect: EffectType.pitchShift, compatibleInstruments: null },
         { name: "detune", computeIndex: EnvelopeComputeIndex.detune, displayName: "detune",           perNote:  true, interleave: false, isFilter: false, /*range: Config.detuneMax + 1,           */    maxCount: 1, effect: EffectType.detune, compatibleInstruments: null },
         { name: "vibratoDepth", computeIndex: EnvelopeComputeIndex.vibratoDepth, displayName: "vibrato depth",    perNote:  true, interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: 1, effect: EffectType.vibrato, compatibleInstruments: null },
-        //{ name: "vibratoSpeed", computeIndex: EnvelopeComputeIndex.vibratoSpeed, displayName: "vibrato speed", /*perNote:  true,*/ interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: 1, effect: EffectType.vibrato, compatibleInstruments: null },
         { name: "noteFilterAllFreqs", computeIndex: EnvelopeComputeIndex.noteFilterAllFreqs, displayName: "n. filter freqs",  perNote:  true, interleave: false, isFilter: true, /*range: null,                           */    maxCount: 1, effect: EffectType.noteFilter, compatibleInstruments: null },
         { name: "noteFilterFreq", computeIndex: EnvelopeComputeIndex.noteFilterFreq0, displayName: "n. filter # freq", perNote:  true, interleave: false/*true*/, isFilter: true, /*range: Config.filterFreqRange,     */        maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null },
         { name: "decimalOffset", computeIndex: EnvelopeComputeIndex.decimalOffset, displayName: "decimal offset",      perNote:  true, interleave: false, isFilter: false, /*range: Config.pulseWidthRange,         */    maxCount: 1, effect: null, compatibleInstruments: [InstrumentType.pwm, InstrumentType.supersaw] },
@@ -1771,6 +1771,7 @@ export class Config {
         { name: "grainSize", computeIndex: EnvelopeComputeIndex.grainSize, displayName: "grain size", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.granular, compatibleInstruments: null },
         { name: "grainRange", computeIndex: EnvelopeComputeIndex.grainRange, displayName: "grain range", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.granular, compatibleInstruments: null },
         { name: "echoDelay", computeIndex: EnvelopeComputeIndex.echoDelay, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.echo, compatibleInstruments: null },
+        { name: "vibratoSpeed", computeIndex: EnvelopeComputeIndex.vibratoSpeed, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: 1, effect: EffectType.vibrato, compatibleInstruments: null },
         // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
         //{name: "noteFilterGain",         computeIndex:       EnvelopeComputeIndex.noteFilterGain0,        displayName: "n. filter # vol",  /*perNote:  true,*/ interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null},
         /*

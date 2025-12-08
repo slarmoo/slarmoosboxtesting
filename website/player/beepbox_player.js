@@ -1207,6 +1207,7 @@ var beepbox = (function (exports) {
         { name: "grainSize", computeIndex: 53, displayName: "grain size", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14, compatibleInstruments: null },
         { name: "grainRange", computeIndex: 54, displayName: "grain range", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14, compatibleInstruments: null },
         { name: "echoDelay", computeIndex: 55, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6, compatibleInstruments: null },
+        { name: "vibratoSpeed", computeIndex: 56, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 9, compatibleInstruments: null },
     ]);
     Config.operatorWaves = toNameMap([
         { name: "sine", samples: _a$1.sineWave },
@@ -16783,7 +16784,7 @@ var beepbox = (function (exports) {
             this._modifiedEnvelopeIndices = [];
             this._modifiedEnvelopeCount = 0;
             this.lowpassCutoffDecayVolumeCompensation = 1.0;
-            const length = 56;
+            const length = 57;
             for (let i = 0; i < length; i++) {
                 this.envelopeStarts[i] = 1.0;
                 this.envelopeEnds[i] = 1.0;
@@ -17508,8 +17509,10 @@ var beepbox = (function (exports) {
             this.volumeScale = 0;
             this.aliases = false;
             this.arpTime = 0;
+            this.arpEnvelopeStart = 1;
             this.vibratoTime = 0;
             this.nextVibratoTime = 0;
+            this.vibratoEnvelopeStart = 1;
             this.envelopeTime = [];
             this.eqFilterVolume = 1.0;
             this.eqFilterVolumeDelta = 0.0;
@@ -17739,7 +17742,9 @@ var beepbox = (function (exports) {
             this.deactivate();
             this.vibratoTime = 0;
             this.nextVibratoTime = 0;
+            this.vibratoEnvelopeStart = 1;
             this.arpTime = 0;
+            this.arpEnvelopeStart = 1;
             for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++)
                 this.envelopeTime[envelopeIndex] = 0;
             this.envelopeComputer.reset();
@@ -17821,6 +17826,8 @@ var beepbox = (function (exports) {
             const usesEcho = effectsIncludeEcho(this.effects);
             const usesReverb = effectsIncludeReverb(this.effects);
             const usesPlugin = effectsIncludePlugin(this.effects);
+            const usesVibrato = effectsIncludeVibrato(this.effects);
+            const usesArp = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
             let granularChance = 0;
             if (usesGranular) {
                 granularChance = (instrument.grainAmounts + 1);
@@ -17878,6 +17885,12 @@ var beepbox = (function (exports) {
                         grain.addDelay(Math.random() * samplesPerTick * 4);
                     }
                 }
+            }
+            if (usesVibrato) {
+                this.vibratoEnvelopeStart = envelopeStarts[56];
+            }
+            if (usesArp) {
+                this.arpEnvelopeStart = envelopeStarts[48];
             }
             if (usesDistortion) {
                 let useDistortionStart = instrument.distortion;
@@ -19475,6 +19488,7 @@ var beepbox = (function (exports) {
                         if (this.isModActive(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex)) {
                             useVibratoSpeed = this.getModValue(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex);
                         }
+                        useVibratoSpeed *= instrumentState.vibratoEnvelopeStart;
                         if (useVibratoSpeed == 0) {
                             instrumentState.vibratoTime = 0;
                             instrumentState.nextVibratoTime = 0;
@@ -19604,18 +19618,11 @@ var beepbox = (function (exports) {
                             instrumentState.tonesAddedInThisTick = false;
                         }
                     }
-                    const ticksIntoBar = this.getTicksIntoBar();
-                    const tickTimeStart = ticksIntoBar;
-                    const secondsPerTick = samplesPerTick / this.samplesPerSecond;
-                    const currentPart = this.getCurrentPart();
                     for (let channel = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
                         for (let instrumentIdx = 0; instrumentIdx < this.song.channels[channel].instruments.length; instrumentIdx++) {
                             let instrument = this.song.channels[channel].instruments[instrumentIdx];
                             let instrumentState = this.channels[channel].instruments[instrumentIdx];
-                            const envelopeComputer = instrumentState.envelopeComputer;
-                            const envelopeSpeeds = [];
                             for (let i = 0; i < Config.maxEnvelopeCount; i++) {
-                                envelopeSpeeds[i] = 0;
                             }
                             for (let envelopeIndex = 0; envelopeIndex < instrument.envelopeCount; envelopeIndex++) {
                                 let useEnvelopeSpeed = instrument.envelopeSpeed;
@@ -19636,12 +19643,7 @@ var beepbox = (function (exports) {
                                     instrumentState.envelopeTime[envelopeIndex] += Config.arpSpeedScale[useEnvelopeSpeed] * perEnvelopeSpeed;
                                 }
                             }
-                            if (instrumentState.activeTones.count() > 0) {
-                                const tone = instrumentState.activeTones.get(0);
-                                envelopeComputer.computeEnvelopes(instrument, currentPart, instrumentState.envelopeTime, tickTimeStart, secondsPerTick, tone, envelopeSpeeds, instrumentState, this, channel, instrumentIdx, false);
-                            }
-                            const envelopeStarts = envelopeComputer.envelopeStarts;
-                            const arpEnvelopeStart = envelopeStarts[48];
+                            const arpEnvelopeStart = instrumentState.arpEnvelopeStart;
                             let useArpeggioSpeed = instrument.arpeggioSpeed;
                             if (this.isModActive(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx)) {
                                 useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, arpEnvelopeStart * this.getModValue(Config.modulators.dictionary["arp speed"].index, channel, instrumentIdx, false));
@@ -19661,7 +19663,6 @@ var beepbox = (function (exports) {
                                     instrumentState.arpTime += (1 - (useArpeggioSpeed % 1)) * Config.arpSpeedScale[Math.floor(useArpeggioSpeed)] + (useArpeggioSpeed % 1) * Config.arpSpeedScale[Math.ceil(useArpeggioSpeed)];
                                 }
                             }
-                            envelopeComputer.clearEnvelopes();
                         }
                     }
                     for (let channel = 0; channel < this.song.pitchChannelCount + this.song.noiseChannelCount; channel++) {
