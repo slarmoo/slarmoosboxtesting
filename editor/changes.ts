@@ -1496,14 +1496,12 @@ export class ChangeRandomGeneratedInstrument extends Change {
             switch (type) {
                 case InstrumentType.chip: {
                     instrument.chipWave = (Math.random() * Config.chipWaves.length) | 0;
-                    // advloop addition
                     instrument.isUsingAdvancedLoopControls = false;
                     instrument.chipWaveLoopStart = 0;
                     instrument.chipWaveLoopEnd = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
                     instrument.chipWaveLoopMode = 0;
                     instrument.chipWavePlayBackwards = false;
                     instrument.chipWaveStartOffset = 0;
-                    // advloop addition
                 } break;
                 case InstrumentType.pwm:
                 case InstrumentType.supersaw: {
@@ -5330,14 +5328,12 @@ export class ChangeChipWave extends Change {
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         if (instrument.chipWave != newValue) {
             instrument.chipWave = newValue;
-            // advloop addition
             instrument.isUsingAdvancedLoopControls = false;
             instrument.chipWaveLoopStart = 0;
             instrument.chipWaveLoopEnd = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
             instrument.chipWaveLoopMode = 0;
             instrument.chipWavePlayBackwards = false;
             instrument.chipWaveStartOffset = 0;
-            // advloop addition
             instrument.preset = instrument.type;
             doc.notifier.changed();
             this._didSomething();
@@ -5345,7 +5341,6 @@ export class ChangeChipWave extends Change {
     }
 }
 
-// advloop addition
 export class ChangeChipWaveUseAdvancedLoopControls extends Change {
     constructor(doc: SongDocument, newValue: boolean) {
         super();
@@ -5429,7 +5424,6 @@ export class ChangeChipWavePlayBackwards extends Change {
         }
     }
 }
-// advloop addition
 
 export class ChangeNoiseWave extends Change {
     constructor(doc: SongDocument, newValue: number) {
