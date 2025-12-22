@@ -2448,6 +2448,7 @@ export class SongEditor {
                     //there's no good way to predict the zero crossings of a karplusser algorithm
                     this._unisonAntiPhasedRow.style.display = "none"; 
                 } else {
+                    this._unisonAntiPhasedRow.style.display = ""; 
                     this._unisonAntiPhasedBox.checked = instrument.unisonAntiPhased ? true : false;
                     this._unisonDropdownGroup.style.display = (this._openUnisonDropdown ? "" : "none");
                 }

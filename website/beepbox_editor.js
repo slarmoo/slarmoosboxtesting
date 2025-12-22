@@ -48949,6 +48949,7 @@ You should be redirected to the song at:<br /><br />
                             this._unisonAntiPhasedRow.style.display = "none";
                         }
                         else {
+                            this._unisonAntiPhasedRow.style.display = "";
                             this._unisonAntiPhasedBox.checked = instrument.unisonAntiPhased ? true : false;
                             this._unisonDropdownGroup.style.display = (this._openUnisonDropdown ? "" : "none");
                         }
