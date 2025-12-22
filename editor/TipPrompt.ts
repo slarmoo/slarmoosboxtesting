@@ -564,6 +564,13 @@ export class TipPrompt implements Prompt {
 					p("This setting is a volume multiplier applied to every voice EXCEPT the first. This setting will only work correctly with more than one voices."),
 				);
 			} break;
+			case "unisonAntiPhased": {
+				message = div(
+					h2("Unison Antiphased"),
+					p("This setting, when checked, will randomize the phases of each unison voice to reduce alignment")
+				);
+				break
+			}
 			case "pitchRange": {
 				message = div(
 					h2("Pitch Envelope Start and End"),

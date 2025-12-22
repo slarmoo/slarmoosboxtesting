@@ -83,7 +83,7 @@ function decode32BitNumber(compressed: string, charIndex: number): number {
     return x;
 }
 
-function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number, e: number, i: number): void {
+function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number, e: number, i: number, p: boolean): void {
     // TODO: make these sign bits more efficient (bundle them together)
     buffer.push(base64IntToCharCode[v]);
 
@@ -105,6 +105,8 @@ function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number,
     buffer.push(base64IntToCharCode[Number((i > 0))]);
     let cleanI = Math.round(Math.abs(i) * 1000);
     buffer.push(base64IntToCharCode[cleanI % 63], base64IntToCharCode[Math.floor(cleanI / 63)]);
+
+    buffer.push(base64IntToCharCode[+p]);
 }
 
 function convertLegacyKeyToKeyAndOctave(rawKeyIndex: number): [number, number] {
@@ -1702,6 +1704,7 @@ export class Instrument {
     public unisonOffset: number = 0.0;
     public unisonExpression: number = 1.4;
     public unisonSign: number = 1.0;
+    public unisonAntiPhased: boolean = false;
     public effects: number = 0;
     public chord: number = 1;
     public volume: number = 0;
@@ -2231,6 +2234,7 @@ export class Instrument {
                 instrumentObject["unisonOffset"] = this.unisonOffset;
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
+                instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
             }
         }
 
@@ -2476,6 +2480,7 @@ export class Instrument {
         this.unisonOffset = (instrumentObject["unisonOffset"] == undefined) ? Config.unisons[this.unison].offset : instrumentObject["unisonOffset"];
         this.unisonExpression = (instrumentObject["unisonExpression"] == undefined) ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
         this.unisonSign = (instrumentObject["unisonSign"] == undefined) ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
+        this.unisonAntiPhased = (instrumentObject["unisonAntiPhased"] == true);
 
         if (instrumentObject["chorus"] == "custom harmony") {
             // The original chorus setting had an option that now maps to two different settings. Override those if necessary.
@@ -3231,7 +3236,7 @@ export class Song {
     private static readonly _oldestUltraBoxVersion: number = 1;
     private static readonly _latestUltraBoxVersion: number = 5;
     private static readonly _oldestSlarmoosBoxVersion: number = 1;
-    private static readonly _latestSlarmoosBoxVersion: number = 5;
+    private static readonly _latestSlarmoosBoxVersion: number = 6;
     // One-character variant detection at the start of URL to distinguish variants such as JummBox, Or Goldbox. "j" and "g" respectively
     //also "u" is ultrabox lol
     private static readonly _variant = 0x73; //"s" ~ slarmoo's box
@@ -3869,7 +3874,7 @@ export class Song {
 
                 if (instrument.type != InstrumentType.mod) {
                     buffer.push(SongTagCode.unison, base64IntToCharCode[instrument.unison]);
-                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign);
+                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased);
                 }
 
                 if (instrument.type == InstrumentType.chip) {
@@ -5408,6 +5413,10 @@ export class Song {
                         const unisonSignNegative = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         const unisonSign: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 63);
 
+                        if (fromSlarmoosBox && !beforeSix) {
+                            instrument.unisonAntiPhased = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] == 1;
+                        }
+
 
                         instrument.unisonSpread = unisonSpread / 1000;
                         if (unisonSpreadNegative == 0) instrument.unisonSpread *= -1;
@@ -5426,6 +5435,7 @@ export class Song {
                         instrument.unisonOffset = Config.unisons[instrument.unison].offset;
                         instrument.unisonExpression = Config.unisons[instrument.unison].expression;
                         instrument.unisonSign = Config.unisons[instrument.unison].sign;
+                        instrument.unisonAntiPhased = false; //TODO: make antiPhased presets
                     }
                 }
 
@@ -8559,6 +8569,7 @@ class Tone {
     public supersawDelayLine: Float32Array | null = null;
     public supersawDelayIndex: number = -1;
     public supersawPrevPhaseDelta: number | null = null;
+    public unisonHasUpdated: boolean = false;
     public readonly pickedStrings: PickedString[] = [];
 
     public readonly noteFilters: DynamicBiquadFilter[] = [];
@@ -8612,6 +8623,7 @@ class Tone {
         this.initialNoteFilterInput2 = 0.0;
         this.liveInputSamplesHeld = 0;
         this.supersawDelayIndex = -1;
+        this.unisonHasUpdated = false;
         for (const pickedString of this.pickedStrings) {
             pickedString.reset();
         }
@@ -8652,6 +8664,8 @@ class InstrumentState {
     public unisonOffset: number = 0.0;
     public unisonExpression: number = 1.4;
     public unisonSign: number = 1.0;
+    public unisonAntiPhased: boolean = false;
+    public unisonInitialized: boolean = true;
     public chord: Chord | null = null;
     public effects: number = 0;
 
@@ -9585,6 +9599,10 @@ class InstrumentState {
             this.unisonOffset = instrument.unisonOffset;
             this.unisonExpression = instrument.unisonExpression;
             this.unisonSign = instrument.unisonSign;
+            if (this.unisonAntiPhased != instrument.unisonAntiPhased) {
+                this.unisonAntiPhased = instrument.unisonAntiPhased;
+                this.unisonInitialized = false;
+            }
         }
         if (instrument.type == InstrumentType.chip) {
             this.wave = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
@@ -12558,6 +12576,95 @@ export class Synth {
                     tone.phaseDeltas[i * unisonVoices + voice] = freqStart * sampleTime * unisonStart;
                     tone.phaseDeltaScales[i * unisonVoices + voice] = basePhaseDeltaScale * Math.pow(unisonEnd / unisonStart, 1.0 / roundedSamplesPerTick);
                 }
+                if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased) {
+                    const wave = tone.operatorWaves[i].samples;
+                    //not a perfect representation of the fm wave, but it approximates it well enough 
+                    //in most scenarios for this to work
+                    function wavePoint(phase: number): number {
+                        const flooredPhase: number = phase | 0;
+                        const remainder: number = phase - flooredPhase;
+                        const flooredPhase2: number = flooredPhase + 1 >= wave.length ? flooredPhase + 1 - wave.length : flooredPhase + 1;
+                        return wave[flooredPhase] * (1 - remainder) + wave[flooredPhase2] * remainder;
+                    }
+                    // Goal: generate phases such that the combined initial amplitude
+                    // cancel out to minimize pop. Algorithm: generate sorted phases, iterate over
+                    // the whole wave until we find a combined zero crossing, then offset the
+                    // phases so they start there.
+
+                    // Generate random phases in ascending order by adding positive randomly
+                    // sized gaps between adjacent phases. For a proper distribution of random
+                    // events, the gaps sizes should be an "exponential distribution", which is
+                    // just: -Math.log(Math.random()). At the end, normalize the phases to a 0-1
+                    // range by dividing by the final value of the accumulator.
+                    const voiceCount: number = Config.unisonVoicesMax;
+                    const unisonSign: number = instrument.unisonSign;
+
+                    let accumulator: number = 0.0;
+                    for (let j: number = 0; j < voiceCount; j++) {
+                        tone.phases[i * unisonVoices + j] = accumulator;
+                        accumulator += -Math.log(Math.random());
+                    }
+
+                    let amplitudeOld: number = wavePoint(tone.phases[i * unisonVoices]);
+                    for (let j: number = 1; j < voiceCount; j++) {
+                        amplitudeOld += wavePoint(tone.phases[i * unisonVoices + j]) * unisonSign;
+                    }
+                    let phaseOld: number = 0.0;
+                    let zeroCrossingPhase: number = 0.0;
+
+                    //iterate over the wave at 256 different points (or until a good crossing is found). 
+                    const steps = 256;
+                    for (let j = 1; j <= steps; j++) {
+                        let phaseNew = j / steps * wave.length;
+                        let amplitudeNew: number = wavePoint(tone.phases[i * unisonVoices]);
+                        for (let k: number = 1; k < voiceCount; k++) {
+                            amplitudeNew += wavePoint(tone.phases[i * unisonVoices + k]) * unisonSign;
+                        }
+                        if ((amplitudeOld | 0) * (amplitudeNew | 0) <= 0) {
+                            //here we basically do a binary search for the zero crossing with a depth of 10
+                            for (let _ = 0; _ < 10; _++) {
+                                const phaseCenter = (phaseOld + phaseNew) / 2;
+                                let amplitudeNewer: number = wavePoint(phaseCenter + tone.phases[i * unisonVoices]);
+                                for (let k: number = 1; k < voiceCount; k++) {
+                                    amplitudeNewer += wavePoint(phaseCenter + tone.phases[i * unisonVoices + k]) * unisonSign;
+                                }
+
+                                if (amplitudeOld * amplitudeNewer <= 0) {
+                                    phaseNew = phaseCenter;
+                                    amplitudeNew = amplitudeNewer;
+                                } else {
+                                    phaseOld = phaseCenter;
+                                    amplitudeOld = amplitudeNewer;
+                                }
+                            }
+                            zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                            break;
+                        }
+                        phaseOld = phaseNew;
+                        amplitudeOld = amplitudeNew;
+                    }
+
+                    for (let j: number = 0; j < voiceCount; j++) {
+                        tone.phases[i * unisonVoices + j] += zeroCrossingPhase;
+                    }
+
+                    // Randomize the (initially sorted) order of the phases (aside from the
+                    // first one) so that they don't correlate to the detunes that are also
+                    // based on index.
+                    for (let j: number = 1; j < voiceCount - 1; j++) {
+                        const swappedIndex: number = j + Math.floor(Math.random() * (voiceCount - j));
+                        const temp: number = tone.phases[i];
+                        tone.phases[i * unisonVoices + j] = tone.phases[i * unisonVoices + swappedIndex];
+                        tone.phases[i * unisonVoices + swappedIndex] = temp;
+                    }
+                    instrumentState.unisonInitialized = true;
+                    tone.unisonHasUpdated = true;
+                } else if (!instrumentState.unisonInitialized && !instrument.unisonAntiPhased) {
+                    for (let j: number = 0; j < Config.unisonVoicesMax; j++) {
+                        tone.phases[i * unisonVoices + j] = 0;
+                    }
+                    instrumentState.unisonInitialized = true;
+                }
 
                 let amplitudeStart: number = instrument.operators[i].amplitude;
                 let amplitudeEnd: number = instrument.operators[i].amplitude;
@@ -12679,6 +12786,7 @@ export class Synth {
             const endPitch: number = basePitch + (pitch + intervalEnd) * intervalScale;
             let pitchExpressionStart: number;
             // TODO: use the second element of prevPitchExpressions for the unison voice, compute a separate expression delta for it.
+            // slarmoo - ummm. Idk if this is necessary anymore?
             if (tone.prevPitchExpressions[0] != null) {
                 pitchExpressionStart = tone.prevPitchExpressions[0]!;
             } else {
@@ -12771,6 +12879,106 @@ export class Synth {
                     }
                 }
 
+                if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased && (instrument.type == InstrumentType.pwm || instrumentState.wave) && instrument.type != InstrumentType.pickedString) {
+                    function wavePoint(phase: number): number {
+                        if (instrument.type == InstrumentType.pwm) {
+                            //because there's no wave array to index into, we do a very quick calculation
+                            //of what that value would be, using a reduced version of the pulse width 
+                            //synth code
+                            const sawPhaseA = phase - (phase | 0);
+                            const sawPhaseB = (phase + tone.pulseWidth) - ((phase + tone.pulseWidth) | 0);
+                            return sawPhaseB - sawPhaseA;
+                        } 
+                        const flooredPhase: number = (phase | 0) % instrumentState.wave!.length;
+                        const remainder: number = phase - flooredPhase;
+                        const flooredPhase2: number = flooredPhase + 1 >= instrumentState.wave!.length ? flooredPhase + 1 - instrumentState.wave!.length : flooredPhase + 1;
+                        return instrumentState.wave![flooredPhase] * (1 - remainder) + instrumentState.wave![flooredPhase2] * remainder;
+                    }
+                    // Goal: generate phases such that the combined initial amplitude
+                    // cancel out to minimize pop. Algorithm: generate sorted phases, iterate over
+                    // the whole wave until we find a combined zero crossing, then offset the
+                    // phases so they start there.
+
+                    // Generate random phases in ascending order by adding positive randomly
+                    // sized gaps between adjacent phases. For a proper distribution of random
+                    // events, the gaps sizes should be an "exponential distribution", which is
+                    // just: -Math.log(Math.random()). At the end, normalize the phases to a 0-1
+                    // range by dividing by the final value of the accumulator.
+                    const voiceCount: number = Config.unisonVoicesMax;
+                    const unisonSign: number = instrument.unisonSign;
+
+                    //honestly between this and the randomizing, we don't really need to search for the zero crossing. 
+                    //But better quality is always nice. 
+                    let accumulator: number = 0.0;
+                    for (let i: number = 0; i < voiceCount; i++) {
+                        tone.phases[i] = accumulator;
+                        accumulator += -Math.log(Math.random());
+                    }
+
+                    let amplitudeOld: number = wavePoint(tone.phases[0]);
+                    for (let i: number = 1; i < voiceCount; i++) {
+                        amplitudeOld += wavePoint(tone.phases[i]) * unisonSign;
+                    }
+                    let phaseOld: number = 0.0;
+                    let zeroCrossingPhase: number = 0.0;
+
+                    //iterate over the wave at 256 different points (or until a good crossing is found). 
+                    const steps = 256;
+                    for (let i = 1; i <= steps; i++) {
+                        let phaseNew = i / steps * (instrument.type == InstrumentType.pwm ? 1 : instrumentState.wave!.length);
+                        let amplitudeNew: number = wavePoint(tone.phases[0] + phaseNew);
+                        for (let j: number = 1; j < voiceCount; j++) {
+                            amplitudeNew += wavePoint(tone.phases[j] + phaseNew) * unisonSign;
+                        }
+                        if (amplitudeOld * amplitudeNew <= 0) {
+                            // const m = (amplitudeNew - amplitudeOld) / (phaseNew - phaseOld);
+                            // if (m == 0) zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                            // else zeroCrossingPhase = (-1 * amplitudeOld / m + phaseOld);
+
+                            //here we basically do a binary search for the zero crossing with a depth of 10
+                            for (let _ = 0; _ < 10; _++) {
+                                const phaseCenter = (phaseOld + phaseNew) / 2;
+                                let amplitudeNewer: number = wavePoint(phaseCenter + tone.phases[0]);
+                                for (let k: number = 1; k < voiceCount; k++) {
+                                    amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
+                                }
+
+                                if (amplitudeOld * amplitudeNewer <= 0) {
+                                    phaseNew = phaseCenter;
+                                    amplitudeNew = amplitudeNewer;
+                                } else {
+                                    phaseOld = phaseCenter;
+                                    amplitudeOld = amplitudeNewer;
+                                }
+                            }
+                            zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                            break;
+                        }
+                        phaseOld = phaseNew;
+                        amplitudeOld = amplitudeNew;
+                    }
+
+                    for (let i: number = 0; i < voiceCount; i++) {
+                        tone.phases[i] += zeroCrossingPhase;
+                    }
+
+                    // Randomize the (initially sorted) order of the phases (aside from the
+                    // first one) so that they don't correlate to the detunes that are also
+                    // based on index.
+                    for (let i: number = 1; i < voiceCount - 1; i++) {
+                        const swappedIndex: number = i + Math.floor(Math.random() * (voiceCount - i));
+                        const temp: number = tone.phases[i];
+                        tone.phases[i] = tone.phases[swappedIndex];
+                        tone.phases[swappedIndex] = temp;
+                    }
+                    instrumentState.unisonInitialized = true;
+                    tone.unisonHasUpdated = true;
+                } else if (!instrumentState.unisonInitialized && !instrument.unisonAntiPhased) {
+                    for (let i: number = 0; i < Config.unisonVoicesMax; i++) {
+                        tone.phases[i] = 0;
+                    }
+                    instrumentState.unisonInitialized = true;
+                }
             } else if (instrument.type == InstrumentType.supersaw) {
                 const unisonVoices: number = instrument.unisonVoices;
                 const unisonSpread: number = instrument.unisonSpread;
@@ -12822,7 +13030,7 @@ export class Synth {
                 tone.supersawDynamismDelta = (dynamismEnd - dynamismStart) / roundedSamplesPerTick;
 
                 const initializeSupersaw: boolean = (tone.supersawDelayIndex == -1);
-                if (initializeSupersaw) {
+                if (initializeSupersaw || !instrumentState.unisonInitialized) {
                     // Goal: generate sawtooth phases such that the combined initial amplitude
                     // cancel out to minimize pop. Algorithm: generate sorted phases, iterate over
                     // their sawtooth drop points to find a combined zero crossing, then offset the
@@ -12833,19 +13041,21 @@ export class Synth {
                     // events, the gaps sizes should be an "exponential distribution", which is
                     // just: -Math.log(Math.random()). At the end, normalize the phases to a 0-1
                     // range by dividing by the final value of the accumulator.
+                    const voiceCount: number = instrument.unisonAntiPhased ? Config.supersawVoiceCount * Config.unisonVoicesMax : Config.supersawVoiceCount;
+
                     let accumulator: number = 0.0;
-                    for (let i: number = 0; i < Config.supersawVoiceCount; i++) {
+                    for (let i: number = 0; i < voiceCount; i++) {
                         tone.phases[i] = accumulator;
                         accumulator += -Math.log(Math.random());
                     }
 
-                    const amplitudeSum: number = 1.0 + (Config.supersawVoiceCount - 1.0) * dynamismStart;
+                    const amplitudeSum: number = 1.0 + (voiceCount - 1.0) * dynamismStart;
                     const slope: number = amplitudeSum;
 
                     // Find the initial amplitude of the sum of sawtooths with the normalized
                     // set of phases.
                     let sample: number = 0.0;
-                    for (let i: number = 0; i < Config.supersawVoiceCount; i++) {
+                    for (let i: number = 0; i < voiceCount; i++) {
                         const amplitude: number = (i == 0) ? 1.0 : dynamismStart;
                         const normalizedPhase: number = tone.phases[i] / accumulator;
                         tone.phases[i] = normalizedPhase;
@@ -12860,7 +13070,7 @@ export class Synth {
                     // through the phases.
                     let zeroCrossingPhase: number = 1.0;
                     let prevDrop: number = 0.0;
-                    for (let i: number = Config.supersawVoiceCount - 1; i >= 0; i--) {
+                    for (let i: number = voiceCount - 1; i >= 0; i--) {
                         const nextDrop: number = 1.0 - tone.phases[i];
                         const phaseDelta: number = nextDrop - prevDrop;
                         if (sample < 0.0) {
@@ -12874,26 +13084,29 @@ export class Synth {
                         sample += phaseDelta * slope - amplitude;
                         prevDrop = nextDrop;
                     }
-                    for (let i: number = 0; i < Config.supersawVoiceCount; i++) {
+                    for (let i: number = 0; i < voiceCount; i++) {
                         tone.phases[i] += zeroCrossingPhase;
                     }
 
                     // Randomize the (initially sorted) order of the phases (aside from the
                     // first one) so that they don't correlate to the detunes that are also
                     // based on index.
-                    for (let i: number = 1; i < Config.supersawVoiceCount - 1; i++) {
-                        const swappedIndex: number = i + Math.floor(Math.random() * (Config.supersawVoiceCount - i));
+                    for (let i: number = 1; i < voiceCount - 1; i++) {
+                        const swappedIndex: number = i + Math.floor(Math.random() * (voiceCount - i));
                         const temp: number = tone.phases[i];
                         tone.phases[i] = tone.phases[swappedIndex];
                         tone.phases[swappedIndex] = temp;
                     }
 
-                    //extend phase map to have duplicate phases representing each unison voice
-                    for (let i: number = 1; i < instrument.unisonVoices; i++) {
-                        for (let j: number = 0; j < Config.supersawVoiceCount; j++) {
-                            tone.phases[i * Config.supersawVoiceCount + j] = tone.phases[j];
+                    if (!instrument.unisonAntiPhased) {
+                        //extend phase map to have duplicate phases representing each unison voice
+                        for (let i: number = 1; i < instrument.unisonVoices; i++) {
+                            for (let j: number = 0; j < Config.supersawVoiceCount; j++) {
+                                tone.phases[i * Config.supersawVoiceCount + j] = tone.phases[j];
+                            }
                         }
                     }
+                    instrumentState.unisonInitialized = true;
                 }
 
                 const baseSpreadSlider: number = instrument.supersawSpread / Config.supersawSpreadMax;
@@ -13136,7 +13349,6 @@ export class Synth {
             return Synth.modSynth;
         } else if (instrument.type == InstrumentType.fm6op) {
             const voiceCount: number = instrument.unisonVoices;
-            console.log(instrument.customAlgorithm)
             const fingerprint: string = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
             if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
@@ -13639,12 +13851,12 @@ export class Synth {
                     const inputSample# = wave[(0 | phase#) % waveLength];
                     `.replaceAll("#", i + "");
             }
-            const sampleListA: string[] = [];
+            const sampleListAliased: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
-                sampleListA.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
+                sampleListAliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += "inputSample = " + sampleListA.join(" + ") + ";";
+            chipSource += "inputSample = " + sampleListAliased.join(" + ") + ";";
             chipSource += `} else {
                     `;
             for (let i: number = 0; i < voiceCount; i++) {
@@ -13661,12 +13873,12 @@ export class Synth {
                         let inputSample# = wave#;
                         `.replaceAll("#", i + "");
             }
-            const sampleListB: string[] = [];
+            const sampleListUnaliased: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
-                sampleListB.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
+                sampleListUnaliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += "inputSample = " + sampleListB.join(" + ") + ";";
+            chipSource += "inputSample = " + sampleListUnaliased.join(" + ") + ";";
             chipSource += `}
         `;
 
@@ -15050,7 +15262,7 @@ export class Synth {
     }
 
     // # denotes operator number, ~ denotes voice number for unison
-    private static fmSourceTemplate: string[] = (`
+    private static readonly fmSourceTemplate: string[] = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
         const voiceCount = instrument.unisonVoices;
 
@@ -15110,7 +15322,7 @@ export class Synth {
 		tone.initialNoteFilterInput2 = initialFilterInput2;
 		`).split("\n");
 
-    private static operatorSourceTemplate: string[] = (`
+    private static readonly operatorSourceTemplate: string[] = (`
 				const operator#PhaseMix~ = operator#Phase~/* + operator@Scaled*/;
 				const operator#PhaseInt~ = operator#PhaseMix~|0;
 				const operator#Index~    = operator#PhaseInt~ & waveMask#;

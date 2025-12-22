@@ -2289,6 +2289,24 @@ export class ChangeUnisonSign extends Change {
     }
 }
 
+export class ChangeUnisonAntiPhased extends Change {
+    constructor(doc: SongDocument, newValue: boolean) {
+        super();
+        const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        const oldValue = instrument.unisonAntiPhased;
+
+        doc.notifier.changed();
+        if (oldValue != newValue) {
+            instrument.unisonAntiPhased = newValue;
+            instrument.unison = Config.unisons.length; // Custom
+            instrument.preset = instrument.type;
+            doc.notifier.changed();
+            this._didSomething();
+        }
+    }
+}
+
+
 export class ChangeChord extends Change {
     constructor(doc: SongDocument, newValue: number) {
         super();
