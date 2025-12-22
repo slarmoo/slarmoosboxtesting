@@ -13800,23 +13800,23 @@ var beepbox = (function (exports) {
                         const steps = 256;
                         for (let j = 1; j <= steps; j++) {
                             let phaseNew = j / steps * wave.length;
-                            let amplitudeNew = wavePoint(tone.phases[i * unisonVoices]);
+                            let amplitudeNew = wavePoint(phaseNew + tone.phases[i * unisonVoices]);
                             for (let k = 1; k < voiceCount; k++) {
-                                amplitudeNew += wavePoint(tone.phases[i * unisonVoices + k]) * unisonSign;
+                                amplitudeNew += wavePoint(phaseNew + tone.phases[i * unisonVoices + k]) * unisonSign;
                             }
                             if ((amplitudeOld | 0) * (amplitudeNew | 0) <= 0) {
                                 for (let _ = 0; _ < 10; _++) {
-                                    const mid = (phaseOld + phaseNew) / 2;
-                                    let amplitudeNewer = wavePoint(mid + tone.phases[i * unisonVoices]);
+                                    const phaseCenter = (phaseOld + phaseNew) / 2;
+                                    let amplitudeNewer = wavePoint(phaseCenter + tone.phases[i * unisonVoices]);
                                     for (let k = 1; k < voiceCount; k++) {
-                                        amplitudeNewer += wavePoint(mid + tone.phases[i * unisonVoices + k]) * unisonSign;
+                                        amplitudeNewer += wavePoint(phaseCenter + tone.phases[i * unisonVoices + k]) * unisonSign;
                                     }
                                     if (amplitudeOld * amplitudeNewer <= 0) {
-                                        phaseNew = mid;
+                                        phaseNew = phaseCenter;
                                         amplitudeNew = amplitudeNewer;
                                     }
                                     else {
-                                        phaseOld = mid;
+                                        phaseOld = phaseCenter;
                                         amplitudeOld = amplitudeNewer;
                                     }
                                 }
@@ -14053,17 +14053,17 @@ var beepbox = (function (exports) {
                             }
                             if (amplitudeOld * amplitudeNew <= 0) {
                                 for (let _ = 0; _ < 10; _++) {
-                                    const mid = (phaseOld + phaseNew) / 2;
-                                    let amplitudeNewer = wavePoint(mid + tone.phases[0]);
+                                    const phaseCenter = (phaseOld + phaseNew) / 2;
+                                    let amplitudeNewer = wavePoint(phaseCenter + tone.phases[0]);
                                     for (let k = 1; k < voiceCount; k++) {
-                                        amplitudeNewer += wavePoint(mid + tone.phases[k]) * unisonSign;
+                                        amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
                                     }
                                     if (amplitudeOld * amplitudeNewer <= 0) {
-                                        phaseNew = mid;
+                                        phaseNew = phaseCenter;
                                         amplitudeNew = amplitudeNewer;
                                     }
                                     else {
-                                        phaseOld = mid;
+                                        phaseOld = phaseCenter;
                                         amplitudeOld = amplitudeNewer;
                                     }
                                 }

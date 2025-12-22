@@ -12616,9 +12616,9 @@ export class Synth {
                     const steps = 256;
                     for (let j = 1; j <= steps; j++) {
                         let phaseNew = j / steps * wave.length;
-                        let amplitudeNew: number = wavePoint(tone.phases[i * unisonVoices]);
+                        let amplitudeNew: number = wavePoint(phaseNew + tone.phases[i * unisonVoices]);
                         for (let k: number = 1; k < voiceCount; k++) {
-                            amplitudeNew += wavePoint(tone.phases[i * unisonVoices + k]) * unisonSign;
+                            amplitudeNew += wavePoint(phaseNew + tone.phases[i * unisonVoices + k]) * unisonSign;
                         }
                         if ((amplitudeOld | 0) * (amplitudeNew | 0) <= 0) {
                             //here we basically do a binary search for the zero crossing with a depth of 10
