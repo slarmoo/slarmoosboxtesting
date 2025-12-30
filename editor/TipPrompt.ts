@@ -567,7 +567,7 @@ export class TipPrompt implements Prompt {
 			case "unisonAntiPhased": {
 				message = div(
 					h2("Unison Antiphased"),
-					p("This setting, when checked, will randomize the phases of each unison voice to reduce alignment")
+					p("This setting, when checked, will randomize the phases of each unison voice to reduce alignment and the phasing that causes")
 				);
 				break
 			}
