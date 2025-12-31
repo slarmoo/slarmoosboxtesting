@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 //import {Layout} from "./Layout";
-import { sampleLoadEvents, SampleLoadedEvent, InstrumentType, EffectType, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeRingModulation, effectsIncludeGranular, DropdownID, calculateRingModHertz, effectsIncludePlugin } from "../synth/SynthConfig";
+import { sampleLoadEvents, SampleLoadedEvent, InstrumentType, EffectType, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeRingModulation, effectsIncludeGranular, DropdownID, calculateRingModHertz, effectsIncludePlugin, effectsIncludeNoteRange } from "../synth/SynthConfig";
 import { BarScrollBar } from "./BarScrollBar";
 import { BeatsPerBarPrompt } from "./BeatsPerBarPrompt";
 import { Change, ChangeGroup } from "./Change";
@@ -49,7 +49,7 @@ import { SpectrumEditor, SpectrumEditorPrompt } from "./SpectrumEditor";
 import { CustomThemePrompt } from "./CustomThemePrompt";
 import { ThemePrompt } from "./ThemePrompt";
 import { TipPrompt } from "./TipPrompt";
-import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainAmounts, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased } from "./changes";
+import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainAmounts, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
 
 import { TrackEditor } from "./TrackEditor";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
@@ -403,7 +403,11 @@ export class SongEditor {
     private readonly _transitionRow: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("transition") }, "Transition:"), this._transitionDropdown, div({ class: "selectContainer", style: "width: 52.5%;" }, this._transitionSelect));
     private readonly _clicklessTransitionBox: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
     private readonly _clicklessTransitionRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("clicklessTransition") }, "‣ Clickless:"), this._clicklessTransitionBox);
-    private readonly _transitionDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._clicklessTransitionRow);
+    private readonly _slideSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "x1");
+    private readonly _slideSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: Config.maxSlideTicks, value: "3", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeSlideSpeed(this.doc, oldValue, newValue), false);
+    private readonly _slideSpeedRow: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("slideSpeedSlider") }, "‣ Spd:"), this._slideSpeedDisplay, this._slideSpeedSlider.container);
+    // should the slide speed be before or after the clickless setting???
+    private readonly _transitionDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._slideSpeedRow, this._clicklessTransitionRow);
 
     private readonly _effectsSelect: HTMLSelectElement = select(option({ selected: true, disabled: true, hidden: false })); // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
     private readonly _eqFilterSimpleButton: HTMLButtonElement = button({ style: "font-size: x-small; width: 50%; height: 40%", class: "no-underline", onclick: () => this._switchEQFilterType(true) }, "simple");
@@ -502,9 +506,11 @@ export class SongEditor {
         div({ style: "color: " + ColorConfig.secondaryText + "; margin-top: -3px;" }, this._unisonSignInputBox),
     ));
     private readonly _unisonAntiPhasedBox = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 0.4em; margin-right: 4em;" });
-    private readonly _unisonAntiPhasedRow: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", style: "flex-shrink: 0;", onclick: () => this._openPrompt("unisonAntiPhased") }, "Antiphased: "), this._unisonAntiPhasedBox);
+    private readonly _unisonAntiPhasedRow: HTMLDivElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "flex-shrink: 0;  font-size: smaller;", onclick: () => this._openPrompt("unisonAntiPhased") }, "‣ Antiphased: "), this._unisonAntiPhasedBox);
+    private readonly _unisonBuzzesBox = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 0.4em; margin-right: 4em;" });
+    private readonly _unisonBuzzesBoxRow: HTMLDivElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "flex-shrink: 0;  font-size: smaller;", onclick: () => this._openPrompt("unisonBuzzes") }, "‣ Buzzes: "), this._unisonBuzzesBox);
 
-    private readonly _unisonDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none; gap: 3px; margin-bottom: 0.5em;" }, this._unisonVoicesRow, this._unisonSpreadRow, this._unisonOffsetRow, this._unisonExpressionRow, this._unisonSignRow, this._unisonAntiPhasedRow);
+    private readonly _unisonDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none; gap: 3px; margin-bottom: 0.5em;" }, this._unisonVoicesRow, this._unisonSpreadRow, this._unisonOffsetRow, this._unisonExpressionRow, this._unisonSignRow, this._unisonAntiPhasedRow, this._unisonBuzzesBoxRow);
    
     private readonly _chordSelect: HTMLSelectElement = buildOptions(select({ style: "flex-shrink: 100"}), Config.chords.map(chord => chord.name));
     private readonly _chordDropdown: HTMLButtonElement = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(DropdownID.Chord) }, "▼");
@@ -517,8 +523,11 @@ export class SongEditor {
     private readonly _arpeggioSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("arpeggioSpeed") }, "‣ Spd:"), this._arpeggioSpeedDisplay, this._arpeggioSpeedSlider.container);
     private readonly _twoNoteArpBox: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
     private readonly _twoNoteArpRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("twoNoteArpeggio") }, "‣ Fast Two-Note:"), this._twoNoteArpBox);
+    private readonly _strumSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "0.04 beat(s)");
+    private readonly _strumSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: "48", value: "1", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
+    private readonly _strumSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay, this._strumSpeedSlider.container);
 
-    private readonly _chordDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._arpeggioSpeedRow, this._twoNoteArpRow);
+    private readonly _chordDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._strumSpeedRow, this._arpeggioSpeedRow, this._twoNoteArpRow);
 
     private readonly _vibratoSelect: HTMLSelectElement = buildOptions(select(), Config.vibratos.map(vibrato => vibrato.name));
     private readonly _vibratoDropdown: HTMLButtonElement = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(DropdownID.Vibrato) }, "▼");
@@ -564,6 +573,11 @@ export class SongEditor {
     private readonly _modEnvelopeRows: HTMLElement[];
     private readonly _modEnvelopeBoxes: HTMLSelectElement[];
     private readonly _modTargetIndicators: SVGElement[];
+
+    private readonly _upperNoteLimitInputBox: HTMLInputElement = input({ style: "width: 4em; font-size: 80%; ", id: "upperNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+    private readonly _upperNoteLimitRow: HTMLElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("upperNoteLimit") }, "Upper Note Limit:"), this._upperNoteLimitInputBox);
+    private readonly _lowerNoteLimitInputBox: HTMLInputElement = input({ style: "width: 4em; font-size: 80%; ", id: "lowerNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+    private readonly _lowerNoteLimitRow: HTMLElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("lowerNoteLimit") }, "Lower Note Limit:"), this._lowerNoteLimitInputBox);
 
     private readonly _feedback6OpTypeSelect: HTMLSelectElement = buildOptions(select(), Config.feedbacks6Op.map(feedback => feedback.name));
     private readonly _feedback6OpRow1: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("feedbackType") }, "Feedback:"), div({ class: "selectContainer" }, this._feedback6OpTypeSelect));
@@ -685,8 +699,7 @@ export class SongEditor {
         this._noteFilterRow,
         this._noteFilterSimpleCutRow,
         this._noteFilterSimplePeakRow,
-        // this._corruptionRow,
-        // this._corruptionTypeRow,
+        this._granularContainerRow,
         this._distortionRow,
         this._aliasingRow,
         this._bitcrusherQuantizationRow,
@@ -696,7 +709,8 @@ export class SongEditor {
         this._echoDelayRow,
         this._reverbRow,
         this._ringModContainerRow,
-        this._granularContainerRow,
+        this._upperNoteLimitRow,
+        this._lowerNoteLimitRow,
         this._pluginContainerRow,
         div({ style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` },
             span({ style: `flex-grow: 1; text-align: center;` }, span({ class: "tip", onclick: () => this._openPrompt("envelopes") }, "Envelopes")),
@@ -1224,11 +1238,14 @@ export class SongEditor {
         this._unisonExpressionInputBox.addEventListener("input", () => { this.doc.record(new ChangeUnisonExpression(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].unisonExpression, Math.min(Config.unisonExpressionMax, Math.max(Config.unisonExpressionMin, +this._unisonExpressionInputBox.value)))) });
         this._unisonSignInputBox.addEventListener("input", () => { this.doc.record(new ChangeUnisonSign(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].unisonSign, Math.min(Config.unisonSignMax, Math.max(Config.unisonSignMin, +this._unisonSignInputBox.value)))) });
         this._unisonAntiPhasedBox.addEventListener("input", () => { this.doc.record(new ChangeUnisonAntiPhased(this.doc, this._unisonAntiPhasedBox.checked)) });
+        this._unisonBuzzesBox.addEventListener("input", () => { this.doc.record(new ChangeUnisonBuzzing(this.doc, this._unisonBuzzesBox.checked)) });
 
         this._customWaveDraw.addEventListener("input", () => { this.doc.record(new ChangeCustomWave(this.doc, this._customWaveDrawCanvas.newArray)) });
         this._twoNoteArpBox.addEventListener("input", () => { this.doc.record(new ChangeFastTwoNoteArp(this.doc, this._twoNoteArpBox.checked)) });
         this._clicklessTransitionBox.addEventListener("input", () => { this.doc.record(new ChangeClicklessTransition(this.doc, this._clicklessTransitionBox.checked)) });
         this._aliasingBox.addEventListener("input", () => { this.doc.record(new ChangeAliasing(this.doc, this._aliasingBox.checked)) });
+        this._upperNoteLimitInputBox.addEventListener("input", () => { this.doc.record(new ChangeUpperLimit(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].upperNoteLimit, (Math.min(Config.maxPitch, Math.max(0.0, Math.round(+this._upperNoteLimitInputBox.value)))))) });
+        this._lowerNoteLimitInputBox.addEventListener("input", () => { this.doc.record(new ChangeLowerLimit(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].lowerNoteLimit, (Math.min(Config.maxPitch, Math.max(0.0, Math.round(+this._lowerNoteLimitInputBox.value)))))) });
 
         this._promptContainer.addEventListener("click", (event) => {
             if (this.doc.prefs.closePromptByClickoff === true) {
@@ -1355,13 +1372,13 @@ export class SongEditor {
             } else if (group != this._chordDropdownGroup) {
                 group.style.display = "";
             } // Only show arpeggio dropdown if chord arpeggiates
-            else if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+            else if ((instrument.chord == Config.chords.dictionary["arpeggio"].index) || (instrument.chord == Config.chords.dictionary["strum"].index)) {
                 group.style.display = "";
-                if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
-                    this._chordDropdownGroup.style.display = "";
-                } else {
-                    this._chordDropdownGroup.style.display = "none";
-                }
+                // if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+                //     this._chordDropdownGroup.style.display = "";
+                // } else {
+                //     this._chordDropdownGroup.style.display = "none";
+                // }
             }
 
             for (let i: number = 0; i < group.children.length; i++) {
@@ -2218,24 +2235,24 @@ export class SongEditor {
                 if (this._openTransitionDropdown)
                     this._transitionDropdownGroup.style.display = "";
                 setSelectedValue(this._transitionSelect, instrument.transition);
+                this._slideSpeedRow.style.display = (Config.transitions[instrument.transition].slides == true) ? "" : "none";
+                this._slideSpeedSlider.input.title = "x" + prettyNumber(Config.maxSlideTicks + 1 - instrument.slideTicks);
+                this._slideSpeedDisplay.textContent = "x" + prettyNumber(Config.maxSlideTicks + 1 - instrument.slideTicks);
+                this._slideSpeedSlider.updateValue(Config.maxSlideTicks + 1 - instrument.slideTicks);
             } else {
                 this._transitionDropdownGroup.style.display = "none";
                 this._transitionRow.style.display = "none";
             }
 
             if (effectsIncludeChord(instrument.effects)) {
-                this._chordSelectRow.style.display = "flex";
-                this._chordDropdown.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
-                if (this._openChordDropdown) {
-                    if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
-                        this._chordDropdownGroup.style.display = "";
-                    } else if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
-                        this._chordDropdownGroup.style.display = "";
-                        setSelectedValue(this._chordSelect, instrument.chord);
-                    } else {
-                        this._chordDropdownGroup.style.display = "none";
-                    }
-                }
+                this._chordSelectRow.style.display = "";
+                this._chordDropdown.style.display = (instrument.chord == Config.chords.dictionary["arpeggio"].index) || (instrument.chord == Config.chords.dictionary["strum"].index) ? "" : "none";
+                this._chordDropdownGroup.style.display = (((instrument.chord == Config.chords.dictionary["arpeggio"].index) || (instrument.chord == Config.chords.dictionary["strum"].index)) && this._openChordDropdown) ? "" : "none";
+                setSelectedValue(this._chordSelect, instrument.chord);
+                this._twoNoteArpRow.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
+                this._arpeggioSpeedRow.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
+                this._strumSpeedRow.style.display = instrument.chord == Config.chords.dictionary["strum"].index ? "" : "none";
+    
                 if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
                     this._monophonicNoteInputBox.value = instrument.monoChordTone + 1 + "";
                     this._monophonicNoteInputBox.style.display = "";
@@ -2390,6 +2407,16 @@ export class SongEditor {
             } else {
                 this._granularContainerRow.style.display = "none";
             }
+
+            if (effectsIncludeNoteRange(instrument.effects)) {
+                this._upperNoteLimitRow.style.display = "";
+                this._lowerNoteLimitRow.style.display = "";
+                this._upperNoteLimitInputBox.value = String(instrument.upperNoteLimit);
+                this._lowerNoteLimitInputBox.value = String(instrument.lowerNoteLimit);
+            } else {
+                this._upperNoteLimitRow.style.display = "none";
+                this._lowerNoteLimitRow.style.display = "none";
+            }
             
             if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length < PluginConfig.pluginUIElements.length) {
                 this._pluginurl = this.doc.song.pluginurl;
@@ -2444,14 +2471,18 @@ export class SongEditor {
                 this._unisonOffsetInputBox.value = instrument.unisonOffset + "";
                 this._unisonExpressionInputBox.value = instrument.unisonExpression + "";
                 this._unisonSignInputBox.value = instrument.unisonSign + "";
-                if (instrument.type == InstrumentType.pickedString) {
+                if (instrument.type == InstrumentType.pickedString || instrument.unisonVoices == 1) {
                     //there's no good way to predict the zero crossings of a karplusser algorithm
+                    //additionally, antiphasing doesn't mean anything on just one voice
                     this._unisonAntiPhasedRow.style.display = "none"; 
                 } else {
                     this._unisonAntiPhasedRow.style.display = ""; 
                     this._unisonAntiPhasedBox.checked = instrument.unisonAntiPhased ? true : false;
-                    this._unisonDropdownGroup.style.display = (this._openUnisonDropdown ? "" : "none");
                 }
+                this._unisonBuzzesBox.checked = instrument.unisonBuzzes ? true : false;
+                this._unisonBuzzesBoxRow.style.display = (instrument.unisonVoices == 1 ? "" : "none"); // hide unless voices == 1
+
+                this._unisonDropdownGroup.style.display = (this._openUnisonDropdown ? "" : "none");
             } else {
                 this._unisonSelectRow.style.display = "none";
                 this._unisonDropdownGroup.style.display = "none";
@@ -2496,6 +2527,7 @@ export class SongEditor {
             this._vibratoSpeedSlider.updateValue(instrument.vibratoSpeed);
             setSelectedValue(this._vibratoTypeSelect, instrument.vibratoType);
             this._arpeggioSpeedSlider.updateValue(instrument.arpeggioSpeed);
+            this._strumSpeedSlider.updateValue(instrument.strumParts);
             this._panDelaySlider.updateValue(instrument.panDelay);
             this._vibratoDelaySlider.input.title = "" + Math.round(instrument.vibratoDelay);
             this._vibratoDepthSlider.input.title = "" + instrument.vibratoDepth;
@@ -2504,6 +2536,8 @@ export class SongEditor {
             this._panDelaySlider.input.title = "" + instrument.panDelay;
             this._arpeggioSpeedSlider.input.title = "x" + prettyNumber(Config.arpSpeedScale[instrument.arpeggioSpeed]);
             this._arpeggioSpeedDisplay.textContent = "x" + prettyNumber(Config.arpSpeedScale[instrument.arpeggioSpeed]);
+            this._strumSpeedSlider.input.title = prettyNumber(instrument.strumParts / Config.partsPerBeat) + " beat(s)";
+            this._strumSpeedDisplay.textContent = prettyNumber(instrument.strumParts / Config.partsPerBeat) + " beat(s)";
             this._eqFilterSimpleCutSlider.updateValue(instrument.eqFilterSimpleCut);
             this._eqFilterSimplePeakSlider.updateValue(instrument.eqFilterSimplePeak);
             this._noteFilterSimpleCutSlider.updateValue(instrument.noteFilterSimpleCut);
@@ -2511,6 +2545,17 @@ export class SongEditor {
             this._envelopeSpeedSlider.updateValue(instrument.envelopeSpeed);
             this._envelopeSpeedSlider.input.title = "x" + prettyNumber(Config.arpSpeedScale[instrument.envelopeSpeed]);
             this._envelopeSpeedDisplay.textContent = "x" + prettyNumber(Config.arpSpeedScale[instrument.envelopeSpeed]);
+
+            this._upperNoteLimitRow.firstChild!.textContent = "Upper Note Limit [" + Piano.getPitchName(
+                (instrument.upperNoteLimit + Config.keys[this.doc.song.key].basePitch) % Config.pitchesPerOctave,
+                instrument.upperNoteLimit,
+                this.doc.song.octave, true)
+                + "]:";
+            this._lowerNoteLimitRow.firstChild!.textContent = "Lower Note Limit [" + Piano.getPitchName(
+                (instrument.lowerNoteLimit + Config.keys[this.doc.song.key].basePitch) % Config.pitchesPerOctave,
+                instrument.lowerNoteLimit,
+                this.doc.song.octave, true)
+                + "]:";
 
 
             if (instrument.type == InstrumentType.customChipWave) {
@@ -3582,6 +3627,8 @@ export class SongEditor {
             || document.activeElement == this._unisonExpressionInputBox
             || document.activeElement == this._unisonSignInputBox
             || document.activeElement == this._monophonicNoteInputBox
+            || document.activeElement == this._upperNoteLimitInputBox
+            || document.activeElement == this._lowerNoteLimitInputBox
             || this.envelopeEditor.pitchStartBoxes.find((element) => element == document.activeElement)
             || this.envelopeEditor.pitchEndBoxes.find((element) => element == document.activeElement)
             || this.envelopeEditor.perEnvelopeLowerBoundBoxes.find((element) => element == document.activeElement)

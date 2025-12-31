@@ -2306,6 +2306,23 @@ export class ChangeUnisonAntiPhased extends Change {
     }
 }
 
+export class ChangeUnisonBuzzing extends Change {
+    constructor(doc: SongDocument, newValue: boolean) {
+        super();
+        const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        const oldValue = instrument.unisonBuzzes;
+
+        doc.notifier.changed();
+        if (oldValue != newValue) {
+            instrument.unisonBuzzes = newValue;
+            // instrument.unison = Config.unisons.length; // Custom
+            instrument.preset = instrument.type;
+            doc.notifier.changed();
+            this._didSomething();
+        }
+    }
+}
+
 
 export class ChangeChord extends Change {
     constructor(doc: SongDocument, newValue: number) {
@@ -2608,6 +2625,27 @@ export class ChangeSupersawShape extends ChangeInstrumentSlider {
         super(doc);
         this._instrument.supersawShape = newValue;
         doc.synth.unsetMod(Config.modulators.dictionary["saw shape"].index, doc.channel, doc.getCurrentInstrument());
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangeSlideSpeed extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number) {
+        super(doc);
+        newValue = Config.maxSlideTicks + 1 - newValue;
+        this._instrument.slideTicks = newValue;
+        // doc.synth.unsetMod(Config.modulators.dictionary["slideTicks"].index, doc.channel, doc.getCurrentInstrument());
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangeStrumSpeed extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number) {
+        super(doc);
+        this._instrument.strumParts = newValue;
+        // doc.synth.unsetMod(Config.modulators.dictionary["strumTicks"].index, doc.channel, doc.getCurrentInstrument());
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
     }
@@ -4683,6 +4721,24 @@ export class ChangeReverb extends ChangeInstrumentSlider {
         super(doc);
         this._instrument.reverb = newValue;
         doc.synth.unsetMod(Config.modulators.dictionary["reverb"].index, doc.channel, doc.getCurrentInstrument());
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangeUpperLimit extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number) {
+        super(doc);
+        this._instrument.upperNoteLimit = newValue;
+        doc.notifier.changed();
+        if (oldValue != newValue) this._didSomething();
+    }
+}
+
+export class ChangeLowerLimit extends ChangeInstrumentSlider {
+    constructor(doc: SongDocument, oldValue: number, newValue: number) {
+        super(doc);
+        this._instrument.lowerNoteLimit = newValue;
         doc.notifier.changed();
         if (oldValue != newValue) this._didSomething();
     }

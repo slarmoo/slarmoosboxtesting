@@ -985,6 +985,9 @@ var beepbox = (() => {
       ]);
     }
     static {
+      this.maxSlideTicks = 48;
+    }
+    static {
       this.vibratos = toNameMap([
         { name: "none", amplitude: 0, type: 0, delayTicks: 0 },
         { name: "light", amplitude: 0.15, type: 0, delayTicks: 0 },
@@ -1058,10 +1061,10 @@ var beepbox = (() => {
       ]);
     }
     static {
-      this.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "", "ring mod", "granular", "plugin"];
+      this.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "note range", "ring mod", "granular", "plugin"];
     }
     static {
-      this.effectOrder = [2 /* panning */, 10 /* transition */, 11 /* chord */, 7 /* pitchShift */, 8 /* detune */, 9 /* vibrato */, 5 /* noteFilter */, 14 /* granular */, 3 /* distortion */, 4 /* bitcrusher */, 1 /* chorus */, 6 /* echo */, 0 /* reverb */, 13 /* ringModulation */, 15 /* plugin */];
+      this.effectOrder = [2 /* panning */, 10 /* transition */, 11 /* chord */, 7 /* pitchShift */, 8 /* detune */, 9 /* vibrato */, 5 /* noteFilter */, 14 /* granular */, 3 /* distortion */, 4 /* bitcrusher */, 1 /* chorus */, 6 /* echo */, 0 /* reverb */, 13 /* ringModulation */, 12 /* noteRange */, 15 /* plugin */];
     }
     static {
       this.noteSizeMax = 6;
@@ -3192,6 +3195,10 @@ var beepbox = (() => {
     return (effects & 1 << 14 /* granular */) != 0;
   }
   __name(effectsIncludeGranular, "effectsIncludeGranular");
+  function effectsIncludeNoteRange(effects) {
+    return (effects & 1 << 12 /* noteRange */) != 0;
+  }
+  __name(effectsIncludeNoteRange, "effectsIncludeNoteRange");
   function effectsIncludePlugin(effects) {
     return (effects & 1 << 15 /* plugin */) != 0;
   }
@@ -13473,7 +13480,7 @@ li.select2-results__option[role=group] > strong:hover {
     return x;
   }
   __name(decode32BitNumber, "decode32BitNumber");
-  function encodeUnisonSettings(buffer, v, s, o, e, i, p11) {
+  function encodeUnisonSettings(buffer, v, s, o, e, i, p11, b) {
     buffer.push(base64IntToCharCode[v]);
     buffer.push(base64IntToCharCode[Number(s > 0)]);
     let cleanS = Math.round(Math.abs(s) * 1e3);
@@ -13489,7 +13496,10 @@ li.select2-results__option[role=group] > strong:hover {
     buffer.push(base64IntToCharCode[Number(i > 0)]);
     let cleanI = Math.round(Math.abs(i) * 1e3);
     buffer.push(base64IntToCharCode[cleanI % 63], base64IntToCharCode[Math.floor(cleanI / 63)]);
-    buffer.push(base64IntToCharCode[+p11]);
+    let booleansPacked = +b;
+    booleansPacked <<= 1;
+    booleansPacked += +p11;
+    buffer.push(base64IntToCharCode[booleansPacked]);
   }
   __name(encodeUnisonSettings, "encodeUnisonSettings");
   function convertLegacyKeyToKeyAndOctave(rawKeyIndex) {
@@ -14699,6 +14709,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.fadeOut = Config.fadeOutNeutral;
       this.envelopeCount = 0;
       this.transition = Config.transitions.dictionary["normal"].index;
+      this.slideTicks = 3;
       this.pitchShift = 0;
       this.detune = 0;
       this.vibrato = 0;
@@ -14715,8 +14726,10 @@ li.select2-results__option[role=group] > strong:hover {
       this.unisonExpression = 1.4;
       this.unisonSign = 1;
       this.unisonAntiPhased = false;
+      this.unisonBuzzes = false;
       this.effects = 0;
       this.chord = 1;
+      this.strumParts = 1;
       this.volume = 0;
       this.pan = Config.panCenter;
       this.panDelay = 0;
@@ -14749,6 +14762,8 @@ li.select2-results__option[role=group] > strong:hover {
       this.reverb = 0;
       this.echoSustain = 0;
       this.echoDelay = 0;
+      this.upperNoteLimit = Config.maxPitch;
+      this.lowerNoteLimit = 0;
       this.pluginValues = new Array(64);
       this.algorithm = 0;
       this.feedbackType = 0;
@@ -14852,19 +14867,24 @@ li.select2-results__option[role=group] > strong:hover {
       this.detune = Config.detuneCenter;
       this.vibrato = 0;
       this.unison = 0;
+      this.unisonBuzzes = false;
       this.stringSustain = 10;
       this.stringSustainType = Config.enableAcousticSustain ? 1 /* acoustic */ : 0 /* bright */;
       this.clicklessTransition = false;
       this.arpeggioSpeed = 12;
       this.monoChordTone = 1;
+      this.strumParts = 3;
       this.envelopeSpeed = 12;
       this.legacyTieOver = false;
       this.aliases = false;
       this.fadeIn = 0;
       this.fadeOut = Config.fadeOutNeutral;
       this.transition = Config.transitions.dictionary["normal"].index;
+      this.slideTicks = 3;
       this.envelopeCount = 0;
       this.isNoiseInstrument = isNoiseChannel;
+      this.upperNoteLimit = Config.maxPitch;
+      this.lowerNoteLimit = 0;
       switch (type) {
         case 0 /* chip */:
           this.chipWave = 2;
@@ -15090,12 +15110,14 @@ li.select2-results__option[role=group] > strong:hover {
       if (effectsIncludeTransition(this.effects)) {
         instrumentObject["transition"] = Config.transitions[this.transition].name;
         instrumentObject["clicklessTransition"] = this.clicklessTransition;
+        if (Config.transitions[this.transition].slides == true) instrumentObject["slideTicks"] = this.slideTicks;
       }
       if (effectsIncludeChord(this.effects)) {
         instrumentObject["chord"] = this.getChord().name;
         instrumentObject["fastTwoNoteArp"] = this.fastTwoNoteArp;
         instrumentObject["arpeggioSpeed"] = this.arpeggioSpeed;
         instrumentObject["monoChordTone"] = this.monoChordTone;
+        if (Config.chords[this.chord].strumParts > 0) instrumentObject["strumParts"] = this.strumParts;
       }
       if (effectsIncludePitchShift(this.effects)) {
         instrumentObject["pitchShiftSemitones"] = this.pitchShift;
@@ -15162,6 +15184,10 @@ li.select2-results__option[role=group] > strong:hover {
       if (effectsIncludeReverb(this.effects)) {
         instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
       }
+      if (effectsIncludeNoteRange(this.effects)) {
+        instrumentObject["upperNoteLimit"] = this.upperNoteLimit;
+        instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
+      }
       if (effectsIncludePlugin(this.effects)) {
         instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
       }
@@ -15183,7 +15209,11 @@ li.select2-results__option[role=group] > strong:hover {
           instrumentObject["unisonOffset"] = this.unisonOffset;
           instrumentObject["unisonExpression"] = this.unisonExpression;
           instrumentObject["unisonSign"] = this.unisonSign;
-          instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+          if (this.unisonVoices == 1) {
+            instrumentObject["unisonBuzzes"] = this.unisonBuzzes;
+          } else {
+            instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+          }
         }
       }
       if (this.type == 2 /* noise */) {
@@ -15361,6 +15391,9 @@ li.select2-results__option[role=group] > strong:hover {
           this.effects = this.effects | 1 << 10 /* transition */;
         }
       }
+      if (instrumentObject["slideTicks"] != void 0) {
+        this.slideTicks = instrumentObject["slideTicks"];
+      }
       if (instrumentObject["fadeInSeconds"] != void 0) {
         this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
       }
@@ -15387,6 +15420,9 @@ li.select2-results__option[role=group] > strong:hover {
           }
         }
       }
+      if (instrumentObject["strumParts"] != void 0) {
+        this.strumParts = instrumentObject["strumParts"];
+      }
       this.unison = Config.unisons.dictionary["none"].index;
       const unisonProperty = instrumentObject["unison"] || instrumentObject["interval"] || instrumentObject["chorus"];
       if (unisonProperty != void 0) {
@@ -15401,6 +15437,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.unisonExpression = instrumentObject["unisonExpression"] == void 0 ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
       this.unisonSign = instrumentObject["unisonSign"] == void 0 ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
       this.unisonAntiPhased = instrumentObject["unisonAntiPhased"] == true;
+      this.unisonBuzzes = instrumentObject["unisonBuzzes"] == void 0 ? false : instrumentObject["unisonBuzzes"];
       if (instrumentObject["chorus"] == "custom harmony") {
         this.unison = Config.unisons.dictionary["hum"].index;
         this.chord = Config.chords.dictionary["custom interval"].index;
@@ -15522,6 +15559,12 @@ li.select2-results__option[role=group] > strong:hover {
         this.reverb = clamp(0, Config.reverbRange, Math.round((Config.reverbRange - 1) * (instrumentObject["reverb"] | 0) / 100));
       } else {
         this.reverb = legacyGlobalReverb;
+      }
+      if (instrumentObject["upperNoteLimit"] != void 0) {
+        this.upperNoteLimit = instrumentObject["upperNoteLimit"];
+      }
+      if (instrumentObject["lowerNoteLimit"] != void 0) {
+        this.lowerNoteLimit = instrumentObject["lowerNoteLimit"];
       }
       if (Array.isArray(instrumentObject["plugin"])) {
         this.pluginValues = instrumentObject["plugin"];
@@ -16526,12 +16569,16 @@ li.select2-results__option[role=group] > strong:hover {
           }
           if (effectsIncludeTransition(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.transition]);
+            if (Config.transitions[instrument.transition].slides == true) buffer.push(base64IntToCharCode[instrument.slideTicks]);
           }
           if (effectsIncludeChord(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.chord]);
-            if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+            if (Config.chords[instrument.chord].arpeggiates == true) {
               buffer.push(base64IntToCharCode[instrument.arpeggioSpeed]);
               buffer.push(base64IntToCharCode[+instrument.fastTwoNoteArp]);
+            }
+            if (Config.chords[instrument.chord].strumParts > 0) {
+              buffer.push(base64IntToCharCode[instrument.strumParts]);
             }
             if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
               buffer.push(base64IntToCharCode[instrument.monoChordTone]);
@@ -16572,6 +16619,10 @@ li.select2-results__option[role=group] > strong:hover {
           if (effectsIncludeReverb(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.reverb]);
           }
+          if (effectsIncludeNoteRange(instrument.effects)) {
+            buffer.push(base64IntToCharCode[instrument.upperNoteLimit >> 6], base64IntToCharCode[instrument.upperNoteLimit & 63]);
+            buffer.push(base64IntToCharCode[instrument.lowerNoteLimit >> 6], base64IntToCharCode[instrument.lowerNoteLimit & 63]);
+          }
           if (effectsIncludeGranular(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.granular]);
             buffer.push(base64IntToCharCode[instrument.grainSize]);
@@ -16611,7 +16662,7 @@ li.select2-results__option[role=group] > strong:hover {
           }
           if (instrument.type != 10 /* mod */) {
             buffer.push(104 /* unison */, base64IntToCharCode[instrument.unison]);
-            if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased);
+            if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
           }
           if (instrument.type == 0 /* chip */) {
             if (instrument.chipWave > 186) {
@@ -17953,7 +18004,10 @@ li.select2-results__option[role=group] > strong:hover {
                 const unisonSignNegative = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 const unisonSign = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 63;
                 if (fromSlarmoosBox && !beforeSix) {
-                  instrument.unisonAntiPhased = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] == 1;
+                  let booleans = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                  instrument.unisonAntiPhased = (booleans & 1) == 1;
+                  booleans >>= 1;
+                  instrument.unisonBuzzes = (booleans & 1) == 1;
                 }
                 instrument.unisonSpread = unisonSpread / 1e3;
                 if (unisonSpreadNegative == 0) instrument.unisonSpread *= -1;
@@ -17970,6 +18024,7 @@ li.select2-results__option[role=group] > strong:hover {
                 instrument.unisonExpression = Config.unisons[instrument.unison].expression;
                 instrument.unisonSign = Config.unisons[instrument.unison].sign;
                 instrument.unisonAntiPhased = false;
+                instrument.unisonBuzzes = false;
               }
             }
           }
@@ -18010,7 +18065,7 @@ li.select2-results__option[role=group] > strong:hover {
               const legacySettings = legacySettingsCache[instrumentChannelIterator][instrumentIndexIterator];
               instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
             } else {
-              if (16 /* length */ > 16) throw new Error();
+              if (16 /* length */ > 18) throw new Error("Edit the url to allow for more effect types");
               if (fromSlarmoosBox && !beforeFive) {
                 instrument.effects = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 12 | base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6 | base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               } else {
@@ -18068,12 +18123,18 @@ li.select2-results__option[role=group] > strong:hover {
               }
               if (effectsIncludeTransition(instrument.effects)) {
                 instrument.transition = clamp(0, Config.transitions.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                if (fromSlarmoosBox && !beforeSix) {
+                  if (Config.transitions[instrument.transition].slides == true) instrument.slideTicks = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                }
               }
               if (effectsIncludeChord(instrument.effects)) {
                 instrument.chord = clamp(0, Config.chords.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                if (instrument.chord == Config.chords.dictionary["arpeggio"].index && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
+                if (Config.chords[instrument.chord].arpeggiates == true && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
                   instrument.arpeggioSpeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                   instrument.fastTwoNoteArp = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] ? true : false;
+                }
+                if (Config.chords[instrument.chord].strumParts > 0 && (fromSlarmoosBox && !beforeSix)) {
+                  instrument.strumParts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 }
                 if (instrument.chord == Config.chords.dictionary["monophonic"].index && fromSlarmoosBox && !beforeFive) {
                   instrument.monoChordTone = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -18139,6 +18200,10 @@ li.select2-results__option[role=group] > strong:hover {
                 } else {
                   instrument.reverb = clamp(0, Config.reverbRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                 }
+              }
+              if (effectsIncludeNoteRange(instrument.effects)) {
+                instrument.upperNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                instrument.lowerNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
               if (effectsIncludeGranular(instrument.effects)) {
                 instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -20241,7 +20306,7 @@ li.select2-results__option[role=group] > strong:hover {
           const noteEndTick = tone.noteEndPart * Config.ticksPerPart;
           const noteLengthTicks = noteEndTick - noteStartTick;
           const maximumSlideTicks = noteLengthTicks * 0.5;
-          const slideTicks = Math.min(maximumSlideTicks, transition.slideTicks);
+          const slideTicks = Math.min(maximumSlideTicks, instrument.slideTicks);
           if (tone.prevNote != null && !tone.forceContinueAtStart) {
             if (tickTimeStartReal - noteStartTick < slideTicks) {
               prevSlideStart = true;
@@ -20847,6 +20912,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.unisonExpression = 1.4;
       this.unisonSign = 1;
       this.unisonAntiPhased = false;
+      this.unisonBuzzes = false;
       this.unisonInitialized = true;
       this.chord = null;
       this.effects = 0;
@@ -21119,6 +21185,7 @@ li.select2-results__option[role=group] > strong:hover {
       this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
       this.unison = Config.unisons[instrument.unison];
       this.unisonVoices = instrument.unisonVoices;
+      this.unisonBuzzes = instrument.unisonBuzzes;
       this.chord = instrument.getChord();
       this.noisePitchFilterMult = Config.chipNoises[instrument.chipNoise].pitchFilterMult;
       this.effects = instrument.effects;
@@ -21614,6 +21681,7 @@ li.select2-results__option[role=group] > strong:hover {
           this.unisonAntiPhased = instrument.unisonAntiPhased;
           this.unisonInitialized = false;
         }
+        this.unisonBuzzes = instrument.unisonBuzzes;
       }
       if (instrument.type == 0 /* chip */) {
         this.wave = this.aliases ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
@@ -23111,14 +23179,19 @@ li.select2-results__option[role=group] > strong:hover {
         const instrumentState = channelState.instruments[instrumentIndex];
         const toneList = instrumentState.liveInputTones;
         let toneCount = 0;
+        const instrument = channel.instruments[instrumentIndex];
+        let filteredPitches = pitches;
+        if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = pitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+        let filteredBassPitches = bassPitches;
+        if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
         if (this.liveInputDuration > 0 && channelIndex == this.liveInputChannel && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
-          const instrument = channel.instruments[instrumentIndex];
-          if (instrument.getChord().singleTone) {
+          const instrument2 = channel.instruments[instrumentIndex];
+          if (instrument2.getChord().singleTone) {
             let tone;
             if (toneList.count() <= toneCount) {
               tone = this.newTone();
               toneList.pushBack(tone);
-            } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+            } else if (!instrument2.getTransition().isSeamless && this.liveInputStarted) {
               this.releaseTone(instrumentState, toneList.get(toneCount));
               tone = this.newTone();
               toneList.set(toneCount, tone);
@@ -23126,10 +23199,10 @@ li.select2-results__option[role=group] > strong:hover {
               tone = toneList.get(toneCount);
             }
             toneCount++;
-            for (let i = 0; i < pitches.length; i++) {
-              tone.pitches[i] = pitches[i];
+            for (let i = 0; i < filteredPitches.length; i++) {
+              tone.pitches[i] = filteredPitches[i];
             }
-            tone.pitchCount = pitches.length;
+            tone.pitchCount = filteredPitches.length;
             tone.chordSize = 1;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
@@ -23138,13 +23211,13 @@ li.select2-results__option[role=group] > strong:hover {
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
           } else {
-            this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
-            for (let i = 0; i < pitches.length; i++) {
+            this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
+            for (let i = 0; i < filteredPitches.length; i++) {
               let tone;
               if (this.tempMatchedPitchTones[toneCount] != null) {
                 tone = this.tempMatchedPitchTones[toneCount];
                 this.tempMatchedPitchTones[toneCount] = null;
-                if (tone.pitchCount != 1 || tone.pitches[0] != pitches[i]) {
+                if (tone.pitchCount != 1 || tone.pitches[0] != filteredPitches[i]) {
                   this.releaseTone(instrumentState, tone);
                   tone = this.newTone();
                 }
@@ -23154,9 +23227,9 @@ li.select2-results__option[role=group] > strong:hover {
                 toneList.pushBack(tone);
               }
               toneCount++;
-              tone.pitches[0] = pitches[i];
+              tone.pitches[0] = filteredPitches[i];
               tone.pitchCount = 1;
-              tone.chordSize = pitches.length;
+              tone.chordSize = filteredPitches.length;
               tone.instrumentIndex = instrumentIndex;
               tone.note = tone.prevNote = tone.nextNote = null;
               tone.atNoteStart = this.liveInputStarted;
@@ -23167,13 +23240,13 @@ li.select2-results__option[role=group] > strong:hover {
           }
         }
         if (this.liveBassInputDuration > 0 && channelIndex == this.liveBassInputChannel && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
-          const instrument = channel.instruments[instrumentIndex];
-          if (instrument.getChord().singleTone) {
+          const instrument2 = channel.instruments[instrumentIndex];
+          if (instrument2.getChord().singleTone) {
             let tone;
             if (toneList.count() <= toneCount) {
               tone = this.newTone();
               toneList.pushBack(tone);
-            } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+            } else if (!instrument2.getTransition().isSeamless && this.liveInputStarted) {
               this.releaseTone(instrumentState, toneList.get(toneCount));
               tone = this.newTone();
               toneList.set(toneCount, tone);
@@ -23181,10 +23254,10 @@ li.select2-results__option[role=group] > strong:hover {
               tone = toneList.get(toneCount);
             }
             toneCount++;
-            for (let i = 0; i < bassPitches.length; i++) {
-              tone.pitches[i] = bassPitches[i];
+            for (let i = 0; i < filteredBassPitches.length; i++) {
+              tone.pitches[i] = filteredBassPitches[i];
             }
-            tone.pitchCount = bassPitches.length;
+            tone.pitchCount = filteredBassPitches.length;
             tone.chordSize = 1;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
@@ -23193,13 +23266,13 @@ li.select2-results__option[role=group] > strong:hover {
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
           } else {
-            this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
-            for (let i = 0; i < bassPitches.length; i++) {
+            this.moveTonesIntoOrderedTempMatchedList(toneList, filteredBassPitches);
+            for (let i = 0; i < filteredBassPitches.length; i++) {
               let tone;
               if (this.tempMatchedPitchTones[toneCount] != null) {
                 tone = this.tempMatchedPitchTones[toneCount];
                 this.tempMatchedPitchTones[toneCount] = null;
-                if (tone.pitchCount != 1 || tone.pitches[0] != bassPitches[i]) {
+                if (tone.pitchCount != 1 || tone.pitches[0] != filteredBassPitches[i]) {
                   this.releaseTone(instrumentState, tone);
                   tone = this.newTone();
                 }
@@ -23209,9 +23282,9 @@ li.select2-results__option[role=group] > strong:hover {
                 toneList.pushBack(tone);
               }
               toneCount++;
-              tone.pitches[0] = bassPitches[i];
+              tone.pitches[0] = filteredBassPitches[i];
               tone.pitchCount = 1;
-              tone.chordSize = bassPitches.length;
+              tone.chordSize = filteredBassPitches.length;
               tone.instrumentIndex = instrumentIndex;
               tone.note = tone.prevNote = tone.nextNote = null;
               tone.atNoteStart = this.liveBassInputStarted;
@@ -23425,6 +23498,7 @@ li.select2-results__option[role=group] > strong:hover {
             const partsPerBar = Config.partsPerBeat * song.beatsPerBar;
             const transition = instrument.getTransition();
             const chord = instrument.getChord();
+            const useStrumSpeed = chord.strumParts > 0;
             let forceContinueAtStart = false;
             let forceContinueAtEnd = false;
             let tonesInPrevNote = 0;
@@ -23438,13 +23512,15 @@ li.select2-results__option[role=group] > strong:hover {
                   const chordOfCompatibleInstrument = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern, prevPattern, instrumentIndex, transition, chord, note, lastNote, patternForcesContinueAtStart);
                   if (chordOfCompatibleInstrument != null) {
                     prevNoteForThisInstrument = lastNote;
-                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevNoteForThisInstrument.pitches.length;
+                    let prevPitchesForThisInstrument = prevNoteForThisInstrument.pitches;
+                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevPitchesForThisInstrument.length;
                     forceContinueAtStart = patternForcesContinueAtStart;
                   }
                 }
               }
             } else if (prevNoteForThisInstrument != null) {
-              tonesInPrevNote = chord.singleTone ? 1 : prevNoteForThisInstrument.pitches.length;
+              let prevPitchesForThisInstrument = prevNoteForThisInstrument.pitches;
+              tonesInPrevNote = chord.singleTone ? 1 : prevPitchesForThisInstrument.length;
             }
             if (note.end == partsPerBar) {
               let nextPattern = this.nextBar == null ? null : song.getPattern(channelIndex, this.nextBar);
@@ -23455,15 +23531,19 @@ li.select2-results__option[role=group] > strong:hover {
                   const chordOfCompatibleInstrument = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern, nextPattern, instrumentIndex, transition, chord, note, firstNote, nextPatternForcesContinueAtStart);
                   if (chordOfCompatibleInstrument != null) {
                     nextNoteForThisInstrument = firstNote;
-                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextNoteForThisInstrument.pitches.length;
+                    let nextPitchesForThisInstrument = nextNoteForThisInstrument.pitches;
+                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextPitchesForThisInstrument.length;
                     forceContinueAtEnd = nextPatternForcesContinueAtStart;
                   }
                 }
               }
             } else if (nextNoteForThisInstrument != null) {
-              tonesInNextNote = chord.singleTone ? 1 : nextNoteForThisInstrument.pitches.length;
+              let nextPitchesForThisInstrument = nextNoteForThisInstrument.pitches;
+              tonesInNextNote = chord.singleTone ? 1 : nextPitchesForThisInstrument.length;
             }
-            if (chord.singleTone) {
+            let filteredPitches = note.pitches;
+            if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = note.pitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+            if (chord.singleTone && filteredPitches.length > 0) {
               const atNoteStart = Config.ticksPerPart * note.start == currentTick;
               let tone;
               if (toneList.count() <= toneCount) {
@@ -23482,10 +23562,10 @@ li.select2-results__option[role=group] > strong:hover {
                 tone = toneList.get(toneCount);
               }
               toneCount++;
-              for (let i = 0; i < note.pitches.length; i++) {
-                tone.pitches[i] = note.pitches[i];
+              for (let i = 0; i < filteredPitches.length; i++) {
+                tone.pitches[i] = filteredPitches[i];
               }
-              tone.pitchCount = note.pitches.length;
+              tone.pitchCount = filteredPitches.length;
               tone.chordSize = 1;
               tone.instrumentIndex = instrumentIndex;
               tone.note = note;
@@ -23503,12 +23583,13 @@ li.select2-results__option[role=group] > strong:hover {
             } else {
               const transition2 = instrument.getTransition();
               if ((transition2.isSeamless && !transition2.slides && chord.strumParts == 0 || forceContinueAtStart) && Config.ticksPerPart * note.start == currentTick && prevNoteForThisInstrument != null) {
-                this.moveTonesIntoOrderedTempMatchedList(toneList, note.pitches);
+                this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
               }
               let strumOffsetParts = 0;
-              for (let i = 0; i < note.pitches.length; i++) {
+              for (let i = 0; i < filteredPitches.length; i++) {
                 let prevNoteForThisTone = tonesInPrevNote > i ? prevNoteForThisInstrument : null;
                 let noteForThisTone = note;
+                let pitchesForThisTone = filteredPitches;
                 let nextNoteForThisTone = tonesInNextNote > i ? nextNoteForThisInstrument : null;
                 let noteStartPart = noteForThisTone.start + strumOffsetParts;
                 let passedEndOfNote = false;
@@ -23516,6 +23597,8 @@ li.select2-results__option[role=group] > strong:hover {
                   if (toneList.count() > i && (transition2.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
                     nextNoteForThisTone = noteForThisTone;
                     noteForThisTone = prevNoteForThisTone;
+                    pitchesForThisTone = noteForThisTone.pitches;
+                    if (effectsIncludeNoteRange(instrument.effects)) pitchesForThisTone = pitchesForThisTone.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
                     prevNoteForThisTone = null;
                     noteStartPart = noteForThisTone.start + strumOffsetParts;
                     passedEndOfNote = true;
@@ -23528,7 +23611,7 @@ li.select2-results__option[role=group] > strong:hover {
                   noteEndPart = Math.min(Config.partsPerBeat * this.song.beatsPerBar, noteEndPart + strumOffsetParts);
                 }
                 if (!transition2.continues && !forceContinueAtStart || prevNoteForThisTone == null) {
-                  strumOffsetParts += chord.strumParts;
+                  if (useStrumSpeed) strumOffsetParts += instrument.strumParts;
                 }
                 const atNoteStart = Config.ticksPerPart * noteStartPart == currentTick;
                 let tone;
@@ -23552,9 +23635,9 @@ li.select2-results__option[role=group] > strong:hover {
                   tone = toneList.get(toneCount);
                 }
                 toneCount++;
-                tone.pitches[0] = noteForThisTone.pitches[i];
+                tone.pitches[0] = pitchesForThisTone[i];
                 tone.pitchCount = 1;
-                tone.chordSize = noteForThisTone.pitches.length;
+                tone.chordSize = pitchesForThisTone.length;
                 tone.instrumentIndex = instrumentIndex;
                 tone.note = noteForThisTone;
                 tone.noteStartPart = noteStartPart;
@@ -24769,7 +24852,7 @@ li.select2-results__option[role=group] > strong:hover {
             const chipWaveLoopMode = instrumentState.chipWaveLoopMode;
             const chipWavePlayBackwards = instrumentState.chipWavePlayBackwards;
             const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-            if(instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
             `;
         for (let i = 1; i < voiceCount; i++) {
           chipSource += `
@@ -25108,7 +25191,7 @@ li.select2-results__option[role=group] > strong:hover {
           chipSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -25221,7 +25304,7 @@ li.select2-results__option[role=group] > strong:hover {
           harmonicsSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -25333,7 +25416,7 @@ li.select2-results__option[role=group] > strong:hover {
 				const expressionDelta = +tone.expressionDelta;
 				
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-                if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
+                if (instrumentState.unisonVoices == 1 && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
 				
 				const filters = tone.noteFilters;
@@ -26173,7 +26256,7 @@ li.select2-results__option[role=group] > strong:hover {
           pulseSource += `let phaseDelta# = tone.phaseDeltas[#];
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -26518,7 +26601,7 @@ li.select2-results__option[role=group] > strong:hover {
             // a cutoff frequency that is relative to the tone's fundamental frequency.
             const pitchRelativefilter# = Math.min(1.0, phaseDelta# * instrumentState.noisePitchFilterMult);
             
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
             `.replaceAll("#", i + "");
         }
         noiseSource += `
@@ -26538,20 +26621,26 @@ li.select2-results__option[role=group] > strong:hover {
           noiseSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.chipNoiseLength;
                 `.replaceAll("#", i + "");
         }
-        noiseSource += "let test = true;";
-        for (let i = 0; i < voiceCount; i++) {
+        noiseSource += `
+            if (tone.phases[0] == 0.0) {
+                // Zero phase means the tone was reset, just give noise a random start phase instead.
+                phase0 = Math.random() * Config.chipNoiseLength;
+            `;
+        for (let i = 1; i < voiceCount; i++) {
           noiseSource += `
-            if (tone.phases[#] == 0.0) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                    phase# = phase0;
+                }
+            `.replaceAll("#", i + "");
+        }
+        noiseSource += `}`;
+        for (let i = 1; i < voiceCount; i++) {
+          noiseSource += `
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Math.random() * Config.chipNoiseLength;
-                if (@ <= # && test && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {`.replaceAll("#", i + "").replaceAll("@", voiceCount + "").replaceAll("~", tone.phases.length + "");
-          for (let j = i + 1; j < tone.phases.length; j++) {
-            noiseSource += "phase~ = phase#;".replaceAll("#", i + "").replaceAll("~", j + "");
-          }
-          noiseSource += `
-                    test = false;
                 }
-            }`;
+            `.replaceAll("#", i + "");
         }
         noiseSource += `
         const stopIndex = bufferIndex + runLength;
@@ -26616,7 +26705,7 @@ li.select2-results__option[role=group] > strong:hover {
         `;
         for (let i = 0; i < voiceCount; i++) {
           spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
                 let phaseDelta# = tone.phaseDeltas[#] * samplesInPeriod;
                 let phaseDeltaScale# = +tone.phaseDeltaScales[#];
                 let noiseSample# = +tone.noiseSamples[#];
@@ -26648,7 +26737,7 @@ li.select2-results__option[role=group] > strong:hover {
             `;
         for (let i = 1; i < voiceCount; i++) {
           spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                     phase# = phase0;
                 }
             `.replaceAll("#", i + "");
@@ -26656,7 +26745,7 @@ li.select2-results__option[role=group] > strong:hover {
         spectrumSource += `}`;
         for (let i = 1; i < voiceCount; i++) {
           spectrumSource += `
-                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                     // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
                 }
@@ -26728,7 +26817,7 @@ li.select2-results__option[role=group] > strong:hover {
         for (let i = 0; i < voiceCount; i++) {
           drumSource += `let phaseDelta# = tone.phaseDeltas[#] / referenceDelta;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         drumSource += `let expression = +tone.expression;
@@ -26750,7 +26839,7 @@ li.select2-results__option[role=group] > strong:hover {
         `;
         for (let i = 1; i < voiceCount; i++) {
           drumSource += `
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                 phase# = phase0;
             }
         `.replaceAll("#", i + "");
@@ -26758,7 +26847,7 @@ li.select2-results__option[role=group] > strong:hover {
         drumSource += `}`;
         for (let i = 1; i < voiceCount; i++) {
           drumSource += `
-            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
             phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
             }
@@ -30330,6 +30419,23 @@ li.select2-results__option[role=group] > strong:hover {
       }
     }
   };
+  var ChangeUnisonBuzzing = class extends Change {
+    static {
+      __name(this, "ChangeUnisonBuzzing");
+    }
+    constructor(doc, newValue) {
+      super();
+      const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+      const oldValue = instrument.unisonBuzzes;
+      doc.notifier.changed();
+      if (oldValue != newValue) {
+        instrument.unisonBuzzes = newValue;
+        instrument.preset = instrument.type;
+        doc.notifier.changed();
+        this._didSomething();
+      }
+    }
+  };
   var ChangeChord = class extends Change {
     static {
       __name(this, "ChangeChord");
@@ -30663,6 +30769,29 @@ li.select2-results__option[role=group] > strong:hover {
       super(doc);
       this._instrument.supersawShape = newValue;
       doc.synth.unsetMod(Config.modulators.dictionary["saw shape"].index, doc.channel, doc.getCurrentInstrument());
+      doc.notifier.changed();
+      if (oldValue != newValue) this._didSomething();
+    }
+  };
+  var ChangeSlideSpeed = class extends ChangeInstrumentSlider {
+    static {
+      __name(this, "ChangeSlideSpeed");
+    }
+    constructor(doc, oldValue, newValue) {
+      super(doc);
+      newValue = Config.maxSlideTicks + 1 - newValue;
+      this._instrument.slideTicks = newValue;
+      doc.notifier.changed();
+      if (oldValue != newValue) this._didSomething();
+    }
+  };
+  var ChangeStrumSpeed = class extends ChangeInstrumentSlider {
+    static {
+      __name(this, "ChangeStrumSpeed");
+    }
+    constructor(doc, oldValue, newValue) {
+      super(doc);
+      this._instrument.strumParts = newValue;
       doc.notifier.changed();
       if (oldValue != newValue) this._didSomething();
     }
@@ -32697,6 +32826,28 @@ li.select2-results__option[role=group] > strong:hover {
       if (oldValue != newValue) this._didSomething();
     }
   };
+  var ChangeUpperLimit = class extends ChangeInstrumentSlider {
+    static {
+      __name(this, "ChangeUpperLimit");
+    }
+    constructor(doc, oldValue, newValue) {
+      super(doc);
+      this._instrument.upperNoteLimit = newValue;
+      doc.notifier.changed();
+      if (oldValue != newValue) this._didSomething();
+    }
+  };
+  var ChangeLowerLimit = class extends ChangeInstrumentSlider {
+    static {
+      __name(this, "ChangeLowerLimit");
+    }
+    constructor(doc, oldValue, newValue) {
+      super(doc);
+      this._instrument.lowerNoteLimit = newValue;
+      doc.notifier.changed();
+      if (oldValue != newValue) this._didSomething();
+    }
+  };
   var ChangeNoteAdded = class extends UndoableChange {
     static {
       __name(this, "ChangeNoteAdded");
@@ -34097,7 +34248,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
       }
     }
-    static getPitchName(pitchNameIndex, scaleIndex, baseVisibleOctave) {
+    static getPitchName(pitchNameIndex, scaleIndex, baseVisibleOctave, alwaysOctave = false) {
       let text;
       if (Config.keys[pitchNameIndex].isWhiteKey) {
         text = Config.keys[pitchNameIndex].name;
@@ -34110,7 +34261,7 @@ li.select2-results__option[role=group] > strong:hover {
           text += "\u266F";
         }
       }
-      if (scaleIndex % 12 == 0) {
+      if (scaleIndex % 12 == 0 || alwaysOctave) {
         text += Math.floor(scaleIndex / 12) + baseVisibleOctave;
       }
       return text;
@@ -43728,6 +43879,37 @@ You should be redirected to the song at:<br /><br />
     return clone;
   }
   __name(makeEmptyReplacementElement, "makeEmptyReplacementElement");
+  function sortNoteRangesInAscendingOrder(a5, b) {
+    const lowerA = a5[0];
+    const lowerB = b[0];
+    if (lowerA == -1 && lowerB != -1) return 1;
+    else if (lowerA != -1 && lowerB == -1) return -1;
+    if (lowerA < lowerB) return -1;
+    else if (lowerA > lowerB) return 1;
+    else return 0;
+  }
+  __name(sortNoteRangesInAscendingOrder, "sortNoteRangesInAscendingOrder");
+  function noteRangesOverlap(a5, b) {
+    const lowerA = a5[0];
+    const upperA = a5[1];
+    const lowerB = b[0];
+    const upperB = b[1];
+    return lowerB >= lowerA && lowerB <= upperA || upperB >= lowerA && upperB <= upperA || lowerA >= lowerB && lowerA <= upperB || upperA >= lowerB && upperA <= upperB;
+  }
+  __name(noteRangesOverlap, "noteRangesOverlap");
+  function noteRangesAreNextToEachOther(a5, b) {
+    const lowerA = a5[0];
+    const upperA = a5[1];
+    const lowerB = b[0];
+    const upperB = b[1];
+    if (lowerA < lowerB) {
+      if (lowerB - upperA == 1) return true;
+    } else {
+      if (lowerA - upperB == 1) return true;
+    }
+    return false;
+  }
+  __name(noteRangesAreNextToEachOther, "noteRangesAreNextToEachOther");
   var PatternCursor = class {
     constructor() {
       this.valid = false;
@@ -43755,10 +43937,13 @@ You should be redirected to the song at:<br /><br />
       this._barOffset = _barOffset;
       this.controlMode = false;
       this.shiftMode = false;
+      // @TODO: Make this themeable?
+      this._svgNoteRangeIndicatorOverlay = SVG.path({ fill: ColorConfig.editorBackground, "fill-opacity": "0.8", stroke: "none", "pointer-events": "none" });
       this._defaultModBorder = 34;
       this._backgroundPitchRows = [];
       this._backgroundDrumRow = SVG.rect();
       this._backgroundModRow = SVG.rect();
+      this._maximumNoteRanges = Math.max(Config.layeredInstrumentCountMax, Config.patternInstrumentCountMax);
       this._modDragValueLabelLeft = 0;
       this._modDragValueLabelTop = 0;
       this._modDragValueLabelWidth = 0;
@@ -43806,6 +43991,14 @@ You should be redirected to the song at:<br /><br />
       this._renderedPitchChannelCount = -1;
       this._renderedNoiseChannelCount = -1;
       this._renderedModChannelCount = -1;
+      this._renderedNoteRangeLowestNoteVisible = -1;
+      this._renderedNoteRangeHighestNoteVisible = -1;
+      this._renderedNoteRanges = [];
+      this._renderedNoteRangesSorted = [];
+      this._renderedNoteRangesMerged = [];
+      this._renderedNoteRangeMergedCount = 0;
+      this._renderedNoteRangeLowestNoteLimit = -1;
+      this._renderedNoteRangeHighestNoteLimit = -1;
       this._followPlayheadBar = -1;
       this._validateModDragLabelInput = /* @__PURE__ */ __name((event) => {
         const label5 = event.target;
@@ -44019,6 +44212,7 @@ You should be redirected to the song at:<br /><br />
           this._svgModBackground
         ),
         this._svgBackground,
+        this._svgNoteRangeIndicatorOverlay,
         this._selectionRect,
         this._svgNoteContainer,
         this._svgPreview,
@@ -44031,6 +44225,11 @@ You should be redirected to the song at:<br /><br />
         rectangle.setAttribute("fill", i == 0 ? ColorConfig.tonic : ColorConfig.pitchBackground);
         this._svgNoteBackground.appendChild(rectangle);
         this._backgroundPitchRows[i] = rectangle;
+      }
+      for (let i = 0; i < this._maximumNoteRanges; i++) {
+        this._renderedNoteRanges.push([-1, -1]);
+        this._renderedNoteRangesSorted.push([-1, -1]);
+        this._renderedNoteRangesMerged.push([-1, -1]);
       }
       this._backgroundDrumRow.setAttribute("x", "1");
       this._backgroundDrumRow.setAttribute("y", "1");
@@ -45675,6 +45874,145 @@ You should be redirected to the song at:<br /><br />
         this._selectionRect.setAttribute("visibility", "hidden");
       }
     }
+    _redrawNoteRangeIndicator(forceRedraw) {
+      if (this._interactive) {
+        const instruments = this._doc.song.channels[this._doc.channel].instruments;
+        const pattern = this._doc.getCurrentPattern(this._barOffset);
+        let anyNoteRangeIsDifferent = false;
+        let anyNoteRangeIsEnabled = false;
+        let allNoteRangesAreEmpty = true;
+        for (let i = 0; i < this._maximumNoteRanges; i++) {
+          const renderedNoteRange = this._renderedNoteRanges[i];
+          const oldLowerNoteLimit = renderedNoteRange[0];
+          const oldUpperNoteLimit = renderedNoteRange[1];
+          let newLowerNoteLimit = -1;
+          let newUpperNoteLimit = -1;
+          if (i < instruments.length) {
+            const instrument = instruments[i];
+            const instrumentIsActiveForThisPattern = this._doc.song.patternInstruments ? pattern == null ? this._doc.recentPatternInstruments[this._doc.channel].indexOf(i) != -1 : pattern.instruments.indexOf(i) != -1 : true;
+            const noteRangeEnabled = effectsIncludeNoteRange(instrument.effects);
+            const noteRangeIsEmpty = instrument.lowerNoteLimit > instrument.upperNoteLimit;
+            if (noteRangeEnabled) {
+              anyNoteRangeIsEnabled = true;
+              if (!noteRangeIsEmpty) {
+                allNoteRangesAreEmpty = false;
+              }
+              if (instrumentIsActiveForThisPattern) {
+                newLowerNoteLimit = instrument.lowerNoteLimit;
+                newUpperNoteLimit = instrument.upperNoteLimit;
+              }
+            } else {
+              if (instrumentIsActiveForThisPattern) {
+                newLowerNoteLimit = 0;
+                newUpperNoteLimit = Config.maxPitch;
+              }
+            }
+            if (newLowerNoteLimit > newUpperNoteLimit) {
+              newLowerNoteLimit = -1;
+              newUpperNoteLimit = -1;
+            }
+          }
+          if (newLowerNoteLimit != oldLowerNoteLimit || newUpperNoteLimit != oldUpperNoteLimit) {
+            anyNoteRangeIsDifferent = true;
+            renderedNoteRange[0] = newLowerNoteLimit;
+            renderedNoteRange[1] = newUpperNoteLimit;
+          }
+        }
+        if (anyNoteRangeIsEnabled && anyNoteRangeIsDifferent) {
+          this._renderedNoteRangeLowestNoteLimit = Infinity;
+          this._renderedNoteRangeHighestNoteLimit = -Infinity;
+          for (let i = 0; i < this._maximumNoteRanges; i++) {
+            this._renderedNoteRangesSorted[i][0] = this._renderedNoteRanges[i][0];
+            this._renderedNoteRangesSorted[i][1] = this._renderedNoteRanges[i][1];
+            this._renderedNoteRangesMerged[i][0] = -1;
+            this._renderedNoteRangesMerged[i][1] = -1;
+          }
+          this._renderedNoteRangesSorted.sort(sortNoteRangesInAscendingOrder);
+          let indexOfRangeToMergeWith = 0;
+          this._renderedNoteRangesMerged[0][0] = this._renderedNoteRangesSorted[0][0];
+          this._renderedNoteRangesMerged[0][1] = this._renderedNoteRangesSorted[0][1];
+          this._renderedNoteRangeLowestNoteLimit = Math.min(this._renderedNoteRangeLowestNoteLimit, this._renderedNoteRangesMerged[0][0]);
+          this._renderedNoteRangeHighestNoteLimit = Math.max(this._renderedNoteRangeHighestNoteLimit, this._renderedNoteRangesMerged[0][1]);
+          for (let i = 1; i < this._maximumNoteRanges; i++) {
+            const range = this._renderedNoteRangesSorted[i];
+            const noteRangeToMergeWith = this._renderedNoteRangesMerged[indexOfRangeToMergeWith];
+            const isValid = range[0] != -1;
+            if (!isValid) {
+              break;
+            }
+            const shouldMerge = noteRangesOverlap(range, noteRangeToMergeWith) || noteRangesAreNextToEachOther(range, noteRangeToMergeWith);
+            if (shouldMerge) {
+              const newLowerNoteLimit = Math.min(range[0], noteRangeToMergeWith[0]);
+              const newUpperNoteLimit = Math.max(range[1], noteRangeToMergeWith[1]);
+              noteRangeToMergeWith[0] = newLowerNoteLimit;
+              noteRangeToMergeWith[1] = newUpperNoteLimit;
+              this._renderedNoteRangeLowestNoteLimit = Math.min(this._renderedNoteRangeLowestNoteLimit, noteRangeToMergeWith[0]);
+              this._renderedNoteRangeHighestNoteLimit = Math.max(this._renderedNoteRangeHighestNoteLimit, noteRangeToMergeWith[1]);
+            } else {
+              indexOfRangeToMergeWith++;
+              const appendedRange = this._renderedNoteRangesMerged[indexOfRangeToMergeWith];
+              appendedRange[0] = range[0];
+              appendedRange[1] = range[1];
+              this._renderedNoteRangeLowestNoteLimit = Math.min(this._renderedNoteRangeLowestNoteLimit, appendedRange[0]);
+              this._renderedNoteRangeHighestNoteLimit = Math.max(this._renderedNoteRangeHighestNoteLimit, appendedRange[1]);
+            }
+          }
+          this._renderedNoteRangeMergedCount = indexOfRangeToMergeWith + 1;
+        }
+        const baseVisibleOctave = this._doc.getBaseVisibleOctave(this._doc.channel);
+        const pitchesPerOctave = Config.pitchesPerOctave;
+        const lowestNoteVisible = baseVisibleOctave * pitchesPerOctave;
+        const highestNoteVisible = lowestNoteVisible + (this._pitchCount - 1);
+        const changed = forceRedraw || lowestNoteVisible != this._renderedNoteRangeLowestNoteVisible || highestNoteVisible != this._renderedNoteRangeHighestNoteVisible || anyNoteRangeIsDifferent;
+        if (changed) {
+          this._renderedNoteRangeLowestNoteVisible = lowestNoteVisible;
+          this._renderedNoteRangeHighestNoteVisible = highestNoteVisible;
+          if (anyNoteRangeIsEnabled) {
+            const width = this._editorWidth;
+            const height = this._editorHeight;
+            this._svgNoteRangeIndicatorOverlay.setAttribute("visibility", "visible");
+            if (allNoteRangesAreEmpty) {
+              const path = "M 0 0 L " + width + " 0 L " + width + " " + height + " L 0 " + height + " z";
+              this._svgNoteRangeIndicatorOverlay.setAttribute("d", path);
+            } else {
+              let path = " ";
+              const inbetweenRectCount = this._renderedNoteRangeMergedCount - 1;
+              for (let i = 0; i < inbetweenRectCount; i++) {
+                const rangeA = this._renderedNoteRangesMerged[i];
+                const rangeB = this._renderedNoteRangesMerged[i + 1];
+                const lowerA = rangeA[0];
+                const upperA = rangeA[1];
+                const lowerB = rangeB[0];
+                const upperB = rangeB[1];
+                const rectY0 = Math.min(height, Math.max(0, this._pitchToPixelHeight(lowerB - 1 - this._octaveOffset) - this._pitchHeight / 2));
+                const rectY1 = Math.min(height, Math.max(0, this._pitchToPixelHeight(upperA + 1 - this._octaveOffset) + this._pitchHeight / 2));
+                const rectIsVisible = (lowerA >= lowestNoteVisible && lowerA <= highestNoteVisible || upperA >= lowestNoteVisible && upperA <= highestNoteVisible || lowerB >= lowestNoteVisible && lowerB <= highestNoteVisible || upperB >= lowestNoteVisible && upperB <= highestNoteVisible) && rectY0 < rectY1;
+                if (rectIsVisible) {
+                  path += " M 0 " + rectY0 + " L " + width + " " + rectY0 + " L " + width + " " + rectY1 + " L 0 " + rectY1 + " z";
+                }
+              }
+              const topY0 = 0;
+              const topY1 = Math.min(height, Math.max(0, this._pitchToPixelHeight(this._renderedNoteRangeHighestNoteLimit - this._octaveOffset) - this._pitchHeight / 2));
+              const topIsVisible = this._renderedNoteRangeHighestNoteLimit != -1 && topY0 < topY1;
+              if (topIsVisible) {
+                path += " M 0 " + topY0 + " L " + width + " " + topY0 + " L " + width + " " + topY1 + " L 0 " + topY1 + " z";
+              }
+              const bottomY0 = Math.min(height, Math.max(0, this._pitchToPixelHeight(this._renderedNoteRangeLowestNoteLimit - this._octaveOffset) + this._pitchHeight / 2));
+              const bottomY1 = height;
+              const bottomIsVisible = this._renderedNoteRangeLowestNoteLimit != -1 && bottomY0 < bottomY1;
+              if (bottomIsVisible) {
+                path += " M 0 " + bottomY0 + " L " + width + " " + bottomY0 + " L " + width + " " + bottomY1 + " L 0 " + bottomY1 + " z";
+              }
+              this._svgNoteRangeIndicatorOverlay.setAttribute("d", path);
+            }
+          } else {
+            this._svgNoteRangeIndicatorOverlay.setAttribute("visibility", "hidden");
+          }
+        }
+      } else {
+        this._svgNoteRangeIndicatorOverlay.setAttribute("visibility", "hidden");
+      }
+    }
     render() {
       const nextPattern = this._doc.getCurrentPattern(this._barOffset);
       if (this._pattern != nextPattern) {
@@ -45730,7 +46068,9 @@ You should be redirected to the song at:<br /><br />
         this.resetCopiedPins();
       }
       this._copiedPins = this._copiedPinChannels[this._doc.channel];
+      let wasResized = false;
       if (this._renderedWidth != this._editorWidth || this._renderedHeight != this._editorHeight) {
+        wasResized = true;
         this._renderedWidth = this._editorWidth;
         this._renderedHeight = this._editorHeight;
         this._svgBackground.setAttribute("width", "" + this._editorWidth);
@@ -45741,6 +46081,7 @@ You should be redirected to the song at:<br /><br />
       }
       const beatWidth = this._editorWidth / this._doc.song.beatsPerBar;
       if (this._renderedBeatWidth != beatWidth || this._renderedPitchHeight != this._pitchHeight) {
+        wasResized = true;
         this._renderedBeatWidth = beatWidth;
         this._renderedPitchHeight = this._pitchHeight;
         this._svgNoteBackground.setAttribute("width", "" + beatWidth);
@@ -45797,6 +46138,7 @@ You should be redirected to the song at:<br /><br />
         }
       }
       this._redrawNotePatterns();
+      this._redrawNoteRangeIndicator(wasResized);
     }
     _redrawNotePatterns() {
       this._svgNoteContainer = makeEmptyReplacementElement(this._svgNoteContainer);
@@ -48313,6 +48655,14 @@ You should be redirected to the song at:<br /><br />
           );
           break;
         }
+        case "unisonBuzzes":
+          {
+            message = div21(
+              h221("Unison Buzzing"),
+              p9("This setting controls whether or not there's a buzzing noise when there's only 1 unison voice, and the spread is set to something other than 0.")
+            );
+          }
+          break;
         case "pitchRange":
           {
             message = div21(
@@ -48473,6 +48823,38 @@ You should be redirected to the song at:<br /><br />
             message = div21(
               h221("Plugins"),
               p9(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `)
+            );
+          }
+          break;
+        case "slideSpeedSlider":
+          {
+            message = div21(
+              h221("Slide Speed"),
+              p9('This slider controls how fast/slow the slide transition is. In other audio software, this setting is sometimes referred to as "Portamento".')
+            );
+          }
+          break;
+        case "strumSpeedSlider":
+          {
+            message = div21(
+              h221("Strum Speed"),
+              p9("This setting affects how fast your chord will strum.")
+            );
+          }
+          break;
+        case "upperNoteLimit":
+          {
+            message = div21(
+              h221("Upper Note Limit"),
+              p9("Defines the upper limit in which notes will play, useful for advanced instruments.")
+            );
+          }
+          break;
+        case "lowerNoteLimit":
+          {
+            message = div21(
+              h221("Lower Note Limit"),
+              p9("Defines the lower limit in which notes will play, useful for advanced instruments.")
             );
           }
           break;
@@ -51466,7 +51848,11 @@ You should be redirected to the song at:<br /><br />
       this._transitionRow = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("transition"), "onclick") }, "Transition:"), this._transitionDropdown, div26({ class: "selectContainer", style: "width: 52.5%;" }, this._transitionSelect));
       this._clicklessTransitionBox = input19({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
       this._clicklessTransitionRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("clicklessTransition"), "onclick") }, "\u2023 Clickless:"), this._clicklessTransitionBox);
-      this._transitionDropdownGroup = div26({ class: "editor-controls", style: "display: none;" }, this._clicklessTransitionRow);
+      this._slideSpeedDisplay = span7({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "x1");
+      this._slideSpeedSlider = new Slider(input19({ style: "margin: 0;", type: "range", min: "1", max: Config.maxSlideTicks, value: "3", step: "1" }), this.doc, (oldValue, newValue) => new ChangeSlideSpeed(this.doc, oldValue, newValue), false);
+      this._slideSpeedRow = div26({ class: "selectRow" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("slideSpeedSlider"), "onclick") }, "\u2023 Spd:"), this._slideSpeedDisplay, this._slideSpeedSlider.container);
+      // should the slide speed be before or after the clickless setting???
+      this._transitionDropdownGroup = div26({ class: "editor-controls", style: "display: none;" }, this._slideSpeedRow, this._clicklessTransitionRow);
       this._effectsSelect = select14(option14({ selected: true, disabled: true, hidden: false }));
       // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
       this._eqFilterSimpleButton = button25({ style: "font-size: x-small; width: 50%; height: 40%", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this._switchEQFilterType(true), "onclick") }, "simple");
@@ -51564,8 +51950,10 @@ You should be redirected to the song at:<br /><br />
         div26({ style: "color: " + ColorConfig.secondaryText + "; margin-top: -3px;" }, this._unisonSignInputBox)
       ));
       this._unisonAntiPhasedBox = input19({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 0.4em; margin-right: 4em;" });
-      this._unisonAntiPhasedRow = div26({ class: "selectRow" }, span7({ class: "tip", style: "flex-shrink: 0;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("unisonAntiPhased"), "onclick") }, "Antiphased: "), this._unisonAntiPhasedBox);
-      this._unisonDropdownGroup = div26({ class: "editor-controls", style: "display: none; gap: 3px; margin-bottom: 0.5em;" }, this._unisonVoicesRow, this._unisonSpreadRow, this._unisonOffsetRow, this._unisonExpressionRow, this._unisonSignRow, this._unisonAntiPhasedRow);
+      this._unisonAntiPhasedRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "flex-shrink: 0;  font-size: smaller;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("unisonAntiPhased"), "onclick") }, "\u2023 Antiphased: "), this._unisonAntiPhasedBox);
+      this._unisonBuzzesBox = input19({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 0.4em; margin-right: 4em;" });
+      this._unisonBuzzesBoxRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "flex-shrink: 0;  font-size: smaller;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("unisonBuzzes"), "onclick") }, "\u2023 Buzzes: "), this._unisonBuzzesBox);
+      this._unisonDropdownGroup = div26({ class: "editor-controls", style: "display: none; gap: 3px; margin-bottom: 0.5em;" }, this._unisonVoicesRow, this._unisonSpreadRow, this._unisonOffsetRow, this._unisonExpressionRow, this._unisonSignRow, this._unisonAntiPhasedRow, this._unisonBuzzesBoxRow);
       this._chordSelect = buildOptions(select14({ style: "flex-shrink: 100" }), Config.chords.map((chord) => chord.name));
       this._chordDropdown = button25({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: /* @__PURE__ */ __name(() => this._toggleDropdownMenu(2 /* Chord */), "onclick") }, "\u25BC");
       this._monophonicNoteInputBox = input19({ style: "width: 2.35em; height: 1.5em; font-size: 80%; margin: 0.5em; vertical-align: middle;", id: "monophonicInputBox", type: "number", step: "1", min: 1, max: Config.maxChordSize, value: 1 });
@@ -51576,7 +51964,10 @@ You should be redirected to the song at:<br /><br />
       this._arpeggioSpeedRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("arpeggioSpeed"), "onclick") }, "\u2023 Spd:"), this._arpeggioSpeedDisplay, this._arpeggioSpeedSlider.container);
       this._twoNoteArpBox = input19({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
       this._twoNoteArpRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("twoNoteArpeggio"), "onclick") }, "\u2023 Fast Two-Note:"), this._twoNoteArpBox);
-      this._chordDropdownGroup = div26({ class: "editor-controls", style: "display: none;" }, this._arpeggioSpeedRow, this._twoNoteArpRow);
+      this._strumSpeedDisplay = span7({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "0.04 beat(s)");
+      this._strumSpeedSlider = new Slider(input19({ style: "margin: 0;", type: "range", min: "1", max: "48", value: "1", step: "1" }), this.doc, (oldValue, newValue) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
+      this._strumSpeedRow = div26({ class: "selectRow dropFader" }, span7({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("strumSpeedSlider"), "onclick") }, "\u2023 Spd:"), this._strumSpeedDisplay, this._strumSpeedSlider.container);
+      this._chordDropdownGroup = div26({ class: "editor-controls", style: "display: none;" }, this._strumSpeedRow, this._arpeggioSpeedRow, this._twoNoteArpRow);
       this._vibratoSelect = buildOptions(select14(), Config.vibratos.map((vibrato) => vibrato.name));
       this._vibratoDropdown = button25({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: /* @__PURE__ */ __name(() => this._toggleDropdownMenu(0 /* Vibrato */), "onclick") }, "\u25BC");
       this._vibratoSelectRow = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("vibrato"), "onclick") }, "Vibrato:"), this._vibratoDropdown, div26({ class: "selectContainer", style: "width: 61.5%;" }, this._vibratoSelect));
@@ -51609,6 +52000,10 @@ You should be redirected to the song at:<br /><br />
       this._drumsetGroup = div26({ class: "editor-controls" });
       this._drumsetZoom = button25({ style: "margin-left:0em; padding-left:0.3em; margin-right:0.5em; height:1.5em; max-width: 16px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetSettings"), "onclick") }, "+");
       this._modulatorGroup = div26({ class: "editor-controls" });
+      this._upperNoteLimitInputBox = input19({ style: "width: 4em; font-size: 80%; ", id: "upperNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+      this._upperNoteLimitRow = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("upperNoteLimit"), "onclick") }, "Upper Note Limit:"), this._upperNoteLimitInputBox);
+      this._lowerNoteLimitInputBox = input19({ style: "width: 4em; font-size: 80%; ", id: "lowerNoteLimitInputBox", type: "number", step: "1", min: 0, max: Config.maxPitch, value: 60 });
+      this._lowerNoteLimitRow = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("lowerNoteLimit"), "onclick") }, "Lower Note Limit:"), this._lowerNoteLimitInputBox);
       this._feedback6OpTypeSelect = buildOptions(select14(), Config.feedbacks6Op.map((feedback) => feedback.name));
       this._feedback6OpRow1 = div26({ class: "selectRow" }, span7({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("feedbackType"), "onclick") }, "Feedback:"), div26({ class: "selectContainer" }, this._feedback6OpTypeSelect));
       this._algorithmCanvasSwitch = button25({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: /* @__PURE__ */ __name((e) => this._toggleAlgorithmCanvas(e), "onclick") }, "A");
@@ -51729,8 +52124,7 @@ You should be redirected to the song at:<br /><br />
         this._noteFilterRow,
         this._noteFilterSimpleCutRow,
         this._noteFilterSimplePeakRow,
-        // this._corruptionRow,
-        // this._corruptionTypeRow,
+        this._granularContainerRow,
         this._distortionRow,
         this._aliasingRow,
         this._bitcrusherQuantizationRow,
@@ -51740,7 +52134,8 @@ You should be redirected to the song at:<br /><br />
         this._echoDelayRow,
         this._reverbRow,
         this._ringModContainerRow,
-        this._granularContainerRow,
+        this._upperNoteLimitRow,
+        this._lowerNoteLimitRow,
         this._pluginContainerRow,
         div26(
           { style: `padding: 2px 0; margin-left: 2em; display: flex; align-items: center;` },
@@ -52400,23 +52795,22 @@ You should be redirected to the song at:<br /><br />
             if (this._openTransitionDropdown)
               this._transitionDropdownGroup.style.display = "";
             setSelectedValue(this._transitionSelect, instrument.transition);
+            this._slideSpeedRow.style.display = Config.transitions[instrument.transition].slides == true ? "" : "none";
+            this._slideSpeedSlider.input.title = "x" + prettyNumber(Config.maxSlideTicks + 1 - instrument.slideTicks);
+            this._slideSpeedDisplay.textContent = "x" + prettyNumber(Config.maxSlideTicks + 1 - instrument.slideTicks);
+            this._slideSpeedSlider.updateValue(Config.maxSlideTicks + 1 - instrument.slideTicks);
           } else {
             this._transitionDropdownGroup.style.display = "none";
             this._transitionRow.style.display = "none";
           }
           if (effectsIncludeChord(instrument.effects)) {
-            this._chordSelectRow.style.display = "flex";
-            this._chordDropdown.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
-            if (this._openChordDropdown) {
-              if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
-                this._chordDropdownGroup.style.display = "";
-              } else if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
-                this._chordDropdownGroup.style.display = "";
-                setSelectedValue(this._chordSelect, instrument.chord);
-              } else {
-                this._chordDropdownGroup.style.display = "none";
-              }
-            }
+            this._chordSelectRow.style.display = "";
+            this._chordDropdown.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index || instrument.chord == Config.chords.dictionary["strum"].index ? "" : "none";
+            this._chordDropdownGroup.style.display = (instrument.chord == Config.chords.dictionary["arpeggio"].index || instrument.chord == Config.chords.dictionary["strum"].index) && this._openChordDropdown ? "" : "none";
+            setSelectedValue(this._chordSelect, instrument.chord);
+            this._twoNoteArpRow.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
+            this._arpeggioSpeedRow.style.display = instrument.chord == Config.chords.dictionary["arpeggio"].index ? "" : "none";
+            this._strumSpeedRow.style.display = instrument.chord == Config.chords.dictionary["strum"].index ? "" : "none";
             if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
               this._monophonicNoteInputBox.value = instrument.monoChordTone + 1 + "";
               this._monophonicNoteInputBox.style.display = "";
@@ -52555,6 +52949,15 @@ You should be redirected to the song at:<br /><br />
           } else {
             this._granularContainerRow.style.display = "none";
           }
+          if (effectsIncludeNoteRange(instrument.effects)) {
+            this._upperNoteLimitRow.style.display = "";
+            this._lowerNoteLimitRow.style.display = "";
+            this._upperNoteLimitInputBox.value = String(instrument.upperNoteLimit);
+            this._lowerNoteLimitInputBox.value = String(instrument.lowerNoteLimit);
+          } else {
+            this._upperNoteLimitRow.style.display = "none";
+            this._lowerNoteLimitRow.style.display = "none";
+          }
           if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length < PluginConfig.pluginUIElements.length) {
             this._pluginurl = this.doc.song.pluginurl;
             for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
@@ -52606,13 +53009,15 @@ You should be redirected to the song at:<br /><br />
             this._unisonOffsetInputBox.value = instrument.unisonOffset + "";
             this._unisonExpressionInputBox.value = instrument.unisonExpression + "";
             this._unisonSignInputBox.value = instrument.unisonSign + "";
-            if (instrument.type == 7 /* pickedString */) {
+            if (instrument.type == 7 /* pickedString */ || instrument.unisonVoices == 1) {
               this._unisonAntiPhasedRow.style.display = "none";
             } else {
               this._unisonAntiPhasedRow.style.display = "";
               this._unisonAntiPhasedBox.checked = instrument.unisonAntiPhased ? true : false;
-              this._unisonDropdownGroup.style.display = this._openUnisonDropdown ? "" : "none";
             }
+            this._unisonBuzzesBox.checked = instrument.unisonBuzzes ? true : false;
+            this._unisonBuzzesBoxRow.style.display = instrument.unisonVoices == 1 ? "" : "none";
+            this._unisonDropdownGroup.style.display = this._openUnisonDropdown ? "" : "none";
           } else {
             this._unisonSelectRow.style.display = "none";
             this._unisonDropdownGroup.style.display = "none";
@@ -52652,6 +53057,7 @@ You should be redirected to the song at:<br /><br />
           this._vibratoSpeedSlider.updateValue(instrument.vibratoSpeed);
           setSelectedValue(this._vibratoTypeSelect, instrument.vibratoType);
           this._arpeggioSpeedSlider.updateValue(instrument.arpeggioSpeed);
+          this._strumSpeedSlider.updateValue(instrument.strumParts);
           this._panDelaySlider.updateValue(instrument.panDelay);
           this._vibratoDelaySlider.input.title = "" + Math.round(instrument.vibratoDelay);
           this._vibratoDepthSlider.input.title = "" + instrument.vibratoDepth;
@@ -52660,6 +53066,8 @@ You should be redirected to the song at:<br /><br />
           this._panDelaySlider.input.title = "" + instrument.panDelay;
           this._arpeggioSpeedSlider.input.title = "x" + prettyNumber(Config.arpSpeedScale[instrument.arpeggioSpeed]);
           this._arpeggioSpeedDisplay.textContent = "x" + prettyNumber(Config.arpSpeedScale[instrument.arpeggioSpeed]);
+          this._strumSpeedSlider.input.title = prettyNumber(instrument.strumParts / Config.partsPerBeat) + " beat(s)";
+          this._strumSpeedDisplay.textContent = prettyNumber(instrument.strumParts / Config.partsPerBeat) + " beat(s)";
           this._eqFilterSimpleCutSlider.updateValue(instrument.eqFilterSimpleCut);
           this._eqFilterSimplePeakSlider.updateValue(instrument.eqFilterSimplePeak);
           this._noteFilterSimpleCutSlider.updateValue(instrument.noteFilterSimpleCut);
@@ -52667,6 +53075,18 @@ You should be redirected to the song at:<br /><br />
           this._envelopeSpeedSlider.updateValue(instrument.envelopeSpeed);
           this._envelopeSpeedSlider.input.title = "x" + prettyNumber(Config.arpSpeedScale[instrument.envelopeSpeed]);
           this._envelopeSpeedDisplay.textContent = "x" + prettyNumber(Config.arpSpeedScale[instrument.envelopeSpeed]);
+          this._upperNoteLimitRow.firstChild.textContent = "Upper Note Limit [" + Piano.getPitchName(
+            (instrument.upperNoteLimit + Config.keys[this.doc.song.key].basePitch) % Config.pitchesPerOctave,
+            instrument.upperNoteLimit,
+            this.doc.song.octave,
+            true
+          ) + "]:";
+          this._lowerNoteLimitRow.firstChild.textContent = "Lower Note Limit [" + Piano.getPitchName(
+            (instrument.lowerNoteLimit + Config.keys[this.doc.song.key].basePitch) % Config.pitchesPerOctave,
+            instrument.lowerNoteLimit,
+            this.doc.song.octave,
+            true
+          ) + "]:";
           if (instrument.type == 9 /* customChipWave */) {
             this._customWaveDrawCanvas.redrawCanvas();
             if (this.prompt instanceof CustomChipPrompt) {
@@ -53371,7 +53791,7 @@ You should be redirected to the song at:<br /><br />
           }
           return;
         }
-        if (document.activeElement == this._panSliderInputBox || document.activeElement == this._pwmSliderInputBox || document.activeElement == this._detuneSliderInputBox || document.activeElement == this._instrumentVolumeSliderInputBox || document.activeElement == this._chipWaveLoopStartStepper || document.activeElement == this._chipWaveLoopEndStepper || document.activeElement == this._chipWaveStartOffsetStepper || document.activeElement == this._octaveStepper || document.activeElement == this._unisonVoicesInputBox || document.activeElement == this._unisonSpreadInputBox || document.activeElement == this._unisonOffsetInputBox || document.activeElement == this._unisonExpressionInputBox || document.activeElement == this._unisonSignInputBox || document.activeElement == this._monophonicNoteInputBox || this.envelopeEditor.pitchStartBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.pitchEndBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.perEnvelopeLowerBoundBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.perEnvelopeUpperBoundBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.randomStepsBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.randomStepsBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.LFOStepsBoxes.find((element) => element == document.activeElement)) {
+        if (document.activeElement == this._panSliderInputBox || document.activeElement == this._pwmSliderInputBox || document.activeElement == this._detuneSliderInputBox || document.activeElement == this._instrumentVolumeSliderInputBox || document.activeElement == this._chipWaveLoopStartStepper || document.activeElement == this._chipWaveLoopEndStepper || document.activeElement == this._chipWaveStartOffsetStepper || document.activeElement == this._octaveStepper || document.activeElement == this._unisonVoicesInputBox || document.activeElement == this._unisonSpreadInputBox || document.activeElement == this._unisonOffsetInputBox || document.activeElement == this._unisonExpressionInputBox || document.activeElement == this._unisonSignInputBox || document.activeElement == this._monophonicNoteInputBox || document.activeElement == this._upperNoteLimitInputBox || document.activeElement == this._lowerNoteLimitInputBox || this.envelopeEditor.pitchStartBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.pitchEndBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.perEnvelopeLowerBoundBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.perEnvelopeUpperBoundBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.randomStepsBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.randomStepsBoxes.find((element) => element == document.activeElement) || this.envelopeEditor.LFOStepsBoxes.find((element) => element == document.activeElement)) {
           if (event.keyCode == 13 || event.keyCode == 27) {
             this.mainLayer.focus();
           }
@@ -54914,6 +55334,9 @@ You should be redirected to the song at:<br /><br />
       this._unisonAntiPhasedBox.addEventListener("input", () => {
         this.doc.record(new ChangeUnisonAntiPhased(this.doc, this._unisonAntiPhasedBox.checked));
       });
+      this._unisonBuzzesBox.addEventListener("input", () => {
+        this.doc.record(new ChangeUnisonBuzzing(this.doc, this._unisonBuzzesBox.checked));
+      });
       this._customWaveDraw.addEventListener("input", () => {
         this.doc.record(new ChangeCustomWave(this.doc, this._customWaveDrawCanvas.newArray));
       });
@@ -54925,6 +55348,12 @@ You should be redirected to the song at:<br /><br />
       });
       this._aliasingBox.addEventListener("input", () => {
         this.doc.record(new ChangeAliasing(this.doc, this._aliasingBox.checked));
+      });
+      this._upperNoteLimitInputBox.addEventListener("input", () => {
+        this.doc.record(new ChangeUpperLimit(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].upperNoteLimit, Math.min(Config.maxPitch, Math.max(0, Math.round(+this._upperNoteLimitInputBox.value)))));
+      });
+      this._lowerNoteLimitInputBox.addEventListener("input", () => {
+        this.doc.record(new ChangeLowerLimit(this.doc, this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()].lowerNoteLimit, Math.min(Config.maxPitch, Math.max(0, Math.round(+this._lowerNoteLimitInputBox.value)))));
       });
       this._promptContainer.addEventListener("click", (event) => {
         if (this.doc.prefs.closePromptByClickoff === true) {
@@ -55023,13 +55452,8 @@ You should be redirected to the song at:<br /><br />
           this.envelopeEditor.rerenderExtraSettings();
         } else if (group != this._chordDropdownGroup) {
           group.style.display = "";
-        } else if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+        } else if (instrument.chord == Config.chords.dictionary["arpeggio"].index || instrument.chord == Config.chords.dictionary["strum"].index) {
           group.style.display = "";
-          if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
-            this._chordDropdownGroup.style.display = "";
-          } else {
-            this._chordDropdownGroup.style.display = "none";
-          }
         }
         for (let i = 0; i < group.children.length; i++) {
           setTimeout(

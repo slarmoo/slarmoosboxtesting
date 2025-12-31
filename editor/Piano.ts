@@ -558,7 +558,7 @@ export class Piano {
         this._updatePreview();
     }
 
-    public static getPitchName(pitchNameIndex: number, scaleIndex: number, baseVisibleOctave: number): string {
+    public static getPitchName(pitchNameIndex: number, scaleIndex: number, baseVisibleOctave: number, alwaysOctave: boolean = false): string {
         let text: string;
 
         // May wanna adjust this a little bit so a key and both it's sharp/flat won't all 
@@ -577,7 +577,7 @@ export class Piano {
             }
         }
 
-        if (scaleIndex % 12 == 0) {
+        if (scaleIndex % 12 == 0 || alwaysOctave) {
             text += Math.floor(scaleIndex / 12) + baseVisibleOctave;
         }
 

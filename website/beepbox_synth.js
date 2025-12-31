@@ -981,6 +981,9 @@ var beepbox = (() => {
       ]);
     }
     static {
+      this.maxSlideTicks = 48;
+    }
+    static {
       this.vibratos = toNameMap([
         { name: "none", amplitude: 0, type: 0, delayTicks: 0 },
         { name: "light", amplitude: 0.15, type: 0, delayTicks: 0 },
@@ -1054,10 +1057,10 @@ var beepbox = (() => {
       ]);
     }
     static {
-      this.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "", "ring mod", "granular", "plugin"];
+      this.effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "note range", "ring mod", "granular", "plugin"];
     }
     static {
-      this.effectOrder = [2 /* panning */, 10 /* transition */, 11 /* chord */, 7 /* pitchShift */, 8 /* detune */, 9 /* vibrato */, 5 /* noteFilter */, 14 /* granular */, 3 /* distortion */, 4 /* bitcrusher */, 1 /* chorus */, 6 /* echo */, 0 /* reverb */, 13 /* ringModulation */, 15 /* plugin */];
+      this.effectOrder = [2 /* panning */, 10 /* transition */, 11 /* chord */, 7 /* pitchShift */, 8 /* detune */, 9 /* vibrato */, 5 /* noteFilter */, 14 /* granular */, 3 /* distortion */, 4 /* bitcrusher */, 1 /* chorus */, 6 /* echo */, 0 /* reverb */, 13 /* ringModulation */, 12 /* noteRange */, 15 /* plugin */];
     }
     static {
       this.noteSizeMax = 6;
@@ -3188,6 +3191,10 @@ var beepbox = (() => {
     return (effects & 1 << 14 /* granular */) != 0;
   }
   __name(effectsIncludeGranular, "effectsIncludeGranular");
+  function effectsIncludeNoteRange(effects) {
+    return (effects & 1 << 12 /* noteRange */) != 0;
+  }
+  __name(effectsIncludeNoteRange, "effectsIncludeNoteRange");
   function effectsIncludePlugin(effects) {
     return (effects & 1 << 15 /* plugin */) != 0;
   }
@@ -4328,7 +4335,7 @@ var beepbox = (() => {
     return x;
   }
   __name(decode32BitNumber, "decode32BitNumber");
-  function encodeUnisonSettings(buffer, v, s, o, e, i, p) {
+  function encodeUnisonSettings(buffer, v, s, o, e, i, p, b) {
     buffer.push(base64IntToCharCode[v]);
     buffer.push(base64IntToCharCode[Number(s > 0)]);
     let cleanS = Math.round(Math.abs(s) * 1e3);
@@ -4344,7 +4351,10 @@ var beepbox = (() => {
     buffer.push(base64IntToCharCode[Number(i > 0)]);
     let cleanI = Math.round(Math.abs(i) * 1e3);
     buffer.push(base64IntToCharCode[cleanI % 63], base64IntToCharCode[Math.floor(cleanI / 63)]);
-    buffer.push(base64IntToCharCode[+p]);
+    let booleansPacked = +b;
+    booleansPacked <<= 1;
+    booleansPacked += +p;
+    buffer.push(base64IntToCharCode[booleansPacked]);
   }
   __name(encodeUnisonSettings, "encodeUnisonSettings");
   function convertLegacyKeyToKeyAndOctave(rawKeyIndex) {
@@ -5554,6 +5564,7 @@ var beepbox = (() => {
       this.fadeOut = Config.fadeOutNeutral;
       this.envelopeCount = 0;
       this.transition = Config.transitions.dictionary["normal"].index;
+      this.slideTicks = 3;
       this.pitchShift = 0;
       this.detune = 0;
       this.vibrato = 0;
@@ -5570,8 +5581,10 @@ var beepbox = (() => {
       this.unisonExpression = 1.4;
       this.unisonSign = 1;
       this.unisonAntiPhased = false;
+      this.unisonBuzzes = false;
       this.effects = 0;
       this.chord = 1;
+      this.strumParts = 1;
       this.volume = 0;
       this.pan = Config.panCenter;
       this.panDelay = 0;
@@ -5604,6 +5617,8 @@ var beepbox = (() => {
       this.reverb = 0;
       this.echoSustain = 0;
       this.echoDelay = 0;
+      this.upperNoteLimit = Config.maxPitch;
+      this.lowerNoteLimit = 0;
       this.pluginValues = new Array(64);
       this.algorithm = 0;
       this.feedbackType = 0;
@@ -5707,19 +5722,24 @@ var beepbox = (() => {
       this.detune = Config.detuneCenter;
       this.vibrato = 0;
       this.unison = 0;
+      this.unisonBuzzes = false;
       this.stringSustain = 10;
       this.stringSustainType = Config.enableAcousticSustain ? 1 /* acoustic */ : 0 /* bright */;
       this.clicklessTransition = false;
       this.arpeggioSpeed = 12;
       this.monoChordTone = 1;
+      this.strumParts = 3;
       this.envelopeSpeed = 12;
       this.legacyTieOver = false;
       this.aliases = false;
       this.fadeIn = 0;
       this.fadeOut = Config.fadeOutNeutral;
       this.transition = Config.transitions.dictionary["normal"].index;
+      this.slideTicks = 3;
       this.envelopeCount = 0;
       this.isNoiseInstrument = isNoiseChannel;
+      this.upperNoteLimit = Config.maxPitch;
+      this.lowerNoteLimit = 0;
       switch (type) {
         case 0 /* chip */:
           this.chipWave = 2;
@@ -5945,12 +5965,14 @@ var beepbox = (() => {
       if (effectsIncludeTransition(this.effects)) {
         instrumentObject["transition"] = Config.transitions[this.transition].name;
         instrumentObject["clicklessTransition"] = this.clicklessTransition;
+        if (Config.transitions[this.transition].slides == true) instrumentObject["slideTicks"] = this.slideTicks;
       }
       if (effectsIncludeChord(this.effects)) {
         instrumentObject["chord"] = this.getChord().name;
         instrumentObject["fastTwoNoteArp"] = this.fastTwoNoteArp;
         instrumentObject["arpeggioSpeed"] = this.arpeggioSpeed;
         instrumentObject["monoChordTone"] = this.monoChordTone;
+        if (Config.chords[this.chord].strumParts > 0) instrumentObject["strumParts"] = this.strumParts;
       }
       if (effectsIncludePitchShift(this.effects)) {
         instrumentObject["pitchShiftSemitones"] = this.pitchShift;
@@ -6017,6 +6039,10 @@ var beepbox = (() => {
       if (effectsIncludeReverb(this.effects)) {
         instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
       }
+      if (effectsIncludeNoteRange(this.effects)) {
+        instrumentObject["upperNoteLimit"] = this.upperNoteLimit;
+        instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
+      }
       if (effectsIncludePlugin(this.effects)) {
         instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
       }
@@ -6038,7 +6064,11 @@ var beepbox = (() => {
           instrumentObject["unisonOffset"] = this.unisonOffset;
           instrumentObject["unisonExpression"] = this.unisonExpression;
           instrumentObject["unisonSign"] = this.unisonSign;
-          instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+          if (this.unisonVoices == 1) {
+            instrumentObject["unisonBuzzes"] = this.unisonBuzzes;
+          } else {
+            instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+          }
         }
       }
       if (this.type == 2 /* noise */) {
@@ -6216,6 +6246,9 @@ var beepbox = (() => {
           this.effects = this.effects | 1 << 10 /* transition */;
         }
       }
+      if (instrumentObject["slideTicks"] != void 0) {
+        this.slideTicks = instrumentObject["slideTicks"];
+      }
       if (instrumentObject["fadeInSeconds"] != void 0) {
         this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
       }
@@ -6242,6 +6275,9 @@ var beepbox = (() => {
           }
         }
       }
+      if (instrumentObject["strumParts"] != void 0) {
+        this.strumParts = instrumentObject["strumParts"];
+      }
       this.unison = Config.unisons.dictionary["none"].index;
       const unisonProperty = instrumentObject["unison"] || instrumentObject["interval"] || instrumentObject["chorus"];
       if (unisonProperty != void 0) {
@@ -6256,6 +6292,7 @@ var beepbox = (() => {
       this.unisonExpression = instrumentObject["unisonExpression"] == void 0 ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
       this.unisonSign = instrumentObject["unisonSign"] == void 0 ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
       this.unisonAntiPhased = instrumentObject["unisonAntiPhased"] == true;
+      this.unisonBuzzes = instrumentObject["unisonBuzzes"] == void 0 ? false : instrumentObject["unisonBuzzes"];
       if (instrumentObject["chorus"] == "custom harmony") {
         this.unison = Config.unisons.dictionary["hum"].index;
         this.chord = Config.chords.dictionary["custom interval"].index;
@@ -6377,6 +6414,12 @@ var beepbox = (() => {
         this.reverb = clamp(0, Config.reverbRange, Math.round((Config.reverbRange - 1) * (instrumentObject["reverb"] | 0) / 100));
       } else {
         this.reverb = legacyGlobalReverb;
+      }
+      if (instrumentObject["upperNoteLimit"] != void 0) {
+        this.upperNoteLimit = instrumentObject["upperNoteLimit"];
+      }
+      if (instrumentObject["lowerNoteLimit"] != void 0) {
+        this.lowerNoteLimit = instrumentObject["lowerNoteLimit"];
       }
       if (Array.isArray(instrumentObject["plugin"])) {
         this.pluginValues = instrumentObject["plugin"];
@@ -7381,12 +7424,16 @@ var beepbox = (() => {
           }
           if (effectsIncludeTransition(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.transition]);
+            if (Config.transitions[instrument.transition].slides == true) buffer.push(base64IntToCharCode[instrument.slideTicks]);
           }
           if (effectsIncludeChord(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.chord]);
-            if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+            if (Config.chords[instrument.chord].arpeggiates == true) {
               buffer.push(base64IntToCharCode[instrument.arpeggioSpeed]);
               buffer.push(base64IntToCharCode[+instrument.fastTwoNoteArp]);
+            }
+            if (Config.chords[instrument.chord].strumParts > 0) {
+              buffer.push(base64IntToCharCode[instrument.strumParts]);
             }
             if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
               buffer.push(base64IntToCharCode[instrument.monoChordTone]);
@@ -7427,6 +7474,10 @@ var beepbox = (() => {
           if (effectsIncludeReverb(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.reverb]);
           }
+          if (effectsIncludeNoteRange(instrument.effects)) {
+            buffer.push(base64IntToCharCode[instrument.upperNoteLimit >> 6], base64IntToCharCode[instrument.upperNoteLimit & 63]);
+            buffer.push(base64IntToCharCode[instrument.lowerNoteLimit >> 6], base64IntToCharCode[instrument.lowerNoteLimit & 63]);
+          }
           if (effectsIncludeGranular(instrument.effects)) {
             buffer.push(base64IntToCharCode[instrument.granular]);
             buffer.push(base64IntToCharCode[instrument.grainSize]);
@@ -7466,7 +7517,7 @@ var beepbox = (() => {
           }
           if (instrument.type != 10 /* mod */) {
             buffer.push(104 /* unison */, base64IntToCharCode[instrument.unison]);
-            if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased);
+            if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
           }
           if (instrument.type == 0 /* chip */) {
             if (instrument.chipWave > 186) {
@@ -8808,7 +8859,10 @@ var beepbox = (() => {
                 const unisonSignNegative = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 const unisonSign = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 63;
                 if (fromSlarmoosBox && !beforeSix) {
-                  instrument.unisonAntiPhased = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] == 1;
+                  let booleans = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                  instrument.unisonAntiPhased = (booleans & 1) == 1;
+                  booleans >>= 1;
+                  instrument.unisonBuzzes = (booleans & 1) == 1;
                 }
                 instrument.unisonSpread = unisonSpread / 1e3;
                 if (unisonSpreadNegative == 0) instrument.unisonSpread *= -1;
@@ -8825,6 +8879,7 @@ var beepbox = (() => {
                 instrument.unisonExpression = Config.unisons[instrument.unison].expression;
                 instrument.unisonSign = Config.unisons[instrument.unison].sign;
                 instrument.unisonAntiPhased = false;
+                instrument.unisonBuzzes = false;
               }
             }
           }
@@ -8865,7 +8920,7 @@ var beepbox = (() => {
               const legacySettings = legacySettingsCache[instrumentChannelIterator][instrumentIndexIterator];
               instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
             } else {
-              if (16 /* length */ > 16) throw new Error();
+              if (16 /* length */ > 18) throw new Error("Edit the url to allow for more effect types");
               if (fromSlarmoosBox && !beforeFive) {
                 instrument.effects = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 12 | base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6 | base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               } else {
@@ -8923,12 +8978,18 @@ var beepbox = (() => {
               }
               if (effectsIncludeTransition(instrument.effects)) {
                 instrument.transition = clamp(0, Config.transitions.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                if (fromSlarmoosBox && !beforeSix) {
+                  if (Config.transitions[instrument.transition].slides == true) instrument.slideTicks = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                }
               }
               if (effectsIncludeChord(instrument.effects)) {
                 instrument.chord = clamp(0, Config.chords.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                if (instrument.chord == Config.chords.dictionary["arpeggio"].index && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
+                if (Config.chords[instrument.chord].arpeggiates == true && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
                   instrument.arpeggioSpeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                   instrument.fastTwoNoteArp = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] ? true : false;
+                }
+                if (Config.chords[instrument.chord].strumParts > 0 && (fromSlarmoosBox && !beforeSix)) {
+                  instrument.strumParts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 }
                 if (instrument.chord == Config.chords.dictionary["monophonic"].index && fromSlarmoosBox && !beforeFive) {
                   instrument.monoChordTone = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -8994,6 +9055,10 @@ var beepbox = (() => {
                 } else {
                   instrument.reverb = clamp(0, Config.reverbRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                 }
+              }
+              if (effectsIncludeNoteRange(instrument.effects)) {
+                instrument.upperNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                instrument.lowerNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
               if (effectsIncludeGranular(instrument.effects)) {
                 instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -11096,7 +11161,7 @@ var beepbox = (() => {
           const noteEndTick = tone.noteEndPart * Config.ticksPerPart;
           const noteLengthTicks = noteEndTick - noteStartTick;
           const maximumSlideTicks = noteLengthTicks * 0.5;
-          const slideTicks = Math.min(maximumSlideTicks, transition.slideTicks);
+          const slideTicks = Math.min(maximumSlideTicks, instrument.slideTicks);
           if (tone.prevNote != null && !tone.forceContinueAtStart) {
             if (tickTimeStartReal - noteStartTick < slideTicks) {
               prevSlideStart = true;
@@ -11702,6 +11767,7 @@ var beepbox = (() => {
       this.unisonExpression = 1.4;
       this.unisonSign = 1;
       this.unisonAntiPhased = false;
+      this.unisonBuzzes = false;
       this.unisonInitialized = true;
       this.chord = null;
       this.effects = 0;
@@ -11974,6 +12040,7 @@ var beepbox = (() => {
       this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
       this.unison = Config.unisons[instrument.unison];
       this.unisonVoices = instrument.unisonVoices;
+      this.unisonBuzzes = instrument.unisonBuzzes;
       this.chord = instrument.getChord();
       this.noisePitchFilterMult = Config.chipNoises[instrument.chipNoise].pitchFilterMult;
       this.effects = instrument.effects;
@@ -12469,6 +12536,7 @@ var beepbox = (() => {
           this.unisonAntiPhased = instrument.unisonAntiPhased;
           this.unisonInitialized = false;
         }
+        this.unisonBuzzes = instrument.unisonBuzzes;
       }
       if (instrument.type == 0 /* chip */) {
         this.wave = this.aliases ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
@@ -13966,14 +14034,19 @@ var beepbox = (() => {
         const instrumentState = channelState.instruments[instrumentIndex];
         const toneList = instrumentState.liveInputTones;
         let toneCount = 0;
+        const instrument = channel.instruments[instrumentIndex];
+        let filteredPitches = pitches;
+        if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = pitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+        let filteredBassPitches = bassPitches;
+        if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
         if (this.liveInputDuration > 0 && channelIndex == this.liveInputChannel && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
-          const instrument = channel.instruments[instrumentIndex];
-          if (instrument.getChord().singleTone) {
+          const instrument2 = channel.instruments[instrumentIndex];
+          if (instrument2.getChord().singleTone) {
             let tone;
             if (toneList.count() <= toneCount) {
               tone = this.newTone();
               toneList.pushBack(tone);
-            } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+            } else if (!instrument2.getTransition().isSeamless && this.liveInputStarted) {
               this.releaseTone(instrumentState, toneList.get(toneCount));
               tone = this.newTone();
               toneList.set(toneCount, tone);
@@ -13981,10 +14054,10 @@ var beepbox = (() => {
               tone = toneList.get(toneCount);
             }
             toneCount++;
-            for (let i = 0; i < pitches.length; i++) {
-              tone.pitches[i] = pitches[i];
+            for (let i = 0; i < filteredPitches.length; i++) {
+              tone.pitches[i] = filteredPitches[i];
             }
-            tone.pitchCount = pitches.length;
+            tone.pitchCount = filteredPitches.length;
             tone.chordSize = 1;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
@@ -13993,13 +14066,13 @@ var beepbox = (() => {
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
           } else {
-            this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
-            for (let i = 0; i < pitches.length; i++) {
+            this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
+            for (let i = 0; i < filteredPitches.length; i++) {
               let tone;
               if (this.tempMatchedPitchTones[toneCount] != null) {
                 tone = this.tempMatchedPitchTones[toneCount];
                 this.tempMatchedPitchTones[toneCount] = null;
-                if (tone.pitchCount != 1 || tone.pitches[0] != pitches[i]) {
+                if (tone.pitchCount != 1 || tone.pitches[0] != filteredPitches[i]) {
                   this.releaseTone(instrumentState, tone);
                   tone = this.newTone();
                 }
@@ -14009,9 +14082,9 @@ var beepbox = (() => {
                 toneList.pushBack(tone);
               }
               toneCount++;
-              tone.pitches[0] = pitches[i];
+              tone.pitches[0] = filteredPitches[i];
               tone.pitchCount = 1;
-              tone.chordSize = pitches.length;
+              tone.chordSize = filteredPitches.length;
               tone.instrumentIndex = instrumentIndex;
               tone.note = tone.prevNote = tone.nextNote = null;
               tone.atNoteStart = this.liveInputStarted;
@@ -14022,13 +14095,13 @@ var beepbox = (() => {
           }
         }
         if (this.liveBassInputDuration > 0 && channelIndex == this.liveBassInputChannel && bassPitches.length > 0 && this.liveBassInputInstruments.indexOf(instrumentIndex) != -1) {
-          const instrument = channel.instruments[instrumentIndex];
-          if (instrument.getChord().singleTone) {
+          const instrument2 = channel.instruments[instrumentIndex];
+          if (instrument2.getChord().singleTone) {
             let tone;
             if (toneList.count() <= toneCount) {
               tone = this.newTone();
               toneList.pushBack(tone);
-            } else if (!instrument.getTransition().isSeamless && this.liveInputStarted) {
+            } else if (!instrument2.getTransition().isSeamless && this.liveInputStarted) {
               this.releaseTone(instrumentState, toneList.get(toneCount));
               tone = this.newTone();
               toneList.set(toneCount, tone);
@@ -14036,10 +14109,10 @@ var beepbox = (() => {
               tone = toneList.get(toneCount);
             }
             toneCount++;
-            for (let i = 0; i < bassPitches.length; i++) {
-              tone.pitches[i] = bassPitches[i];
+            for (let i = 0; i < filteredBassPitches.length; i++) {
+              tone.pitches[i] = filteredBassPitches[i];
             }
-            tone.pitchCount = bassPitches.length;
+            tone.pitchCount = filteredBassPitches.length;
             tone.chordSize = 1;
             tone.instrumentIndex = instrumentIndex;
             tone.note = tone.prevNote = tone.nextNote = null;
@@ -14048,13 +14121,13 @@ var beepbox = (() => {
             tone.forceContinueAtEnd = false;
             this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
           } else {
-            this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
-            for (let i = 0; i < bassPitches.length; i++) {
+            this.moveTonesIntoOrderedTempMatchedList(toneList, filteredBassPitches);
+            for (let i = 0; i < filteredBassPitches.length; i++) {
               let tone;
               if (this.tempMatchedPitchTones[toneCount] != null) {
                 tone = this.tempMatchedPitchTones[toneCount];
                 this.tempMatchedPitchTones[toneCount] = null;
-                if (tone.pitchCount != 1 || tone.pitches[0] != bassPitches[i]) {
+                if (tone.pitchCount != 1 || tone.pitches[0] != filteredBassPitches[i]) {
                   this.releaseTone(instrumentState, tone);
                   tone = this.newTone();
                 }
@@ -14064,9 +14137,9 @@ var beepbox = (() => {
                 toneList.pushBack(tone);
               }
               toneCount++;
-              tone.pitches[0] = bassPitches[i];
+              tone.pitches[0] = filteredBassPitches[i];
               tone.pitchCount = 1;
-              tone.chordSize = bassPitches.length;
+              tone.chordSize = filteredBassPitches.length;
               tone.instrumentIndex = instrumentIndex;
               tone.note = tone.prevNote = tone.nextNote = null;
               tone.atNoteStart = this.liveBassInputStarted;
@@ -14280,6 +14353,7 @@ var beepbox = (() => {
             const partsPerBar = Config.partsPerBeat * song.beatsPerBar;
             const transition = instrument.getTransition();
             const chord = instrument.getChord();
+            const useStrumSpeed = chord.strumParts > 0;
             let forceContinueAtStart = false;
             let forceContinueAtEnd = false;
             let tonesInPrevNote = 0;
@@ -14293,13 +14367,15 @@ var beepbox = (() => {
                   const chordOfCompatibleInstrument = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern, prevPattern, instrumentIndex, transition, chord, note, lastNote, patternForcesContinueAtStart);
                   if (chordOfCompatibleInstrument != null) {
                     prevNoteForThisInstrument = lastNote;
-                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevNoteForThisInstrument.pitches.length;
+                    let prevPitchesForThisInstrument = prevNoteForThisInstrument.pitches;
+                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevPitchesForThisInstrument.length;
                     forceContinueAtStart = patternForcesContinueAtStart;
                   }
                 }
               }
             } else if (prevNoteForThisInstrument != null) {
-              tonesInPrevNote = chord.singleTone ? 1 : prevNoteForThisInstrument.pitches.length;
+              let prevPitchesForThisInstrument = prevNoteForThisInstrument.pitches;
+              tonesInPrevNote = chord.singleTone ? 1 : prevPitchesForThisInstrument.length;
             }
             if (note.end == partsPerBar) {
               let nextPattern = this.nextBar == null ? null : song.getPattern(channelIndex, this.nextBar);
@@ -14310,15 +14386,19 @@ var beepbox = (() => {
                   const chordOfCompatibleInstrument = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern, nextPattern, instrumentIndex, transition, chord, note, firstNote, nextPatternForcesContinueAtStart);
                   if (chordOfCompatibleInstrument != null) {
                     nextNoteForThisInstrument = firstNote;
-                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextNoteForThisInstrument.pitches.length;
+                    let nextPitchesForThisInstrument = nextNoteForThisInstrument.pitches;
+                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextPitchesForThisInstrument.length;
                     forceContinueAtEnd = nextPatternForcesContinueAtStart;
                   }
                 }
               }
             } else if (nextNoteForThisInstrument != null) {
-              tonesInNextNote = chord.singleTone ? 1 : nextNoteForThisInstrument.pitches.length;
+              let nextPitchesForThisInstrument = nextNoteForThisInstrument.pitches;
+              tonesInNextNote = chord.singleTone ? 1 : nextPitchesForThisInstrument.length;
             }
-            if (chord.singleTone) {
+            let filteredPitches = note.pitches;
+            if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = note.pitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+            if (chord.singleTone && filteredPitches.length > 0) {
               const atNoteStart = Config.ticksPerPart * note.start == currentTick;
               let tone;
               if (toneList.count() <= toneCount) {
@@ -14337,10 +14417,10 @@ var beepbox = (() => {
                 tone = toneList.get(toneCount);
               }
               toneCount++;
-              for (let i = 0; i < note.pitches.length; i++) {
-                tone.pitches[i] = note.pitches[i];
+              for (let i = 0; i < filteredPitches.length; i++) {
+                tone.pitches[i] = filteredPitches[i];
               }
-              tone.pitchCount = note.pitches.length;
+              tone.pitchCount = filteredPitches.length;
               tone.chordSize = 1;
               tone.instrumentIndex = instrumentIndex;
               tone.note = note;
@@ -14358,12 +14438,13 @@ var beepbox = (() => {
             } else {
               const transition2 = instrument.getTransition();
               if ((transition2.isSeamless && !transition2.slides && chord.strumParts == 0 || forceContinueAtStart) && Config.ticksPerPart * note.start == currentTick && prevNoteForThisInstrument != null) {
-                this.moveTonesIntoOrderedTempMatchedList(toneList, note.pitches);
+                this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
               }
               let strumOffsetParts = 0;
-              for (let i = 0; i < note.pitches.length; i++) {
+              for (let i = 0; i < filteredPitches.length; i++) {
                 let prevNoteForThisTone = tonesInPrevNote > i ? prevNoteForThisInstrument : null;
                 let noteForThisTone = note;
+                let pitchesForThisTone = filteredPitches;
                 let nextNoteForThisTone = tonesInNextNote > i ? nextNoteForThisInstrument : null;
                 let noteStartPart = noteForThisTone.start + strumOffsetParts;
                 let passedEndOfNote = false;
@@ -14371,6 +14452,8 @@ var beepbox = (() => {
                   if (toneList.count() > i && (transition2.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
                     nextNoteForThisTone = noteForThisTone;
                     noteForThisTone = prevNoteForThisTone;
+                    pitchesForThisTone = noteForThisTone.pitches;
+                    if (effectsIncludeNoteRange(instrument.effects)) pitchesForThisTone = pitchesForThisTone.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
                     prevNoteForThisTone = null;
                     noteStartPart = noteForThisTone.start + strumOffsetParts;
                     passedEndOfNote = true;
@@ -14383,7 +14466,7 @@ var beepbox = (() => {
                   noteEndPart = Math.min(Config.partsPerBeat * this.song.beatsPerBar, noteEndPart + strumOffsetParts);
                 }
                 if (!transition2.continues && !forceContinueAtStart || prevNoteForThisTone == null) {
-                  strumOffsetParts += chord.strumParts;
+                  if (useStrumSpeed) strumOffsetParts += instrument.strumParts;
                 }
                 const atNoteStart = Config.ticksPerPart * noteStartPart == currentTick;
                 let tone;
@@ -14407,9 +14490,9 @@ var beepbox = (() => {
                   tone = toneList.get(toneCount);
                 }
                 toneCount++;
-                tone.pitches[0] = noteForThisTone.pitches[i];
+                tone.pitches[0] = pitchesForThisTone[i];
                 tone.pitchCount = 1;
-                tone.chordSize = noteForThisTone.pitches.length;
+                tone.chordSize = pitchesForThisTone.length;
                 tone.instrumentIndex = instrumentIndex;
                 tone.note = noteForThisTone;
                 tone.noteStartPart = noteStartPart;
@@ -15624,7 +15707,7 @@ var beepbox = (() => {
             const chipWaveLoopMode = instrumentState.chipWaveLoopMode;
             const chipWavePlayBackwards = instrumentState.chipWavePlayBackwards;
             const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-            if(instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
             `;
         for (let i = 1; i < voiceCount; i++) {
           chipSource += `
@@ -15963,7 +16046,7 @@ var beepbox = (() => {
           chipSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -16076,7 +16159,7 @@ var beepbox = (() => {
           harmonicsSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -16188,7 +16271,7 @@ var beepbox = (() => {
 				const expressionDelta = +tone.expressionDelta;
 				
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-                if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
+                if (instrumentState.unisonVoices == 1 && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
 				
 				const filters = tone.noteFilters;
@@ -17028,7 +17111,7 @@ var beepbox = (() => {
           pulseSource += `let phaseDelta# = tone.phaseDeltas[#];
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         for (let i = 0; i < voiceCount; i++) {
@@ -17373,7 +17456,7 @@ var beepbox = (() => {
             // a cutoff frequency that is relative to the tone's fundamental frequency.
             const pitchRelativefilter# = Math.min(1.0, phaseDelta# * instrumentState.noisePitchFilterMult);
             
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
             `.replaceAll("#", i + "");
         }
         noiseSource += `
@@ -17393,20 +17476,26 @@ var beepbox = (() => {
           noiseSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.chipNoiseLength;
                 `.replaceAll("#", i + "");
         }
-        noiseSource += "let test = true;";
-        for (let i = 0; i < voiceCount; i++) {
+        noiseSource += `
+            if (tone.phases[0] == 0.0) {
+                // Zero phase means the tone was reset, just give noise a random start phase instead.
+                phase0 = Math.random() * Config.chipNoiseLength;
+            `;
+        for (let i = 1; i < voiceCount; i++) {
           noiseSource += `
-            if (tone.phases[#] == 0.0) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                    phase# = phase0;
+                }
+            `.replaceAll("#", i + "");
+        }
+        noiseSource += `}`;
+        for (let i = 1; i < voiceCount; i++) {
+          noiseSource += `
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Math.random() * Config.chipNoiseLength;
-                if (@ <= # && test && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {`.replaceAll("#", i + "").replaceAll("@", voiceCount + "").replaceAll("~", tone.phases.length + "");
-          for (let j = i + 1; j < tone.phases.length; j++) {
-            noiseSource += "phase~ = phase#;".replaceAll("#", i + "").replaceAll("~", j + "");
-          }
-          noiseSource += `
-                    test = false;
                 }
-            }`;
+            `.replaceAll("#", i + "");
         }
         noiseSource += `
         const stopIndex = bufferIndex + runLength;
@@ -17471,7 +17560,7 @@ var beepbox = (() => {
         `;
         for (let i = 0; i < voiceCount; i++) {
           spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
                 let phaseDelta# = tone.phaseDeltas[#] * samplesInPeriod;
                 let phaseDeltaScale# = +tone.phaseDeltaScales[#];
                 let noiseSample# = +tone.noiseSamples[#];
@@ -17503,7 +17592,7 @@ var beepbox = (() => {
             `;
         for (let i = 1; i < voiceCount; i++) {
           spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                     phase# = phase0;
                 }
             `.replaceAll("#", i + "");
@@ -17511,7 +17600,7 @@ var beepbox = (() => {
         spectrumSource += `}`;
         for (let i = 1; i < voiceCount; i++) {
           spectrumSource += `
-                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                     // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
                 }
@@ -17583,7 +17672,7 @@ var beepbox = (() => {
         for (let i = 0; i < voiceCount; i++) {
           drumSource += `let phaseDelta# = tone.phaseDeltas[#] / referenceDelta;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
         }
         drumSource += `let expression = +tone.expression;
@@ -17605,7 +17694,7 @@ var beepbox = (() => {
         `;
         for (let i = 1; i < voiceCount; i++) {
           drumSource += `
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                 phase# = phase0;
             }
         `.replaceAll("#", i + "");
@@ -17613,7 +17702,7 @@ var beepbox = (() => {
         drumSource += `}`;
         for (let i = 1; i < voiceCount; i++) {
           drumSource += `
-            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
             phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
             }

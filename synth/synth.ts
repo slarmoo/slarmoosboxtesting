@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, EnvelopeComputeIndex, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeNoteRange } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
@@ -83,7 +83,7 @@ function decode32BitNumber(compressed: string, charIndex: number): number {
     return x;
 }
 
-function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number, e: number, i: number, p: boolean): void {
+function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number, e: number, i: number, p: boolean, b: boolean): void {
     // TODO: make these sign bits more efficient (bundle them together)
     buffer.push(base64IntToCharCode[v]);
 
@@ -106,7 +106,10 @@ function encodeUnisonSettings(buffer: number[], v: number, s: number, o: number,
     let cleanI = Math.round(Math.abs(i) * 1000);
     buffer.push(base64IntToCharCode[cleanI % 63], base64IntToCharCode[Math.floor(cleanI / 63)]);
 
-    buffer.push(base64IntToCharCode[+p]);
+    let booleansPacked = +b;
+    booleansPacked <<= 1;
+    booleansPacked += +p;
+    buffer.push(base64IntToCharCode[booleansPacked]);
 }
 
 function convertLegacyKeyToKeyAndOctave(rawKeyIndex: number): [number, number] {
@@ -1689,6 +1692,7 @@ export class Instrument {
     public fadeOut: number = Config.fadeOutNeutral;
     public envelopeCount: number = 0;
     public transition: number = Config.transitions.dictionary["normal"].index;
+    public slideTicks: number = 3;
     public pitchShift: number = 0;
     public detune: number = 0;
     public vibrato: number = 0;
@@ -1705,8 +1709,10 @@ export class Instrument {
     public unisonExpression: number = 1.4;
     public unisonSign: number = 1.0;
     public unisonAntiPhased: boolean = false;
+    public unisonBuzzes: boolean = false;
     public effects: number = 0;
     public chord: number = 1;
+    public strumParts: number = 1;
     public volume: number = 0;
     public pan: number = Config.panCenter;
     public panDelay: number = 0;
@@ -1739,6 +1745,8 @@ export class Instrument {
     public reverb: number = 0;
     public echoSustain: number = 0;
     public echoDelay: number = 0;
+    public upperNoteLimit: number = Config.maxPitch;
+    public lowerNoteLimit: number = 0;
     public pluginValues: number[] = new Array(64);
     public algorithm: number = 0;
     public feedbackType: number = 0;
@@ -1869,19 +1877,24 @@ export class Instrument {
         this.detune = Config.detuneCenter;
         this.vibrato = 0;
         this.unison = 0;
+        this.unisonBuzzes = false;
         this.stringSustain = 10;
         this.stringSustainType = Config.enableAcousticSustain ? SustainType.acoustic : SustainType.bright;
         this.clicklessTransition = false;
         this.arpeggioSpeed = 12;
         this.monoChordTone = 1;
+        this.strumParts = 3;
         this.envelopeSpeed = 12;
         this.legacyTieOver = false;
         this.aliases = false;
         this.fadeIn = 0;
         this.fadeOut = Config.fadeOutNeutral;
         this.transition = Config.transitions.dictionary["normal"].index;
+        this.slideTicks = 3;
         this.envelopeCount = 0;
         this.isNoiseInstrument = isNoiseChannel;
+        this.upperNoteLimit = Config.maxPitch;
+        this.lowerNoteLimit = 0;
         switch (type) {
             case InstrumentType.chip:
                 this.chipWave = 2;
@@ -2135,12 +2148,14 @@ export class Instrument {
         if (effectsIncludeTransition(this.effects)) {
             instrumentObject["transition"] = Config.transitions[this.transition].name;
             instrumentObject["clicklessTransition"] = this.clicklessTransition;
+            if (Config.transitions[this.transition].slides == true) instrumentObject["slideTicks"] = this.slideTicks;
         }
         if (effectsIncludeChord(this.effects)) {
             instrumentObject["chord"] = this.getChord().name;
             instrumentObject["fastTwoNoteArp"] = this.fastTwoNoteArp;
             instrumentObject["arpeggioSpeed"] = this.arpeggioSpeed;
             instrumentObject["monoChordTone"] = this.monoChordTone;
+            if (Config.chords[this.chord].strumParts > 0) instrumentObject["strumParts"] = this.strumParts;
         }
         if (effectsIncludePitchShift(this.effects)) {
             instrumentObject["pitchShiftSemitones"] = this.pitchShift;
@@ -2208,6 +2223,10 @@ export class Instrument {
         if (effectsIncludeReverb(this.effects)) {
             instrumentObject["reverb"] = Math.round(100 * this.reverb / (Config.reverbRange - 1));
         }
+        if (effectsIncludeNoteRange(this.effects)) {
+            instrumentObject["upperNoteLimit"] = this.upperNoteLimit;
+            instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
+        }
 
         if (effectsIncludePlugin(this.effects)) {
             instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
@@ -2234,7 +2253,11 @@ export class Instrument {
                 instrumentObject["unisonOffset"] = this.unisonOffset;
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
-                instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+                if (this.unisonVoices == 1) { 
+                    instrumentObject["unisonBuzzes"] = this.unisonBuzzes;
+                } else {
+                    instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
+                }
             }
         }
 
@@ -2435,6 +2458,10 @@ export class Instrument {
             }
         }
 
+        if (instrumentObject["slideTicks"] != undefined) {
+            this.slideTicks = instrumentObject["slideTicks"];
+        }
+
         // Overrides legacy settings in transition above.
         if (instrumentObject["fadeInSeconds"] != undefined) {
             this.fadeIn = Synth.secondsToFadeInSetting(+instrumentObject["fadeInSeconds"]);
@@ -2466,6 +2493,10 @@ export class Instrument {
             }
         }
 
+        if (instrumentObject["strumParts"] != undefined) {
+            this.strumParts = instrumentObject["strumParts"];
+        }
+
         this.unison = Config.unisons.dictionary["none"].index; // default value.
         const unisonProperty: any = instrumentObject["unison"] || instrumentObject["interval"] || instrumentObject["chorus"]; // The unison property has gone by various names in the past.
         if (unisonProperty != undefined) {
@@ -2481,6 +2512,7 @@ export class Instrument {
         this.unisonExpression = (instrumentObject["unisonExpression"] == undefined) ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
         this.unisonSign = (instrumentObject["unisonSign"] == undefined) ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
         this.unisonAntiPhased = (instrumentObject["unisonAntiPhased"] == true);
+        this.unisonBuzzes = (instrumentObject["unisonBuzzes"] == undefined) ? false : instrumentObject["unisonBuzzes"];
 
         if (instrumentObject["chorus"] == "custom harmony") {
             // The original chorus setting had an option that now maps to two different settings. Override those if necessary.
@@ -2628,6 +2660,13 @@ export class Instrument {
             this.reverb = clamp(0, Config.reverbRange, Math.round((Config.reverbRange - 1) * (instrumentObject["reverb"] | 0) / 100));
         } else {
             this.reverb = legacyGlobalReverb;
+        }
+
+        if (instrumentObject["upperNoteLimit"] != undefined) {
+            this.upperNoteLimit = instrumentObject["upperNoteLimit"]
+        }
+        if (instrumentObject["lowerNoteLimit"] != undefined) {
+            this.lowerNoteLimit = instrumentObject["lowerNoteLimit"]
         }
 
         if (Array.isArray(instrumentObject["plugin"])) {
@@ -3779,13 +3818,17 @@ export class Song {
                 }
                 if (effectsIncludeTransition(instrument.effects)) {
                     buffer.push(base64IntToCharCode[instrument.transition]);
+                    if (Config.transitions[instrument.transition].slides == true) buffer.push(base64IntToCharCode[instrument.slideTicks]);
                 }
                 if (effectsIncludeChord(instrument.effects)) {
                     buffer.push(base64IntToCharCode[instrument.chord]);
                     // Custom arpeggio speed... only if the instrument arpeggiates.
-                    if (instrument.chord == Config.chords.dictionary["arpeggio"].index) {
+                    if (Config.chords[instrument.chord].arpeggiates == true) {
                         buffer.push(base64IntToCharCode[instrument.arpeggioSpeed]);
                         buffer.push(base64IntToCharCode[+instrument.fastTwoNoteArp]); // Two note arp setting piggybacks on this
+                    }
+                    if (Config.chords[instrument.chord].strumParts > 0) {
+                        buffer.push(base64IntToCharCode[instrument.strumParts]);
                     }
                     if (instrument.chord == Config.chords.dictionary["monophonic"].index) {
                         buffer.push(base64IntToCharCode[instrument.monoChordTone]); //which note is selected
@@ -3828,9 +3871,10 @@ export class Song {
                 if (effectsIncludeReverb(instrument.effects)) {
                     buffer.push(base64IntToCharCode[instrument.reverb]);
                 }
-                // if (effectsIncludeNoteRange(instrument.effects)) {
-                //     buffer.push(base64IntToCharCode[instrument.noteRange]);
-                // }
+                if (effectsIncludeNoteRange(instrument.effects)) {
+                    buffer.push(base64IntToCharCode[instrument.upperNoteLimit >> 6], base64IntToCharCode[instrument.upperNoteLimit & 0x3f]);
+                    buffer.push(base64IntToCharCode[instrument.lowerNoteLimit >> 6], base64IntToCharCode[instrument.lowerNoteLimit & 0x3f]);
+                }
                 if (effectsIncludeGranular(instrument.effects)) {
                     buffer.push(base64IntToCharCode[instrument.granular]);
                     buffer.push(base64IntToCharCode[instrument.grainSize]);
@@ -3874,7 +3918,7 @@ export class Song {
 
                 if (instrument.type != InstrumentType.mod) {
                     buffer.push(SongTagCode.unison, base64IntToCharCode[instrument.unison]);
-                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased);
+                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
                 }
 
                 if (instrument.type == InstrumentType.chip) {
@@ -5414,7 +5458,10 @@ export class Song {
                         const unisonSign: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 63);
 
                         if (fromSlarmoosBox && !beforeSix) {
-                            instrument.unisonAntiPhased = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] == 1;
+                            let booleans: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                            instrument.unisonAntiPhased = (booleans & 1) == 1;
+                            booleans >>= 1;
+                            instrument.unisonBuzzes = (booleans & 1) == 1;
                         }
 
 
@@ -5436,6 +5483,7 @@ export class Song {
                         instrument.unisonExpression = Config.unisons[instrument.unison].expression;
                         instrument.unisonSign = Config.unisons[instrument.unison].sign;
                         instrument.unisonAntiPhased = false; //TODO: make antiPhased presets
+                        instrument.unisonBuzzes = false;
                     }
                 }
 
@@ -5485,7 +5533,7 @@ export class Song {
                     instrument.convertLegacySettings(legacySettings, forceSimpleFilter);
                 } else {
                     // BeepBox currently uses three base64 characters at 6 bits each for a bitfield representing all the enabled effects.
-                    if (EffectType.length > 16) throw new Error();
+                    if (EffectType.length > 18) throw new Error("Edit the url to allow for more effect types");
                     if (fromSlarmoosBox && !beforeFive) {
                         instrument.effects = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 12) | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) | (base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                     } else {
@@ -5548,13 +5596,19 @@ export class Song {
                     }
                     if (effectsIncludeTransition(instrument.effects)) {
                         instrument.transition = clamp(0, Config.transitions.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                        if (fromSlarmoosBox && !beforeSix) {
+                            if (Config.transitions[instrument.transition].slides == true) instrument.slideTicks = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        }
                     }
                     if (effectsIncludeChord(instrument.effects)) {
                         instrument.chord = clamp(0, Config.chords.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         // Custom arpeggio speed... only in JB, and only if the instrument arpeggiates.
-                        if (instrument.chord == Config.chords.dictionary["arpeggio"].index && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
+                        if (Config.chords[instrument.chord].arpeggiates == true && (fromJummBox || fromGoldBox || fromUltraBox || fromSlarmoosBox)) {
                             instrument.arpeggioSpeed = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                             instrument.fastTwoNoteArp = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)]) ? true : false;
+                        }
+                        if (Config.chords[instrument.chord].strumParts > 0 && (fromSlarmoosBox && !beforeSix)) {
+                            instrument.strumParts = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         }
                         if (instrument.chord == Config.chords.dictionary["monophonic"].index && fromSlarmoosBox && !beforeFive) {
                             instrument.monoChordTone = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -5631,6 +5685,10 @@ export class Song {
                         } else {
                             instrument.reverb = clamp(0, Config.reverbRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                         }
+                    }
+                    if (effectsIncludeNoteRange(instrument.effects)) {
+                        instrument.upperNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        instrument.lowerNoteLimit = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                     }
                     if (effectsIncludeGranular(instrument.effects)) {
                         instrument.granular = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -8028,7 +8086,7 @@ class EnvelopeComputer {
                 const noteEndTick: number = tone.noteEndPart * Config.ticksPerPart;
                 const noteLengthTicks: number = noteEndTick - noteStartTick;
                 const maximumSlideTicks: number = noteLengthTicks * 0.5;
-                const slideTicks: number = Math.min(maximumSlideTicks, transition.slideTicks);
+                const slideTicks: number = Math.min(maximumSlideTicks, instrument.slideTicks);
                 if (tone.prevNote != null && !tone.forceContinueAtStart) {
                     if (tickTimeStartReal - noteStartTick < slideTicks) {
                         prevSlideStart = true;
@@ -8665,6 +8723,7 @@ class InstrumentState {
     public unisonExpression: number = 1.4;
     public unisonSign: number = 1.0;
     public unisonAntiPhased: boolean = false;
+    public unisonBuzzes: boolean = false;
     public unisonInitialized: boolean = true;
     public chord: Chord | null = null;
     public effects: number = 0;
@@ -8974,6 +9033,7 @@ class InstrumentState {
         this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
         this.unison = Config.unisons[instrument.unison];
         this.unisonVoices = instrument.unisonVoices;
+        this.unisonBuzzes = instrument.unisonBuzzes;
         this.chord = instrument.getChord();
         this.noisePitchFilterMult = Config.chipNoises[instrument.chipNoise].pitchFilterMult;
         this.effects = instrument.effects;
@@ -9601,8 +9661,9 @@ class InstrumentState {
             this.unisonSign = instrument.unisonSign;
             if (this.unisonAntiPhased != instrument.unisonAntiPhased) {
                 this.unisonAntiPhased = instrument.unisonAntiPhased;
-                this.unisonInitialized = false;
+                this.unisonInitialized = false; //reset the phases for mid-note updates
             }
+            this.unisonBuzzes = instrument.unisonBuzzes;
         }
         if (instrument.type == InstrumentType.chip) {
             this.wave = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
@@ -11400,6 +11461,13 @@ export class Synth {
             const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];
             const toneList: Deque<Tone> = instrumentState.liveInputTones;
             let toneCount: number = 0;
+
+            const instrument: Instrument = channel.instruments[instrumentIndex];
+            let filteredPitches = pitches;
+            if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = pitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+            let filteredBassPitches: number[] = bassPitches;
+            if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+
             if (this.liveInputDuration > 0 && (channelIndex == this.liveInputChannel) && pitches.length > 0 && this.liveInputInstruments.indexOf(instrumentIndex) != -1) {
                 const instrument: Instrument = channel.instruments[instrumentIndex];
 
@@ -11417,10 +11485,10 @@ export class Synth {
                     }
                     toneCount++;
 
-                    for (let i: number = 0; i < pitches.length; i++) {
-                        tone.pitches[i] = pitches[i];
+                    for (let i: number = 0; i < filteredPitches.length; i++) {
+                        tone.pitches[i] = filteredPitches[i];
                     }
-                    tone.pitchCount = pitches.length;
+                    tone.pitchCount = filteredPitches.length;
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
@@ -11431,16 +11499,16 @@ export class Synth {
                 } else {
                     //const transition: Transition = instrument.getTransition();
 
-                    this.moveTonesIntoOrderedTempMatchedList(toneList, pitches);
+                    this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
 
-                    for (let i: number = 0; i < pitches.length; i++) {
+                    for (let i: number = 0; i < filteredPitches.length; i++) {
                         //const strumOffsetParts: number = i * instrument.getChord().strumParts;
 
                         let tone: Tone;
                         if (this.tempMatchedPitchTones[toneCount] != null) {
                             tone = this.tempMatchedPitchTones[toneCount]!;
                             this.tempMatchedPitchTones[toneCount] = null;
-                            if (tone.pitchCount != 1 || tone.pitches[0] != pitches[i]) {
+                            if (tone.pitchCount != 1 || tone.pitches[0] != filteredPitches[i]) {
                                 this.releaseTone(instrumentState, tone);
                                 tone = this.newTone();
                             }
@@ -11451,9 +11519,9 @@ export class Synth {
                         }
                         toneCount++;
 
-                        tone.pitches[0] = pitches[i];
+                        tone.pitches[0] = filteredPitches[i];
                         tone.pitchCount = 1;
-                        tone.chordSize = pitches.length;
+                        tone.chordSize = filteredPitches.length;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = this.liveInputStarted;
@@ -11481,10 +11549,10 @@ export class Synth {
                     }
                     toneCount++;
 
-                    for (let i: number = 0; i < bassPitches.length; i++) {
-                        tone.pitches[i] = bassPitches[i];
+                    for (let i: number = 0; i < filteredBassPitches.length; i++) {
+                        tone.pitches[i] = filteredBassPitches[i];
                     }
-                    tone.pitchCount = bassPitches.length;
+                    tone.pitchCount = filteredBassPitches.length;
                     tone.chordSize = 1;
                     tone.instrumentIndex = instrumentIndex;
                     tone.note = tone.prevNote = tone.nextNote = null;
@@ -11495,16 +11563,16 @@ export class Synth {
                 } else {
                     //const transition: Transition = instrument.getTransition();
 
-                    this.moveTonesIntoOrderedTempMatchedList(toneList, bassPitches);
+                    this.moveTonesIntoOrderedTempMatchedList(toneList, filteredBassPitches);
 
-                    for (let i: number = 0; i < bassPitches.length; i++) {
+                    for (let i: number = 0; i < filteredBassPitches.length; i++) {
                         //const strumOffsetParts: number = i * instrument.getChord().strumParts;
 
                         let tone: Tone;
                         if (this.tempMatchedPitchTones[toneCount] != null) {
                             tone = this.tempMatchedPitchTones[toneCount]!;
                             this.tempMatchedPitchTones[toneCount] = null;
-                            if (tone.pitchCount != 1 || tone.pitches[0] != bassPitches[i]) {
+                            if (tone.pitchCount != 1 || tone.pitches[0] != filteredBassPitches[i]) {
                                 this.releaseTone(instrumentState, tone);
                                 tone = this.newTone();
                             }
@@ -11515,9 +11583,9 @@ export class Synth {
                         }
                         toneCount++;
 
-                        tone.pitches[0] = bassPitches[i];
+                        tone.pitches[0] = filteredBassPitches[i];
                         tone.pitchCount = 1;
-                        tone.chordSize = bassPitches.length;
+                        tone.chordSize = filteredBassPitches.length;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = this.liveBassInputStarted;
@@ -11782,6 +11850,7 @@ export class Synth {
                     const partsPerBar: Number = Config.partsPerBeat * song.beatsPerBar;
                     const transition: Transition = instrument.getTransition();
                     const chord: Chord = instrument.getChord();
+                    const useStrumSpeed: boolean = chord.strumParts > 0;
                     let forceContinueAtStart: boolean = false;
                     let forceContinueAtEnd: boolean = false;
                     let tonesInPrevNote: number = 0;
@@ -11796,13 +11865,19 @@ export class Synth {
                                 const chordOfCompatibleInstrument: Chord | null = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern!, prevPattern, instrumentIndex, transition, chord, note, lastNote, patternForcesContinueAtStart);
                                 if (chordOfCompatibleInstrument != null) {
                                     prevNoteForThisInstrument = lastNote;
-                                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevNoteForThisInstrument.pitches.length
+                                    let prevPitchesForThisInstrument: number[] = prevNoteForThisInstrument.pitches;
+                                    // @TODO: This may or may not be needed, I'm not entirely sure yet...
+                                    // if (effectsIncludeNoteRange(instrument.effects)) prevPitchesForThisInstrument = prevPitchesForThisInstrument.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                                    tonesInPrevNote = chordOfCompatibleInstrument.singleTone ? 1 : prevPitchesForThisInstrument.length;
                                     forceContinueAtStart = patternForcesContinueAtStart;
                                 }
                             }
                         }
                     } else if (prevNoteForThisInstrument != null) {
-                        tonesInPrevNote = chord.singleTone ? 1 : prevNoteForThisInstrument.pitches.length
+                        let prevPitchesForThisInstrument: number[] = prevNoteForThisInstrument.pitches;
+                        // @TODO: This may or may not be needed, I'm not entirely sure yet...
+                        // if (effectsIncludeNoteRange(instrument.effects)) prevPitchesForThisInstrument = prevPitchesForThisInstrument.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                        tonesInPrevNote = chord.singleTone ? 1 : prevPitchesForThisInstrument.length
                     }
                     if (note.end == partsPerBar) {
                         // If the end of the note coincides with the end of the pattern, look for an
@@ -11815,16 +11890,24 @@ export class Synth {
                                 const chordOfCompatibleInstrument: Chord | null = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern!, nextPattern, instrumentIndex, transition, chord, note, firstNote, nextPatternForcesContinueAtStart);
                                 if (chordOfCompatibleInstrument != null) {
                                     nextNoteForThisInstrument = firstNote;
-                                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextNoteForThisInstrument.pitches.length
+                                    let nextPitchesForThisInstrument: number[] = nextNoteForThisInstrument.pitches;
+                                    // @TODO: This may or may not be needed, I'm not entirely sure yet...
+                                    // if (effectsIncludeNoteRange(instrument.effects)) nextPitchesForThisInstrument = nextPitchesForThisInstrument.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                                    tonesInNextNote = chordOfCompatibleInstrument.singleTone ? 1 : nextPitchesForThisInstrument.length;
                                     forceContinueAtEnd = nextPatternForcesContinueAtStart;
                                 }
                             }
                         }
                     } else if (nextNoteForThisInstrument != null) {
-                        tonesInNextNote = chord.singleTone ? 1 : nextNoteForThisInstrument.pitches.length
+                        let nextPitchesForThisInstrument: number[] = nextNoteForThisInstrument.pitches;
+                        // @TODO: This may or may not be needed, I'm not entirely sure yet...
+                        // if (effectsIncludeNoteRange(instrument.effects)) nextPitchesForThisInstrument = nextPitchesForThisInstrument.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                        tonesInNextNote = chord.singleTone ? 1 : nextPitchesForThisInstrument.length;
                     }
 
-                    if (chord.singleTone) {
+                    let filteredPitches: number[] = note.pitches;
+                    if (effectsIncludeNoteRange(instrument.effects)) filteredPitches = note.pitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
+                    if (chord.singleTone && filteredPitches.length > 0) {
                         const atNoteStart: boolean = (Config.ticksPerPart * note.start == currentTick);
                         let tone: Tone;
                         if (toneList.count() <= toneCount) {
@@ -11844,10 +11927,10 @@ export class Synth {
                         }
                         toneCount++;
 
-                        for (let i: number = 0; i < note.pitches.length; i++) {
-                            tone.pitches[i] = note.pitches[i];
+                        for (let i: number = 0; i < filteredPitches.length; i++) {
+                            tone.pitches[i] = filteredPitches[i];
                         }
-                        tone.pitchCount = note.pitches.length;
+                        tone.pitchCount = filteredPitches.length;
                         tone.chordSize = 1;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = note;
@@ -11866,14 +11949,15 @@ export class Synth {
                         const transition: Transition = instrument.getTransition();
 
                         if (((transition.isSeamless && !transition.slides && chord.strumParts == 0) || forceContinueAtStart) && (Config.ticksPerPart * note.start == currentTick) && prevNoteForThisInstrument != null) {
-                            this.moveTonesIntoOrderedTempMatchedList(toneList, note.pitches);
+                            this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
                         }
 
                         let strumOffsetParts: number = 0;
-                        for (let i: number = 0; i < note.pitches.length; i++) {
+                        for (let i: number = 0; i < filteredPitches.length; i++) {
 
                             let prevNoteForThisTone: Note | null = (tonesInPrevNote > i) ? prevNoteForThisInstrument : null;
                             let noteForThisTone: Note = note;
+                            let pitchesForThisTone: number[] = filteredPitches;
                             let nextNoteForThisTone: Note | null = (tonesInNextNote > i) ? nextNoteForThisInstrument : null;
                             let noteStartPart: number = noteForThisTone.start + strumOffsetParts;
                             let passedEndOfNote: boolean = false;
@@ -11887,6 +11971,8 @@ export class Synth {
                                     // Continue the previous note's chord until the current one takes over.
                                     nextNoteForThisTone = noteForThisTone;
                                     noteForThisTone = prevNoteForThisTone;
+                                    pitchesForThisTone = noteForThisTone.pitches;
+                                    if (effectsIncludeNoteRange(instrument.effects)) pitchesForThisTone = pitchesForThisTone.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
                                     prevNoteForThisTone = null;
                                     noteStartPart = noteForThisTone.start + strumOffsetParts;
                                     passedEndOfNote = true;
@@ -11901,7 +11987,7 @@ export class Synth {
                                 noteEndPart = Math.min(Config.partsPerBeat * this.song!.beatsPerBar, noteEndPart + strumOffsetParts);
                             }
                             if ((!transition.continues && !forceContinueAtStart) || prevNoteForThisTone == null) {
-                                strumOffsetParts += chord.strumParts;
+                                if (useStrumSpeed) strumOffsetParts += instrument.strumParts;
                             }
 
                             const atNoteStart: boolean = (Config.ticksPerPart * noteStartPart == currentTick);
@@ -11927,9 +12013,9 @@ export class Synth {
                             }
                             toneCount++;
 
-                            tone.pitches[0] = noteForThisTone.pitches[i];
+                            tone.pitches[0] = pitchesForThisTone[i];
                             tone.pitchCount = 1;
-                            tone.chordSize = noteForThisTone.pitches.length;
+                            tone.chordSize = pitchesForThisTone.length;
                             tone.instrumentIndex = instrumentIndex;
                             tone.note = noteForThisTone;
                             tone.noteStartPart = noteStartPart;
@@ -13459,7 +13545,7 @@ export class Synth {
             const chipWaveLoopMode = instrumentState.chipWaveLoopMode;
             const chipWavePlayBackwards = instrumentState.chipWavePlayBackwards;
             const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-            if(instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
             `
             for (let i: number = 1; i < voiceCount; i++) {
                 chipSource += `
@@ -13811,7 +13897,7 @@ export class Synth {
                 chipSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
             }
 
@@ -13938,7 +14024,7 @@ export class Synth {
                 harmonicsSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
             }
 
@@ -14074,7 +14160,7 @@ export class Synth {
 				const expressionDelta = +tone.expressionDelta;
 				
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-                if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
+                if (instrumentState.unisonVoices == 1 && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
 				
 				const filters = tone.noteFilters;
@@ -14985,7 +15071,7 @@ export class Synth {
                 pulseSource += `let phaseDelta# = tone.phaseDeltas[#];
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
             }
 
@@ -15352,7 +15438,7 @@ export class Synth {
             // a cutoff frequency that is relative to the tone's fundamental frequency.
             const pitchRelativefilter# = Math.min(1.0, phaseDelta# * instrumentState.noisePitchFilterMult);
             
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
             `.replaceAll("#", i + "");
             }
 
@@ -15373,20 +15459,26 @@ export class Synth {
                 noiseSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.chipNoiseLength;
                 `.replaceAll("#", i + "");
             }
-            noiseSource += "let test = true;"
-            for (let i: number = 0; i < voiceCount; i++) {
+            noiseSource += `
+            if (tone.phases[0] == 0.0) {
+                // Zero phase means the tone was reset, just give noise a random start phase instead.
+                phase0 = Math.random() * Config.chipNoiseLength;
+            `
+            for (let i: number = 1; i < voiceCount; i++) {
                 noiseSource += `
-            if (tone.phases[#] == 0.0) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                    phase# = phase0;
+                }
+            `.replaceAll("#", i + "");
+            }
+            noiseSource += `}`;
+            for (let i: number = 1; i < voiceCount; i++) {
+                noiseSource += `
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Math.random() * Config.chipNoiseLength;
-                if (@ <= # && test && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {`.replaceAll("#", i + "").replaceAll("@", voiceCount + "").replaceAll("~", tone.phases.length + "");
-                for (let j: number = i + 1; j < tone.phases.length; j++) {
-                    noiseSource += "phase~ = phase#;".replaceAll("#", i + "").replaceAll("~", j + "");
                 }
-                noiseSource += `
-                    test = false;
-                }
-            }`
+            `.replaceAll("#", i + "");
             }
 
             noiseSource += `
@@ -15465,7 +15557,7 @@ export class Synth {
         `
             for (let i: number = 0; i < voiceCount; i++) {
                 spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
                 let phaseDelta# = tone.phaseDeltas[#] * samplesInPeriod;
                 let phaseDeltaScale# = +tone.phaseDeltaScales[#];
                 let noiseSample# = +tone.noiseSamples[#];
@@ -15498,7 +15590,7 @@ export class Synth {
             `
             for (let i: number = 1; i < voiceCount; i++) {
                 spectrumSource += `
-                if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                     phase# = phase0;
                 }
             `.replaceAll("#", i + "");
@@ -15506,7 +15598,7 @@ export class Synth {
             spectrumSource += `}`;
             for (let i: number = 1; i < voiceCount; i++) {
                 spectrumSource += `
-                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                     // Zero phase means the tone was reset, just give noise a random start phase instead.
                 phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
                 }
@@ -15589,7 +15681,7 @@ export class Synth {
             for (let i: number = 0; i < voiceCount; i++) {
                 drumSource += `let phaseDelta# = tone.phaseDeltas[#] / referenceDelta;
             let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
             `.replaceAll("#", i + "");
             }
 
@@ -15613,7 +15705,7 @@ export class Synth {
         `
             for (let i: number = 1; i < voiceCount; i++) {
                 drumSource += `
-            if (instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval) {
+            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
                 phase# = phase0;
             }
         `.replaceAll("#", i + "");
@@ -15621,7 +15713,7 @@ export class Synth {
             drumSource += `}`;
             for (let i: number = 1; i < voiceCount; i++) {
                 drumSource += `
-            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && instrumentState.unisonSpread == 0 && !instrumentState.chord.customInterval)) {
+            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
                 // Zero phase means the tone was reset, just give noise a random start phase instead.
             phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
             }
