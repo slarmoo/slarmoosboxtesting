@@ -8,7 +8,7 @@ import { Slider } from "./HTMLWrapper";
 import { SongEditor } from "./SongEditor";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ChangeSequence, UndoableChange } from "./Change";
-import { ChangeVolume, FilterMoveData, ChangeTempo, ChangePan, ChangeReverb, ChangeDistortion, ChangeOperatorAmplitude, ChangeFeedbackAmplitude, ChangePulseWidth, ChangeDetune, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangePanDelay, ChangeChorus, ChangeEQFilterSimplePeak, ChangeNoteFilterSimplePeak, ChangeStringSustain, ChangeEnvelopeSpeed, ChangeSupersawDynamism, ChangeSupersawShape, ChangeSupersawSpread, ChangePitchShift, ChangeChannelBar, ChangeDragSelectedNotes, ChangeEnsurePatternExists, ChangeNoteTruncate, ChangeNoteAdded, ChangePatternSelection, ChangePinTime, ChangeSizeBend, ChangePitchBend, ChangePitchAdded, ChangeArpeggioSpeed, ChangeBitcrusherQuantization, ChangeBitcrusherFreq, ChangeEchoSustain, ChangeEQFilterSimpleCut, ChangeNoteFilterSimpleCut, ChangeFilterMovePoint, ChangeDuplicateSelectedReusedPatterns, ChangeHoldingModRecording, ChangeDecimalOffset, ChangePerEnvelopeSpeed, ChangeSongFilterMovePoint, ChangeRingMod, ChangeRingModHz, ChangeGranular, ChangeGrainSize, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeGrainAmounts, ChangeGrainRange } from "./changes";
+import { ChangeVolume, FilterMoveData, ChangeTempo, ChangePan, ChangeReverb, ChangeDistortion, ChangeOperatorAmplitude, ChangeFeedbackAmplitude, ChangePulseWidth, ChangeDetune, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangePanDelay, ChangeChorus, ChangeEQFilterSimplePeak, ChangeNoteFilterSimplePeak, ChangeStringSustain, ChangeEnvelopeSpeed, ChangeSupersawDynamism, ChangeSupersawShape, ChangeSupersawSpread, ChangePitchShift, ChangeChannelBar, ChangeDragSelectedNotes, ChangeEnsurePatternExists, ChangeNoteTruncate, ChangeNoteAdded, ChangePatternSelection, ChangePinTime, ChangeSizeBend, ChangePitchBend, ChangePitchAdded, ChangeArpeggioSpeed, ChangeBitcrusherQuantization, ChangeBitcrusherFreq, ChangeEchoSustain, ChangeEQFilterSimpleCut, ChangeNoteFilterSimpleCut, ChangeFilterMovePoint, ChangeDuplicateSelectedReusedPatterns, ChangeHoldingModRecording, ChangeDecimalOffset, ChangePerEnvelopeSpeed, ChangeSongFilterMovePoint, ChangeRingMod, ChangeRingModHz, ChangeGranular, ChangeGrainSize, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeGrainAmounts, ChangeGrainRange, ChangeStrumSpeed, ChangeSlideSpeed } from "./changes";
 import { prettyNumber } from "./EditorConfig";
 import { EnvelopeEditor } from "./EnvelopeEditor";
 
@@ -945,8 +945,7 @@ export class PatternEditor {
             var modulator = Config.modulators.dictionary["song volume"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(this._doc.continuingModRecordingChange.storedValues![0]);
-        }
-        else if (change instanceof ChangeTempo) {
+        } else if (change instanceof ChangeTempo) {
             var modulator = Config.modulators.dictionary["tempo"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(this._doc.song.tempo - modulator.convertRealFactor);
@@ -955,8 +954,7 @@ export class PatternEditor {
             if (slider != null) {
                 this._doc.song.tempo = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeSequence && change.checkFirst() instanceof ChangeSongFilterMovePoint && !change.isCommitted()) {
+        } else if (change instanceof ChangeSequence && change.checkFirst() instanceof ChangeSongFilterMovePoint && !change.isCommitted()) {
             // Pushes some pieces of data in each array, to be handled individually down below.
             //   applyToMods:
             //     mod index for songFilter
@@ -1017,8 +1015,7 @@ export class PatternEditor {
             slider = songEditor.getSliderForModSetting(modulator.index);
             if (slider != null)
                 instrument.volume = slider.getValueBeforeProspectiveChange();
-        }
-        else if (change instanceof ChangePan) {
+        } else if (change instanceof ChangePan) {
             var modulator = Config.modulators.dictionary["pan"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.pan - modulator.convertRealFactor);
@@ -1027,8 +1024,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.pan = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeReverb) {
+        } else if (change instanceof ChangeReverb) {
             var modulator = Config.modulators.dictionary["reverb"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.reverb - modulator.convertRealFactor);
@@ -1037,8 +1033,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.reverb = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeDistortion) {
+        } else if (change instanceof ChangeDistortion) {
             var modulator = Config.modulators.dictionary["distortion"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.distortion - modulator.convertRealFactor);
@@ -1047,8 +1042,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.distortion = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeRingMod) {
+        } else if (change instanceof ChangeRingMod) {
             var modulator = Config.modulators.dictionary["ring modulation"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.ringModulation - modulator.convertRealFactor);
@@ -1057,8 +1051,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.ringModulation = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeRingModHz) {
+        } else if (change instanceof ChangeRingModHz) {
             var modulator = Config.modulators.dictionary["ring mod hertz"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.ringModulationHz - modulator.convertRealFactor);
@@ -1068,8 +1061,7 @@ export class PatternEditor {
                 instrument.ringModulationHz = slider.getValueBeforeProspectiveChange();
                 songEditor.ringModHzNum.innerHTML = "(" + instrument.ringModulationHz + ")";
             }
-        }
-        else if (change instanceof ChangeGranular) {
+        } else if (change instanceof ChangeGranular) {
             var modulator = Config.modulators.dictionary["granular"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.granular - modulator.convertRealFactor);
@@ -1078,8 +1070,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.granular = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeGrainAmounts) {
+        } else if (change instanceof ChangeGrainAmounts) {
             var modulator = Config.modulators.dictionary["grain freq"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.grainAmounts - modulator.convertRealFactor);
@@ -1088,8 +1079,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.grainAmounts = slider.getValueBeforeProspectiveChange();                
             }
-        }
-        else if (change instanceof ChangeGrainSize) {
+        } else if (change instanceof ChangeGrainSize) {
             var modulator = Config.modulators.dictionary["grain size"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.grainSize - modulator.convertRealFactor);
@@ -1099,8 +1089,7 @@ export class PatternEditor {
                 instrument.grainSize = slider.getValueBeforeProspectiveChange();
                 songEditor.grainSizeNum.innerHTML = "(" + (instrument.grainSize * Config.grainSizeStep) + ")";
             }
-        }
-        else if (change instanceof ChangeGrainRange) {
+        } else if (change instanceof ChangeGrainRange) {
             var modulator = Config.modulators.dictionary["grain range"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.grainRange - modulator.convertRealFactor);
@@ -1110,8 +1099,7 @@ export class PatternEditor {
                 instrument.grainRange = slider.getValueBeforeProspectiveChange();
                 songEditor.grainRangeNum.innerHTML = "(" + (instrument.grainRange * Config.grainSizeStep) + ")";
             }
-        }
-        else if (change instanceof ChangeOperatorAmplitude) {
+        } else if (change instanceof ChangeOperatorAmplitude) {
             var modulator = Config.modulators.dictionary["fm slider " + (change.operatorIndex + 1)];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.operators[change.operatorIndex].amplitude - modulator.convertRealFactor);
@@ -1120,8 +1108,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.operators[change.operatorIndex].amplitude = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeFeedbackAmplitude) {
+        } else if (change instanceof ChangeFeedbackAmplitude) {
             var modulator = Config.modulators.dictionary["fm feedback"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.feedbackAmplitude - modulator.convertRealFactor);
@@ -1130,8 +1117,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.feedbackAmplitude = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangePulseWidth) {
+        } else if (change instanceof ChangePulseWidth) {
             var modulator = Config.modulators.dictionary["pulse width"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.pulseWidth - modulator.convertRealFactor);
@@ -1140,9 +1126,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.pulseWidth = slider.getValueBeforeProspectiveChange();
             }
-        }
-        // PWM decimal offset code for UB, DOUBLE-CHECK THAT THIS IS CORRECT
-        else if (change instanceof ChangeDecimalOffset) {
+        } else if (change instanceof ChangeDecimalOffset) {
             var modulator = Config.modulators.dictionary["decimal offset"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.decimalOffset - modulator.convertRealFactor);
@@ -1151,8 +1135,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.decimalOffset = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeDetune) {
+        } else if (change instanceof ChangeDetune) {
             var modulator = Config.modulators.dictionary["detune"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.detune - modulator.convertRealFactor - Config.detuneCenter);
@@ -1161,8 +1144,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.detune = slider.getValueBeforeProspectiveChange() + Config.detuneCenter;
             }
-        }
-        else if (change instanceof ChangeVibratoDepth) {
+        } else if (change instanceof ChangeVibratoDepth) {
             var modulator = Config.modulators.dictionary["vibrato depth"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.vibratoDepth * 25 - modulator.convertRealFactor);
@@ -1171,8 +1153,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.vibratoDepth = slider.getValueBeforeProspectiveChange() / 25;
             }
-        }
-        else if (change instanceof ChangeVibratoSpeed) {
+        } else if (change instanceof ChangeVibratoSpeed) {
             var modulator = Config.modulators.dictionary["vibrato speed"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.vibratoSpeed - modulator.convertRealFactor);
@@ -1181,8 +1162,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.vibratoSpeed = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeVibratoDelay) {
+        } else if (change instanceof ChangeVibratoDelay) {
             var modulator = Config.modulators.dictionary["vibrato delay"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.vibratoDelay - modulator.convertRealFactor);
@@ -1191,8 +1171,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.vibratoDelay = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeArpeggioSpeed) {
+        } else if (change instanceof ChangeArpeggioSpeed) {
             var modulator = Config.modulators.dictionary["arp speed"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.arpeggioSpeed - modulator.convertRealFactor);
@@ -1201,8 +1180,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.arpeggioSpeed = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangePanDelay) {
+        } else if (change instanceof ChangePanDelay) {
             var modulator = Config.modulators.dictionary["pan delay"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.panDelay - modulator.convertRealFactor);
@@ -1211,8 +1189,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.panDelay = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeSequence && change.checkFirst() instanceof ChangeFilterMovePoint && !change.isCommitted()) {
+        } else if (change instanceof ChangeSequence && change.checkFirst() instanceof ChangeFilterMovePoint && !change.isCommitted()) {
             // Pushes some pieces of data in each array, to be handled individually down below.
             //   applyToMods:
             //     mod index for eqFilter||noteFilter
@@ -1245,8 +1222,7 @@ export class PatternEditor {
                     modifyPoint.freq = postMoveData.freq;
                     modifyPoint.gain = postMoveData.gain;
                 }
-            }
-            else {
+            } else {
                 modulatorIndex = Config.modulators.dictionary["eq filter"].index;
 
                 if (instrument.tmpEqFilterEnd == null) {
@@ -1281,8 +1257,7 @@ export class PatternEditor {
                 }
             }
 
-        }
-        else if (change instanceof ChangeBitcrusherQuantization) {
+        } else if (change instanceof ChangeBitcrusherQuantization) {
             var modulator = Config.modulators.dictionary["bit crush"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.bitcrusherQuantization - modulator.convertRealFactor);
@@ -1291,8 +1266,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.bitcrusherQuantization = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeBitcrusherFreq) {
+        } else if (change instanceof ChangeBitcrusherFreq) {
             var modulator = Config.modulators.dictionary["freq crush"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.bitcrusherFreq - modulator.convertRealFactor);
@@ -1301,8 +1275,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.bitcrusherFreq = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeEchoSustain) {
+        } else if (change instanceof ChangeEchoSustain) {
             var modulator = Config.modulators.dictionary["echo"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.echoSustain - modulator.convertRealFactor);
@@ -1311,8 +1284,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.echoSustain = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeChorus) {
+        } else if (change instanceof ChangeChorus) {
             var modulator = Config.modulators.dictionary["chorus"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.chorus - modulator.convertRealFactor);
@@ -1321,8 +1293,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.chorus = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeEQFilterSimpleCut) {
+        } else if (change instanceof ChangeEQFilterSimpleCut) {
             var modulator = Config.modulators.dictionary["eq filt cut"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.eqFilterSimpleCut - modulator.convertRealFactor);
@@ -1331,8 +1302,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.eqFilterSimpleCut = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeEQFilterSimplePeak) {
+        } else if (change instanceof ChangeEQFilterSimplePeak) {
             var modulator = Config.modulators.dictionary["eq filt peak"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.eqFilterSimplePeak - modulator.convertRealFactor);
@@ -1341,8 +1311,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.eqFilterSimplePeak = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeNoteFilterSimpleCut) {
+        } else if (change instanceof ChangeNoteFilterSimpleCut) {
             var modulator = Config.modulators.dictionary["note filt cut"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.noteFilterSimpleCut - modulator.convertRealFactor);
@@ -1351,8 +1320,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.noteFilterSimpleCut = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeNoteFilterSimplePeak) {
+        } else if (change instanceof ChangeNoteFilterSimplePeak) {
             var modulator = Config.modulators.dictionary["note filt peak"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.noteFilterSimplePeak - modulator.convertRealFactor);
@@ -1361,8 +1329,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.noteFilterSimplePeak = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangePitchShift) {
+        } else if (change instanceof ChangePitchShift) {
             var modulator = Config.modulators.dictionary["pitch shift"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.pitchShift - Config.pitchShiftCenter - modulator.convertRealFactor);
@@ -1371,8 +1338,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.pitchShift = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeStringSustain) {
+        } else if (change instanceof ChangeStringSustain) {
             var modulator = Config.modulators.dictionary["sustain"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.stringSustain - modulator.convertRealFactor);
@@ -1381,8 +1347,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.stringSustain = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeEnvelopeSpeed) {
+        } else if (change instanceof ChangeEnvelopeSpeed) {
             var modulator = Config.modulators.dictionary["envelope speed"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.envelopeSpeed - modulator.convertRealFactor);
@@ -1391,8 +1356,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.envelopeSpeed = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeSupersawDynamism) {
+        } else if (change instanceof ChangeSupersawDynamism) {
             var modulator = Config.modulators.dictionary["dynamism"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.supersawDynamism - modulator.convertRealFactor);
@@ -1401,8 +1365,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.supersawDynamism = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeSupersawSpread) {
+        } else if (change instanceof ChangeSupersawSpread) {
             var modulator = Config.modulators.dictionary["spread"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.supersawSpread - modulator.convertRealFactor);
@@ -1411,8 +1374,7 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.supersawSpread = slider.getValueBeforeProspectiveChange();
             }
-        }
-        else if (change instanceof ChangeSupersawShape) {
+        } else if (change instanceof ChangeSupersawShape) {
             var modulator = Config.modulators.dictionary["saw shape"];
             applyToMods.push(modulator.index);
             if (toApply) applyValues.push(instrument.supersawShape - modulator.convertRealFactor);
@@ -1457,6 +1419,24 @@ export class PatternEditor {
             }
             applyToEnvelopeTargets.push(envelopeIndex);
 
+        } else if (change instanceof ChangeStrumSpeed) {
+            var modulator = Config.modulators.dictionary["strum speed"];
+            applyToMods.push(modulator.index);
+            if (toApply) applyValues.push(instrument.strumParts - modulator.convertRealFactor);
+            // Move the actual value back, since we just want to update the modulated value and not the base slider.
+            slider = songEditor.getSliderForModSetting(modulator.index);
+            if (slider != null) {
+                instrument.strumParts = slider.getValueBeforeProspectiveChange();
+            }
+        } else if (change instanceof ChangeSlideSpeed) {
+            var modulator = Config.modulators.dictionary["slide speed"];
+            applyToMods.push(modulator.index);
+            if (toApply) applyValues.push(Config.maxSlideTicks + 1 - instrument.slideTicks - modulator.convertRealFactor);
+            // Move the actual value back, since we just want to update the modulated value and not the base slider.
+            slider = songEditor.getSliderForModSetting(modulator.index);
+            if (slider != null) {
+                instrument.slideTicks = Config.maxSlideTicks + 1 - slider.getValueBeforeProspectiveChange();
+            }
         }
 
         for (let applyIndex: number = 0; applyIndex < applyValues.length; applyIndex++) {

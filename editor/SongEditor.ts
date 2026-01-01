@@ -524,7 +524,7 @@ export class SongEditor {
     private readonly _twoNoteArpBox: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;" });
     private readonly _twoNoteArpRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("twoNoteArpeggio") }, "‣ Fast Two-Note:"), this._twoNoteArpBox);
     private readonly _strumSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "0.04 beat(s)");
-    private readonly _strumSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: "48", value: "1", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
+    private readonly _strumSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: Config.strumSpeedMax, value: "1", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
     private readonly _strumSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay, this._strumSpeedSlider.container);
 
     private readonly _chordDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._strumSpeedRow, this._arpeggioSpeedRow, this._twoNoteArpRow);
@@ -2749,6 +2749,8 @@ export class SongEditor {
                             anyInstrumentAdvancedNote: boolean = false,
                             anyInstrumentSimpleNote: boolean = false,
                             anyInstrumentArps: boolean = false,
+                            anyInstrumentStrums: boolean = false,
+                            anyInstrumentSlides: boolean = false,
                             anyInstrumentPitchShifts: boolean = false,
                             anyInstrumentDetunes: boolean = false,
                             anyInstrumentVibratos: boolean = false,
@@ -2791,8 +2793,15 @@ export class SongEditor {
                                 anyInstrumentSimpleEQ = true;
                             else
                                 anyInstrumentAdvancedEQ = true;
-                            if (effectsIncludeChord(channel.instruments[instrumentIndex].effects) && channel.instruments[instrumentIndex].getChord().arpeggiates) {
-                                anyInstrumentArps = true;
+                            if (effectsIncludeChord(channel.instruments[instrumentIndex].effects)) {
+                                if (channel.instruments[instrumentIndex].getChord().arpeggiates) {
+                                    anyInstrumentArps = true;
+                                } else if (channel.instruments[instrumentIndex].getChord().strumParts > 0) {
+                                    anyInstrumentStrums = true;
+                                }
+                            }
+                            if (effectsIncludeTransition(channel.instruments[instrumentIndex].effects) && channel.instruments[instrumentIndex].getTransition().slides) {
+                                anyInstrumentSlides = true;
                             }
                             if (effectsIncludePitchShift(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentPitchShifts = true;
@@ -2801,14 +2810,12 @@ export class SongEditor {
                             }
                             if (effectsIncludeDetune(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentDetunes = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentDetunes = false;
                             }
                             if (effectsIncludeVibrato(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentVibratos = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentVibratos = false;
                             }
                             if (effectsIncludeNoteFilter(channel.instruments[instrumentIndex].effects)) {
@@ -2817,56 +2824,47 @@ export class SongEditor {
                                     anyInstrumentSimpleNote = true;
                                 else
                                     anyInstrumentAdvancedNote = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentNoteFilters = false;
                             }
                             if (effectsIncludeDistortion(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentDistorts = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentDistorts = false;
                             }
                             if (effectsIncludeBitcrusher(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentBitcrushes = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentBitcrushes = false;
                             }
                             if (effectsIncludePanning(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentPans = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentPans = false;
                             }
                             if (effectsIncludeChorus(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentChorus = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentChorus = false;
                             }
                             if (effectsIncludeEcho(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentEchoes = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentEchoes = false;
                             }
                             if (effectsIncludeReverb(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentReverbs = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentReverbs = false;
                             }
                             if (effectsIncludeRingModulation(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentRingMods = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentRingMods = false;
                             }
                             if (effectsIncludeGranular(channel.instruments[instrumentIndex].effects)) {
                                 anyInstrumentGranulars = true;
-                            }
-                            else {
+                            } else {
                                 allInstrumentGranulars = false;
                             }
                             if (channel.instruments[instrumentIndex].envelopes.length > 0) {
@@ -2912,6 +2910,12 @@ export class SongEditor {
                         if (anyInstrumentArps) {
                             settingList.push("arp speed");
                             settingList.push("reset arp");
+                        }
+                        if (anyInstrumentStrums) {
+                            settingList.push("strum speed");
+                        }
+                        if (anyInstrumentSlides) {
+                            settingList.push("slide speed");
                         }
                         if (anyInstrumentPitchShifts) {
                             settingList.push("pitch shift");

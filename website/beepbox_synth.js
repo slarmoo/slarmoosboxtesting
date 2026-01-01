@@ -1154,6 +1154,9 @@ var beepbox = (() => {
       ]);
     }
     static {
+      this.strumSpeedMax = 48;
+    }
+    static {
       this.maxChordSize = 9;
     }
     static {
@@ -2149,7 +2152,9 @@ var beepbox = (() => {
           maxCount: 1,
           effect: 9 /* vibrato */,
           compatibleInstruments: null
-        }
+        },
+        { name: "slideSpeed", computeIndex: 57 /* slideSpeed */, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10 /* transition */, compatibleInstruments: null }
+        // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
         // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
         //{name: "noteFilterGain",         computeIndex:       EnvelopeComputeIndex.noteFilterGain0,        displayName: "n. filter # vol",  /*perNote:  true,*/ interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null},
         /*
@@ -2690,7 +2695,7 @@ var beepbox = (() => {
           associatedEffect: 16 /* length */,
           maxIndex: 0,
           promptName: "Decimal Offset",
-          promptDesc: ["This setting controls the decimal offset that is subtracted from the pulse width; use this for creating values like 12.5 or 6.25.", "[$LO - $HI]"]
+          promptDesc: ["This setting controls the decimal offset that is subtracted from the pulse width; use this for creating values like 12.5 or 6.25.", "[OVERWRITING] [$LO - $HI]"]
         },
         {
           name: "envelope speed",
@@ -2889,7 +2894,7 @@ var beepbox = (() => {
           associatedEffect: 16 /* length */,
           maxIndex: this.maxEnvelopeCount - 1,
           promptName: "Individual Envelope Lower Bound",
-          promptDesc: ["This setting controls the envelope lower bound", "At $LO, your the envelope will output an upper envelope bound to 0, and at $HI your envelope will output an upper envelope bound to 2.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound"]
+          promptDesc: ["This setting controls the envelope lower bound", "At $LO, your the envelope will output an upper envelope bound to 0, and at $HI your envelope will output an upper envelope bound to 2.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound", "[OVERWRITING] [$LO - $HI]"]
         },
         {
           name: "individual envelope upper bound",
@@ -2901,7 +2906,31 @@ var beepbox = (() => {
           associatedEffect: 16 /* length */,
           maxIndex: this.maxEnvelopeCount - 1,
           promptName: "Individual Envelope Upper Bound",
-          promptDesc: ["This setting controls the envelope upper bound", "At $LO, your the envelope will output a 0 to lower envelope bound, and at $HI your envelope will output a 2 to lower envelope bound.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound"]
+          promptDesc: ["This setting controls the envelope upper bound", "At $LO, your the envelope will output a 0 to lower envelope bound, and at $HI your envelope will output a 2 to lower envelope bound.", "This settings will not work if your lower envelope bound is higher than your upper envelope bound", "[OVERWRITING] [$LO - $HI]"]
+        },
+        {
+          name: "slide speed",
+          pianoName: "Slide Speed",
+          maxRawVol: _Config.maxSlideTicks - 1,
+          newNoteVol: _Config.maxSlideTicks - 3,
+          forSong: false,
+          convertRealFactor: 1,
+          associatedEffect: 10 /* transition */,
+          maxIndex: 0,
+          promptName: "Slide Speed",
+          promptDesc: ["This setting controls the slide speed of the slide (or slide in pattern) transition type", "This ranges from nearly instantaneous to several beats long", "[OVERWRITING] [$LO - $HI]"]
+        },
+        {
+          name: "strum speed",
+          pianoName: "Strum Speed",
+          maxRawVol: _Config.strumSpeedMax - 1,
+          newNoteVol: 1,
+          forSong: false,
+          convertRealFactor: 1,
+          associatedEffect: 11 /* chord */,
+          maxIndex: 0,
+          promptName: "Strum Speed",
+          promptDesc: ["This setting controls the strum speed of the strum chord type", "This ranges from nearly instantaneous to over several bars", "[OVERWRITING] [$LO - $HI]"]
         }
       ]);
     }
@@ -5584,7 +5613,7 @@ var beepbox = (() => {
       this.unisonBuzzes = false;
       this.effects = 0;
       this.chord = 1;
-      this.strumParts = 1;
+      this.strumParts = 3;
       this.volume = 0;
       this.pan = Config.panCenter;
       this.panDelay = 0;
@@ -11060,7 +11089,7 @@ var beepbox = (() => {
       this._modifiedEnvelopeIndices = [];
       this._modifiedEnvelopeCount = 0;
       this.lowpassCutoffDecayVolumeCompensation = 1;
-      const length = 57 /* length */;
+      const length = 59 /* length */;
       for (let i = 0; i < length; i++) {
         this.envelopeStarts[i] = 1;
         this.envelopeEnds[i] = 1;
@@ -11161,7 +11190,11 @@ var beepbox = (() => {
           const noteEndTick = tone.noteEndPart * Config.ticksPerPart;
           const noteLengthTicks = noteEndTick - noteStartTick;
           const maximumSlideTicks = noteLengthTicks * 0.5;
-          const slideTicks = Math.min(maximumSlideTicks, instrument.slideTicks);
+          let slideTicks = instrument.slideTicks;
+          if (synth.isModActive(Config.modulators.dictionary["slide speed"].index, channelIndex, instrumentIndex)) {
+            slideTicks = Config.maxSlideTicks + 1 - synth.getModValue(Config.modulators.dictionary["slide speed"].index, channelIndex, instrumentIndex, false);
+          }
+          slideTicks = Math.min(maximumSlideTicks, slideTicks *= instrumentState.slideEnvelopeStart);
           if (tone.prevNote != null && !tone.forceContinueAtStart) {
             if (tickTimeStartReal - noteStartTick < slideTicks) {
               prevSlideStart = true;
@@ -11775,6 +11808,8 @@ var beepbox = (() => {
       this.aliases = false;
       this.arpTime = 0;
       this.arpEnvelopeStart = 1;
+      this.strumEnvelopeStart = 1;
+      this.slideEnvelopeStart = 1;
       this.vibratoTime = 0;
       this.nextVibratoTime = 0;
       this.vibratoEnvelopeStart = 1;
@@ -12011,6 +12046,8 @@ var beepbox = (() => {
       this.vibratoEnvelopeStart = 1;
       this.arpTime = 0;
       this.arpEnvelopeStart = 1;
+      this.strumEnvelopeStart = 1;
+      this.slideEnvelopeStart = 1;
       for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) this.envelopeTime[envelopeIndex] = 0;
       this.envelopeComputer.reset();
       if (this.chorusDelayLineDirty) {
@@ -12086,6 +12123,8 @@ var beepbox = (() => {
       const usesPlugin = effectsIncludePlugin(this.effects);
       const usesVibrato = effectsIncludeVibrato(this.effects);
       const usesArp = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
+      const usesStrum = effectsIncludeChord(this.effects) && instrument.getChord().strumParts > 0;
+      const usesSlide = effectsIncludeTransition(this.effects) && instrument.getTransition().slides;
       let granularChance = 0;
       if (usesGranular) {
         granularChance = instrument.grainAmounts + 1;
@@ -12148,6 +12187,12 @@ var beepbox = (() => {
       }
       if (usesArp) {
         this.arpEnvelopeStart = envelopeStarts[48 /* arpeggioSpeed */];
+      }
+      if (usesStrum) {
+        this.strumEnvelopeStart = envelopeStarts[58 /* strumSpeed */];
+      }
+      if (usesSlide) {
+        this.slideEnvelopeStart = envelopeStarts[57 /* slideSpeed */];
       }
       if (usesDistortion) {
         let useDistortionStart = instrument.distortion;
@@ -14466,7 +14511,14 @@ var beepbox = (() => {
                   noteEndPart = Math.min(Config.partsPerBeat * this.song.beatsPerBar, noteEndPart + strumOffsetParts);
                 }
                 if (!transition2.continues && !forceContinueAtStart || prevNoteForThisTone == null) {
-                  if (useStrumSpeed) strumOffsetParts += instrument.strumParts;
+                  if (useStrumSpeed) {
+                    let strumParts = instrument.strumParts;
+                    if (this.isModActive(Config.modulators.dictionary["strum speed"].index, channelIndex, instrumentIndex)) {
+                      strumParts = this.getModValue(Config.modulators.dictionary["strum speed"].index, channelIndex, instrumentIndex, false);
+                    }
+                    strumParts *= instrumentState.strumEnvelopeStart;
+                    strumOffsetParts += strumParts;
+                  }
                 }
                 const atNoteStart = Config.ticksPerPart * noteStartPart == currentTick;
                 let tone;

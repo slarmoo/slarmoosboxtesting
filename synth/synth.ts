@@ -1712,7 +1712,7 @@ export class Instrument {
     public unisonBuzzes: boolean = false;
     public effects: number = 0;
     public chord: number = 1;
-    public strumParts: number = 1;
+    public strumParts: number = 3;
     public volume: number = 0;
     public pan: number = Config.panCenter;
     public panDelay: number = 0;
@@ -8086,7 +8086,11 @@ class EnvelopeComputer {
                 const noteEndTick: number = tone.noteEndPart * Config.ticksPerPart;
                 const noteLengthTicks: number = noteEndTick - noteStartTick;
                 const maximumSlideTicks: number = noteLengthTicks * 0.5;
-                const slideTicks: number = Math.min(maximumSlideTicks, instrument.slideTicks);
+                let slideTicks: number = instrument.slideTicks;
+                if (synth.isModActive(Config.modulators.dictionary["slide speed"].index, channelIndex, instrumentIndex)) { //modulation
+                    slideTicks = Config.maxSlideTicks + 1 - synth.getModValue(Config.modulators.dictionary["slide speed"].index, channelIndex, instrumentIndex, false);
+                }
+                slideTicks = Math.min(maximumSlideTicks, slideTicks *= instrumentState.slideEnvelopeStart);
                 if (tone.prevNote != null && !tone.forceContinueAtStart) {
                     if (tickTimeStartReal - noteStartTick < slideTicks) {
                         prevSlideStart = true;
@@ -8732,6 +8736,8 @@ class InstrumentState {
     public aliases: boolean = false;
     public arpTime: number = 0;
     public arpEnvelopeStart: number = 1;
+    public strumEnvelopeStart: number = 1;
+    public slideEnvelopeStart: number = 1;
     public vibratoTime: number = 0;
     public nextVibratoTime: number = 0;
     public vibratoEnvelopeStart: number = 1;
@@ -9000,6 +9006,8 @@ class InstrumentState {
         this.vibratoEnvelopeStart = 1;
         this.arpTime = 0;
         this.arpEnvelopeStart = 1;
+        this.strumEnvelopeStart = 1;
+        this.slideEnvelopeStart = 1;
         for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) this.envelopeTime[envelopeIndex] = 0;
         this.envelopeComputer.reset();
 
@@ -9095,6 +9103,8 @@ class InstrumentState {
         const usesPlugin: boolean = effectsIncludePlugin(this.effects);
         const usesVibrato: boolean = effectsIncludeVibrato(this.effects);
         const usesArp: boolean = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
+        const usesStrum: boolean = effectsIncludeChord(this.effects) && instrument.getChord().strumParts > 0;
+        const usesSlide: boolean = effectsIncludeTransition(this.effects) && instrument.getTransition().slides;
 
         let granularChance: number = 0;
         if (usesGranular) { //has to happen before buffer allocation
@@ -9170,6 +9180,14 @@ class InstrumentState {
 
         if (usesArp) {
             this.arpEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.arpeggioSpeed];
+        }
+
+        if (usesStrum) {
+            this.strumEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.strumSpeed];
+        }
+
+        if (usesSlide) {
+            this.slideEnvelopeStart = envelopeStarts[EnvelopeComputeIndex.slideSpeed];
         }
 
         if (usesDistortion) {
@@ -11798,8 +11816,7 @@ export class Synth {
                 }
             }
 
-        }
-        else if (!song.getChannelIsMod(channelIndex)) {
+        } else if (!song.getChannelIsMod(channelIndex)) {
 
             let note: Note | null = null;
             let prevNote: Note | null = null;
@@ -11987,7 +12004,16 @@ export class Synth {
                                 noteEndPart = Math.min(Config.partsPerBeat * this.song!.beatsPerBar, noteEndPart + strumOffsetParts);
                             }
                             if ((!transition.continues && !forceContinueAtStart) || prevNoteForThisTone == null) {
-                                if (useStrumSpeed) strumOffsetParts += instrument.strumParts;
+                                if (useStrumSpeed) {
+                                    let strumParts = instrument.strumParts;
+                                    if (this.isModActive(Config.modulators.dictionary["strum speed"].index, channelIndex, instrumentIndex)) {
+                                        strumParts = this.getModValue(Config.modulators.dictionary["strum speed"].index, channelIndex, instrumentIndex, false);
+                                        // strumPartsEnd = this.getModValue(Config.modulators.dictionary["strum speed"].index, channelIndex, instrumentIndex, true);
+                                    }
+                                    //strum envelope disabled externally for now, since we would need to store more state to figure out when
+                                    strumParts *= instrumentState.strumEnvelopeStart;
+                                    strumOffsetParts += strumParts;
+                                }
                             }
 
                             const atNoteStart: boolean = (Config.ticksPerPart * noteStartPart == currentTick);
