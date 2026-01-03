@@ -2,7 +2,7 @@
 
 import { ColorConfig } from "./ColorConfig";
 import { Config } from "../synth/SynthConfig";
-import { isMobile } from "./EditorConfig";
+import { isMobile } from "./DeviceConfig";
 import { SongDocument } from "./SongDocument";
 import { ChannelRow } from "./ChannelRow";
 import { SongEditor } from "./SongEditor";

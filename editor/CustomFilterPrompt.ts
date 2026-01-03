@@ -6,7 +6,7 @@ import { SongDocument } from "./SongDocument";
 import { Config } from "../synth/SynthConfig";
 import { FilterEditor } from "./FilterEditor";
 import { SongEditor } from "./SongEditor";
-import { FilterSettings } from "../synth/synth";
+import { FilterSettings } from "../synth/synthMessenger";
 import { ColorConfig } from "./ColorConfig";
 
 //namespace beepbox {
@@ -67,7 +67,7 @@ export class CustomFilterPrompt implements Prompt {
         this._cancelButton,
     );
 
-    constructor(private _doc: SongDocument, private _songEditor: SongEditor, private _useNoteFilter: boolean, private forSong: boolean=false) {
+    constructor(private _doc: SongDocument, private _songEditor: SongEditor, private _useNoteFilter: boolean, private forSong: boolean = false) {
 
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);
@@ -124,8 +124,8 @@ export class CustomFilterPrompt implements Prompt {
         const filterCopy: any = this.forSong
             ? this._doc.song.eqFilter.toJsonObject()
             : this._useNoteFilter
-            ? this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].noteFilter.toJsonObject()
-            : this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].eqFilter.toJsonObject();
+                ? this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].noteFilter.toJsonObject()
+                : this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].eqFilter.toJsonObject();
         window.localStorage.setItem("filterCopy", JSON.stringify(filterCopy));
     }
 

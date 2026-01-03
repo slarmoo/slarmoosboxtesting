@@ -1,11 +1,12 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Dictionary, Config } from "../synth/SynthConfig";
-import { Note, NotePin, Pattern } from "../synth/synth";
+import { Note, NotePin, Pattern } from "../synth/synthMessenger";
 import { SongDocument } from "./SongDocument";
 import { ChangeGroup } from "./Change";
 import { ColorConfig } from "./ColorConfig";
 import { ChangeTrackSelection, ChangeChannelBar, ChangeAddChannel, ChangeRemoveChannel, ChangeChannelOrder, ChangeDuplicateSelectedReusedPatterns, ChangeNoteAdded, ChangeNoteTruncate, ChangePatternNumbers, ChangePatternSelection, ChangeInsertBars, ChangeDeleteBars, ChangeEnsurePatternExists, ChangeNoteLength, ChangePaste, ChangeSetPatternInstruments, ChangeViewInstrument, ChangeModChannel, ChangeModInstrument, ChangeModSetting, ChangeModFilter, ChangePatternsPerChannel, ChangePatternRhythm, ChangePatternScale, ChangeTranspose, ChangeRhythm, comparePatternNotes, unionOfUsedNotes, generateScaleMap, discardInvalidPatternInstruments, patternsContainSameInstruments, ChangeModEnvelope } from "./changes";
+import { SongSettings, ChannelSettings } from "../synth/synthMessages";
 
 interface PatternCopy {
     instruments: number[];
@@ -311,7 +312,7 @@ export class Selection {
                                 note.start -= this.patternSelectionStart;
                                 note.end -= this.patternSelectionStart;
                                 if (note.start < 0 || note.end > this.patternSelectionEnd - this.patternSelectionStart) {
-                                    new ChangeNoteLength(null, note, Math.max(note.start, 0), Math.min(this.patternSelectionEnd - this.patternSelectionStart, note.end));
+                                    new ChangeNoteLength(this._doc, note, Math.max(note.start, 0), Math.min(this.patternSelectionEnd - this.patternSelectionStart, note.end));
                                 }
                                 notes.push(note);
                             }
@@ -623,14 +624,13 @@ export class Selection {
             const pasteWidth: number = fillSelection ? this.boxSelectionWidth : Math.min(copiedBars.length, this._doc.song.barCount - this.boxSelectionBar);
             for (let pasteBar: number = 0; pasteBar < pasteWidth; pasteBar++) {
                 const copiedPatternIndex: number = copiedBars[pasteBar % copiedBars.length] >>> 0;
-                const bar: number = this.boxSelectionBar + pasteBar;
 
                 if (copiedPatternIndex > this._doc.song.patternsPerChannel) {
                     group.append(new ChangePatternsPerChannel(this._doc, copiedPatternIndex));
                 }
 
-                group.append(new ChangePatternNumbers(this._doc, copiedPatternIndex, bar, channelIndex, 1, 1));
             }
+            group.append(new ChangePatternNumbers(this._doc, copiedBars, this.boxSelectionBar, channelIndex, 1, 1));
         }
 
         this._doc.record(group);
@@ -674,6 +674,7 @@ export class Selection {
             }
             for (let channelIndex: number = 0; channelIndex < this._doc.song.channels.length; channelIndex++) {
                 this._doc.song.channels[channelIndex].muted = !anyMuted;
+                this._doc.synth.updateSong(+this._doc.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
             }
         } else {
             let anyUnmuted: boolean = false;
@@ -685,6 +686,7 @@ export class Selection {
             }
             for (const channelIndex of this._eachSelectedChannel()) {
                 this._doc.song.channels[channelIndex].muted = anyUnmuted;
+                this._doc.synth.updateSong(+this._doc.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
             }
         }
 
@@ -725,14 +727,13 @@ export class Selection {
             for (let channelIndex: number = 0; channelIndex < this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channelIndex++) {
                 if (matchesSoloPattern) {
                     this._doc.song.channels[channelIndex].muted = false;
-                }
-                else {
+                } else {
                     this._doc.song.channels[channelIndex].muted = !soloPattern[channelIndex];
                 }
+                this._doc.synth.updateSong(+this._doc.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
             }
 
-        }
-        else {
+        } else {
 
             for (let channelIndex: number = 0; channelIndex < this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channelIndex++) {
                 const shouldBeMuted: boolean = (channelIndex < this.boxSelectionChannel || channelIndex >= this.boxSelectionChannel + this.boxSelectionHeight) ? !invert : invert;
@@ -745,10 +746,12 @@ export class Selection {
             if (alreadySoloed) {
                 for (let channelIndex: number = 0; channelIndex < this._doc.song.channels.length; channelIndex++) {
                     this._doc.song.channels[channelIndex].muted = false;
+                    this._doc.synth.updateSong(+this._doc.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
                 }
             } else {
                 for (let channelIndex: number = 0; channelIndex < this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channelIndex++) {
                     this._doc.song.channels[channelIndex].muted = (channelIndex < this.boxSelectionChannel || channelIndex >= this.boxSelectionChannel + this.boxSelectionHeight) ? !invert : invert;
+                    this._doc.synth.updateSong(+this._doc.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
                 }
             }
 

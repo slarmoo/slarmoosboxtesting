@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config } from "../synth/SynthConfig";
-import { isMobile } from "./EditorConfig";
-import { Pattern, Channel, Song, Synth } from "../synth/synth";
+import { isMobile } from "./DeviceConfig";
+import { Pattern, Channel, Song, SynthMessenger } from "../synth/synthMessenger";
 import { SongRecovery, generateUid, errorAlert } from "./SongRecovery";
 import { ColorConfig } from "./ColorConfig";
 import { Layout } from "./Layout";
@@ -27,7 +27,7 @@ interface HistoryState {
 export class SongDocument {
     public colorTheme: string;
     public song: Song;
-    public synth: Synth;
+    public synth: SynthMessenger;
     public performance: SongPerformance;
     public readonly notifier: ChangeNotifier = new ChangeNotifier();
     public readonly selection: Selection = new Selection(this);
@@ -88,7 +88,7 @@ export class SongDocument {
             errorAlert(error);
         }
         songString = this.song.toBase64String();
-        this.synth = new Synth(this.song);
+        this.synth = new SynthMessenger(this.song);
         this.synth.volume = this._calcVolume();
         this.synth.anticipatePoorPerformance = isMobile;
 

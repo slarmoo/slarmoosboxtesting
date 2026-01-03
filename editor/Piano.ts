@@ -4,7 +4,7 @@ import { Config } from "../synth/SynthConfig";
 import { SongDocument } from "./SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "./ColorConfig";
-import { Instrument } from "../synth/synth";
+import { Instrument } from "../synth/synthMessenger";
 
 export class Piano {
     private readonly _pianoContainer: HTMLDivElement = HTML.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });
@@ -230,20 +230,21 @@ export class Piano {
         window.requestAnimationFrame(this._onAnimationFrame);
 
         let liveInputChanged: boolean = false;
-        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.synth.liveInputPitches.length : 0;
-        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.synth.liveBassInputPitches.length : 0;
+        let liveInputPitchCount: number = !this._doc.performance.pitchesAreTemporary() ? this._doc.performance.liveInputPitches.length : 0;
+        liveInputPitchCount += !this._doc.performance.bassPitchesAreTemporary() ? this._doc.performance.liveInputBassPitches.length : 0;
         if (this._renderedLiveInputPitches.length != liveInputPitchCount) {
             liveInputChanged = true;
         }
-        for (let i: number = 0; i < this._doc.synth.liveInputPitches.length; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveInputPitches[i]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveInputPitches[i];
+        for (let i: number = 0; i < this._doc.performance.liveInputPitches.length; i++) {
+            if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputPitches[i]) {
+                this._renderedLiveInputPitches[i] = this._doc.performance.liveInputPitches[i];
                 liveInputChanged = true;
             }
         }
-        for (let i: number = this._doc.synth.liveInputPitches.length; i < liveInputPitchCount; i++) {
-            if (this._renderedLiveInputPitches[i] != this._doc.synth.liveBassInputPitches[i - this._doc.synth.liveInputPitches.length]) {
-                this._renderedLiveInputPitches[i] = this._doc.synth.liveBassInputPitches[i - this._doc.synth.liveInputPitches.length];
+        const liveInputPitchesLength: number = this._doc.performance.liveInputPitches.length
+        for (let i: number = liveInputPitchesLength; i < liveInputPitchCount; i++) {
+            if (this._renderedLiveInputPitches[i] != this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength]) {
+                this._renderedLiveInputPitches[i] = this._doc.performance.liveInputBassPitches[i - liveInputPitchesLength];
                 liveInputChanged = true;
             }
         }
@@ -514,7 +515,7 @@ export class Piano {
                         }
 
                         secondRow += text;
-                    } 
+                    }
                 }
 
                 const firstLabel: SVGTextElement = this._modFirstLabels[j];

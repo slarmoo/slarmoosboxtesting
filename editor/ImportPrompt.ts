@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { InstrumentType, Config } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, Pattern, Instrument, Channel, Song, Synth } from "../synth/synth";
+import { NotePin, Note, makeNotePin, Pattern, Instrument, Channel, Song, SynthMessenger } from "../synth/synthMessenger";
 import { Preset, EditorConfig } from "./EditorConfig";
 import { SongDocument } from "./SongDocument";
 import { Prompt } from "./Prompt";
@@ -229,7 +229,7 @@ export class ImportPrompt implements Prompt {
                                 noteEvents[eventChannel].push({ midiTick: currentMidiTick, pitch: pitch, velocity: 0.0, program: -1, instrumentVolume: -1, instrumentPan: -1, on: false });
                             } else {
                                 const volume: number = Math.max(0, Math.min(Config.volumeRange - 1, Math.round(
-                                    Synth.volumeMultToInstrumentVolume(midiVolumeToVolumeMult(currentInstrumentVolumes[eventChannel]))
+                                    SynthMessenger.volumeMultToInstrumentVolume(midiVolumeToVolumeMult(currentInstrumentVolumes[eventChannel]))
                                 )));
                                 const pan: number = Math.max(0, Math.min(Config.panMax, Math.round(
                                     ((currentInstrumentPans[eventChannel] - 64) / 63 + 1) * Config.panCenter
@@ -267,7 +267,7 @@ export class ImportPrompt implements Prompt {
                                     currentInstrumentPans[eventChannel] = value;
                                 } break;
                                 case MidiControlEventMessage.expressionMSB: {
-                                    noteSizeEvents[eventChannel].push({ midiTick: currentMidiTick, size: Synth.volumeMultToNoteSize(midiExpressionToVolumeMult(value)) });
+                                    noteSizeEvents[eventChannel].push({ midiTick: currentMidiTick, size: SynthMessenger.volumeMultToNoteSize(midiExpressionToVolumeMult(value)) });
                                 } break;
                                 case MidiControlEventMessage.setParameterLSB: {
                                     if (channelRPNMSB[eventChannel] == MidiRegisteredParameterNumberMSB.pitchBendRange && channelRPNLSB[eventChannel] == MidiRegisteredParameterNumberLSB.pitchBendRange) {

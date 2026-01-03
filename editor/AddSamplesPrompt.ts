@@ -1,6 +1,6 @@
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Dictionary, Config } from "../synth/SynthConfig";
-import { clamp, parseFloatWithDefault, parseIntWithDefault } from "../synth/synth";
+import { clamp, parseFloatWithDefault, parseIntWithDefault } from "../synth/synthMessenger";
 import { ColorConfig } from "./ColorConfig";
 import { EditorConfig } from "./EditorConfig";
 import { SongDocument } from "./SongDocument";

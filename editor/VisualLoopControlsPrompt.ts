@@ -1,6 +1,6 @@
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { sampleLoadingState, SampleLoadingStatus, ChipWave, Config } from "../synth/SynthConfig";
-import { Instrument } from "../synth/synth";
+import { Instrument } from "../synth/synthMessenger";
 import { ColorConfig } from "./ColorConfig";
 import { ChangeGroup } from "./Change";
 import { SongDocument } from "./SongDocument";

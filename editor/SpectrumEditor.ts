@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config } from "../synth/SynthConfig";
-import { SpectrumWave, Instrument } from "../synth/synth";
+import { SpectrumWave, Instrument } from "../synth/synthMessenger";
 import { SongDocument } from "./SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "./ColorConfig";
@@ -200,7 +200,7 @@ export class SpectrumEditor {
             this._freqPrev = freq;
             this._ampPrev = amp;
 
-            this._change = new ChangeSpectrum(this._doc, instrument, spectrumWave);
+            this._change = new ChangeSpectrum(this._doc, instrument, spectrumWave, this._spectrumIndex);
             this._doc.setProspectiveChange(this._change);
         }
     }
@@ -231,7 +231,7 @@ export class SpectrumEditor {
             for (let i = 0; i < Config.spectrumControlPoints; i++) {
                 instrument.spectrumWave.spectrum[i] = spectrum[i];
             }
-            const spectrumChange: ChangeSpectrum = new ChangeSpectrum(this._doc, instrument, instrument.spectrumWave);
+            const spectrumChange: ChangeSpectrum = new ChangeSpectrum(this._doc, instrument, instrument.spectrumWave, this._spectrumIndex);
             if (saveHistory) {
                 this._doc.record(spectrumChange);
             }
@@ -239,7 +239,7 @@ export class SpectrumEditor {
             for (let i = 0; i < Config.spectrumControlPoints; i++) {
                 instrument.drumsetSpectrumWaves[this._spectrumIndex].spectrum[i] = spectrum[i];
             }
-            const spectrumChange: ChangeSpectrum = new ChangeSpectrum(this._doc, instrument, instrument.drumsetSpectrumWaves[this._spectrumIndex]);
+            const spectrumChange: ChangeSpectrum = new ChangeSpectrum(this._doc, instrument, instrument.drumsetSpectrumWaves[this._spectrumIndex], this._spectrumIndex);
             if (saveHistory) {
                 this._doc.record(spectrumChange);
             }
@@ -250,9 +250,9 @@ export class SpectrumEditor {
     public saveSettings(): ChangeSpectrum {
         const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
         if (this._spectrumIndex == null || this._spectrumIndex == undefined) {
-            return new ChangeSpectrum(this._doc, instrument, instrument.spectrumWave);
+            return new ChangeSpectrum(this._doc, instrument, instrument.spectrumWave, this._spectrumIndex);
         } else {
-            return new ChangeSpectrum(this._doc, instrument, instrument.drumsetSpectrumWaves[this._spectrumIndex]);
+            return new ChangeSpectrum(this._doc, instrument, instrument.drumsetSpectrumWaves[this._spectrumIndex], this._spectrumIndex);
         }
     }
 

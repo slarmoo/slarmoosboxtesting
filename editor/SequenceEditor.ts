@@ -3,7 +3,7 @@ import { Prompt } from "./Prompt";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { SongDocument } from "./SongDocument"
 import { ChangeGroup } from "./Change";
-import { SequenceSettings } from "../synth/synth";
+import { SequenceSettings } from "../synth/synthMessenger";
 import { ChangeAddNewSequence, ChangeSequenceHeight, ChangeSequenceLength, ChangeSequenceValues, ChangeSetEnvelopeWaveform } from "./changes";
 import { ColorConfig } from "./ColorConfig";
 import { SongEditor } from "./SongEditor";

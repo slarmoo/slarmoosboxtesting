@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { BeepBoxOption, DictionaryArray, toNameMap, Config } from "../synth/SynthConfig";
-import { Song } from "../synth/synth";
+import { Song } from "../synth/synthMessenger";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 
 export interface ChannelColors extends BeepBoxOption {

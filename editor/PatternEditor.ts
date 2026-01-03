@@ -1,14 +1,14 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { getLocalStorageItem, Chord, Transition, Config, effectsIncludeNoteRange } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, FilterSettings, Channel, Pattern, Instrument, FilterControlPoint } from "../synth/synth";
+import { NotePin, Note, makeNotePin, FilterSettings, Channel, Pattern, Instrument, FilterControlPoint } from "../synth/synthMessenger";
 import { ColorConfig } from "./ColorConfig";
 import { SongDocument } from "./SongDocument";
 import { Slider } from "./HTMLWrapper";
 import { SongEditor } from "./SongEditor";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ChangeSequence, UndoableChange } from "./Change";
-import { ChangeVolume, FilterMoveData, ChangeTempo, ChangePan, ChangeReverb, ChangeDistortion, ChangeOperatorAmplitude, ChangeFeedbackAmplitude, ChangePulseWidth, ChangeDetune, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangePanDelay, ChangeChorus, ChangeEQFilterSimplePeak, ChangeNoteFilterSimplePeak, ChangeStringSustain, ChangeEnvelopeSpeed, ChangeSupersawDynamism, ChangeSupersawShape, ChangeSupersawSpread, ChangePitchShift, ChangeChannelBar, ChangeDragSelectedNotes, ChangeEnsurePatternExists, ChangeNoteTruncate, ChangeNoteAdded, ChangePatternSelection, ChangePinTime, ChangeSizeBend, ChangePitchBend, ChangePitchAdded, ChangeArpeggioSpeed, ChangeBitcrusherQuantization, ChangeBitcrusherFreq, ChangeEchoSustain, ChangeEQFilterSimpleCut, ChangeNoteFilterSimpleCut, ChangeFilterMovePoint, ChangeDuplicateSelectedReusedPatterns, ChangeHoldingModRecording, ChangeDecimalOffset, ChangePerEnvelopeSpeed, ChangeSongFilterMovePoint, ChangeRingMod, ChangeRingModHz, ChangeGranular, ChangeGrainSize, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeGrainAmounts, ChangeGrainRange, ChangeStrumSpeed, ChangeSlideSpeed } from "./changes";
+import { ChangeVolume, FilterMoveData, ChangeTempo, ChangePan, ChangeReverb, ChangeDistortion, ChangeOperatorAmplitude, ChangeFeedbackAmplitude, ChangePulseWidth, ChangeDetune, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangePanDelay, ChangeChorus, ChangeEQFilterSimplePeak, ChangeNoteFilterSimplePeak, ChangeStringSustain, ChangeEnvelopeSpeed, ChangeSupersawDynamism, ChangeSupersawShape, ChangeSupersawSpread, ChangePitchShift, ChangeChannelBar, ChangeDragSelectedNotes, ChangeEnsurePatternExists, ChangeNoteTruncate, ChangeNoteAdded, ChangePatternSelection, ChangePinTime, ChangeSizeBend, ChangePitchBend, ChangePitchAdded, ChangeArpeggioSpeed, ChangeBitcrusherQuantization, ChangeBitcrusherFreq, ChangeEchoSustain, ChangeEQFilterSimpleCut, ChangeNoteFilterSimpleCut, ChangeFilterMovePoint, ChangeDuplicateSelectedReusedPatterns, ChangeHoldingModRecording, ChangeDecimalOffset, ChangePerEnvelopeSpeed, ChangeSongFilterMovePoint, ChangeRingMod, ChangeRingModHz, ChangeGranular, ChangeGrainSize, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeGrainFreqs, ChangeGrainRange, ChangeStrumSpeed, ChangeSlideSpeed } from "./changes";
 import { prettyNumber } from "./EditorConfig";
 import { EnvelopeEditor } from "./EnvelopeEditor";
 
@@ -280,7 +280,7 @@ export class PatternEditor {
             this._dragChange = sequence;
             this._doc.setProspectiveChange(this._dragChange);
 
-            sequence.append(new ChangeSizeBend(this._doc, this._modDragNote, this._modDragPin.time, presValue - Config.modulators[this._modDragSetting].convertRealFactor, this._modDragPin.interval, this.shiftMode));
+            sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, this._modDragNote, this._modDragPin.time, presValue - Config.modulators[this._modDragSetting].convertRealFactor, this._modDragPin.interval, this.shiftMode));
 
         }
     }
@@ -1070,14 +1070,14 @@ export class PatternEditor {
             if (slider != null) {
                 instrument.granular = slider.getValueBeforeProspectiveChange();
             }
-        } else if (change instanceof ChangeGrainAmounts) {
+        } else if (change instanceof ChangeGrainFreqs) {
             var modulator = Config.modulators.dictionary["grain freq"];
             applyToMods.push(modulator.index);
-            if (toApply) applyValues.push(instrument.grainAmounts - modulator.convertRealFactor);
+            if (toApply) applyValues.push(instrument.grainFreq - modulator.convertRealFactor);
             // Move the actual value back, since we just want to update the modulated value and not the base slider.
             slider = songEditor.getSliderForModSetting(modulator.index);
             if (slider != null) {
-                instrument.grainAmounts = slider.getValueBeforeProspectiveChange();                
+                instrument.grainFreq = slider.getValueBeforeProspectiveChange();                
             }
         } else if (change instanceof ChangeGrainSize) {
             var modulator = Config.modulators.dictionary["grain size"];
@@ -1831,7 +1831,7 @@ export class PatternEditor {
                 this._dragChange = sequence;
                 this._doc.setProspectiveChange(this._dragChange);
 
-                sequence.append(new ChangeSizeBend(this._doc, this._modDragNote, this._modDragPin.time, this._modDragStartValue, this._modDragPin.interval, this.shiftMode));
+                sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, this._modDragNote, this._modDragPin.time, this._modDragStartValue, this._modDragPin.interval, this.shiftMode));
 
                 this._dragChange = null;
             }
@@ -2247,7 +2247,7 @@ export class PatternEditor {
                             if (this._cursor.curNote.start + this._cursor.curNote.pins[this._cursor.curNote.pins.length - 1].time < this._doc.song.beatsPerBar * Config.partsPerBeat) {
                                 for (const note of this._pattern!.notes) {
                                     if (note.start == this._cursor.curNote.start + this._cursor.curNote.pins[this._cursor.curNote.pins.length - 1].time && note.pitches[0] == this._cursor.curNote.pitches[0]) {
-                                        sequence.append(new ChangeSizeBend(this._doc, note, note.pins[0].time, bendSize, bendInterval, this.shiftMode));
+                                        sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, note, note.pins[0].time, bendSize, bendInterval, this.shiftMode));
                                     }
                                 }
                             }
@@ -2258,7 +2258,7 @@ export class PatternEditor {
                                 if (nextPattern != null && nextPattern.instruments[0] == this._pattern!.instruments[0]) {
                                     for (const note of nextPattern.notes) {
                                         if (note.start == 0 && note.pitches[0] == this._cursor.curNote.pitches[0]) {
-                                            sequence.append(new ChangeSizeBend(this._doc, note, note.pins[0].time, bendSize, bendInterval, this.shiftMode));
+                                            sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, note, note.pins[0].time, bendSize, bendInterval, this.shiftMode));
                                         }
                                     }
                                 }
@@ -2270,7 +2270,7 @@ export class PatternEditor {
                             if (this._cursor.curNote.start > 0) {
                                 for (const note of this._pattern!.notes) {
                                     if (note.end == this._cursor.curNote.start && note.pitches[0] == this._cursor.curNote.pitches[0]) {
-                                        sequence.append(new ChangeSizeBend(this._doc, note, note.pins[note.pins.length - 1].time, bendSize, bendInterval, this.shiftMode));
+                                        sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, note, note.pins[note.pins.length - 1].time, bendSize, bendInterval, this.shiftMode));
                                     }
                                 }
                             }
@@ -2281,7 +2281,7 @@ export class PatternEditor {
                                 if (prevPattern != null && prevPattern.instruments[0] == this._pattern!.instruments[0]) {
                                     for (const note of prevPattern.notes) {
                                         if (note.end == this._doc.song.beatsPerBar * Config.partsPerBeat && note.pitches[0] == this._cursor.curNote.pitches[0]) {
-                                            sequence.append(new ChangeSizeBend(this._doc, note, note.pins[note.pins.length - 1].time, bendSize, bendInterval, this.shiftMode));
+                                            sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, note, note.pins[note.pins.length - 1].time, bendSize, bendInterval, this.shiftMode));
                                         }
                                     }
                                 }
@@ -2294,7 +2294,7 @@ export class PatternEditor {
                     this._dragSize = bendSize;
                     this._dragVisible = true;
 
-                    sequence.append(new ChangeSizeBend(this._doc, this._cursor.curNote, bendPart, bendSize, bendInterval, this.shiftMode));
+                    sequence.append(new ChangeSizeBend(this._doc, this._doc.channel, this._pattern!, this._cursor.curNote, bendPart, bendSize, bendInterval, this.shiftMode));
                     this._copyPins(this._cursor.curNote);
                 } else {
                     sequence.append(new ChangePatternSelection(this._doc, 0, 0));

@@ -1,6 +1,6 @@
 // Copyright (C) 2021 John Nesky, distributed under the MIT license.
 
-import { Pattern } from "../synth/synth";
+import { Pattern } from "../synth/synthMessenger";
 import { ColorConfig, ChannelColors } from "./ColorConfig";
 import { SongDocument } from "./SongDocument";
 import { HTML } from "imperative-html/dist/esm/elements-strict";

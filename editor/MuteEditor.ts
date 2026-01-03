@@ -8,6 +8,7 @@ import { InputBox } from "./HTMLWrapper";
 import { ChangeChannelOrder, ChangeChannelName, ChangeRemoveChannel } from "./changes";
 import { Config } from "../synth/SynthConfig";
 import { SongEditor } from "./SongEditor";
+import { ChannelSettings, SongSettings } from "../synth/synthMessages";
 
 //namespace beepbox {
 export class MuteEditor {
@@ -152,6 +153,7 @@ export class MuteEditor {
                 break;
             case "chnMute":
                 this._doc.song.channels[this._channelDropDownChannel].muted = !this._doc.song.channels[this._channelDropDownChannel].muted;
+                this._doc.synth.updateSong(+this._doc.song.channels[this._channelDropDownChannel].muted, SongSettings.updateChannel, this._channelDropDownChannel, 0, ChannelSettings.muted);
                 this.render();
                 break;
             case "chnSolo": {
@@ -166,11 +168,13 @@ export class MuteEditor {
                 if (shouldSolo) {
                     for (let channel: number = 0; channel < this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channel++) {
                         this._doc.song.channels[channel].muted = (channel != this._channelDropDownChannel);
+                        this._doc.synth.updateSong(+(channel != this._channelDropDownChannel), SongSettings.updateChannel, channel, 0, ChannelSettings.muted);
                     }
                 }
                 else {
                     for (let channel: number = 0; channel < this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channel++) {
                         this._doc.song.channels[channel].muted = false;
+                        this._doc.synth.updateSong(0, SongSettings.updateChannel, channel, 0, ChannelSettings.muted);
                     }
                 }
                 this.render();
@@ -201,6 +205,8 @@ export class MuteEditor {
         let xPos: number = event.clientX - this._buttons[0].getBoundingClientRect().left;
         if (xPos < 21.0) {
             this._doc.song.channels[index].muted = !this._doc.song.channels[index].muted;
+            this._doc.synth.updateSong(+this._doc.song.channels[index].muted, SongSettings.updateChannel, index, 0, ChannelSettings.muted);
+
         }
         this._doc.notifier.changed();
     }

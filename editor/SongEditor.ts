@@ -11,12 +11,13 @@ import { CustomChipPrompt } from "./CustomChipPrompt";
 import { CustomFilterPrompt } from "./CustomFilterPrompt";
 import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
 import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
-import { EditorConfig, isMobile, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
+import { isMobile, ctrlSymbol } from "./DeviceConfig";
+import { EditorConfig, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
 import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "./PluginConfig"
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
 import "./Layout"; // Imported here for the sake of ensuring this code is transpiled early.
-import { Instrument, Channel, Synth } from "../synth/synth";
+import { Instrument, Channel, SynthMessenger } from "../synth/synthMessenger";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Preferences } from "./Preferences";
 import { HarmonicsEditor, HarmonicsEditorPrompt } from "./HarmonicsEditor";
@@ -49,7 +50,7 @@ import { SpectrumEditor, SpectrumEditorPrompt } from "./SpectrumEditor";
 import { CustomThemePrompt } from "./CustomThemePrompt";
 import { ThemePrompt } from "./ThemePrompt";
 import { TipPrompt } from "./TipPrompt";
-import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainAmounts, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
+import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorithmOrFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainFreqs, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
 
 import { TrackEditor } from "./TrackEditor";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
@@ -223,8 +224,8 @@ export class SongEditor {
     private readonly _fileMenu: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ selected: true, disabled: true, hidden: false }, "File"), // todo: "hidden" should be true but looks wrong on mac chrome, adds checkmark next to first visible option even though it's not selected. :(
         option({ value: "new" }, "+ New Blank Song (⇧`)"),
-        option({ value: "import" }, "↑ Import Song... (" + EditorConfig.ctrlSymbol + "O)"),
-        option({ value: "export" }, "↓ Export Song... (" + EditorConfig.ctrlSymbol + "S)"),
+        option({ value: "import" }, "↑ Import Song... (" + ctrlSymbol + "O)"),
+        option({ value: "export" }, "↓ Export Song... (" + ctrlSymbol + "S)"),
         option({ value: "copyUrl" }, "⎘ Copy Song URL"),
         option({ value: "shareUrl" }, "⤳ Share Song URL"),
         option({ value: "configureShortener" }, "🛠 Customize Url Shortener..."),
@@ -239,18 +240,18 @@ export class SongEditor {
         option({ value: "redo" }, "Redo (Y)"),
         option({ value: "copy" }, "Copy Pattern (C)"),
         option({ value: "pasteNotes" }, "Paste Pattern Notes (V)"),
-        option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + EditorConfig.ctrlSymbol + "⇧V)"),
+        option({ value: "pasteNumbers" }, "Paste Pattern Numbers (" + ctrlSymbol + "⇧V)"),
         option({ value: "insertBars" }, "Insert Bar (⏎)"),
         option({ value: "deleteBars" }, "Delete Selected Bars (⌫)"),
-        option({ value: "insertChannel" }, "Insert Channel (" + EditorConfig.ctrlSymbol + "⏎)"),
-        option({ value: "deleteChannel" }, "Delete Selected Channels (" + EditorConfig.ctrlSymbol + "⌫)"),
+        option({ value: "insertChannel" }, "Insert Channel (" + ctrlSymbol + "⏎)"),
+        option({ value: "deleteChannel" }, "Delete Selected Channels (" + ctrlSymbol + "⌫)"),
         option({ value: "selectChannel" }, "Select Channel (⇧A)"),
         option({ value: "selectAll" }, "Select All (A)"),
         option({ value: "duplicatePatterns" }, "Duplicate Reused Patterns (D)"),
         option({ value: "transposeUp" }, "Move Notes Up (+ or ⇧+)"),
         option({ value: "transposeDown" }, "Move Notes Down (- or ⇧-)"),
         option({ value: "moveNotesSideways" }, "Move All Notes Sideways... (W)"),
-        option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + EditorConfig.ctrlSymbol + "E)"),
+        option({ value: "generateEuclideanRhythm" }, "Generate Euclidean Rhythm... (" + ctrlSymbol + "E)"),
         option({ value: "beatsPerBar" }, "Change Beats Per Bar... (⇧B)"),
         option({ value: "barCount" }, "Change Song Length... (L)"),
         option({ value: "channelSettings" }, "Channel Settings... (Q)"),
@@ -328,7 +329,7 @@ export class SongEditor {
         span({ class: "tip", style: "font-size: smaller;", onclick: () => this._openPrompt("grainSize") }, "Grain: "),
         div({ style: `color: ${ColorConfig.secondaryText}; ` }, this.grainSizeNum),
     ), this._grainSizeSlider.container);
-    private readonly _grainAmountsSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.grainAmountsMax, value: 8, step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeGrainAmounts(this.doc, oldValue, newValue), false);
+    private readonly _grainAmountsSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.grainFreqMax, value: 8, step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeGrainFreqs(this.doc, oldValue, newValue), false);
     private readonly _grainAmountsRow: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("grainAmount") }, "Grain Freq:"), this._grainAmountsSlider.container);
     private readonly _grainRangeSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.grainRangeMax / Config.grainSizeStep, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeGrainRange(this.doc, oldValue, newValue), false);
     public readonly grainRangeNum: HTMLParagraphElement = div({ style: "font-size: 80%; ", id: "grainRangeNum" });
@@ -583,7 +584,7 @@ export class SongEditor {
     private readonly _feedback6OpRow1: HTMLDivElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("feedbackType") }, "Feedback:"), div({ class: "selectContainer" }, this._feedback6OpTypeSelect));
 
     private readonly _algorithmCanvasSwitch: HTMLButtonElement = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: (e:Event) => this._toggleAlgorithmCanvas(e) }, "A");
-    private readonly _customAlgorithmCanvas: CustomAlgorithmCanvas = new CustomAlgorithmCanvas(canvas({ width: 144, height: 144, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customAlgorithmCanvas" }), this.doc, (newArray: number[][], carry: number, mode: string) => new ChangeCustomAlgorythmorFeedback(this.doc, newArray, carry, mode));
+    private readonly _customAlgorithmCanvas: CustomAlgorithmCanvas = new CustomAlgorithmCanvas(canvas({ width: 144, height: 144, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customAlgorithmCanvas" }), this.doc, (newArray: number[][], carry: number, mode: string) => new ChangeCustomAlgorithmOrFeedback(this.doc, newArray, carry, mode));
     private readonly _algorithm6OpSelect: HTMLSelectElement = buildOptions(select(), Config.algorithms6Op.map(algorithm => algorithm.name));
     private readonly _algorithm6OpSelectRow: HTMLDivElement = div(div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("algorithm") }, "Algorithm: "), div({ class: "selectContainer" }, this._algorithm6OpSelect))
         , div({ style: "height:144px; display:flex; flex-direction: row; align-items:center; justify-content:center;" }, div({ style: "display:block; width:10px; margin-right: 0.2em" }, this._algorithmCanvasSwitch), div({ style: "width:144px; height:144px;" }, this._customAlgorithmCanvas.canvas)));//temp
@@ -946,7 +947,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
-        Synth.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
+        SynthMessenger.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);
@@ -2281,7 +2282,7 @@ export class SongEditor {
             if (effectsIncludeDetune(instrument.effects)) {
                 this._detuneSliderRow.style.display = "";
                 this._detuneSlider.updateValue(instrument.detune - Config.detuneCenter);
-                this._detuneSlider.input.title = (Synth.detuneToCents(instrument.detune)) + " cent(s)";
+                this._detuneSlider.input.title = (SynthMessenger.detuneToCents(instrument.detune)) + " cent(s)";
             } else {
                 this._detuneSliderRow.style.display = "none";
             }
@@ -2402,7 +2403,7 @@ export class SongEditor {
                 this._granularContainerRow.style.display = "";
                 this._granularSlider.updateValue(instrument.granular);
                 this._grainSizeSlider.updateValue(instrument.grainSize);
-                this._grainAmountsSlider.updateValue(instrument.grainAmounts);
+                this._grainAmountsSlider.updateValue(instrument.grainFreq);
                 this._grainRangeSlider.updateValue(instrument.grainRange);
             } else {
                 this._granularContainerRow.style.display = "none";
@@ -3786,8 +3787,7 @@ export class SongEditor {
 
                             this.doc.synth.goToBar(this.doc.bar);
                             this.doc.synth.snapToBar();
-                            this.doc.synth.initModFilters(this.doc.song);
-                            this.doc.synth.computeLatestModValues();
+                            this.doc.synth.computeLatestModValues(true);
                             if (this.doc.prefs.autoFollow) {
                                 this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                             }
@@ -3894,8 +3894,7 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.song.loopStart);
                     this.doc.synth.snapToBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    this.doc.synth.computeLatestModValues(true);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -3920,8 +3919,7 @@ export class SongEditor {
                     this._loopEditor.setLoopAt(this.doc.synth.loopBarStart, this.doc.synth.loopBarEnd);
 
                     this.doc.synth.snapToStart();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    this.doc.synth.computeLatestModValues(true);
                     if (this.doc.prefs.autoFollow) {
                         this.doc.selection.setChannelBar(this.doc.channel, Math.floor(this.doc.synth.playhead));
                     }
@@ -3935,8 +3933,7 @@ export class SongEditor {
 
                     this.doc.synth.goToBar(this.doc.bar);
                     this.doc.synth.snapToBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    this.doc.synth.computeLatestModValues(true);
 
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
@@ -4192,8 +4189,7 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToPrevBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    this.doc.synth.computeLatestModValues(true);
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;
@@ -4210,8 +4206,7 @@ export class SongEditor {
                 if (canPlayNotes) break;
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey)) {
                     this.doc.synth.goToNextBar();
-                    this.doc.synth.initModFilters(this.doc.song);
-                    this.doc.synth.computeLatestModValues();
+                    this.doc.synth.computeLatestModValues(true);
                     if (Math.floor(this.doc.synth.playhead) < this.doc.synth.loopBarStart || Math.floor(this.doc.synth.playhead) > this.doc.synth.loopBarEnd) {
                         this.doc.synth.loopBarStart = -1;
                         this.doc.synth.loopBarEnd = -1;

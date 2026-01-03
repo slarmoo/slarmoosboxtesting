@@ -1,5 +1,5 @@
 {
-	"files": [ "../synth/synth.ts" ],
+	"files": [ "../synth/synthMessenger.ts" ],
 	"compilerOptions": {
 		"rootDir": "../",
 		"outDir": "./build",
