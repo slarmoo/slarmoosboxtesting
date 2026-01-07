@@ -6,7 +6,7 @@ import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
-// import { SynthProcessor } from "./synthProcessor"
+import { Synth } from "./synth";
 
 
 declare global {
@@ -2195,7 +2195,7 @@ export class Instrument {
                 instrumentObject["modFilterTypes"][mod] = this.modFilterTypes[mod];
                 instrumentObject["modEnvelopeNumbers"][mod] = this.modEnvelopeNumbers[mod];
             }
-        } else {
+        } else if (this.type == InstrumentType.harmonics) { } else {
             throw new Error("Unrecognized instrument type");
         }
 
@@ -8289,13 +8289,7 @@ export class SynthMessenger {
             }
 
             case MessageFlag.songPosition: {
-
-                this.bar = event.data.bar;
-                this.beat = event.data.beat;
-                this.part = event.data.part;
-
-                this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song!.beatsPerBar + this.bar;
-
+                this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
                 break;
             }
 
@@ -8431,13 +8425,40 @@ export class SynthMessenger {
         this.liveInputEndTime = performance.now() + 10000.0;
     }
 
-    // private exportProcessor: SynthProcessor | null = null;
+    private exportProcessor: Synth | null = null;
+
+    private updatePlayhead(bar: number, beat: number, part: number): void {
+        this.bar = bar;
+        this.beat = beat;
+        this.part = part;
+        this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song!.beatsPerBar + this.bar;
+    }
+
+    public warmUpSynthesizer(song: Song) {
+        this.initSynth();
+        this.exportProcessor!.bar = this.bar;
+        this.exportProcessor!.computeLatestModValues();
+        this.exportProcessor!.initModFilters(this.song);
+        this.exportProcessor!.warmUpSynthesizer(song);
+    }
+
+    private initSynth() {
+        if (this.exportProcessor == null) {
+            this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead);
+            this.exportProcessor.song = this.song;
+            this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
+            this.exportProcessor.liveInputValues = new Uint32Array(1);
+        }
+        this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
+        this.exportProcessor.renderingSong = this.renderingSong;
+        this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
+    }
 
     // Direct synthesize request, get from worker
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {
         // TODO: Feed params to worker (do NOT feed arrays, just do some trickery where audio context is connected differently so you can set them in this function)
-        // if (this.exportProcessor == null) this.exportProcessor = new SynthProcessor();
-        // this.exportProcessor.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
+        this.initSynth();
+        this.exportProcessor!.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
     }
 
     public play(): void {
@@ -8590,6 +8611,7 @@ export class SynthMessenger {
             let latestTempoValue: number = 0;
 
             for (let bar: number = startBar - 1; bar >= 0; bar--) {
+                //TODO: Didn't we already find the channel where the tempo mod occurs? I feel like it would be smarter to store that and iterate only over those channels...
                 for (let channel: number = this.song.getChannelCount() - 1; channel >= this.song.pitchChannelCount + this.song.noiseChannelCount; channel--) {
                     let pattern = this.song.getPattern(channel, bar);
 
@@ -8605,8 +8627,7 @@ export class SynthMessenger {
                                     if (note.end <= partsInBar) {
                                         latestTempoPin = note.end;
                                         latestTempoValue = note.pins[note.pins.length - 1].size;
-                                    }
-                                    else {
+                                    } else {
                                         latestTempoPin = partsInBar;
                                         // Find the pin where bar change happens, and compute where pin volume would be at that time
                                         for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
@@ -8699,8 +8720,7 @@ export class SynthMessenger {
 
                                                                 totalSamples += - this.samplesPerSecond * tickLength * (Math.log(bpmScalar * currPinTempo * tickLength) - Math.log(bpmScalar * prevPinTempo * tickLength)) / (bpmScalar * (prevPinTempo - currPinTempo));
 
-                                                            }
-                                                            else {
+                                                            } else {
 
                                                                 // No tempo change between the two pins.
                                                                 totalSamples += tickLength * this.getSamplesPerTickSpecificBPM(currPinTempo);
@@ -8735,8 +8755,7 @@ export class SynthMessenger {
             }
 
             return Math.ceil(totalSamples);
-        }
-        else {
+        } else {
             // No tempo or next bar mods... phew! Just calculate normally.
             return this.getSamplesPerBar() * this.getTotalBars(enableIntro, enableOutro, loop);
         }

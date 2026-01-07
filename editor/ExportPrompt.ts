@@ -72,6 +72,7 @@ export class ExportPrompt implements Prompt {
         this._outputProgressBar,
         this._outputProgressLabel,
     );
+    private readonly _chunkSize = 5;
     private static readonly midiChipInstruments: number[] = [
         0x4A, // rounded -> recorder
         0x47, // triangle -> clarinet
@@ -266,7 +267,7 @@ export class ExportPrompt implements Prompt {
         }
 
         // Update progress bar UI once per 5 sec of exported data
-        const samplesPerChunk: number = this.synth.samplesPerSecond * 5; //e.g. 44100 * 5
+        const samplesPerChunk: number = this.synth.samplesPerSecond * this._chunkSize; //e.g. 44100 * 5
         const currentFrame: number = this.currentChunk * samplesPerChunk;
 
         const samplesInChunk: number = Math.min(samplesPerChunk, this.sampleFrames - currentFrame);
@@ -335,13 +336,12 @@ export class ExportPrompt implements Prompt {
         }
 
 
-        this.synth.initModFilters(this._doc.song);
-        this.synth.computeLatestModValues();
+        this.synth.computeLatestModValues(true);
         this.synth.warmUpSynthesizer(this._doc.song);
 
         this.sampleFrames = this.synth.getTotalSamples(this._enableIntro.checked, this._enableOutro.checked, this.synth.loopRepeatCount);
         // Compute how many UI updates will need to run to determine how many 
-        this.totalChunks = Math.ceil(this.sampleFrames / (this.synth.samplesPerSecond * 5));
+        this.totalChunks = Math.ceil(this.sampleFrames / (this.synth.samplesPerSecond * this._chunkSize));
         this.recordedSamplesL = new Float32Array(this.sampleFrames);
         this.recordedSamplesR = new Float32Array(this.sampleFrames);
 

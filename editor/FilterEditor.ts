@@ -9,6 +9,7 @@ import { ColorConfig } from "./ColorConfig";
 import { ChangeSequence, UndoableChange } from "./Change";
 import { ChangeSongFilterAddPoint, ChangeSongFilterMovePoint, ChangeSongFilterSettings, ChangeFilterAddPoint, ChangeFilterMovePoint, ChangeFilterSettings, FilterMoveData } from "./changes";
 import { prettyNumber } from "./EditorConfig";
+import { InstrumentSettings, SongSettings } from "../synth/synthMessages";
 
 export class FilterEditor {
     private _editorWidth: number = 120;
@@ -104,7 +105,7 @@ export class FilterEditor {
                 } else {
                     this._indicators[i].style.setProperty("font-size", "24px");
                 }
-                
+
                 this._svg.appendChild(this._indicators[i]);
             }
 
@@ -397,12 +398,18 @@ export class FilterEditor {
                         sequence.append(new ChangeSongFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, true));
                     } else {
                         sequence.append(new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._useNoteFilter, true));
-                    }                    this._deletingPoint = true;
+                    }
+                    this._deletingPoint = true;
                 }
             }
         }
         if (this._mouseDown || this._mouseOver) {
             this._updatePath();
+        }
+        if (this._forSong) {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         }
     }
 
@@ -424,13 +431,13 @@ export class FilterEditor {
                     if (this._forSong) {
                         let change: ChangeSongFilterAddPoint = new ChangeSongFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, true);
                         if (!this._larger) {
-                                this._doc.record(change);
-                            }
+                            this._doc.record(change);
+                        }
                     } else {
                         let change: ChangeFilterAddPoint = new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._useNoteFilter, true);
                         if (!this._larger) {
-                                this._doc.record(change);
-                            }
+                            this._doc.record(change);
+                        }
                     }
                 }
             } else if (!this._larger) {
@@ -449,6 +456,11 @@ export class FilterEditor {
         this._mouseDown = false;
         this._writingMods = false;
         this._updateCursor();
+        if (this._forSong) {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        }
     }
 
     private _findNearestFreqSlot(filterSettings: FilterSettings, targetFreq: number, ignoreIndex: number): number {
@@ -593,7 +605,8 @@ export class FilterEditor {
             this._doc.record(new ChangeSongFilterSettings(this._doc, this._subFilters[0], firstFilter, this._subFilters, this._doc.song.eqSubFilters), true);
         } else {
             this._doc.record(new ChangeFilterSettings(this._doc, this._subFilters[0], firstFilter, this._useNoteFilter, this._subFilters, this._useNoteFilter ? instrument.noteSubFilters : instrument.eqSubFilters), true);
-        }    }
+        }
+    }
 
     // Self-undo history management
     // Returns the subfilter index to swap to, if any
@@ -617,6 +630,10 @@ export class FilterEditor {
                 savedFilter.fromJsonObject(JSON.parse(String(this.selfUndoSettings[this.selfUndoHistoryPos])));
                 this.swapToSettings(savedFilter, false);
             }
+        } if (this._forSong) {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         }
         return -1;
     }
@@ -637,8 +654,12 @@ export class FilterEditor {
                 this.swapToSettings(savedFilter, false);
             }
         }
+        if (this._forSong) {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+        } else {
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        }
         return -1;
-
     }
 
     public resetToInitial() {
@@ -691,7 +712,7 @@ export class FilterEditor {
 
     private _getTargetFilterSettingsForSong(song: Song): FilterSettings {
         // TODO: Re-compute default point freqs/gains only when needed
-            let targetSettings: FilterSettings = song.tmpEqFilterStart!;
+        let targetSettings: FilterSettings = song.tmpEqFilterStart!;
         if (targetSettings == null) targetSettings = song.eqFilter;
 
         return targetSettings;

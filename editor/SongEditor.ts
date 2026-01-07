@@ -4480,6 +4480,7 @@ export class SongEditor {
     }
 
     private _animateVolume(outVolumeCap: number, historicOutCap: number): void {
+        if (Number.isNaN(outVolumeCap)) return;
         this._outVolumeBar.setAttribute("width", "" + Math.min(144, outVolumeCap * 144));
         this._outVolumeCap.setAttribute("x", "" + (8 + Math.min(144, historicOutCap * 144)));
     }

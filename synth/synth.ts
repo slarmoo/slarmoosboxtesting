@@ -1,13 +1,13 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeChord, effectsIncludeNoteRange, effectsIncludeTransition } from "./SynthConfig";
+import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeNoteRange, effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeChord, effectsIncludeTransition } from "./SynthConfig";
 import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song, SequenceSettings } from "./synthMessenger"
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 // import { events } from "../global/Events";
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
 import { xxHash32 } from "js-xxhash";
-import { DeactivateMessage, LiveInputValues, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
+import { LiveInputValues } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { BeepboxSet } from "./Set";
 
@@ -259,7 +259,7 @@ class PickedString {
         this.delayResetOffset = 0;
     }
 
-    public update(synth: SynthProcessor, instrumentState: InstrumentState, tone: Tone, stringIndex: number, roundedSamplesPerTick: number, stringDecayStart: number, stringDecayEnd: number, sustainType: SustainType): void {
+    public update(synth: Synth, instrumentState: InstrumentState, tone: Tone, stringIndex: number, roundedSamplesPerTick: number, stringDecayStart: number, stringDecayEnd: number, sustainType: SustainType): void {
         const allPassCenter: number = 2.0 * Math.PI * Config.pickedStringDispersionCenterFreq / synth.samplesPerSecond;
 
         const prevDelayLength: number = this.prevDelayLength;
@@ -290,14 +290,14 @@ class PickedString {
         const expressionDecayStart: number = Math.pow(decayRateStart, 0.002);
         const expressionDecayEnd: number = Math.pow(decayRateEnd, 0.002);
 
-        SynthProcessor.tempFilterStartCoefficients.allPass1stOrderInvertPhaseAbove(allPassRadiansStart);
-        synth.tempFrequencyResponse.analyze(SynthProcessor.tempFilterStartCoefficients, centerHarmonicStart);
-        const allPassGStart: number = SynthProcessor.tempFilterStartCoefficients.b[0]; /* same as a[1] */
+        Synth.tempFilterStartCoefficients.allPass1stOrderInvertPhaseAbove(allPassRadiansStart);
+        synth.tempFrequencyResponse.analyze(Synth.tempFilterStartCoefficients, centerHarmonicStart);
+        const allPassGStart: number = Synth.tempFilterStartCoefficients.b[0]; /* same as a[1] */
         const allPassPhaseDelayStart: number = -synth.tempFrequencyResponse.angle() / centerHarmonicStart;
 
-        SynthProcessor.tempFilterEndCoefficients.allPass1stOrderInvertPhaseAbove(allPassRadiansEnd);
-        synth.tempFrequencyResponse.analyze(SynthProcessor.tempFilterEndCoefficients, centerHarmonicEnd);
-        const allPassGEnd: number = SynthProcessor.tempFilterEndCoefficients.b[0]; /* same as a[1] */
+        Synth.tempFilterEndCoefficients.allPass1stOrderInvertPhaseAbove(allPassRadiansEnd);
+        synth.tempFrequencyResponse.analyze(Synth.tempFilterEndCoefficients, centerHarmonicEnd);
+        const allPassGEnd: number = Synth.tempFilterEndCoefficients.b[0]; /* same as a[1] */
         const allPassPhaseDelayEnd: number = -synth.tempFrequencyResponse.angle() / centerHarmonicEnd;
 
         // 1st order shelf filters and 2nd order lowpass filters have differently shaped frequency
@@ -312,8 +312,8 @@ class PickedString {
         if (brightnessType == PickedStringBrightnessType.bright) {
             const shelfGainStart: number = Math.pow(decayRateStart, Config.stringDecayRate);
             const shelfGainEnd: number = Math.pow(decayRateEnd, Config.stringDecayRate);
-            SynthProcessor.tempFilterStartCoefficients.highShelf2ndOrder(shelfRadians, shelfGainStart, 0.5);
-            SynthProcessor.tempFilterEndCoefficients.highShelf2ndOrder(shelfRadians, shelfGainEnd, 0.5);
+            Synth.tempFilterStartCoefficients.highShelf2ndOrder(shelfRadians, shelfGainStart, 0.5);
+            Synth.tempFilterEndCoefficients.highShelf2ndOrder(shelfRadians, shelfGainEnd, 0.5);
         } else {
             const cornerHardness: number = Math.pow(brightnessType == PickedStringBrightnessType.normal ? 0.0 : 1.0, 0.25);
             const lowpass1stOrderCutoffRadiansStart: number = Math.pow(registerLowpassCenter * registerLowpassCenter * radiansPerSampleStart * 3.3 * 48000 / synth.samplesPerSecond, 0.5 + register) / registerLowpassCenter / Math.pow(decayCurveStart, .5);
@@ -322,24 +322,24 @@ class PickedString {
             const lowpass2ndOrderCutoffRadiansEnd: number = lowpass1stOrderCutoffRadiansEnd * Math.pow(2.0, 0.5 - 1.75 * (1.0 - Math.pow(1.0 - cornerHardness, 0.85)));
             const lowpass2ndOrderGainStart: number = Math.pow(2.0, -Math.pow(2.0, -Math.pow(cornerHardness, 0.9)));
             const lowpass2ndOrderGainEnd: number = Math.pow(2.0, -Math.pow(2.0, -Math.pow(cornerHardness, 0.9)));
-            SynthProcessor.tempFilterStartCoefficients.lowPass2ndOrderButterworth(warpInfinityToNyquist(lowpass2ndOrderCutoffRadiansStart), lowpass2ndOrderGainStart);
-            SynthProcessor.tempFilterEndCoefficients.lowPass2ndOrderButterworth(warpInfinityToNyquist(lowpass2ndOrderCutoffRadiansEnd), lowpass2ndOrderGainEnd);
+            Synth.tempFilterStartCoefficients.lowPass2ndOrderButterworth(warpInfinityToNyquist(lowpass2ndOrderCutoffRadiansStart), lowpass2ndOrderGainStart);
+            Synth.tempFilterEndCoefficients.lowPass2ndOrderButterworth(warpInfinityToNyquist(lowpass2ndOrderCutoffRadiansEnd), lowpass2ndOrderGainEnd);
         }
 
-        synth.tempFrequencyResponse.analyze(SynthProcessor.tempFilterStartCoefficients, centerHarmonicStart);
-        const sustainFilterA1Start: number = SynthProcessor.tempFilterStartCoefficients.a[1];
-        const sustainFilterA2Start: number = SynthProcessor.tempFilterStartCoefficients.a[2];
-        const sustainFilterB0Start: number = SynthProcessor.tempFilterStartCoefficients.b[0] * expressionDecayStart;
-        const sustainFilterB1Start: number = SynthProcessor.tempFilterStartCoefficients.b[1] * expressionDecayStart;
-        const sustainFilterB2Start: number = SynthProcessor.tempFilterStartCoefficients.b[2] * expressionDecayStart;
+        synth.tempFrequencyResponse.analyze(Synth.tempFilterStartCoefficients, centerHarmonicStart);
+        const sustainFilterA1Start: number = Synth.tempFilterStartCoefficients.a[1];
+        const sustainFilterA2Start: number = Synth.tempFilterStartCoefficients.a[2];
+        const sustainFilterB0Start: number = Synth.tempFilterStartCoefficients.b[0] * expressionDecayStart;
+        const sustainFilterB1Start: number = Synth.tempFilterStartCoefficients.b[1] * expressionDecayStart;
+        const sustainFilterB2Start: number = Synth.tempFilterStartCoefficients.b[2] * expressionDecayStart;
         const sustainFilterPhaseDelayStart: number = -synth.tempFrequencyResponse.angle() / centerHarmonicStart;
 
-        synth.tempFrequencyResponse.analyze(SynthProcessor.tempFilterEndCoefficients, centerHarmonicEnd);
-        const sustainFilterA1End: number = SynthProcessor.tempFilterEndCoefficients.a[1];
-        const sustainFilterA2End: number = SynthProcessor.tempFilterEndCoefficients.a[2];
-        const sustainFilterB0End: number = SynthProcessor.tempFilterEndCoefficients.b[0] * expressionDecayEnd;
-        const sustainFilterB1End: number = SynthProcessor.tempFilterEndCoefficients.b[1] * expressionDecayEnd;
-        const sustainFilterB2End: number = SynthProcessor.tempFilterEndCoefficients.b[2] * expressionDecayEnd;
+        synth.tempFrequencyResponse.analyze(Synth.tempFilterEndCoefficients, centerHarmonicEnd);
+        const sustainFilterA1End: number = Synth.tempFilterEndCoefficients.a[1];
+        const sustainFilterA2End: number = Synth.tempFilterEndCoefficients.a[2];
+        const sustainFilterB0End: number = Synth.tempFilterEndCoefficients.b[0] * expressionDecayEnd;
+        const sustainFilterB1End: number = Synth.tempFilterEndCoefficients.b[1] * expressionDecayEnd;
+        const sustainFilterB2End: number = Synth.tempFilterEndCoefficients.b[2] * expressionDecayEnd;
         const sustainFilterPhaseDelayEnd: number = -synth.tempFrequencyResponse.angle() / centerHarmonicEnd;
 
         const periodLengthStart: number = 1.0 / phaseDeltaStart;
@@ -370,7 +370,7 @@ class PickedString {
             // The delay line buffer will get reused for other tones so might as well
             // start off with a buffer size that is big enough for most notes.
             const likelyMaximumLength: number = Math.ceil(2 * synth.samplesPerSecond / Instrument.frequencyFromPitch(12));
-            const newDelayLine: Float32Array = new Float32Array(SynthProcessor.fittingPowerOfTwo(Math.max(likelyMaximumLength, minBufferLength)));
+            const newDelayLine: Float32Array = new Float32Array(Synth.fittingPowerOfTwo(Math.max(likelyMaximumLength, minBufferLength)));
             if (!reinitializeImpulse && this.delayLine != null) {
                 // If the tone has already started but the buffer needs to be reallocated,
                 // transfer the old data to the new buffer.
@@ -512,7 +512,7 @@ class EnvelopeComputer {
         this.startPinTickPitch = null
     }
 
-    public computeEnvelopes(instrument: Instrument, currentPart: number, tickTimeStart: number[], tickTimeStartReal: number, secondsPerTick: number, tone: Tone | null, timeScale: number[], instrumentState: InstrumentState, synth: SynthProcessor, channelIndex: number, instrumentIndex: number, perNote: boolean): void {
+    public computeEnvelopes(instrument: Instrument, currentPart: number, tickTimeStart: number[], tickTimeStartReal: number, secondsPerTick: number, tone: Tone | null, timeScale: number[], instrumentState: InstrumentState, synth: Synth, channelIndex: number, instrumentIndex: number, perNote: boolean): void {
         const secondsPerTickUnscaled: number = secondsPerTick;
         const transition: Transition = instrument.getTransition();
         if (tone != null && tone.atNoteStart && !transition.continues && !tone.forceContinueAtStart) {
@@ -779,9 +779,9 @@ class EnvelopeComputer {
             case EnvelopeType.none: return perEnvelopeUpperBound;
             case EnvelopeType.noteSize:
                 if (!inverse) {
-                    return SynthProcessor.noteSizeToVolumeMult(noteSize) * (boundAdjust) + perEnvelopeLowerBound;
+                    return Synth.noteSizeToVolumeMult(noteSize) * (boundAdjust) + perEnvelopeLowerBound;
                 } else {
-                    return perEnvelopeUpperBound - SynthProcessor.noteSizeToVolumeMult(noteSize) * (boundAdjust);
+                    return perEnvelopeUpperBound - Synth.noteSizeToVolumeMult(noteSize) * (boundAdjust);
                 }
             case EnvelopeType.pitch:
                 //inversion and bounds are handled in the pitch calculation that we did prior
@@ -1363,7 +1363,7 @@ class InstrumentState {
 
     public pluginValues: number[] = [];
     public pluginDelayLine: Float32Array | null = null;
-    public pluginDelayLineSize: number = SynthProcessor.PluginDelayLineSize;
+    public pluginDelayLineSize: number = Synth.PluginDelayLineSize;
     public pluginDelayLineDirty: boolean = false
 
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
@@ -1386,7 +1386,7 @@ class InstrumentState {
 
     public readonly envelopeComputer: EnvelopeComputer = new EnvelopeComputer();
 
-    public allocateNecessaryBuffers(synth: SynthProcessor, instrument: Instrument, samplesPerTick: number): void {
+    public allocateNecessaryBuffers(synth: Synth, instrument: Instrument, samplesPerTick: number): void {
         if (effectsIncludePanning(instrument.effects)) {
             if (this.panningDelayLine == null || this.panningDelayLine.length < synth.panningDelayBufferSize) {
                 this.panningDelayLine = new Float32Array(synth.panningDelayBufferSize);
@@ -1413,7 +1413,7 @@ class InstrumentState {
             const granularDelayLineSizeInMilliseconds: number = 2500;
             const granularDelayLineSizeInSeconds: number = granularDelayLineSizeInMilliseconds / 1000; // Maximum possible delay time
             this.granularMaximumDelayTimeInSeconds = granularDelayLineSizeInSeconds;
-            const granularDelayLineSizeInSamples: number = SynthProcessor.fittingPowerOfTwo(Math.floor(granularDelayLineSizeInSeconds * synth.samplesPerSecond));
+            const granularDelayLineSizeInSamples: number = Synth.fittingPowerOfTwo(Math.floor(granularDelayLineSizeInSeconds * synth.samplesPerSecond));
             if (this.granularDelayLine == null || this.granularDelayLine.length != granularDelayLineSizeInSamples) {
                 this.granularDelayLine = new Float32Array(granularDelayLineSizeInSamples);
                 this.granularDelayLineIndex = 0;
@@ -1439,7 +1439,7 @@ class InstrumentState {
     public allocateEchoBuffers(samplesPerTick: number, echoDelay: number) {
         // account for tempo and delay automation changing delay length during a tick?
         const safeEchoDelaySteps: number = Math.max(Config.echoDelayRange >> 1, (echoDelay + 1)); // The delay may be very short now, but if it increases later make sure we have enough sample history.
-        const baseEchoDelayBufferSize: number = SynthProcessor.fittingPowerOfTwo(safeEchoDelaySteps * Config.echoDelayStepTicks * samplesPerTick);
+        const baseEchoDelayBufferSize: number = Synth.fittingPowerOfTwo(safeEchoDelaySteps * Config.echoDelayStepTicks * samplesPerTick);
         const safeEchoDelayBufferSize: number = baseEchoDelayBufferSize * 2; // If the tempo or delay changes and we suddenly need a longer delay, make sure that we have enough sample history to accomodate the longer delay.
 
         if (this.echoDelayLineL == null || this.echoDelayLineR == null) {
@@ -1541,11 +1541,11 @@ class InstrumentState {
         this.ringModMixFade = 1.0;
     }
 
-    public compute(synth: SynthProcessor, instrument: Instrument, samplesPerTick: number, roundedSamplesPerTick: number, tone: Tone | null, channelIndex: number, instrumentIndex: number): void {
+    public compute(synth: Synth, instrument: Instrument, samplesPerTick: number, roundedSamplesPerTick: number, tone: Tone | null, channelIndex: number, instrumentIndex: number): void {
         this.computed = true;
 
         this.type = instrument.type;
-        this.synthesizer = SynthProcessor.getInstrumentSynthFunction(instrument);
+        this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
         this.unison = Config.unisons[instrument.unison];
         this.unisonVoices = instrument.unisonVoices;
         this.unisonBuzzes = instrument.unisonBuzzes;
@@ -1793,21 +1793,21 @@ class InstrumentState {
                 startPoint = eqFilterSettingsStart.controlPoints[0];
                 let endPoint: FilterControlPoint = eqFilterSettingsEnd.controlPoints[0];
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
-                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
+                startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+                endPoint.toCoefficients(Synth.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
 
                 if (this.eqFilters.length < 1) this.eqFilters[0] = new DynamicBiquadFilter();
-                this.eqFilters[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                this.eqFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
 
             } else {
                 eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain, true);
 
                 startPoint = eqFilterSettingsStart.controlPoints[0];
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+                startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
 
                 if (this.eqFilters.length < 1) this.eqFilters[0] = new DynamicBiquadFilter();
-                this.eqFilters[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                this.eqFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
 
             }
 
@@ -1833,10 +1833,10 @@ class InstrumentState {
                     startPoint = endPoint;
                 }
 
-                startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
-                endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
+                startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
+                endPoint.toCoefficients(Synth.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
                 if (this.eqFilters.length <= i) this.eqFilters[i] = new DynamicBiquadFilter();
-                this.eqFilters[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                this.eqFilters[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
                 eqFilterVolume *= startPoint.getVolumeCompensationMult();
 
             }
@@ -1844,7 +1844,7 @@ class InstrumentState {
             eqFilterVolume = Math.min(3.0, eqFilterVolume);
         }
 
-        const mainInstrumentVolume: number = SynthProcessor.instrumentVolumeToVolumeMult(instrument.volume);
+        const mainInstrumentVolume: number = Synth.instrumentVolumeToVolumeMult(instrument.volume);
         this.mixVolume = mainInstrumentVolume /** envelopeStarts[InstrumentAutomationIndex.mixVolume]*/;
         let mixVolumeEnd: number = mainInstrumentVolume /** envelopeEnds[  InstrumentAutomationIndex.mixVolume]*/;
 
@@ -1853,8 +1853,8 @@ class InstrumentState {
             // Linear falloff below 0, normal volume formula above 0. Seems to work best for scaling since the normal volume mult formula has a big gap from -25 to -24.
             const startVal: number = synth.getModValue(Config.modulators.dictionary["mix volume"].index, channelIndex, instrumentIndex, false);
             const endVal: number = synth.getModValue(Config.modulators.dictionary["mix volume"].index, channelIndex, instrumentIndex, true)
-            this.mixVolume *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(startVal));
-            mixVolumeEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(endVal));
+            this.mixVolume *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(startVal));
+            mixVolumeEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(endVal));
         }
 
         // Check for SONG mod-related volume delta
@@ -2044,10 +2044,10 @@ class InstrumentState {
             this.echoDelayOffsetRatioDelta = 1.0 / roundedSamplesPerTick;
 
             const shelfRadians: number = 2.0 * Math.PI * Config.echoShelfHz / synth.samplesPerSecond;
-            SynthProcessor.tempFilterStartCoefficients.highShelf1stOrder(shelfRadians, Config.echoShelfGain);
-            this.echoShelfA1 = SynthProcessor.tempFilterStartCoefficients.a[1];
-            this.echoShelfB0 = SynthProcessor.tempFilterStartCoefficients.b[0];
-            this.echoShelfB1 = SynthProcessor.tempFilterStartCoefficients.b[1];
+            Synth.tempFilterStartCoefficients.highShelf1stOrder(shelfRadians, Config.echoShelfGain);
+            this.echoShelfA1 = Synth.tempFilterStartCoefficients.a[1];
+            this.echoShelfB0 = Synth.tempFilterStartCoefficients.b[0];
+            this.echoShelfB1 = Synth.tempFilterStartCoefficients.b[1];
         }
 
         let maxReverbMult = 0.0;
@@ -2077,16 +2077,16 @@ class InstrumentState {
             maxReverbMult = Math.max(reverbStart, reverbEnd);
 
             const shelfRadians: number = 2.0 * Math.PI * Config.reverbShelfHz / synth.samplesPerSecond;
-            SynthProcessor.tempFilterStartCoefficients.highShelf1stOrder(shelfRadians, Config.reverbShelfGain);
-            this.reverbShelfA1 = SynthProcessor.tempFilterStartCoefficients.a[1];
-            this.reverbShelfB0 = SynthProcessor.tempFilterStartCoefficients.b[0];
-            this.reverbShelfB1 = SynthProcessor.tempFilterStartCoefficients.b[1];
+            Synth.tempFilterStartCoefficients.highShelf1stOrder(shelfRadians, Config.reverbShelfGain);
+            this.reverbShelfA1 = Synth.tempFilterStartCoefficients.a[1];
+            this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
+            this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
         }
-        if (usesPlugin && SynthProcessor.pluginInstrumentStateFunction) {
+        if (usesPlugin && Synth.pluginInstrumentStateFunction) {
             //default delay line size. Can be updated in plugin function
-            this.pluginDelayLineSize = SynthProcessor.PluginDelayLineSize;
+            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
             //fill plugin array
-            new Function("instrument", SynthProcessor.pluginInstrumentStateFunction).bind(this).call(this, instrument);
+            new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -2134,7 +2134,7 @@ class InstrumentState {
             }
 
             if (usesPlugin) {
-                delayDuration += SynthProcessor.PluginDelayLineSize;
+                delayDuration += Synth.PluginDelayLineSize;
             }
 
             const secondsInTick: number = samplesPerTick / samplesPerSecond;
@@ -2160,7 +2160,7 @@ class InstrumentState {
             if (usesEcho) totalDelaySamples += this.echoDelayLineL!.length;
             if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
             if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
-            if (usesPlugin) totalDelaySamples += SynthProcessor.PluginDelayLineSize;
+            if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
 
             this.flushedSamples += roundedSamplesPerTick;
             if (this.flushedSamples >= totalDelaySamples) {
@@ -2242,7 +2242,7 @@ class ChannelState {
     public singleSeamlessInstrument: number | null = null; // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
 }
 
-export class SynthProcessor extends AudioWorkletProcessor {
+export class Synth {
 
     private syncSongState(): void {
         const channelCount: number = this.song!.getChannelCount();
@@ -2287,6 +2287,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public warmUpSynthesizer(song: Song | null): void {
         // Don't bother to generate the drum waves unless the song actually
         // uses them, since they may require a lot of computation.
+        var dummyArray = new Float32Array(1);
+        if (!this.tempMonoInstrumentSampleBuffer) this.tempMonoInstrumentSampleBuffer = new Float32Array(1);
         if (song != null) {
             this.syncSongState();
             const samplesPerTick: number = this.getSamplesPerTick();
@@ -2294,20 +2296,21 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 for (let instrumentIndex: number = 0; instrumentIndex < song.channels[channelIndex].instruments.length; instrumentIndex++) {
                     const instrument: Instrument = song.channels[channelIndex].instruments[instrumentIndex];
                     const instrumentState: InstrumentState = this.channels[channelIndex].instruments[instrumentIndex];
-                    SynthProcessor.getInstrumentSynthFunction(instrument);
+                    Synth.getInstrumentSynthFunction(instrument);
                     instrumentState.vibratoTime = 0;
                     instrumentState.nextVibratoTime = 0;
                     for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) instrumentState.envelopeTime[envelopeIndex] = 0;
                     instrumentState.arpTime = 0;
                     instrumentState.updateWaves(instrument, this.samplesPerSecond);
                     instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick);
+                    instrumentState.effects = instrument.effects;
+                    Synth.effectsSynth(this, dummyArray, dummyArray, 0, 1, instrumentState);
                 }
 
             }
         }
         // JummBox needs to run synth functions for at least one sample (for JIT purposes)
         // before starting audio callbacks to avoid skipping the initial output.
-        var dummyArray = new Float32Array(1);
         this.isPlayingSong = true;
         this.synthesize(dummyArray, dummyArray, 1, true);
         this.isPlayingSong = false;
@@ -2534,7 +2537,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public liveInputValues: Uint32Array;
     private readonly liveInputPitches: BeepboxSet = new BeepboxSet();
     private readonly liveBassInputPitches: BeepboxSet = new BeepboxSet();
-    private liveInputPitchesOnOffRequests: RingBuffer;
+    public liveInputPitchesOnOffRequests: RingBuffer;
 
     public loopRepeatCount: number = -1;
     public volume: number = 1.0;
@@ -2545,11 +2548,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = [];
     private wantToSkip: boolean = false;
-    private bar: number = 0;
-    private prevBar: number | null = null;
+    public bar: number = 0;
+    public prevBar: number | null = null;
     private nextBar: number | null = null;
-    private beat: number = 0;
-    private part: number = 0;
+    public beat: number = 0;
+    public part: number = 0;
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -2558,9 +2561,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
     public modInsValues: (number | null)[][][] = [];
     private nextModValues: (number | null)[] = [];
     public nextModInsValues: (number | null)[][][] = [];
-    private isPlayingSong: boolean = false;
+    public isPlayingSong: boolean = false;
     private isRecording: boolean = false;
-    private browserAutomaticallyClearsAudioBuffer: boolean = true; // Assume true until proven otherwise. Older Chrome does not clear the buffer so it needs to be cleared manually.
 
     public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
     public static readonly tempFilterEndCoefficients: FilterCoefficients = new FilterCoefficients();
@@ -2648,59 +2650,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
         return partsInBar;
     }
 
-    constructor() {
-        super();
-        this.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
+    constructor(
+        private deactivate: () => void,
+        private updatePlayhead: (bar: number, beat: number, part: number) => void
+    ) {
         this.computeDelayBufferSizes();
-    }
-
-    private sendMessage(message: Message) {
-        this.port.postMessage(message);
-    }
-
-    private receiveMessage(event: MessageEvent): void {
-        const flag: MessageFlag = event.data.flag;
-
-        switch (flag) {
-            case MessageFlag.togglePlay:
-                if (event.data.play) {
-                    this.play();
-                } else {
-                    this.pause();
-                }
-                break;
-            case MessageFlag.loadSong:
-                this.setSong(event.data.song);
-                break;
-            case MessageFlag.resetEffects:
-                this.resetEffects();
-                break;
-            case MessageFlag.computeMods:
-                if (event.data.initFilters) this.initModFilters(this.song);
-                this.computeLatestModValues();
-                break;
-            case MessageFlag.songPosition: {
-                this.bar = event.data.bar;
-                this.beat = event.data.beat;
-                this.part = event.data.part;
-                break;
-            }
-            case MessageFlag.sharedArrayBuffers: {
-                console.log("LOADING SABS");
-                this.liveInputValues = event.data.liveInputValues;
-                this.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
-                break;
-            }
-            case MessageFlag.setPrevBar: {
-                this.prevBar = event.data.prevBar;
-                break;
-            }
-            case MessageFlag.updateSong: {
-                if (!this.song) this.song = new Song();
-                this.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting)
-            }
-
-        }
     }
 
     public setSong(song: string): void {
@@ -2713,17 +2667,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
     }
 
     private computeDelayBufferSizes(): void {
-        this.panningDelayBufferSize = SynthProcessor.fittingPowerOfTwo(this.samplesPerSecond * Config.panDelaySecondsMax);
+        this.panningDelayBufferSize = Synth.fittingPowerOfTwo(this.samplesPerSecond * Config.panDelaySecondsMax);
         this.panningDelayBufferMask = this.panningDelayBufferSize - 1;
-        this.chorusDelayBufferSize = SynthProcessor.fittingPowerOfTwo(this.samplesPerSecond * Config.chorusMaxDelay);
+        this.chorusDelayBufferSize = Synth.fittingPowerOfTwo(this.samplesPerSecond * Config.chorusMaxDelay);
         this.chorusDelayBufferMask = this.chorusDelayBufferSize - 1;
     }
 
     private deactivateAudio(): void {
-        const DeactivateMessage: DeactivateMessage = {
-            flag: MessageFlag.deactivate
-        }
-        this.sendMessage(DeactivateMessage);
+        this.deactivate();
     }
 
 
@@ -2852,54 +2803,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
     }
 
-    process(_: Float32Array[][], outputs: Float32Array[][]) {
-        const outputDataL: Float32Array = outputs[0][0];
-        const outputDataR: Float32Array = outputs[0][1];
-
-        // AudioWorkletProcessor is not officially supported by typescript so for now we have lots of strange workarounds
-        // @ts-ignore
-        this.samplesPerSecond = sampleRate;
-
-        if (this.browserAutomaticallyClearsAudioBuffer && (outputDataL[0] != 0.0 || outputDataR[0] != 0.0 || outputDataL[outputDataL.length - 1] != 0.0 || outputDataR[outputDataL.length - 1] != 0.0)) {
-            // If the buffer is ever initially nonzero, then this must be an older browser that doesn't automatically clear the audio buffer.
-            this.browserAutomaticallyClearsAudioBuffer = false;
-        }
-        if (!this.browserAutomaticallyClearsAudioBuffer) {
-            // If this browser does not clear the buffer automatically, do so manually before continuing.
-            const length: number = outputDataL.length;
-            for (let i: number = 0; i < length; i++) {
-                outputDataL[i] = 0.0;
-                outputDataR[i] = 0.0;
-            }
-        }
-
-        //liveInputEndTime is now handled on the main thread
-        if (!this.isPlayingSong) {
-            const maintainLiveInputMessage: MaintainLiveInputMessage = {
-                flag: MessageFlag.maintainLiveInput
-            }
-            this.sendMessage(maintainLiveInputMessage);
-        }
-        try {
-            this.synthesize(outputDataL, outputDataR, outputDataL.length, this.isPlayingSong);
-        } catch (e) {
-            console.log(e);
-            // this.deactivateAudio();
-        }
-
-        //TODO: figure out how to properly handle this
-        // if (this.oscEnabled) {
-        //     if (this.oscRefreshEventTimer <= 0) {
-        //         events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
-        //         this.oscRefreshEventTimer = 2;
-        //     } else {
-        //         this.oscRefreshEventTimer--;
-        //     }
-        // }
-
-        return true;
-    }
-
     private computeSongState(samplesPerTick: number): void {
         if (this.song == null) return;
 
@@ -2917,12 +2820,12 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 startPoint = endPoint;
             }
 
-            startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
-            endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
+            startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
+            endPoint.toCoefficients(Synth.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
             if (this.songEqFiltersL.length <= i) this.songEqFiltersL[i] = new DynamicBiquadFilter();
-            this.songEqFiltersL[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+            this.songEqFiltersL[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
             if (this.songEqFiltersR.length <= i) this.songEqFiltersR[i] = new DynamicBiquadFilter();
-            this.songEqFiltersR[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+            this.songEqFiltersR[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
             eqFilterVolume *= startPoint.getVolumeCompensationMult();
 
         }
@@ -2938,15 +2841,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {
         if (this.song == null ||
-            this.liveInputValues == undefined ||
-            this.liveInputPitchesOnOffRequests == undefined
+            ((this.liveInputValues == undefined ||
+            this.liveInputPitchesOnOffRequests == undefined) && playSong)
         ) {
             outputDataL.fill(0.0);
             outputDataR.fill(0.0);
             this.deactivateAudio();
             return;
         }
-
         //clear the unfiltered (not affected by song eq) output
         if (this.outputDataLUnfiltered == null || this.outputDataLUnfiltered.length < outputBufferLength) {
             this.outputDataLUnfiltered = new Float32Array(outputBufferLength);
@@ -3151,7 +3053,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     }
 
                     if (instrumentState.awake) {
-                        SynthProcessor.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState);
+                        Synth.effectsSynth(this, outputDataL, outputDataR, bufferIndex, runLength, instrumentState);
                     }
 
                     // Update LFO time for instruments (used to be deterministic based on bar position but now vibrato/arp speed messes that up!)
@@ -3228,7 +3130,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     let initialFilterInput2L = +this.initialSongEqFilterInput2L;
                     let initialFilterInput1R = +this.initialSongEqFilterInput1R;
                     let initialFilterInput2R = +this.initialSongEqFilterInput2R;
-                    const applyFilters = SynthProcessor.applyFilters;
+                    const applyFilters = Synth.applyFilters;
                     let eqFilterVolume = +this.songEqFilterVolume;
                     const eqFilterVolumeDelta = +this.songEqFilterVolumeDelta;
                     const inputSampleL = outputDataL[i];
@@ -3483,13 +3385,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.limit = limit;
 
         if (playSong && !this.countInMetronome) {
-            const playheadMessage: SongPositionMessage = {
-                flag: MessageFlag.songPosition,
-                bar: this.bar,
-                beat: this.beat,
-                part: this.part,
-            }
-            this.sendMessage(playheadMessage);
+            this.updatePlayhead(this.bar, this.beat, this.part);
         }
     }
 
@@ -3572,130 +3468,135 @@ export class SynthProcessor extends AudioWorkletProcessor {
             let filteredBassPitches: BeepboxSet = bassPitches;
             if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
 
-            const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
-            if (this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel]) && pitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
-                const instrument: Instrument = channel.instruments[instrumentIndex];
-
-                if (instrument.getChord().singleTone) {
-                    let tone: Tone;
-                    if (toneList.count() <= toneCount) {
-                        tone = this.newTone();
-                        toneList.pushBack(tone);
-                    } else if (!instrument.getTransition().isSeamless && this.liveInputValues[LiveInputValues.liveBassInputStarted]) {
-                        this.releaseTone(instrumentState, toneList.get(toneCount));
-                        tone = this.newTone();
-                        toneList.set(toneCount, tone);
-                    } else {
-                        tone = toneList.get(toneCount);
-                    }
-                    toneCount++;
-
-                    tone.pitches = filteredPitches.getArray();
-
-                    tone.pitchCount = filteredPitches.size;
-                    tone.chordSize = 1;
-                    tone.instrumentIndex = instrumentIndex;
-                    tone.note = tone.prevNote = tone.nextNote = null;
-                    tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveInputStarted]);
-                    tone.forceContinueAtStart = false;
-                    tone.forceContinueAtEnd = false;
-                    this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
-                } else {
-                    //const transition: Transition = instrument.getTransition();
-
-                    this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
-
-                    for (let i: number = 0; i < filteredPitches.size; i++) {
-                        //const strumOffsetParts: number = i * instrument.getChord().strumParts;
-
+            if (this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel]) && filteredPitches.size > 0) {
+                const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
+                if (!this.song?.patternInstruments || pattern?.instruments.indexOf(instrumentIndex) != -1) {
+                    const instrument: Instrument = channel.instruments[instrumentIndex];
+                    if (instrument.getChord().singleTone) {
                         let tone: Tone;
-                        if (this.tempMatchedPitchTones[toneCount] != null) {
-                            tone = this.tempMatchedPitchTones[toneCount]!;
-                            this.tempMatchedPitchTones[toneCount] = null;
-                            if (tone.pitchCount != 1 || !filteredPitches.has(tone.pitches[0])) {
-                                this.releaseTone(instrumentState, tone);
-                                tone = this.newTone();
-                            }
-                            toneList.pushBack(tone);
-                        } else {
+                        if (toneList.count() <= toneCount) {
                             tone = this.newTone();
                             toneList.pushBack(tone);
+                        } else if (!instrument.getTransition().isSeamless && this.liveInputValues[LiveInputValues.liveBassInputStarted]) {
+                            this.releaseTone(instrumentState, toneList.get(toneCount));
+                            tone = this.newTone();
+                            toneList.set(toneCount, tone);
+                        } else {
+                            tone = toneList.get(toneCount);
                         }
                         toneCount++;
 
-                        const pitch: number | undefined = filteredPitches.grab();
-                        if (pitch !== undefined) tone.pitches[0] = pitch;
-                        tone.pitchCount = 1;
-                        tone.chordSize = filteredPitches.size;
+                        tone.pitches = filteredPitches.getArray();
+
+                        tone.pitchCount = filteredPitches.size;
+                        tone.chordSize = 1;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveInputStarted]);
                         tone.forceContinueAtStart = false;
                         tone.forceContinueAtEnd = false;
                         this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
+                    } else {
+                        //const transition: Transition = instrument.getTransition();
+
+                        this.moveTonesIntoOrderedTempMatchedList(toneList, filteredPitches);
+
+                        for (let i: number = 0; i < filteredPitches.size; i++) {
+                            //const strumOffsetParts: number = i * instrument.getChord().strumParts;
+
+                            let tone: Tone;
+                            if (this.tempMatchedPitchTones[toneCount] != null) {
+                                tone = this.tempMatchedPitchTones[toneCount]!;
+                                this.tempMatchedPitchTones[toneCount] = null;
+                                if (tone.pitchCount != 1 || !filteredPitches.has(tone.pitches[0])) {
+                                    this.releaseTone(instrumentState, tone);
+                                    tone = this.newTone();
+                                }
+                                toneList.pushBack(tone);
+                            } else {
+                                tone = this.newTone();
+                                toneList.pushBack(tone);
+                            }
+                            toneCount++;
+
+                            const pitch: number | undefined = filteredPitches.grab();
+                            if (pitch !== undefined) tone.pitches[0] = pitch;
+                            tone.pitchCount = 1;
+                            tone.chordSize = filteredPitches.size;
+                            tone.instrumentIndex = instrumentIndex;
+                            tone.note = tone.prevNote = tone.nextNote = null;
+                            tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveInputStarted]);
+                            tone.forceContinueAtStart = false;
+                            tone.forceContinueAtEnd = false;
+                            this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
+                        }
                     }
                 }
             }
 
-            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel]) && bassPitches.size > 0 && pattern?.instruments.indexOf(instrumentIndex) != -1) {
-                const instrument: Instrument = channel.instruments[instrumentIndex];
+            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel]) && filteredBassPitches.size > 0) {
+                const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
+                if (pattern?.instruments.indexOf(instrumentIndex) != -1) {
 
-                if (instrument.getChord().singleTone) {
-                    let tone: Tone;
-                    if (toneList.count() <= toneCount) {
-                        tone = this.newTone();
-                        toneList.pushBack(tone);
-                    } else if (!instrument.getTransition().isSeamless && this.liveInputValues[LiveInputValues.liveBassInputStarted]) {
-                        this.releaseTone(instrumentState, toneList.get(toneCount));
-                        tone = this.newTone();
-                        toneList.set(toneCount, tone);
-                    } else {
-                        tone = toneList.get(toneCount);
-                    }
-                    toneCount++;
+                    const instrument: Instrument = channel.instruments[instrumentIndex];
 
-                    tone.pitches = filteredBassPitches.getArray();
-                    tone.pitchCount = filteredBassPitches.size;
-                    tone.chordSize = 1;
-                    tone.instrumentIndex = instrumentIndex;
-                    tone.note = tone.prevNote = tone.nextNote = null;
-                    tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveBassInputStarted]);
-                    tone.forceContinueAtStart = false;
-                    tone.forceContinueAtEnd = false;
-                    this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
-                } else {
-                    //const transition: Transition = instrument.getTransition();
-
-                    this.moveTonesIntoOrderedTempMatchedList(toneList, filteredBassPitches);
-
-                    for (let i: number = 0; i < filteredBassPitches.size; i++) {
-                        //const strumOffsetParts: number = i * instrument.getChord().strumParts;
-
+                    if (instrument.getChord().singleTone) {
                         let tone: Tone;
-                        if (this.tempMatchedPitchTones[toneCount] != null) {
-                            tone = this.tempMatchedPitchTones[toneCount]!;
-                            this.tempMatchedPitchTones[toneCount] = null;
-                            if (tone.pitchCount != 1 || !filteredBassPitches.has(tone.pitches[0])) {
-                                this.releaseTone(instrumentState, tone);
-                                tone = this.newTone();
-                            }
-                            toneList.pushBack(tone);
-                        } else {
+                        if (toneList.count() <= toneCount) {
                             tone = this.newTone();
                             toneList.pushBack(tone);
+                        } else if (!instrument.getTransition().isSeamless && this.liveInputValues[LiveInputValues.liveBassInputStarted]) {
+                            this.releaseTone(instrumentState, toneList.get(toneCount));
+                            tone = this.newTone();
+                            toneList.set(toneCount, tone);
+                        } else {
+                            tone = toneList.get(toneCount);
                         }
                         toneCount++;
 
-                        const pitch: number | undefined = filteredBassPitches.grab();
-                        if (pitch) tone.pitches[0] = pitch;
-                        tone.pitchCount = 1;
-                        tone.chordSize = filteredBassPitches.size;
+                        tone.pitches = filteredBassPitches.getArray();
+                        tone.pitchCount = filteredBassPitches.size;
+                        tone.chordSize = 1;
                         tone.instrumentIndex = instrumentIndex;
                         tone.note = tone.prevNote = tone.nextNote = null;
                         tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveBassInputStarted]);
                         tone.forceContinueAtStart = false;
                         tone.forceContinueAtEnd = false;
                         this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
+                    } else {
+                        //const transition: Transition = instrument.getTransition();
+
+                        this.moveTonesIntoOrderedTempMatchedList(toneList, filteredBassPitches);
+
+                        for (let i: number = 0; i < filteredBassPitches.size; i++) {
+                            //const strumOffsetParts: number = i * instrument.getChord().strumParts;
+
+                            let tone: Tone;
+                            if (this.tempMatchedPitchTones[toneCount] != null) {
+                                tone = this.tempMatchedPitchTones[toneCount]!;
+                                this.tempMatchedPitchTones[toneCount] = null;
+                                if (tone.pitchCount != 1 || !filteredBassPitches.has(tone.pitches[0])) {
+                                    this.releaseTone(instrumentState, tone);
+                                    tone = this.newTone();
+                                }
+                                toneList.pushBack(tone);
+                            } else {
+                                tone = this.newTone();
+                                toneList.pushBack(tone);
+                            }
+                            toneCount++;
+
+                            const pitch: number | undefined = filteredBassPitches.grab();
+                            if (pitch) tone.pitches[0] = pitch;
+                            tone.pitchCount = 1;
+                            tone.chordSize = filteredBassPitches.size;
+                            tone.instrumentIndex = instrumentIndex;
+                            tone.note = tone.prevNote = tone.nextNote = null;
+                            tone.atNoteStart = Boolean(this.liveInputValues[LiveInputValues.liveBassInputStarted]);
+                            tone.forceContinueAtStart = false;
+                            tone.forceContinueAtEnd = false;
+                            this.computeTone(song, channelIndex, samplesPerTick, tone, false, false);
+                        }
                     }
                 }
             }
@@ -3980,7 +3881,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         if (prevPattern != null) {
                             const lastNote: Note | null = (prevPattern.notes.length <= 0) ? null : prevPattern.notes[prevPattern.notes.length - 1];
                             if (lastNote != null && lastNote.end == partsPerBar) {
-                                const patternForcesContinueAtStart: boolean = note.continuesLastPattern && SynthProcessor.adjacentNotesHaveMatchingPitches(lastNote, note);
+                                const patternForcesContinueAtStart: boolean = note.continuesLastPattern && Synth.adjacentNotesHaveMatchingPitches(lastNote, note);
                                 const chordOfCompatibleInstrument: Chord | null = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern!, prevPattern, instrumentIndex, transition, chord, note, lastNote, patternForcesContinueAtStart);
                                 if (chordOfCompatibleInstrument != null) {
                                     prevNoteForThisInstrument = lastNote;
@@ -4005,7 +3906,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         if (nextPattern != null) {
                             const firstNote: Note | null = (nextPattern.notes.length <= 0) ? null : nextPattern.notes[0];
                             if (firstNote != null && firstNote.start == 0) {
-                                const nextPatternForcesContinueAtStart: boolean = firstNote.continuesLastPattern && SynthProcessor.adjacentNotesHaveMatchingPitches(note, firstNote);
+                                const nextPatternForcesContinueAtStart: boolean = firstNote.continuesLastPattern && Synth.adjacentNotesHaveMatchingPitches(note, firstNote);
                                 const chordOfCompatibleInstrument: Chord | null = this.adjacentPatternHasCompatibleInstrumentTransition(song, channel, pattern!, nextPattern, instrumentIndex, transition, chord, note, firstNote, nextPatternForcesContinueAtStart);
                                 if (chordOfCompatibleInstrument != null) {
                                     nextNoteForThisInstrument = firstNote;
@@ -4228,7 +4129,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             tone.expression = startPin.size + (endPin.size - startPin.size) * ratioStart;
             tone.expressionDelta = (startPin.size + (endPin.size - startPin.size) * ratioEnd) - tone.expression;
 
-            SynthProcessor.modSynth(this, bufferIndex, roundedSamplesPerTick, tone, instrument);
+            Synth.modSynth(this, bufferIndex, roundedSamplesPerTick, tone, instrument);
         }
     }
 
@@ -4249,7 +4150,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
         const transition: Transition = instrument.getTransition();
         const chord: Chord = instrument.getChord();
-        const chordExpression: number = chord.singleTone ? 1.0 : SynthProcessor.computeChordExpression(tone.chordSize);
+        const chordExpression: number = chord.singleTone ? 1.0 : Synth.computeChordExpression(tone.chordSize);
         const isNoiseChannel: boolean = song.getChannelIsNoise(channelIndex);
         const intervalScale: number = isNoiseChannel ? Config.noiseInterval : 1;
         const secondsPerPart: number = Config.ticksPerPart * samplesPerTick / this.samplesPerSecond;
@@ -4366,7 +4267,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.expression = 0.0;
         tone.expressionDelta = 0.0;
         for (let i: number = 0; i < (instrument.type == InstrumentType.fm6op ? 6 : Config.operatorCount); i++) {
-            tone.operatorWaves[i] = SynthProcessor.getOperatorWave(instrument.operators[i].waveform, instrument.operators[i].pulseWidth);
+            tone.operatorWaves[i] = Synth.getOperatorWave(instrument.operators[i].waveform, instrument.operators[i].pulseWidth);
         }
 
         if (released) {
@@ -4374,8 +4275,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             const endTicksSinceReleased: number = tone.ticksSinceReleased + 1.0;
             intervalStart = intervalEnd = tone.lastInterval;
             const fadeOutTicks: number = Math.abs(instrument.getFadeOutTicks());
-            fadeExpressionStart = SynthProcessor.noteSizeToVolumeMult((1.0 - startTicksSinceReleased / fadeOutTicks) * Config.noteSizeMax);
-            fadeExpressionEnd = SynthProcessor.noteSizeToVolumeMult((1.0 - endTicksSinceReleased / fadeOutTicks) * Config.noteSizeMax);
+            fadeExpressionStart = Synth.noteSizeToVolumeMult((1.0 - startTicksSinceReleased / fadeOutTicks) * Config.noteSizeMax);
+            fadeExpressionEnd = Synth.noteSizeToVolumeMult((1.0 - endTicksSinceReleased / fadeOutTicks) * Config.noteSizeMax);
 
             if (shouldFadeOutFast) {
                 fadeExpressionEnd = 0.0;
@@ -4514,8 +4415,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (envelopeComputer.prevSlideEnd) intervalEnd += intervalDiff * envelopeComputer.prevSlideRatioEnd;
                 if (!chord.singleTone) {
                     const chordSizeDiff: number = prevNote.pitches.length - tone.chordSize;
-                    if (envelopeComputer.prevSlideStart) chordExpressionStart = SynthProcessor.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.prevSlideRatioStart);
-                    if (envelopeComputer.prevSlideEnd) chordExpressionEnd = SynthProcessor.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.prevSlideRatioEnd);
+                    if (envelopeComputer.prevSlideStart) chordExpressionStart = Synth.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.prevSlideRatioStart);
+                    if (envelopeComputer.prevSlideEnd) chordExpressionEnd = Synth.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.prevSlideRatioEnd);
                 }
             }
             if (nextNote != null) {
@@ -4524,8 +4425,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (envelopeComputer.nextSlideEnd) intervalEnd += intervalDiff * envelopeComputer.nextSlideRatioEnd;
                 if (!chord.singleTone) {
                     const chordSizeDiff: number = nextNote.pitches.length - tone.chordSize;
-                    if (envelopeComputer.nextSlideStart) chordExpressionStart = SynthProcessor.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.nextSlideRatioStart);
-                    if (envelopeComputer.nextSlideEnd) chordExpressionEnd = SynthProcessor.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.nextSlideRatioEnd);
+                    if (envelopeComputer.nextSlideStart) chordExpressionStart = Synth.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.nextSlideRatioStart);
+                    if (envelopeComputer.nextSlideEnd) chordExpressionEnd = Synth.computeChordExpression(tone.chordSize + chordSizeDiff * envelopeComputer.nextSlideRatioEnd);
                 }
             }
         }
@@ -4557,8 +4458,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 modDetuneStart += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
                 modDetuneEnd += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
             }
-            intervalStart += SynthProcessor.detuneToCents(modDetuneStart) * envelopeStart * Config.pitchesPerOctave / (12.0 * 100.0);
-            intervalEnd += SynthProcessor.detuneToCents(modDetuneEnd) * envelopeEnd * Config.pitchesPerOctave / (12.0 * 100.0);
+            intervalStart += Synth.detuneToCents(modDetuneStart) * envelopeStart * Config.pitchesPerOctave / (12.0 * 100.0);
+            intervalEnd += Synth.detuneToCents(modDetuneEnd) * envelopeEnd * Config.pitchesPerOctave / (12.0 * 100.0);
             // //envelopes should not affect song detune
             // if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
             //     modDetuneStart = 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
@@ -4606,7 +4507,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             if (tone.prevVibrato != null) {
                 vibratoStart = tone.prevVibrato;
             } else {
-                let vibratoLfoStart: number = SynthProcessor.getLFOAmplitude(instrument, secondsPerPart * instrumentState.vibratoTime);
+                let vibratoLfoStart: number = Synth.getLFOAmplitude(instrument, secondsPerPart * instrumentState.vibratoTime);
                 const vibratoDepthEnvelopeStart: number = envelopeStarts[EnvelopeComputeIndex.vibratoDepth];
                 vibratoStart = vibratoAmplitudeStart * vibratoLfoStart * vibratoDepthEnvelopeStart;
                 if (delayTicks > 0.0) {
@@ -4615,7 +4516,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
             }
 
-            let vibratoLfoEnd: number = SynthProcessor.getLFOAmplitude(instrument, secondsPerPart * instrumentState.nextVibratoTime);
+            let vibratoLfoEnd: number = Synth.getLFOAmplitude(instrument, secondsPerPart * instrumentState.nextVibratoTime);
             const vibratoDepthEnvelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.vibratoDepth];
             if (instrument.type != InstrumentType.mod) {
                 let vibratoEnd: number = vibratoAmplitudeEnd * vibratoLfoEnd * vibratoDepthEnvelopeEnd;
@@ -4665,11 +4566,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 const notePeakEnvelopeStart: number = envelopeStarts[EnvelopeComputeIndex.noteFilterGain0];
                 const notePeakEnvelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.noteFilterGain0];
 
-                startPoint!.toCoefficients(SynthProcessor.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
-                endPoint!.toCoefficients(SynthProcessor.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
+                startPoint!.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
+                endPoint!.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
 
                 if (tone.noteFilters.length < 1) tone.noteFilters[0] = new DynamicBiquadFilter();
-                tone.noteFilters[0].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint!.type == FilterType.lowPass);
+                tone.noteFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint!.type == FilterType.lowPass);
                 noteFilterExpression *= startPoint!.getVolumeCompensationMult();
 
                 tone.noteFilterCount = 1;
@@ -4689,10 +4590,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
                         startPoint = endPoint;
                     }
 
-                    startPoint.toCoefficients(SynthProcessor.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
-                    endPoint.toCoefficients(SynthProcessor.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
+                    startPoint.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
+                    endPoint.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
                     if (tone.noteFilters.length <= i) tone.noteFilters[i] = new DynamicBiquadFilter();
-                    tone.noteFilters[i].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                    tone.noteFilters[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
                     noteFilterExpression *= startPoint.getVolumeCompensationMult();
                 }
                 tone.noteFilterCount = noteFilterSettings.controlPointCount;
@@ -4717,10 +4618,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
             point.gain = FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50);
             point.freq = FilterControlPoint.getRoundedSettingValueFromHz(8000.0);
             // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.
-            point.toCoefficients(SynthProcessor.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
-            point.toCoefficients(SynthProcessor.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
+            point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
+            point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
             if (tone.noteFilters.length == tone.noteFilterCount) tone.noteFilters[tone.noteFilterCount] = new DynamicBiquadFilter();
-            tone.noteFilters[tone.noteFilterCount].loadCoefficientsWithGradient(SynthProcessor.tempFilterStartCoefficients, SynthProcessor.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+            tone.noteFilters[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
             tone.noteFilterCount++;
         }
 
@@ -4894,8 +4795,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     }
                 }
 
-                const amplitudeCurveStart: number = SynthProcessor.operatorAmplitudeCurve(amplitudeStart);
-                const amplitudeCurveEnd: number = SynthProcessor.operatorAmplitudeCurve(amplitudeEnd);
+                const amplitudeCurveStart: number = Synth.operatorAmplitudeCurve(amplitudeStart);
+                const amplitudeCurveEnd: number = Synth.operatorAmplitudeCurve(amplitudeEnd);
                 const amplitudeMultStart: number = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                 const amplitudeMultEnd: number = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
 
@@ -4937,8 +4838,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     // Linear falloff below 0, normal volume formula above 0. Seems to work best for scaling since the normal volume mult formula has a big gap from -25 to -24.
                     const startVal: number = this.getModValue(Config.modulators.dictionary["note volume"].index, channelIndex, tone.instrumentIndex, false);
                     const endVal: number = this.getModValue(Config.modulators.dictionary["note volume"].index, channelIndex, tone.instrumentIndex, true);
-                    expressionStart *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(startVal));
-                    expressionEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(endVal));
+                    expressionStart *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(startVal));
+                    expressionEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(endVal));
                 }
 
                 tone.operatorExpressions[i] = expressionStart;
@@ -5394,7 +5295,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     // The delay line buffer will get reused for other tones so might as well
                     // start off with a buffer size that is big enough for most notes.
                     const likelyMaximumLength: number = Math.ceil(0.5 * this.samplesPerSecond / Instrument.frequencyFromPitch(24));
-                    const newDelayLine: Float32Array = new Float32Array(SynthProcessor.fittingPowerOfTwo(Math.max(likelyMaximumLength, minBufferLength)));
+                    const newDelayLine: Float32Array = new Float32Array(Synth.fittingPowerOfTwo(Math.max(likelyMaximumLength, minBufferLength)));
                     if (!initializeSupersaw && tone.supersawDelayLine != null) {
                         // If the tone has already started but the buffer needs to be reallocated,
                         // transfer the old data to the new buffer.
@@ -5424,8 +5325,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 // Linear falloff below 0, normal volume formula above 0. Seems to work best for scaling since the normal volume mult formula has a big gap from -25 to -24.
                 const startVal: number = this.getModValue(Config.modulators.dictionary["note volume"].index, channelIndex, tone.instrumentIndex, false);
                 const endVal: number = this.getModValue(Config.modulators.dictionary["note volume"].index, channelIndex, tone.instrumentIndex, true)
-                expressionStart *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(startVal));
-                expressionEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : SynthProcessor.instrumentVolumeToVolumeMult(endVal));
+                expressionStart *= ((startVal <= 0) ? ((startVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(startVal));
+                expressionEnd *= ((endVal <= 0) ? ((endVal + Config.volumeRange / 2) / (Config.volumeRange / 2)) : Synth.instrumentVolumeToVolumeMult(endVal));
             }
             if (isMono && tone.pitchCount <= instrument.monoChordTone) { //silence if tone doesn't exist
                 expressionStart = 0;
@@ -5480,10 +5381,10 @@ export class SynthProcessor extends AudioWorkletProcessor {
         if (instrument.type == InstrumentType.fm) {
             const voiceCount: number = instrument.unisonVoices;
             const fingerprint: string = instrument.algorithm + "_" + instrument.feedbackType + "_" + voiceCount;
-            if (SynthProcessor.fmSynthFunctionCache[fingerprint] == undefined) {
+            if (Synth.fmSynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
 
-                for (const line of SynthProcessor.fmSourceTemplate) {
+                for (const line of Synth.fmSourceTemplate) {
                     if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                         const outputs: string[] = [];
                         for (let j: number = 0; j < Config.algorithms[instrument.algorithm].carrierCount; j++) {
@@ -5495,7 +5396,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount - 1; j >= 0; j--) {
                             for (let voice = 0; voice < voiceCount; voice++) {
-                                for (const operatorLine of SynthProcessor.operatorSourceTemplate) {
+                                for (const operatorLine of Synth.operatorSourceTemplate) {
                                     if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                         let modulators = "";
                                         for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
@@ -5532,42 +5433,40 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
                 const wrappedFmSynth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
 
-                // console.log(wrappedFmSynth)
-
-                SynthProcessor.fmSynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFmSynth)(Config, SynthProcessor);
+                Synth.fmSynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFmSynth)(Config, Synth);
 
             }
-            return SynthProcessor.fmSynthFunctionCache[fingerprint];
+            return Synth.fmSynthFunctionCache[fingerprint];
         } else if (instrument.type == InstrumentType.chip) {
             if (instrument.isUsingAdvancedLoopControls) {
-                return SynthProcessor.loopableChipSynth;
+                return Synth.loopableChipSynth;
             }
-            return SynthProcessor.chipSynth;
+            return Synth.chipSynth;
         } else if (instrument.type == InstrumentType.customChipWave) {
-            return SynthProcessor.chipSynth;
+            return Synth.chipSynth;
         } else if (instrument.type == InstrumentType.harmonics) {
-            return SynthProcessor.harmonicsSynth;
+            return Synth.harmonicsSynth;
         } else if (instrument.type == InstrumentType.pwm) {
-            return SynthProcessor.pulseWidthSynth;
+            return Synth.pulseWidthSynth;
         } else if (instrument.type == InstrumentType.supersaw) {
-            return SynthProcessor.supersawSynth;
+            return Synth.supersawSynth;
         } else if (instrument.type == InstrumentType.pickedString) {
-            return SynthProcessor.pickedStringSynth;
+            return Synth.pickedStringSynth;
         } else if (instrument.type == InstrumentType.noise) {
-            return SynthProcessor.noiseSynth;
+            return Synth.noiseSynth;
         } else if (instrument.type == InstrumentType.spectrum) {
-            return SynthProcessor.spectrumSynth;
+            return Synth.spectrumSynth;
         } else if (instrument.type == InstrumentType.drumset) {
-            return SynthProcessor.drumsetSynth;
+            return Synth.drumsetSynth;
         } else if (instrument.type == InstrumentType.mod) {
-            return SynthProcessor.modSynth;
+            return Synth.modSynth;
         } else if (instrument.type == InstrumentType.fm6op) {
             const voiceCount: number = instrument.unisonVoices;
             const fingerprint: string = instrument.customAlgorithm.name + "_" + instrument.customFeedbackType.name + "_" + voiceCount;
-            if (SynthProcessor.fm6SynthFunctionCache[fingerprint] == undefined) {
+            if (Synth.fm6SynthFunctionCache[fingerprint] == undefined) {
                 const synthSource: string[] = [];
 
-                for (const line of SynthProcessor.fmSourceTemplate) {
+                for (const line of Synth.fmSourceTemplate) {
                     if (line.indexOf("// CARRIER OUTPUTS") != -1) {
                         const outputs: string[] = [];
                         for (let j: number = 0; j < instrument.customAlgorithm.carrierCount; j++) {
@@ -5579,7 +5478,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     } else if (line.indexOf("// INSERT OPERATOR COMPUTATION HERE") != -1) {
                         for (let j: number = Config.operatorCount + 2 - 1; j >= 0; j--) {
                             for (let voice = 0; voice < voiceCount; voice++) {
-                                for (const operatorLine of SynthProcessor.operatorSourceTemplate) {
+                                for (const operatorLine of Synth.operatorSourceTemplate) {
                                     if (operatorLine.indexOf("/* + operator@Scaled*/") != -1) {
                                         let modulators = "";
                                         for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
@@ -5616,11 +5515,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
                 const wrappedFm6Synth: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrument) => {" + synthSource.join("\n") + "}";
                 
-                // console.log(wrappedFm6Synth);
-                
-                SynthProcessor.fm6SynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFm6Synth)(Config, SynthProcessor);
+                Synth.fm6SynthFunctionCache[fingerprint] = new Function("Config", "Synth", wrappedFm6Synth)(Config, Synth);
             }
-            return SynthProcessor.fm6SynthFunctionCache[fingerprint];
+            return Synth.fm6SynthFunctionCache[fingerprint];
         } else {
             throw new Error("Unrecognized instrument type: " + instrument.type);
         }
@@ -5634,14 +5531,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
         }
         return x;
     }
-    static loopableChipSynth(synth: SynthProcessor, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    static loopableChipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         // @TODO:
         // - Longer declicking? This is more difficult than I thought.
         //   When determining this automatically is difficult (or the input
         //   samples are expected to vary too much), this is left up to the
         //   user.
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let chipFunction: Function = SynthProcessor.loopableChipFunctionCache[instrumentState.unisonVoices];
+        let chipFunction: Function = Synth.loopableChipFunctionCache[instrumentState.unisonVoices];
         if (chipFunction == undefined) {
             let chipSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
 
@@ -5996,15 +5893,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
             tone.initialNoteFilterInput1 = initialFilterInput1;
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }`
-            chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, SynthProcessor, effectsIncludeDistortion);
-            SynthProcessor.loopableChipFunctionCache[instrumentState.unisonVoices] = chipFunction;
+            chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, Synth, effectsIncludeDistortion);
+            Synth.loopableChipFunctionCache[instrumentState.unisonVoices] = chipFunction;
         }
         chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static chipSynth(synth: SynthProcessor, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static chipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let chipFunction: Function = SynthProcessor.chipFunctionCache[instrumentState.unisonVoices];
+        let chipFunction: Function = Synth.chipFunctionCache[instrumentState.unisonVoices];
         if (chipFunction == undefined) {
             let chipSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
 
@@ -6126,15 +6023,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
-            chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, SynthProcessor, effectsIncludeDistortion);
-            SynthProcessor.chipFunctionCache[instrumentState.unisonVoices] = chipFunction;
+            chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, Synth, effectsIncludeDistortion);
+            Synth.chipFunctionCache[instrumentState.unisonVoices] = chipFunction;
         }
         chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static harmonicsSynth(synth: SynthProcessor, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static harmonicsSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let harmonicsFunction: Function = SynthProcessor.harmonicsFunctionCache[instrumentState.unisonVoices];
+        let harmonicsFunction: Function = Synth.harmonicsFunctionCache[instrumentState.unisonVoices];
         if (harmonicsFunction == undefined) {
             let harmonicsSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
 
@@ -6230,13 +6127,13 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
-            harmonicsFunction = new Function("Config", "Synth", harmonicsSource)(Config, SynthProcessor);
-            SynthProcessor.harmonicsFunctionCache[instrumentState.unisonVoices] = harmonicsFunction;
+            harmonicsFunction = new Function("Config", "Synth", harmonicsSource)(Config, Synth);
+            Synth.harmonicsFunctionCache[instrumentState.unisonVoices] = harmonicsFunction;
         }
         harmonicsFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static pickedStringSynth(synth: SynthProcessor, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static pickedStringSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         // This algorithm is similar to the Karpluss-Strong algorithm in principle, but with an
         // all-pass filter for dispersion and with more control over the impulse harmonics.
         // The source code is processed as a string before being compiled, in order to
@@ -6247,7 +6144,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         // each required voice, replacing the "#" with the voice index.
 
         const voiceCount: number = instrumentState.unisonVoices;
-        let pickedStringFunction: Function = SynthProcessor.pickedStringFunctionCache[voiceCount];
+        let pickedStringFunction: Function = Synth.pickedStringFunctionCache[voiceCount];
         if (pickedStringFunction == undefined) {
             let pickedStringSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -6384,14 +6281,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 }
                 return lines.join("\n");
             });
-            pickedStringFunction = new Function("Config", "Synth", pickedStringSource)(Config, SynthProcessor);
-            SynthProcessor.pickedStringFunctionCache[voiceCount] = pickedStringFunction;
+            pickedStringFunction = new Function("Config", "Synth", pickedStringSource)(Config, Synth);
+            Synth.pickedStringFunctionCache[voiceCount] = pickedStringFunction;
         }
 
         pickedStringFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static effectsSynth(synth: SynthProcessor, outputDataL: Float32Array, outputDataR: Float32Array, bufferIndex: number, runLength: number, instrumentState: InstrumentState): void {
+    private static effectsSynth(synth: Synth, outputDataL: Float32Array, outputDataR: Float32Array, bufferIndex: number, runLength: number, instrumentState: InstrumentState): void {
         // TODO: If automation is involved, don't assume sliders will stay at zero.
         // @jummbus - ^ Correct, removed the non-zero checks as modulation can change them.
 
@@ -6416,7 +6313,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         signature = signature << 1; if (usesRingModulation) signature = signature | 1;
         signature = signature << 1; if (usesPlugin) signature = signature | 1;
 
-        let effectsFunction: Function = SynthProcessor.effectsFunctionCache[signature];
+        let effectsFunction: Function = Synth.effectsFunctionCache[signature];
         if (effectsFunction == undefined) {
             let effectsSource: string = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
 
@@ -6659,7 +6556,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
             if (usesPlugin) {
                 for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "let " + SynthProcessor.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
+                    effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
                 }
                 effectsSource += `
                 const pluginDelayLine = instrumentState.pluginDelayLine;
@@ -6993,8 +6890,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
 
 
-            if (usesPlugin && SynthProcessor.pluginFunction) {
-                effectOrder.splice(SynthProcessor.pluginIndex, 0, SynthProcessor.pluginFunction);
+            if (usesPlugin && Synth.pluginFunction) {
+                effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
             }
             effectsSource += effectOrder.join("");
 
@@ -7166,21 +7063,21 @@ export class SynthProcessor extends AudioWorkletProcessor {
 
             if (usesPlugin) {
                 for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "instrumentState.pluginValues[" + i + "] = " + SynthProcessor.pluginValueNames[i] + "; \n";
+                    effectsSource += "instrumentState.pluginValues[" + i + "] = " + Synth.pluginValueNames[i] + "; \n";
                 }
             }
 
             effectsSource += "}";
-            effectsFunction = new Function("Config", "Synth", effectsSource)(Config, SynthProcessor);
-            SynthProcessor.effectsFunctionCache[signature] = effectsFunction;
+            effectsFunction = new Function("Config", "Synth", effectsSource)(Config, Synth);
+            Synth.effectsFunctionCache[signature] = effectsFunction;
         }
 
         effectsFunction(synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState);
     }
 
-    private static pulseWidthSynth(synth: SynthProcessor, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static pulseWidthSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let pulseFunction: Function = SynthProcessor.pulseFunctionCache[instrumentState.unisonVoices];
+        let pulseFunction: Function = Synth.pulseFunctionCache[instrumentState.unisonVoices];
         if (pulseFunction == undefined) {
             let pulseSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
 
@@ -7281,17 +7178,17 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`
-            pulseFunction = new Function("Config", "Synth", pulseSource)(Config, SynthProcessor);
-            SynthProcessor.pulseFunctionCache[instrumentState.unisonVoices] = pulseFunction;
+            pulseFunction = new Function("Config", "Synth", pulseSource)(Config, Synth);
+            Synth.pulseFunctionCache[instrumentState.unisonVoices] = pulseFunction;
         }
 
         pulseFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static supersawSynth(synth: SynthProcessor, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static supersawSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Config.supersawVoiceCount | 0;
         const unisonsVoices: number = instrumentState.unisonVoices;
-        let supersawFunction: Function = SynthProcessor.supersawFunctionCache[unisonsVoices]; 
+        let supersawFunction: Function = Synth.supersawFunctionCache[unisonsVoices]; 
         if (supersawFunction == undefined) {
             let supersawSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -7466,8 +7363,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
         }`
-            supersawFunction = new Function("Config", "Synth", supersawSource)(Config, SynthProcessor);
-            SynthProcessor.supersawFunctionCache[unisonsVoices] = supersawFunction;
+            supersawFunction = new Function("Config", "Synth", supersawSource)(Config, Synth);
+            Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
         }
 
         supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);
@@ -7543,9 +7440,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
 				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
 
-    private static noiseSynth(synth: SynthProcessor, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static noiseSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let noiseFunction: Function = SynthProcessor.noiseFunctionCache[instrumentState.unisonVoices];
+        let noiseFunction: Function = Synth.noiseFunctionCache[instrumentState.unisonVoices];
         if (noiseFunction == undefined) {
             let noiseSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -7659,17 +7556,17 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
-            noiseFunction = new Function("Config", "Synth", noiseSource)(Config, SynthProcessor);;
-            SynthProcessor.noiseFunctionCache[instrumentState.unisonVoices] = noiseFunction;
+            noiseFunction = new Function("Config", "Synth", noiseSource)(Config, Synth);;
+            Synth.noiseFunctionCache[instrumentState.unisonVoices] = noiseFunction;
         }
         noiseFunction(synth, bufferIndex, runLength, tone, instrumentState);
 
     }
 
 
-    private static spectrumSynth(synth: SynthProcessor, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static spectrumSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let spectrumFunction: Function = SynthProcessor.spectrumFunctionCache[instrumentState.unisonVoices];
+        let spectrumFunction: Function = Synth.spectrumFunctionCache[instrumentState.unisonVoices];
         if (spectrumFunction == undefined) {
             let spectrumSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -7785,15 +7682,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
-            spectrumFunction = new Function("Config", "Synth", spectrumSource)(Config, SynthProcessor);;
-            SynthProcessor.spectrumFunctionCache[instrumentState.unisonVoices] = spectrumFunction;
+            spectrumFunction = new Function("Config", "Synth", spectrumSource)(Config, Synth);;
+            Synth.spectrumFunctionCache[instrumentState.unisonVoices] = spectrumFunction;
         }
         spectrumFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
-    private static drumsetSynth(synth: SynthProcessor, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static drumsetSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
         const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let drumFunction: Function = SynthProcessor.drumFunctionCache[instrumentState.unisonVoices];
+        let drumFunction: Function = Synth.drumFunctionCache[instrumentState.unisonVoices];
         if (drumFunction == undefined) {
             let drumSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
 
@@ -7894,13 +7791,13 @@ export class SynthProcessor extends AudioWorkletProcessor {
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
-            drumFunction = new Function("Config", "Synth", "InstrumentState", drumSource)(Config, SynthProcessor, InstrumentState);;
-            SynthProcessor.drumFunctionCache[instrumentState.unisonVoices] = drumFunction;
+            drumFunction = new Function("Config", "Synth", "InstrumentState", drumSource)(Config, Synth, InstrumentState);;
+            Synth.drumFunctionCache[instrumentState.unisonVoices] = drumFunction;
         }
         drumFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
-    private static modSynth(synth: SynthProcessor, stereoBufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrument: Instrument): void {
+    private static modSynth(synth: Synth, stereoBufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrument: Instrument): void {
         // Note: present modulator value is tone.expressionStarts[0].
 
         if (!synth.song) return;
@@ -8334,38 +8231,4 @@ export class SynthProcessor extends AudioWorkletProcessor {
             return this.tick + Config.ticksPerPart * (this.part + Config.partsPerBeat * (this.beat + beatsPerBar * this.bar));
         }
     }
-}
-registerProcessor('synth-processor', SynthProcessor);
-
-
-// https://github.com/microsoft/TypeScript/issues/28308#issuecomment-650802278
-interface AudioWorkletProcessor {
-    readonly port: MessagePort;
-    process(
-        inputs: Float32Array[][],
-        outputs: Float32Array[][],
-        parameters: Record<string, Float32Array>
-    ): boolean;
-}
-
-declare var AudioWorkletProcessor: {
-    prototype: AudioWorkletProcessor;
-    new(options?: AudioWorkletNodeOptions): AudioWorkletProcessor;
-};
-
-declare function registerProcessor(
-    name: string,
-    processorCtor: (new (
-        options?: AudioWorkletNodeOptions
-    ) => AudioWorkletProcessor) & {
-        parameterDescriptors?: AudioParamDescriptor[];
-    }
-): void;
-
-interface AudioParamDescriptor {
-    name: string;
-    defaultValue?: number;
-    minValue?: number;
-    maxValue?: number;
-    automationRate?: "a-rate" | "k-rate";
 }
