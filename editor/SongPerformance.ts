@@ -151,7 +151,7 @@ export class SongPerformance {
         window.requestAnimationFrame(this._onAnimationFrame);
         if (this._doc.synth.recording) {
             let dirty: boolean = this._updateRecordedNotes();
-            dirty = this._updateRecordedBassNotes() ? true : dirty;
+            dirty = this._updateRecordedBassNotes() || dirty;
             if (dirty) {
                 // The full interface is usually only rerendered in response to user input events, not animation events, but in this case go ahead and rerender everything.
                 this._doc.notifier.notifyWatchers();
@@ -223,6 +223,7 @@ export class SongPerformance {
                         this._lastNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[LiveInputValues.liveInputChannel]));
                         this._lastNote.continuesLastPattern = (noteStartPart == 0 && !this._pitchesChanged);
                         this._lastNote.pitches.length = 0;
+                        this._doc.synth.addRemoveLiveInputTone(this._recentlyAddedPitches, false, true);
                         while (this._recentlyAddedPitches.length > 0) {
                             if (this._lastNote.pitches.length >= Config.maxChordSize) break;
                             const recentPitch: number = this._recentlyAddedPitches.shift()!;
@@ -325,6 +326,7 @@ export class SongPerformance {
                         this._lastBassNote = new Note(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[LiveInputValues.liveBassInputChannel]));
                         this._lastBassNote.continuesLastPattern = (noteStartPart == 0 && !this._bassPitchesChanged);
                         this._lastBassNote.pitches.length = 0;
+                        this._doc.synth.addRemoveLiveInputTone(this._recentlyAddedBassPitches, true, true);
                         while (this._recentlyAddedBassPitches.length > 0) {
                             if (this._lastBassNote.pitches.length >= Config.maxChordSize) break;
                             const recentPitch: number = this._recentlyAddedBassPitches.shift()!;

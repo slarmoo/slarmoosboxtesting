@@ -10,6 +10,7 @@ export enum MessageFlag {
     computeMods,
     sharedArrayBuffers,
     setPrevBar,
+    isRecording,
     updateSong,
 }
 
@@ -69,6 +70,13 @@ export interface SendSharedArrayBuffers extends Message {
 export interface SetPrevBarMessage extends Message {
     flag: MessageFlag.setPrevBar,
     prevBar: number | null
+}
+
+export interface IsRecordingMessage extends Message {
+    flag: MessageFlag.isRecording,
+    isRecording: boolean,
+    enableMetronome: boolean,
+    countInMetronome: boolean
 }
 
 export interface UpdateSongMessage extends Message {

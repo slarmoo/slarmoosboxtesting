@@ -11428,6 +11428,9 @@ var beepbox = (() => {
           if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
           break;
         }
+        case 9 /* isRecording */: {
+          this.countInMetronome = event.data.countInMetronome;
+        }
       }
     }
     updateProcessorLocation() {
@@ -11463,7 +11466,7 @@ var beepbox = (() => {
         }
       }
       const updateMessage = {
-        flag: 9 /* updateSong */,
+        flag: 10 /* updateSong */,
         songSetting,
         channelIndex,
         instrumentIndex,
@@ -11557,7 +11560,9 @@ var beepbox = (() => {
     }
     initSynth() {
       if (this.exportProcessor == null) {
-        this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead);
+        this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {
+          this.countInMetronome = false;
+        });
         this.exportProcessor.song = this.song;
         this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
         this.exportProcessor.liveInputValues = new Uint32Array(1);
@@ -11597,6 +11602,13 @@ var beepbox = (() => {
     startRecording() {
       this.preferLowerLatency = true;
       this.isRecording = true;
+      const isRecordingMessage = {
+        flag: 9 /* isRecording */,
+        isRecording: this.isRecording,
+        enableMetronome: this.enableMetronome,
+        countInMetronome: this.countInMetronome
+      };
+      this.sendMessage(isRecordingMessage);
       this.play();
     }
     snapToStart() {
@@ -14492,9 +14504,10 @@ var beepbox = (() => {
     // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
   };
   var Synth = class _Synth {
-    constructor(deactivate, updatePlayhead) {
+    constructor(deactivate, updatePlayhead, endCountIn) {
       this.deactivate = deactivate;
       this.updatePlayhead = updatePlayhead;
+      this.endCountIn = endCountIn;
       this.samplesPerSecond = 44100;
       // TODO: reverb
       this.song = null;
@@ -14905,6 +14918,8 @@ var beepbox = (() => {
       if (!this.isPlayingSong) return;
       this.isPlayingSong = false;
       this.isRecording = false;
+      this.enableMetronome = false;
+      this.countInMetronome = false;
       this.modValues = [];
       this.nextModValues = [];
       this.heldMods = [];
@@ -15427,6 +15442,7 @@ var beepbox = (() => {
                   this.beat = 0;
                   if (this.countInMetronome) {
                     this.countInMetronome = false;
+                    this.endCountIn();
                   } else {
                     this.prevBar = this.bar;
                     this.bar = this.getNextBar();

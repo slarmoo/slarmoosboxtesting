@@ -6531,9 +6531,10 @@ var ChannelState = class {
   // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
 };
 var Synth = class _Synth {
-  constructor(deactivate, updatePlayhead) {
+  constructor(deactivate, updatePlayhead, endCountIn) {
     this.deactivate = deactivate;
     this.updatePlayhead = updatePlayhead;
+    this.endCountIn = endCountIn;
     this.samplesPerSecond = 44100;
     // TODO: reverb
     this.song = null;
@@ -6944,6 +6945,8 @@ var Synth = class _Synth {
     if (!this.isPlayingSong) return;
     this.isPlayingSong = false;
     this.isRecording = false;
+    this.enableMetronome = false;
+    this.countInMetronome = false;
     this.modValues = [];
     this.nextModValues = [];
     this.heldMods = [];
@@ -7466,6 +7469,7 @@ var Synth = class _Synth {
                 this.beat = 0;
                 if (this.countInMetronome) {
                   this.countInMetronome = false;
+                  this.endCountIn();
                 } else {
                   this.prevBar = this.bar;
                   this.bar = this.getNextBar();
@@ -18848,6 +18852,9 @@ var SynthMessenger = class {
         if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
         break;
       }
+      case 9 /* isRecording */: {
+        this.countInMetronome = event.data.countInMetronome;
+      }
     }
   }
   updateProcessorLocation() {
@@ -18883,7 +18890,7 @@ var SynthMessenger = class {
       }
     }
     const updateMessage = {
-      flag: 9 /* updateSong */,
+      flag: 10 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18977,7 +18984,9 @@ var SynthMessenger = class {
   }
   initSynth() {
     if (this.exportProcessor == null) {
-      this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead);
+      this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {
+        this.countInMetronome = false;
+      });
       this.exportProcessor.song = this.song;
       this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
       this.exportProcessor.liveInputValues = new Uint32Array(1);
@@ -19017,6 +19026,13 @@ var SynthMessenger = class {
   startRecording() {
     this.preferLowerLatency = true;
     this.isRecording = true;
+    const isRecordingMessage = {
+      flag: 9 /* isRecording */,
+      isRecording: this.isRecording,
+      enableMetronome: this.enableMetronome,
+      countInMetronome: this.countInMetronome
+    };
+    this.sendMessage(isRecordingMessage);
     this.play();
   }
   snapToStart() {
@@ -19637,7 +19653,16 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       };
       this.sendMessage(playheadMessage);
     }, "updatePlayhead");
-    this.synth = new Synth(deactivate, updatePlayhead);
+    const endCountIn = /* @__PURE__ */ __name(() => {
+      const metronomeMessage = {
+        flag: 9 /* isRecording */,
+        isRecording: true,
+        enableMetronome: true,
+        countInMetronome: false
+      };
+      this.sendMessage(metronomeMessage);
+    }, "endCountIn");
+    this.synth = new Synth(deactivate, updatePlayhead, endCountIn);
   }
   static {
     __name(this, "SynthProcessor");
@@ -19681,7 +19706,12 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         this.synth.prevBar = event.data.prevBar;
         break;
       }
-      case 9 /* updateSong */: {
+      case 9 /* isRecording */: {
+        this.synth.isRecording = event.data.isRecording;
+        this.synth.enableMetronome = event.data.enableMetronome;
+        this.synth.countInMetronome = event.data.countInMetronome;
+      }
+      case 10 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting);
       }

@@ -2562,7 +2562,7 @@ export class Synth {
     private nextModValues: (number | null)[] = [];
     public nextModInsValues: (number | null)[][][] = [];
     public isPlayingSong: boolean = false;
-    private isRecording: boolean = false;
+    public isRecording: boolean = false;
 
     public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
     public static readonly tempFilterEndCoefficients: FilterCoefficients = new FilterCoefficients();
@@ -2652,7 +2652,8 @@ export class Synth {
 
     constructor(
         private deactivate: () => void,
-        private updatePlayhead: (bar: number, beat: number, part: number) => void
+        private updatePlayhead: (bar: number, beat: number, part: number) => void,
+        private endCountIn: () => void
     ) {
         this.computeDelayBufferSizes();
     }
@@ -2689,8 +2690,9 @@ export class Synth {
     public pause(): void {
         if (!this.isPlayingSong) return;
         this.isPlayingSong = false;
-        //TODO: remove recording?
         this.isRecording = false;
+        this.enableMetronome = false;
+        this.countInMetronome = false;
         this.modValues = [];
         this.nextModValues = [];
         this.heldMods = [];
@@ -3070,8 +3072,6 @@ export class Synth {
 
                     instrumentState.vibratoTime = instrumentState.nextVibratoTime;
 
-                    //envelopeable vibrato speed?
-
                     if (this.isModActive(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex)) {
                         useVibratoSpeed = this.getModValue(Config.modulators.dictionary["vibrato speed"].index, channelIndex, instrumentIndex);
                     }
@@ -3322,6 +3322,7 @@ export class Synth {
 
                                 if (this.countInMetronome) {
                                     this.countInMetronome = false;
+                                    this.endCountIn();
                                 } else {
                                     this.prevBar = this.bar;
                                     this.bar = this.getNextBar();

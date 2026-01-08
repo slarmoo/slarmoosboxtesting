@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -8297,6 +8297,10 @@ export class SynthMessenger {
                 if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
                 break;
             }
+                
+            case MessageFlag.isRecording: {
+                this.countInMetronome = event.data.countInMetronome;
+            }
         }
     }
 
@@ -8444,7 +8448,7 @@ export class SynthMessenger {
 
     private initSynth() {
         if (this.exportProcessor == null) {
-            this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead);
+            this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {this.countInMetronome = false});
             this.exportProcessor.song = this.song;
             this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
             this.exportProcessor.liveInputValues = new Uint32Array(1);
@@ -8491,6 +8495,13 @@ export class SynthMessenger {
     public startRecording(): void {
         this.preferLowerLatency = true;
         this.isRecording = true;
+        const isRecordingMessage: IsRecordingMessage = {
+            flag: MessageFlag.isRecording,
+            isRecording: this.isRecording,
+            enableMetronome: this.enableMetronome,
+            countInMetronome: this.countInMetronome
+        }
+        this.sendMessage(isRecordingMessage);
         this.play();
     }
 

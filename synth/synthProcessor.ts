@@ -2,7 +2,7 @@
 
 import { Song } from "./synthMessenger"
 // import { events } from "../global/Events";
-import { DeactivateMessage, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -32,8 +32,17 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             this.sendMessage(playheadMessage);
         }
+        const endCountIn = () => {
+            const metronomeMessage: IsRecordingMessage = {
+                flag: MessageFlag.isRecording,
+                isRecording: true,
+                enableMetronome: true,
+                countInMetronome: false
+            }
+            this.sendMessage(metronomeMessage);
+        }
 
-        this.synth = new Synth(deactivate, updatePlayhead);
+        this.synth = new Synth(deactivate, updatePlayhead, endCountIn);
     }
 
     private sendMessage(message: Message) {
@@ -76,6 +85,11 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.setPrevBar: {
                 this.synth.prevBar = event.data.prevBar;
                 break;
+            }
+            case MessageFlag.isRecording: {
+                this.synth.isRecording = event.data.isRecording;
+                this.synth.enableMetronome = event.data.enableMetronome;
+                this.synth.countInMetronome = event.data.countInMetronome;
             }
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();

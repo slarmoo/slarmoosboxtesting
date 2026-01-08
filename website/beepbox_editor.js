@@ -15766,9 +15766,10 @@ li.select2-results__option[role=group] > strong:hover {
     // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
   };
   var Synth = class _Synth {
-    constructor(deactivate, updatePlayhead) {
+    constructor(deactivate, updatePlayhead, endCountIn) {
       this.deactivate = deactivate;
       this.updatePlayhead = updatePlayhead;
+      this.endCountIn = endCountIn;
       this.samplesPerSecond = 44100;
       // TODO: reverb
       this.song = null;
@@ -16179,6 +16180,8 @@ li.select2-results__option[role=group] > strong:hover {
       if (!this.isPlayingSong) return;
       this.isPlayingSong = false;
       this.isRecording = false;
+      this.enableMetronome = false;
+      this.countInMetronome = false;
       this.modValues = [];
       this.nextModValues = [];
       this.heldMods = [];
@@ -16701,6 +16704,7 @@ li.select2-results__option[role=group] > strong:hover {
                   this.beat = 0;
                   if (this.countInMetronome) {
                     this.countInMetronome = false;
+                    this.endCountIn();
                   } else {
                     this.prevBar = this.bar;
                     this.bar = this.getNextBar();
@@ -28083,6 +28087,9 @@ li.select2-results__option[role=group] > strong:hover {
           if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
           break;
         }
+        case 9 /* isRecording */: {
+          this.countInMetronome = event.data.countInMetronome;
+        }
       }
     }
     updateProcessorLocation() {
@@ -28118,7 +28125,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
       }
       const updateMessage = {
-        flag: 9 /* updateSong */,
+        flag: 10 /* updateSong */,
         songSetting,
         channelIndex,
         instrumentIndex,
@@ -28212,7 +28219,9 @@ li.select2-results__option[role=group] > strong:hover {
     }
     initSynth() {
       if (this.exportProcessor == null) {
-        this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead);
+        this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {
+          this.countInMetronome = false;
+        });
         this.exportProcessor.song = this.song;
         this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
         this.exportProcessor.liveInputValues = new Uint32Array(1);
@@ -28252,6 +28261,13 @@ li.select2-results__option[role=group] > strong:hover {
     startRecording() {
       this.preferLowerLatency = true;
       this.isRecording = true;
+      const isRecordingMessage = {
+        flag: 9 /* isRecording */,
+        isRecording: this.isRecording,
+        enableMetronome: this.enableMetronome,
+        countInMetronome: this.countInMetronome
+      };
+      this.sendMessage(isRecordingMessage);
       this.play();
     }
     snapToStart() {
@@ -36139,7 +36155,7 @@ li.select2-results__option[role=group] > strong:hover {
         window.requestAnimationFrame(this._onAnimationFrame);
         if (this._doc.synth.recording) {
           let dirty = this._updateRecordedNotes();
-          dirty = this._updateRecordedBassNotes() ? true : dirty;
+          dirty = this._updateRecordedBassNotes() || dirty;
           if (dirty) {
             this._doc.notifier.notifyWatchers();
           }
@@ -36319,6 +36335,7 @@ li.select2-results__option[role=group] > strong:hover {
               this._lastNote = new Note2(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[4 /* liveInputChannel */]));
               this._lastNote.continuesLastPattern = noteStartPart == 0 && !this._pitchesChanged;
               this._lastNote.pitches.length = 0;
+              this._doc.synth.addRemoveLiveInputTone(this._recentlyAddedPitches, false, true);
               while (this._recentlyAddedPitches.length > 0) {
                 if (this._lastNote.pitches.length >= Config.maxChordSize) break;
                 const recentPitch = this._recentlyAddedPitches.shift();
@@ -36408,6 +36425,7 @@ li.select2-results__option[role=group] > strong:hover {
               this._lastBassNote = new Note2(-1, noteStartPart, noteEndPart, Config.noteSizeMax, this._doc.song.getChannelIsNoise(this._doc.synth.liveInputValues[5 /* liveBassInputChannel */]));
               this._lastBassNote.continuesLastPattern = noteStartPart == 0 && !this._bassPitchesChanged;
               this._lastBassNote.pitches.length = 0;
+              this._doc.synth.addRemoveLiveInputTone(this._recentlyAddedBassPitches, true, true);
               while (this._recentlyAddedBassPitches.length > 0) {
                 if (this._lastBassNote.pitches.length >= Config.maxChordSize) break;
                 const recentPitch = this._recentlyAddedBassPitches.shift();
