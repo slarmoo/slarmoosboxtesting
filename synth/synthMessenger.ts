@@ -4310,23 +4310,19 @@ export class Song {
                             customSampleUrls.push(url);
                             loadBuiltInSamples(0);
                         }
-                    }
-                    else if (url.toLowerCase() === "nintariboxsamples") {
+                    } else if (url.toLowerCase() === "nintariboxsamples") {
                         if (!willLoadNintariboxSamples) {
                             willLoadNintariboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(1);
                         }
-                    }
-                    else if (url.toLowerCase() === "mariopaintboxsamples") {
+                    } else if (url.toLowerCase() === "mariopaintboxsamples") {
                         if (!willLoadMarioPaintboxSamples) {
                             willLoadMarioPaintboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(2);
                         }
-                    }
-
-                    else {
+                    } else {
                         // UB version 2 URLs and below will be using the old syntax, so we do need to parse it in that case.
                         // UB version 3 URLs should only have the new syntax, though, unless the user has edited the URL manually.
                         const parseOldSyntax: boolean = beforeThree;
@@ -4395,6 +4391,7 @@ export class Song {
         let command: number;
         let useSlowerArpSpeed: boolean = false;
         let useFastTwoNoteArp: boolean = false;
+        let lastCommand: string = "none";
         while (charIndex < compressed.length) switch (command = compressed.charCodeAt(charIndex++)) {
             case SongTagCode.songTitle: {
                 // Length of song name string
@@ -6022,6 +6019,7 @@ export class Song {
             }
                 break;
             case SongTagCode.bars: {
+                lastCommand = "bars";
                 let subStringLength: number;
                 if (beforeThree && fromBeepBox) {
                     const channelIndex: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -6055,6 +6053,7 @@ export class Song {
                 charIndex += subStringLength;
             } break;
             case SongTagCode.patterns: {
+                lastCommand = "patterns";
                 let bitStringLength: number = 0;
                 let channelIndex: number;
                 let largerChords: boolean = !((beforeFour && fromJummBox) || fromBeepBox);
@@ -6499,7 +6498,7 @@ export class Song {
                 }
             } break;
             default: {
-                throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + compressed.substring(/*charIndex - 2*/0, charIndex));
+                throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + lastCommand + " " + compressed.substring(/*charIndex - 2*/0, charIndex));
             } break;
         }
 
@@ -6543,8 +6542,7 @@ export class Song {
             } else {
                 return Boolean(new URL(string));
             }
-        }
-        catch (x) {
+        } catch (x) {
             return false;
         }
     }
@@ -6629,8 +6627,7 @@ export class Song {
             } else {
                 parsedUrl = new URL(urlSliced);
             }
-        }
-        else {
+        } else {
             alert(url + " is not a valid url");
             return false;
         }
@@ -7553,23 +7550,19 @@ export class Song {
                             customSampleUrls.push(url);
                             loadBuiltInSamples(0);
                         }
-                    }
-                    else if (url.toLowerCase() === "nintariboxsamples") {
+                    } else if (url.toLowerCase() === "nintariboxsamples") {
                         if (!willLoadNintariboxSamples) {
                             willLoadNintariboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(1);
                         }
-                    }
-                    else if (url.toLowerCase() === "mariopaintboxsamples") {
+                    } else if (url.toLowerCase() === "mariopaintboxsamples") {
                         if (!willLoadMarioPaintboxSamples) {
                             willLoadMarioPaintboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(2);
                         }
-                    }
-
-                    else {
+                    } else {
                         // When EditorConfig.customSamples is saved in the json
                         // export, it should be using the new syntax, unless
                         // the user has manually modified the URL, so we don't
@@ -8244,7 +8237,7 @@ export class SynthMessenger {
         return (this.beat * Config.partsPerBeat + this.part);
     }
 
-    constructor(private readonly _isPlayer: boolean = false, song: Song | string | null = null) {
+    constructor(song: Song | string | null = null) {
         if (song != null) this.setSong(song);
         this.activateAudio();
     }
@@ -8311,7 +8304,7 @@ export class SynthMessenger {
         }
     }
 
-    private updateProcessorLocation() {
+    public updateProcessorLocation() {
         const songPositionMessage: SongPositionMessage = {
             flag: MessageFlag.songPosition,
             bar: this.bar,
@@ -8394,7 +8387,7 @@ export class SynthMessenger {
             this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
             this.samplesPerSecond = this.audioContext.sampleRate;
 
-            await this.audioContext.audioWorklet.addModule(this._isPlayer ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+            await this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
             this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
                 numberOfOutputs: 1,
                 outputChannelCount: [2],
@@ -8842,7 +8835,6 @@ export class SynthMessenger {
             // Clear all mod values, and set up temp variables for the time a mod would be set at.
             let latestModTimes: (number | null)[] = [];
             let latestModInsTimes: (number | null)[][][] = [];
-            //TODO: is filling with -1 the best solution?
             this.modValues = [];
             this.nextModValues = [];
             this.modInsValues = [];

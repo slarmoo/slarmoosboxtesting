@@ -21,5 +21,6 @@ npx terser \
 	--compress \
 	--define OFFLINE=false \
 	--define TESTING=true \
+	--define ISPLAYER=false \
 	--mangle \
 	--mangle-props regex="/^_.+/;"

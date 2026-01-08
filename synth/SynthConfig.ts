@@ -437,6 +437,7 @@ export function getLocalStorageItem<T>(key: string, defaultValue: T): T | string
 declare global {
     const OFFLINE: boolean; // for SB offline
     const TESTING: boolean; // for SB testing
+    const ISPLAYER: boolean; // for sample loading
     const getDirname: () => Promise<string>; // for SB offline
     const pathJoin: (...parts: string[]) => Promise<string>; // for SB offline
     const kicksample: number[];
@@ -528,7 +529,7 @@ declare global {
 
 function loadScript(url: string): Promise<void> {
     const result: Promise<void> = new Promise((resolve, reject) => {
-	if (!Config.willReloadForCustomSamples) {
+	if (!Config.willReloadForCustomSamples && document.body != undefined) {
 	    const script = document.createElement("script");
 	    script.src = url;
 	    document.head.appendChild(script);
@@ -548,6 +549,7 @@ export function loadBuiltInSamples(set: number): void {
     const defaultIndex: number = 0;
     const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
     const defaultSamples: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
+    console.log("here")
 
     if (set == 0) {
 	// Create chip waves with the wrong sound.
@@ -644,12 +646,12 @@ export function loadBuiltInSamples(set: number): void {
 	    sampleLoadingState.urlTable[chipWaveIndex] = "legacySamples";
 	}
 
-	loadScript("samples.js")
-	.then(() => loadScript("samples2.js"))
-	.then(() => loadScript("samples3.js"))
-	.then(() => loadScript("drumsamples.js"))
-	.then(() => loadScript("wario_samples.js"))
-	.then(() => loadScript("kirby_samples.js"))
+    loadScript(ISPLAYER ? "../samples.js" : "samples.js")
+    .then(() => loadScript(ISPLAYER ? "../samples2.js" : "samples2.js"))
+	.then(() => loadScript(ISPLAYER ? "../samples3.js" : "samples3.js"))
+    .then(() => loadScript(ISPLAYER ? "../drumsamples.js" : "drumsamples.js"))
+    .then(() => loadScript(ISPLAYER ? "../wario_samples.js" : "wario_samples.js"))
+    .then(() => loadScript(ISPLAYER ? "../kirby_samples.js" : "kirby_samples.js"))
 	.then(() => {
 	    // Now put the right sounds in there after everything
 	    // got loaded.
@@ -741,8 +743,7 @@ export function loadBuiltInSamples(set: number): void {
 	    }
 	});
 	//EditorConfig.presetCategories[EditorConfig.presetCategories.length] = {name: "Legacy Sample Presets", presets:  { name: "Earthbound O. Guitar", midiProgram: 80, settings: { "type": "chip", "eqFilter": [], "effects": [], "transition": "normal", "fadeInSeconds": 0, "fadeOutTicks": -1, "chord": "arpeggio", "wave": "paandorasbox overdrive", "unison": "none", "envelopes": [] } }, index: EditorConfig.presetCategories.length,};
-    }
-    else if (set == 1) {
+    } else if (set == 1) {
 	// Create chip waves with the wrong sound.
 	const chipWaves = [
 	    { name: "chronoperc1final", expression: 4.0, isSampled: true, isPercussion: true, extraSampleDetune: 0 },
@@ -796,8 +797,7 @@ export function loadBuiltInSamples(set: number): void {
 		chipWaveIndexOffset++;
 	    }
 	});
-    }
-    else if (set == 2) {
+    } else if (set == 2) {
 	// Create chip waves with the wrong sound.
 	const chipWaves = [
 	    { name: "cat", expression: 1, isSampled: true, isPercussion: false, extraSampleDetune: -3 },

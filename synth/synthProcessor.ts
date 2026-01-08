@@ -1,7 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Song } from "./synthMessenger"
-// import { events } from "../global/Events";
 import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, OscilloscopeMessage, SongPositionMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";

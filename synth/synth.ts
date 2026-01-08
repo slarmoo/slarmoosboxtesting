@@ -4,7 +4,6 @@ import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, Enve
 import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song, SequenceSettings } from "./synthMessenger"
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
-// import { events } from "../global/Events";
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
 import { xxHash32 } from "js-xxhash";
 import { LiveInputValues } from "./synthMessages";

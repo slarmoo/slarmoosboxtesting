@@ -93,7 +93,7 @@ async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOpt
 __name(startLoadingSample, "startLoadingSample");
 function loadScript(url) {
   const result = new Promise((resolve, reject) => {
-    if (!Config.willReloadForCustomSamples) {
+    if (!Config.willReloadForCustomSamples && define_document_default.body != void 0) {
       const script = define_document_default.createElement("script");
       script.src = url;
       define_document_default.head.appendChild(script);
@@ -110,6 +110,7 @@ function loadBuiltInSamples(set) {
   const defaultIndex = 0;
   const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
   const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
+  console.log("here");
   if (set == 0) {
     const chipWaves = [
       { name: "paandorasbox kick", expression: 4, isSampled: true, isPercussion: true, extraSampleDetune: 0 },
@@ -199,7 +200,7 @@ function loadBuiltInSamples(set) {
       sampleLoadingState.statusTable[chipWaveIndex] = 0 /* loading */;
       sampleLoadingState.urlTable[chipWaveIndex] = "legacySamples";
     }
-    loadScript("samples.js").then(() => loadScript("samples2.js")).then(() => loadScript("samples3.js")).then(() => loadScript("drumsamples.js")).then(() => loadScript("wario_samples.js")).then(() => loadScript("kirby_samples.js")).then(() => {
+    loadScript(ISPLAYER ? "../samples.js" : "samples.js").then(() => loadScript(ISPLAYER ? "../samples2.js" : "samples2.js")).then(() => loadScript(ISPLAYER ? "../samples3.js" : "samples3.js")).then(() => loadScript(ISPLAYER ? "../drumsamples.js" : "drumsamples.js")).then(() => loadScript(ISPLAYER ? "../wario_samples.js" : "wario_samples.js")).then(() => loadScript(ISPLAYER ? "../kirby_samples.js" : "kirby_samples.js")).then(() => {
       const chipWaveSamples = [
         centerWave(kicksample),
         centerWave(snaresample),
@@ -15349,6 +15350,7 @@ var Song = class _Song {
     let command;
     let useSlowerArpSpeed = false;
     let useFastTwoNoteArp = false;
+    let lastCommand = "none";
     while (charIndex < compressed.length) switch (command = compressed.charCodeAt(charIndex++)) {
       case 78 /* songTitle */:
         {
@@ -16872,6 +16874,7 @@ var Song = class _Song {
         break;
       case 98 /* bars */:
         {
+          lastCommand = "bars";
           let subStringLength;
           if (beforeThree && fromBeepBox) {
             const channelIndex = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -16907,6 +16910,7 @@ var Song = class _Song {
         break;
       case 112 /* patterns */:
         {
+          lastCommand = "patterns";
           let bitStringLength = 0;
           let channelIndex;
           let largerChords = !(beforeFour && fromJummBox || fromBeepBox);
@@ -17260,7 +17264,7 @@ var Song = class _Song {
         break;
       default:
         {
-          throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + compressed.substring(
+          throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + lastCommand + " " + compressed.substring(
             /*charIndex - 2*/
             0,
             charIndex
@@ -18747,8 +18751,7 @@ function discardInvalidPatternInstruments(instruments, song, channelIndex) {
 }
 __name(discardInvalidPatternInstruments, "discardInvalidPatternInstruments");
 var SynthMessenger = class {
-  constructor(_isPlayer = false, song = null) {
-    this._isPlayer = _isPlayer;
+  constructor(song = null) {
     this.samplesPerSecond = 44100;
     this.song = null;
     this.preferLowerLatency = false;
@@ -18989,7 +18992,7 @@ var SynthMessenger = class {
       const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
       this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
       this.samplesPerSecond = this.audioContext.sampleRate;
-      await this.audioContext.audioWorklet.addModule(this._isPlayer ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+      await this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
       this.workletNode = new AudioWorkletNode(this.audioContext, "synth-processor", {
         numberOfOutputs: 1,
         outputChannelCount: [2],

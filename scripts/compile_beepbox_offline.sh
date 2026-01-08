@@ -21,6 +21,8 @@ npx terser \
 	-o to_deploy/beepbox_editor.min.js \
 	--compress \
     --define OFFLINE=true \
+	--define TESTING=false \
+	--define ISPLAYER=false \
 	--mangle \
 	--mangle-props regex="/^_.+/;"
 
@@ -41,6 +43,8 @@ npx terser \
 	-o ./to_deploy/player/beepbox_player.min.js \
 	--compress \
     --define OFFLINE=true \
+	--define TESTING=false \
+	--define ISPLAYER=true \
 	--mangle \
 	--mangle-props regex="/^_.+/;"
 

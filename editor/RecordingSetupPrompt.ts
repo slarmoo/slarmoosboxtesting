@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config } from "../synth/SynthConfig";
-import { EditorConfig } from "./EditorConfig";
+import { ctrlName, ctrlSymbol } from "./DeviceConfig";
 import { SongDocument } from "./SongDocument";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
@@ -14,7 +14,7 @@ const { button, label, div, p, a, h2, input, select, option } = HTML;
 export class RecordingSetupPrompt implements Prompt {
     private readonly _keyboardMode: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ value: "useCapsLockForNotes" }, "simple shortcuts, use caps lock to play notes"),
-        option({ value: "pressControlForShortcuts" }, "simple notes, press " + EditorConfig.ctrlName + " for shortcuts"),
+        option({ value: "pressControlForShortcuts" }, "simple notes, press " + ctrlName + " for shortcuts"),
     );
     private readonly _keyboardLayout: HTMLSelectElement = select({ style: "width: 100%;" },
         option({ value: "wickiHayden" }, "Wicki-Hayden"),
@@ -42,7 +42,7 @@ export class RecordingSetupPrompt implements Prompt {
     public readonly container: HTMLDivElement = div({ class: "prompt noSelection recordingSetupPrompt", style: "width: 600px; text-align: right; max-height: 90%;" },
         h2({ style: "align-self: center;" }, "Note Recording Setup"),
         div({ style: "display: grid; overflow-y: auto; overflow-x: hidden; flex-shrink: 1;" },
-            p("UltraBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + EditorConfig.ctrlSymbol + "P)."),
+            p("UltraBox can record notes as you perform them. You can start recording by pressing Ctrl+Space (or " + ctrlSymbol + "P)."),
             label({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: center;" },
                 "Add ● record button next to ▶ play button:",
                 this._showRecordButton,
