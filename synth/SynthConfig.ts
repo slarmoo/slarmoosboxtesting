@@ -865,8 +865,7 @@ export function loadBuiltInSamples(set: number): void {
 		chipWaveIndexOffset++;
 	    }
 	});
-    }
-    else {
+    } else {
         console.log("invalid set of built-in samples");
     }
 }

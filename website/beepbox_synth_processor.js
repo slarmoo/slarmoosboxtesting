@@ -11680,6 +11680,51 @@ var Synth = class _Synth {
   }
 };
 
+// global/Events.ts
+var EventManager = class {
+  constructor() {
+    this.activeEvents = [];
+    this.listeners = {};
+    this.activeEvents = [];
+    this.listeners = {};
+  }
+  static {
+    __name(this, "EventManager");
+  }
+  raise(eventType, eventData, extraEventData) {
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    this.activeEvents.push(eventType);
+    for (let i = 0; i < this.listeners[eventType].length; i++) {
+      this.listeners[eventType][i](eventData, extraEventData);
+    }
+    this.activeEvents.pop();
+  }
+  listen(eventType, callback) {
+    if (this.listeners[eventType] == void 0) {
+      this.listeners[eventType] = [];
+    }
+    this.listeners[eventType].push(callback);
+  }
+  unlisten(eventType, callback) {
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    const lisen = this.listeners[eventType].indexOf(callback);
+    if (lisen != -1) {
+      this.listeners[eventType].splice(lisen, 1);
+    }
+  }
+  unlistenAll(eventType) {
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    this.listeners[eventType] = [];
+  }
+};
+var events = new EventManager();
+
 // synth/synthMessenger.ts
 function clamp2(min, max, val) {
   max = max - 1;
@@ -18702,7 +18747,8 @@ function discardInvalidPatternInstruments(instruments, song, channelIndex) {
 }
 __name(discardInvalidPatternInstruments, "discardInvalidPatternInstruments");
 var SynthMessenger = class {
-  constructor(song = null) {
+  constructor(_isPlayer = false, song = null) {
+    this._isPlayer = _isPlayer;
     this.samplesPerSecond = 44100;
     this.song = null;
     this.preferLowerLatency = false;
@@ -18753,11 +18799,6 @@ var SynthMessenger = class {
     this.loopBarEnd = -1;
     this.audioContext = null;
     this.workletNode = null;
-    //TODO: Update only when needed. Probably requires a rewrite of the change system...
-    // private update() {
-    //     requestAnimationFrame(() => this.update());
-    //     this.updateWorkletSong();
-    // }
     this.messageQueue = [];
     this.pushArray = new Uint16Array(1);
     this.exportProcessor = null;
@@ -18854,6 +18895,18 @@ var SynthMessenger = class {
       }
       case 9 /* isRecording */: {
         this.countInMetronome = event.data.countInMetronome;
+        break;
+      }
+      case 10 /* oscilloscope */: {
+        if (this.oscEnabled) {
+          if (this.oscRefreshEventTimer <= 0) {
+            events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+            this.oscRefreshEventTimer = 4;
+          } else {
+            this.oscRefreshEventTimer--;
+          }
+        }
+        break;
       }
     }
   }
@@ -18890,7 +18943,7 @@ var SynthMessenger = class {
       }
     }
     const updateMessage = {
-      flag: 10 /* updateSong */,
+      flag: 11 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18927,8 +18980,6 @@ var SynthMessenger = class {
       if (this.workletNode != null) this.deactivateAudio();
       const sabMessage = {
         flag: 7 /* sharedArrayBuffers */,
-        // livePitches: this.liveInputPitches,
-        // bassLivePitches: this.liveBassInputPitches,
         liveInputValues: this.liveInputValues,
         liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
         //add more here if needed
@@ -18938,7 +18989,7 @@ var SynthMessenger = class {
       const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
       this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
       this.samplesPerSecond = this.audioContext.sampleRate;
-      await this.audioContext.audioWorklet.addModule("beepbox_synth_processor.js");
+      await this.audioContext.audioWorklet.addModule(this._isPlayer ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
       this.workletNode = new AudioWorkletNode(this.audioContext, "synth-processor", {
         numberOfOutputs: 1,
         outputChannelCount: [2],
@@ -19711,7 +19762,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         this.synth.enableMetronome = event.data.enableMetronome;
         this.synth.countInMetronome = event.data.countInMetronome;
       }
-      case 10 /* updateSong */: {
+      case 11 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting);
       }
@@ -19742,6 +19793,12 @@ var SynthProcessor = class extends AudioWorkletProcessor {
     } catch (e) {
       console.log(e);
     }
+    const oscilloscopeMessage = {
+      flag: 10 /* oscilloscope */,
+      left: outputDataL,
+      right: outputDataR
+    };
+    this.sendMessage(oscilloscopeMessage);
     return true;
   }
 };

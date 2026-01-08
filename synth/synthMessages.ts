@@ -11,6 +11,7 @@ export enum MessageFlag {
     sharedArrayBuffers,
     setPrevBar,
     isRecording,
+    oscilloscope,
     updateSong,
 }
 
@@ -77,6 +78,12 @@ export interface IsRecordingMessage extends Message {
     isRecording: boolean,
     enableMetronome: boolean,
     countInMetronome: boolean
+}
+
+export interface OscilloscopeMessage extends Message {
+    flag: MessageFlag.oscilloscope,
+    left: Float32Array,
+    right: Float32Array
 }
 
 export interface UpdateSongMessage extends Message {

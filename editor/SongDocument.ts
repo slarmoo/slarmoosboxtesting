@@ -88,7 +88,7 @@ export class SongDocument {
             errorAlert(error);
         }
         songString = this.song.toBase64String();
-        this.synth = new SynthMessenger(this.song);
+        this.synth = new SynthMessenger(false, this.song);
         this.synth.volume = this._calcVolume();
         this.synth.anticipatePoorPerformance = isMobile;
 

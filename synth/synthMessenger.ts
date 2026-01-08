@@ -7,6 +7,7 @@ import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
+import { events } from "../global/Events";
 
 
 declare global {
@@ -8243,17 +8244,10 @@ export class SynthMessenger {
         return (this.beat * Config.partsPerBeat + this.part);
     }
 
-    constructor(song: Song | string | null = null) {
+    constructor(private readonly _isPlayer: boolean = false, song: Song | string | null = null) {
         if (song != null) this.setSong(song);
         this.activateAudio();
-        // this.update();
     }
-
-    //TODO: Update only when needed. Probably requires a rewrite of the change system...
-    // private update() {
-    //     requestAnimationFrame(() => this.update());
-    //     this.updateWorkletSong();
-    // }
 
     private messageQueue: Message[] = [];
 
@@ -8300,6 +8294,19 @@ export class SynthMessenger {
                 
             case MessageFlag.isRecording: {
                 this.countInMetronome = event.data.countInMetronome;
+                break;
+            }
+                
+            case MessageFlag.oscilloscope: {
+                if (this.oscEnabled) {
+                    if (this.oscRefreshEventTimer <= 0) {
+                        events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+                        this.oscRefreshEventTimer = 4; //oscilloscope refresh rate
+                    } else {
+                        this.oscRefreshEventTimer--;
+                    }
+                }
+                break;
             }
         }
     }
@@ -8376,8 +8383,6 @@ export class SynthMessenger {
             // make sure that the workletNode has access to the shared array buffers and the song
             const sabMessage: SendSharedArrayBuffers = {
                 flag: MessageFlag.sharedArrayBuffers,
-                // livePitches: this.liveInputPitches,
-                // bassLivePitches: this.liveBassInputPitches,
                 liveInputValues: this.liveInputValues,
                 liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
                 //add more here if needed
@@ -8389,7 +8394,7 @@ export class SynthMessenger {
             this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
             this.samplesPerSecond = this.audioContext.sampleRate;
 
-            await this.audioContext.audioWorklet.addModule("beepbox_synth_processor.js");
+            await this.audioContext.audioWorklet.addModule(this._isPlayer ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
             this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
                 numberOfOutputs: 1,
                 outputChannelCount: [2],

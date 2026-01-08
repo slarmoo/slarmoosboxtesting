@@ -20915,6 +20915,51 @@ li.select2-results__option[role=group] > strong:hover {
     }
   };
 
+  // global/Events.ts
+  var EventManager = class {
+    constructor() {
+      this.activeEvents = [];
+      this.listeners = {};
+      this.activeEvents = [];
+      this.listeners = {};
+    }
+    static {
+      __name(this, "EventManager");
+    }
+    raise(eventType, eventData, extraEventData) {
+      if (this.listeners[eventType] == void 0) {
+        return;
+      }
+      this.activeEvents.push(eventType);
+      for (let i = 0; i < this.listeners[eventType].length; i++) {
+        this.listeners[eventType][i](eventData, extraEventData);
+      }
+      this.activeEvents.pop();
+    }
+    listen(eventType, callback) {
+      if (this.listeners[eventType] == void 0) {
+        this.listeners[eventType] = [];
+      }
+      this.listeners[eventType].push(callback);
+    }
+    unlisten(eventType, callback) {
+      if (this.listeners[eventType] == void 0) {
+        return;
+      }
+      const lisen = this.listeners[eventType].indexOf(callback);
+      if (lisen != -1) {
+        this.listeners[eventType].splice(lisen, 1);
+      }
+    }
+    unlistenAll(eventType) {
+      if (this.listeners[eventType] == void 0) {
+        return;
+      }
+      this.listeners[eventType] = [];
+    }
+  };
+  var events = new EventManager();
+
   // synth/synthMessenger.ts
   function clamp2(min, max, val) {
     max = max - 1;
@@ -27937,7 +27982,8 @@ li.select2-results__option[role=group] > strong:hover {
   }
   __name(discardInvalidPatternInstruments, "discardInvalidPatternInstruments");
   var SynthMessenger = class {
-    constructor(song = null) {
+    constructor(_isPlayer = false, song = null) {
+      this._isPlayer = _isPlayer;
       this.samplesPerSecond = 44100;
       this.song = null;
       this.preferLowerLatency = false;
@@ -27988,11 +28034,6 @@ li.select2-results__option[role=group] > strong:hover {
       this.loopBarEnd = -1;
       this.audioContext = null;
       this.workletNode = null;
-      //TODO: Update only when needed. Probably requires a rewrite of the change system...
-      // private update() {
-      //     requestAnimationFrame(() => this.update());
-      //     this.updateWorkletSong();
-      // }
       this.messageQueue = [];
       this.pushArray = new Uint16Array(1);
       this.exportProcessor = null;
@@ -28089,6 +28130,18 @@ li.select2-results__option[role=group] > strong:hover {
         }
         case 9 /* isRecording */: {
           this.countInMetronome = event.data.countInMetronome;
+          break;
+        }
+        case 10 /* oscilloscope */: {
+          if (this.oscEnabled) {
+            if (this.oscRefreshEventTimer <= 0) {
+              events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+              this.oscRefreshEventTimer = 4;
+            } else {
+              this.oscRefreshEventTimer--;
+            }
+          }
+          break;
         }
       }
     }
@@ -28125,7 +28178,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
       }
       const updateMessage = {
-        flag: 10 /* updateSong */,
+        flag: 11 /* updateSong */,
         songSetting,
         channelIndex,
         instrumentIndex,
@@ -28162,8 +28215,6 @@ li.select2-results__option[role=group] > strong:hover {
         if (this.workletNode != null) this.deactivateAudio();
         const sabMessage = {
           flag: 7 /* sharedArrayBuffers */,
-          // livePitches: this.liveInputPitches,
-          // bassLivePitches: this.liveBassInputPitches,
           liveInputValues: this.liveInputValues,
           liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
           //add more here if needed
@@ -28173,7 +28224,7 @@ li.select2-results__option[role=group] > strong:hover {
         const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
         this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
         this.samplesPerSecond = this.audioContext.sampleRate;
-        await this.audioContext.audioWorklet.addModule("beepbox_synth_processor.js");
+        await this.audioContext.audioWorklet.addModule(this._isPlayer ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
         this.workletNode = new AudioWorkletNode(this.audioContext, "synth-processor", {
           numberOfOutputs: 1,
           outputChannelCount: [2],
@@ -37640,7 +37691,7 @@ li.select2-results__option[role=group] > strong:hover {
         errorAlert(error);
       }
       songString = this.song.toBase64String();
-      this.synth = new SynthMessenger(this.song);
+      this.synth = new SynthMessenger(false, this.song);
       this.synth.volume = this._calcVolume();
       this.synth.anticipatePoorPerformance = isMobile;
       let state = this._getHistoryState();
@@ -38374,7 +38425,7 @@ li.select2-results__option[role=group] > strong:hover {
     _exportTo(type) {
       this.thenExportTo = type;
       this.currentChunk = 0;
-      this.synth = new SynthMessenger(this._doc.song);
+      this.synth = new SynthMessenger(false, this._doc.song);
       if (type == "wav") {
         this.synth.samplesPerSecond = 48e3;
       } else if (type == "mp3") {
@@ -44518,7 +44569,6 @@ You should be redirected to the song at:<br /><br />
           this._scaleFlags[i]
         );
         scaleHolder.appendChild(this._scaleRows[i]);
-        console.log("new!");
       }
       this._okayButton.addEventListener("click", this._saveChanges);
       this._cancelButton.addEventListener("click", this._close);
@@ -51181,51 +51231,6 @@ You should be redirected to the song at:<br /><br />
     }
   };
 
-  // global/Events.ts
-  var EventManager = class {
-    constructor() {
-      this.activeEvents = [];
-      this.listeners = {};
-      this.activeEvents = [];
-      this.listeners = {};
-    }
-    static {
-      __name(this, "EventManager");
-    }
-    raise(eventType, eventData, extraEventData) {
-      if (this.listeners[eventType] == void 0) {
-        return;
-      }
-      this.activeEvents.push(eventType);
-      for (let i = 0; i < this.listeners[eventType].length; i++) {
-        this.listeners[eventType][i](eventData, extraEventData);
-      }
-      this.activeEvents.pop();
-    }
-    listen(eventType, callback) {
-      if (this.listeners[eventType] == void 0) {
-        this.listeners[eventType] = [];
-      }
-      this.listeners[eventType].push(callback);
-    }
-    unlisten(eventType, callback) {
-      if (this.listeners[eventType] == void 0) {
-        return;
-      }
-      const lisen = this.listeners[eventType].indexOf(callback);
-      if (lisen != -1) {
-        this.listeners[eventType].splice(lisen, 1);
-      }
-    }
-    unlistenAll(eventType) {
-      if (this.listeners[eventType] == void 0) {
-        return;
-      }
-      this.listeners[eventType] = [];
-    }
-  };
-  var events = new EventManager();
-
   // global/Oscilloscope.ts
   var oscilloscopeCanvas = class {
     constructor(canvas3, scale = 1) {
@@ -54000,7 +54005,7 @@ You should be redirected to the song at:<br /><br />
           SVG.path({ d: "M200-120v-40h560v40H200Zm185.384-150.769v-271.539H254.615L480-840l224.616 297.692h-130.77v271.539H385.384Zm40.001-40h108.461v-272.308h88.308L480-774.615 337.077-583.077h88.308v272.308ZM480-583.077Z", fill: "currentColor" })
         ])
       ]);
-      this._globalOscscope = new oscilloscopeCanvas(canvas2({ width: 144, height: 32, style: `border: 2px solid ${ColorConfig.uiWidgetBackground}; position: static;`, id: "oscilloscopeAll" }), 1);
+      this._globalOscscope = new oscilloscopeCanvas(canvas2({ width: 128, height: 32, style: `border: 2px solid ${ColorConfig.uiWidgetBackground}; position: static;`, id: "oscilloscopeAll" }), 1);
       this._globalOscscopeContainer = div26(
         { style: "height: 38px; margin-left: auto; margin-right: auto;" },
         this._globalOscscope.canvas

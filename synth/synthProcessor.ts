@@ -2,7 +2,7 @@
 
 import { Song } from "./synthMessenger"
 // import { events } from "../global/Events";
-import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, SongPositionMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, OscilloscopeMessage, SongPositionMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -133,15 +133,13 @@ export class SynthProcessor extends AudioWorkletProcessor {
             // this.deactivateAudio();
         }
 
-        //TODO: figure out how to properly handle this
-        // if (this.oscEnabled) {
-        //     if (this.oscRefreshEventTimer <= 0) {
-        //         events.raise("oscilloscopeUpdate", outputDataL, outputDataR);
-        //         this.oscRefreshEventTimer = 2;
-        //     } else {
-        //         this.oscRefreshEventTimer--;
-        //     }
-        // }
+        //TODO: have oscEnabled be threadside to avoid copying the arrays even when disabled?
+        const oscilloscopeMessage: OscilloscopeMessage = {
+            flag: MessageFlag.oscilloscope,
+            left: outputDataL,
+            right: outputDataR
+        }
+        this.sendMessage(oscilloscopeMessage);
 
         return true;
     }

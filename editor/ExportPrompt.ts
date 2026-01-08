@@ -314,7 +314,7 @@ export class ExportPrompt implements Prompt {
         // Batch the export operation
         this.thenExportTo = type;
         this.currentChunk = 0;
-        this.synth = new SynthMessenger(this._doc.song);
+        this.synth = new SynthMessenger(false, this._doc.song);
         if (type == "wav") {
             this.synth.samplesPerSecond = 48000; // Use professional video editing standard sample rate for .wav file export.
         }
