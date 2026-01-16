@@ -1865,7 +1865,7 @@ export class ChangePatternNumbers extends Change {
         if (maxValue > doc.song.patternsPerChannel) throw new Error("invalid pattern");
 
         for (let channelIndex: number = startChannel; channelIndex < startChannel + height; channelIndex++) {
-            for (let bar: number = startBar; bar < startBar + height; bar++) {
+            for (let bar: number = startBar; bar < startBar + width; bar++) {
                 let v: number = typeof value == "number" ? value : value[bar - startBar];
                 doc.song.channels[channelIndex].bars[bar] = v;
             }

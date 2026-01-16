@@ -8247,6 +8247,13 @@ export class SynthMessenger {
                 prevBar: null
             }
             this.sendMessage(prevBar);
+            const songPositionMessage: SongPositionMessage = {
+                flag: MessageFlag.songPosition,
+                bar: this.bar,
+                beat: this.beat,
+                part: this.part
+            }
+            this.sendMessage(songPositionMessage);
         }
     }
 

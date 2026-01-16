@@ -3300,8 +3300,10 @@ export class Synth {
                 if (this.tick == Config.ticksPerPart) {
                     this.tick = 0;
                     this.part++;
-                    this.liveInputValues[LiveInputValues.liveInputDuration]--;
-                    this.liveInputValues[LiveInputValues.liveBassInputDuration]--;
+                    if (this.liveInputValues) {
+                        this.liveInputValues[LiveInputValues.liveInputDuration]--;
+                        this.liveInputValues[LiveInputValues.liveBassInputDuration]--;
+                    }
                     // Decrement held modulator counters after each run
                     for (let i: number = 0; i < this.heldMods.length; i++) {
                         this.heldMods[i].holdFor--;
@@ -3425,6 +3427,7 @@ export class Synth {
     }
 
     private dequeueLivePitches() {
+        if (!this.liveInputPitchesOnOffRequests) return; //wait for sab to be sent
         const queuedTones: number = this.liveInputPitchesOnOffRequests.availableRead();
         if (queuedTones > 0) {
             const vals: Uint16Array = new Uint16Array(queuedTones)
@@ -3468,7 +3471,7 @@ export class Synth {
             let filteredBassPitches: BeepboxSet = bassPitches;
             if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
 
-            if (this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel]) && filteredPitches.size > 0) {
+            if (filteredPitches.size > 0 && this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel])) {
                 const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
                 if (!this.song?.patternInstruments || pattern?.instruments.indexOf(instrumentIndex) != -1) {
                     const instrument: Instrument = channel.instruments[instrumentIndex];
@@ -3534,7 +3537,7 @@ export class Synth {
                 }
             }
 
-            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel]) && filteredBassPitches.size > 0) {
+            if (filteredBassPitches.size > 0 && this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel])) {
                 const pattern: Pattern | null = song.getPattern(channelIndex, this.bar);
                 if (pattern?.instruments.indexOf(instrumentIndex) != -1) {
 
@@ -3607,16 +3610,17 @@ export class Synth {
 
             this.clearTempMatchedPitchTones(toneCount, instrumentState);
         }
+        if (this.liveInputValues) {
+            this.liveInputValues[LiveInputValues.liveInputStarted] = 0;
+            this.liveInputValues[LiveInputValues.liveBassInputStarted] = 0;
 
-        this.liveInputValues[LiveInputValues.liveInputStarted] = 0;
-        this.liveInputValues[LiveInputValues.liveBassInputStarted] = 0;
+            if (this.liveInputValues[LiveInputValues.liveInputDuration] <= 0) {
+                this.liveInputPitches.clear();
+            }
 
-        if (this.liveInputValues[LiveInputValues.liveInputDuration] <= 0) {
-            this.liveInputPitches.clear();
-        }
-
-        if (this.liveInputValues[LiveInputValues.liveBassInputDuration] <= 0) {
-            this.liveBassInputPitches.clear();
+            if (this.liveInputValues[LiveInputValues.liveBassInputDuration] <= 0) {
+                this.liveBassInputPitches.clear();
+            }
         }
     }
 
@@ -4783,7 +4787,6 @@ export class Synth {
 
                 let amplitudeStart: number = instrument.operators[i].amplitude;
                 let amplitudeEnd: number = instrument.operators[i].amplitude;
-                console.log(i, instrument.operators[i])
                 if (i < 4) {
                     if (this.isModActive(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex)) {
                         amplitudeStart *= this.getModValue(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex, false) / 15.0;
