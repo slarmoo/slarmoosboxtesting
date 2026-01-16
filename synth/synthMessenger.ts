@@ -7134,6 +7134,7 @@ export class Song {
                     case InstrumentSettings.envelopes:
                         //hmm... I guess I could send over the whole envelope...
                         //I probably shouldn't though
+                        if (!instrument.envelopes[settingIndex!]) instrument.envelopes[settingIndex!] = new EnvelopeSettings(instrument.isNoiseInstrument);
                         instrument.envelopes[settingIndex!].fromJsonObject(data, "slarmoosbox");
                         break;
                     case InstrumentSettings.fadeIn:
@@ -7143,6 +7144,10 @@ export class Song {
                         instrument.fadeOut = numberData;
                         break;
                     case InstrumentSettings.envelopeCount:
+                        while (instrument.envelopeCount < numberData) {
+                            instrument.envelopes[instrument.envelopeCount] = new EnvelopeSettings(instrument.isNoiseInstrument);
+                            instrument.envelopeCount++;
+                        }
                         instrument.envelopeCount = numberData;
                         break;
                     case InstrumentSettings.transition:
@@ -7363,12 +7368,28 @@ export class Song {
                         instrument.customChipWaveIntegral = data as Float32Array;
                         break;
                     case InstrumentSettings.operators:
-                        // instrument.operators[settingIndex!] = new Operator(settingIndex!)
+                        instrument.operators[settingIndex!] = new Operator(settingIndex!)
                         instrument.operators[settingIndex!].frequency = data.frequency;
                         instrument.operators[settingIndex!].amplitude = data.amplitude;
                         instrument.operators[settingIndex!].waveform = data.waveform;
                         instrument.operators[settingIndex!].pulseWidth = data.pulseWidth;
                         break;
+                    // case InstrumentSettings.operatorFrequency:
+                    //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+                    //     instrument.operators[settingIndex!].frequency = numberData;
+                    //     break;
+                    // case InstrumentSettings.operatorAmplitude:
+                    //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+                    //     instrument.operators[settingIndex!].amplitude = numberData;
+                    //     break;
+                    // case InstrumentSettings.operatorWaveform:
+                    //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+                    //     instrument.operators[settingIndex!].waveform = numberData;
+                    //     break;
+                    // case InstrumentSettings.operatorPulseWidth:
+                    //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+                    //     instrument.operators[settingIndex!].pulseWidth = numberData;
+                    //     break;
                     case InstrumentSettings.spectrumWave:
                         instrument.spectrumWave.spectrum = data as number[];
                         instrument.spectrumWave.markCustomWaveDirty();
@@ -8160,7 +8181,6 @@ export class SynthMessenger {
     private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch)
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array)
     public loopRepeatCount: number = -1;
-    public volume: number = 1.0;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
     public enableMetronome: boolean = false;

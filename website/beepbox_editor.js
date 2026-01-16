@@ -11214,7 +11214,8 @@ li.select2-results__option[role=group] > strong:hover {
         MessageFlag[MessageFlag["setPrevBar"] = 8] = "setPrevBar";
         MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
         MessageFlag[MessageFlag["oscilloscope"] = 10] = "oscilloscope";
-        MessageFlag[MessageFlag["updateSong"] = 11] = "updateSong";
+        MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
+        MessageFlag[MessageFlag["updateSong"] = 12] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -16279,6 +16280,7 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                     let amplitudeStart = instrument.operators[i].amplitude;
                     let amplitudeEnd = instrument.operators[i].amplitude;
+                    console.log(i, instrument.operators[i]);
                     if (i < 4) {
                         if (this.isModActive(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex)) {
                             amplitudeStart *= this.getModValue(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex, false) / 15.0;
@@ -16295,8 +16297,8 @@ li.select2-results__option[role=group] > strong:hover {
                     const amplitudeCurveEnd = Synth.operatorAmplitudeCurve(amplitudeEnd);
                     const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                     const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-                    let expressionStart = amplitudeMultStart * unisonExpression;
-                    let expressionEnd = amplitudeMultEnd * unisonExpression;
+                    let expressionStart = amplitudeMultStart * unisonExpression / 1.4;
+                    let expressionEnd = amplitudeMultEnd * unisonExpression / 1.4;
                     if (i < carrierCount) {
                         let pitchExpressionStart;
                         if (tone.prevPitchExpressions[i] != null) {
@@ -25871,6 +25873,8 @@ li.select2-results__option[role=group] > strong:hover {
                             instrument.tmpNoteFilterEnd = null;
                             break;
                         case InstrumentSettings.envelopes:
+                            if (!instrument.envelopes[settingIndex])
+                                instrument.envelopes[settingIndex] = new EnvelopeSettings(instrument.isNoiseInstrument);
                             instrument.envelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
                             break;
                         case InstrumentSettings.fadeIn:
@@ -25880,6 +25884,10 @@ li.select2-results__option[role=group] > strong:hover {
                             instrument.fadeOut = numberData;
                             break;
                         case InstrumentSettings.envelopeCount:
+                            while (instrument.envelopeCount < numberData) {
+                                instrument.envelopes[instrument.envelopeCount] = new EnvelopeSettings(instrument.isNoiseInstrument);
+                                instrument.envelopeCount++;
+                            }
                             instrument.envelopeCount = numberData;
                             break;
                         case InstrumentSettings.transition:
@@ -26098,6 +26106,7 @@ li.select2-results__option[role=group] > strong:hover {
                             instrument.customChipWaveIntegral = data;
                             break;
                         case InstrumentSettings.operators:
+                            instrument.operators[settingIndex] = new Operator(settingIndex);
                             instrument.operators[settingIndex].frequency = data.frequency;
                             instrument.operators[settingIndex].amplitude = data.amplitude;
                             instrument.operators[settingIndex].waveform = data.waveform;
@@ -26866,7 +26875,6 @@ li.select2-results__option[role=group] > strong:hover {
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
             this.loopRepeatCount = -1;
-            this.volume = 1.0;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
             this.enableMetronome = false;
@@ -36004,7 +36012,11 @@ li.select2-results__option[role=group] > strong:hover {
             }
             songString = this.song.toBase64String();
             this.synth = new SynthMessenger(this.song);
-            this.synth.volume = this._calcVolume();
+            const synthVolumeMessage = {
+                flag: MessageFlag.synthVolume,
+                volume: this._calcVolume()
+            };
+            this.synth.sendMessage(synthVolumeMessage);
             this.synth.anticipatePoorPerformance = isMobile;
             let state = this._getHistoryState();
             if (state == null) {
@@ -36175,7 +36187,11 @@ li.select2-results__option[role=group] > strong:hover {
         setVolume(val) {
             this.prefs.volume = val;
             this.prefs.save();
-            this.synth.volume = this._calcVolume();
+            const synthVolumeMessage = {
+                flag: MessageFlag.synthVolume,
+                volume: this._calcVolume()
+            };
+            this.synth.sendMessage(synthVolumeMessage);
         }
         _calcVolume() {
             return Math.min(1.0, Math.pow(this.prefs.volume / 50.0, 0.5)) * Math.pow(2.0, (this.prefs.volume - 75.0) / 25.0);

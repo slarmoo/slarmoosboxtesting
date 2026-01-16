@@ -5,6 +5,7 @@ import { ColorConfig } from "../editor/ColorConfig";
 import { NotePin, Note, Pattern, Instrument, Channel, SynthMessenger } from "../synth/synthMessenger";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
+import { SynthVolumeMessage, MessageFlag } from "../synth/synthMessages";
 
 const {a, button, div, h1, input, canvas} = HTML;
 const {svg, circle, rect, path} = SVG;
@@ -478,7 +479,11 @@ function onTimelineCursorUp(): void {
 
 function setSynthVolume(): void {
 	const volume: number = +volumeSlider.value;
-	synth.volume = Math.min(1.0, Math.pow(volume / 50.0, 0.5)) * Math.pow(2.0, (volume - 75.0) / 25.0);
+	const synthVolumeMessage: SynthVolumeMessage = {
+		flag: MessageFlag.synthVolume,
+		volume: Math.min(1.0, Math.pow(volume / 50.0, 0.5)) * Math.pow(2.0, (volume - 75.0) / 25.0)
+	};
+	synth.sendMessage(synthVolumeMessage);
 }
 
 function renderPlayhead(): void {

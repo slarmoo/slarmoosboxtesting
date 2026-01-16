@@ -8681,6 +8681,7 @@ var Synth = class _Synth {
         }
         let amplitudeStart = instrument.operators[i].amplitude;
         let amplitudeEnd = instrument.operators[i].amplitude;
+        console.log(i, instrument.operators[i]);
         if (i < 4) {
           if (this.isModActive(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex)) {
             amplitudeStart *= this.getModValue(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex, false) / 15;
@@ -8696,8 +8697,8 @@ var Synth = class _Synth {
         const amplitudeCurveEnd = _Synth.operatorAmplitudeCurve(amplitudeEnd);
         const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
         const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-        let expressionStart2 = amplitudeMultStart * unisonExpression;
-        let expressionEnd2 = amplitudeMultEnd * unisonExpression;
+        let expressionStart2 = amplitudeMultStart * unisonExpression / 1.4;
+        let expressionEnd2 = amplitudeMultEnd * unisonExpression / 1.4;
         if (i < carrierCount) {
           let pitchExpressionStart;
           if (tone.prevPitchExpressions[i] != null) {
@@ -17853,6 +17854,7 @@ var Song = class _Song {
             instrument.tmpNoteFilterEnd = null;
             break;
           case 21 /* envelopes */:
+            if (!instrument.envelopes[settingIndex]) instrument.envelopes[settingIndex] = new EnvelopeSettings2(instrument.isNoiseInstrument);
             instrument.envelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
             break;
           case 22 /* fadeIn */:
@@ -17862,6 +17864,10 @@ var Song = class _Song {
             instrument.fadeOut = numberData;
             break;
           case 24 /* envelopeCount */:
+            while (instrument.envelopeCount < numberData) {
+              instrument.envelopes[instrument.envelopeCount] = new EnvelopeSettings2(instrument.isNoiseInstrument);
+              instrument.envelopeCount++;
+            }
             instrument.envelopeCount = numberData;
             break;
           case 25 /* transition */:
@@ -18080,11 +18086,28 @@ var Song = class _Song {
             instrument.customChipWaveIntegral = data;
             break;
           case 91 /* operators */:
+            instrument.operators[settingIndex] = new Operator(settingIndex);
             instrument.operators[settingIndex].frequency = data.frequency;
             instrument.operators[settingIndex].amplitude = data.amplitude;
             instrument.operators[settingIndex].waveform = data.waveform;
             instrument.operators[settingIndex].pulseWidth = data.pulseWidth;
             break;
+          // case InstrumentSettings.operatorFrequency:
+          //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+          //     instrument.operators[settingIndex!].frequency = numberData;
+          //     break;
+          // case InstrumentSettings.operatorAmplitude:
+          //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+          //     instrument.operators[settingIndex!].amplitude = numberData;
+          //     break;
+          // case InstrumentSettings.operatorWaveform:
+          //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+          //     instrument.operators[settingIndex!].waveform = numberData;
+          //     break;
+          // case InstrumentSettings.operatorPulseWidth:
+          //     if (!instrument.operators[settingIndex!]) instrument.operators[settingIndex!] = new Operator(settingIndex!);
+          //     instrument.operators[settingIndex!].pulseWidth = numberData;
+          //     break;
           case 92 /* spectrumWave */:
             instrument.spectrumWave.spectrum = data;
             instrument.spectrumWave.markCustomWaveDirty();
@@ -18775,7 +18798,6 @@ var SynthMessenger = class {
     this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
     this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
     this.loopRepeatCount = -1;
-    this.volume = 1;
     this.oscRefreshEventTimer = 0;
     this.oscEnabled = true;
     this.enableMetronome = false;
@@ -18946,7 +18968,7 @@ var SynthMessenger = class {
       }
     }
     const updateMessage = {
-      flag: 11 /* updateSong */,
+      flag: 12 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -19764,10 +19786,16 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         this.synth.isRecording = event.data.isRecording;
         this.synth.enableMetronome = event.data.enableMetronome;
         this.synth.countInMetronome = event.data.countInMetronome;
+        break;
       }
-      case 11 /* updateSong */: {
+      case 11 /* synthVolume */: {
+        this.synth.volume = event.data.volume;
+        break;
+      }
+      case 12 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
-        this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting);
+        this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
+        break;
       }
     }
   }

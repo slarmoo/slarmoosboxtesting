@@ -4783,6 +4783,7 @@ export class Synth {
 
                 let amplitudeStart: number = instrument.operators[i].amplitude;
                 let amplitudeEnd: number = instrument.operators[i].amplitude;
+                console.log(i, instrument.operators[i])
                 if (i < 4) {
                     if (this.isModActive(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex)) {
                         amplitudeStart *= this.getModValue(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex, false) / 15.0;
@@ -4800,8 +4801,8 @@ export class Synth {
                 const amplitudeMultStart: number = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                 const amplitudeMultEnd: number = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
 
-                let expressionStart: number = amplitudeMultStart * unisonExpression;
-                let expressionEnd: number = amplitudeMultEnd * unisonExpression;
+                let expressionStart: number = amplitudeMultStart * unisonExpression / 1.4;
+                let expressionEnd: number = amplitudeMultEnd * unisonExpression / 1.4;
 
 
                 if (i < carrierCount) {

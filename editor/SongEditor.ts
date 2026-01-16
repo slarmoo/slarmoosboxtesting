@@ -4502,8 +4502,7 @@ export class SongEditor {
 
             if (changedPatterns)
                 this._trackEditor.render();
-        }
-        else {
+        } else {
             this.doc.setVolume(Number(this._volumeSlider.input.value));
             if (this.doc.recordingModulators) {
                 this.doc.recordingModulators = false;

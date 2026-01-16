@@ -2282,7 +2282,8 @@ var beepbox = (function (exports) {
         MessageFlag[MessageFlag["setPrevBar"] = 8] = "setPrevBar";
         MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
         MessageFlag[MessageFlag["oscilloscope"] = 10] = "oscilloscope";
-        MessageFlag[MessageFlag["updateSong"] = 11] = "updateSong";
+        MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
+        MessageFlag[MessageFlag["updateSong"] = 12] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -9251,6 +9252,8 @@ var beepbox = (function (exports) {
                             instrument.tmpNoteFilterEnd = null;
                             break;
                         case InstrumentSettings.envelopes:
+                            if (!instrument.envelopes[settingIndex])
+                                instrument.envelopes[settingIndex] = new EnvelopeSettings(instrument.isNoiseInstrument);
                             instrument.envelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
                             break;
                         case InstrumentSettings.fadeIn:
@@ -9260,6 +9263,10 @@ var beepbox = (function (exports) {
                             instrument.fadeOut = numberData;
                             break;
                         case InstrumentSettings.envelopeCount:
+                            while (instrument.envelopeCount < numberData) {
+                                instrument.envelopes[instrument.envelopeCount] = new EnvelopeSettings(instrument.isNoiseInstrument);
+                                instrument.envelopeCount++;
+                            }
                             instrument.envelopeCount = numberData;
                             break;
                         case InstrumentSettings.transition:
@@ -9478,6 +9485,7 @@ var beepbox = (function (exports) {
                             instrument.customChipWaveIntegral = data;
                             break;
                         case InstrumentSettings.operators:
+                            instrument.operators[settingIndex] = new Operator(settingIndex);
                             instrument.operators[settingIndex].frequency = data.frequency;
                             instrument.operators[settingIndex].amplitude = data.amplitude;
                             instrument.operators[settingIndex].waveform = data.waveform;
@@ -10246,7 +10254,6 @@ var beepbox = (function (exports) {
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
             this.loopRepeatCount = -1;
-            this.volume = 1.0;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
             this.enableMetronome = false;
@@ -15750,6 +15757,7 @@ var beepbox = (function (exports) {
                     }
                     let amplitudeStart = instrument.operators[i].amplitude;
                     let amplitudeEnd = instrument.operators[i].amplitude;
+                    console.log(i, instrument.operators[i]);
                     if (i < 4) {
                         if (this.isModActive(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex)) {
                             amplitudeStart *= this.getModValue(Config.modulators.dictionary["fm slider 1"].index + i, channelIndex, tone.instrumentIndex, false) / 15.0;
@@ -15766,8 +15774,8 @@ var beepbox = (function (exports) {
                     const amplitudeCurveEnd = Synth.operatorAmplitudeCurve(amplitudeEnd);
                     const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                     const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-                    let expressionStart = amplitudeMultStart * unisonExpression;
-                    let expressionEnd = amplitudeMultEnd * unisonExpression;
+                    let expressionStart = amplitudeMultStart * unisonExpression / 1.4;
+                    let expressionEnd = amplitudeMultEnd * unisonExpression / 1.4;
                     if (i < carrierCount) {
                         let pitchExpressionStart;
                         if (tone.prevPitchExpressions[i] != null) {

@@ -89,10 +89,16 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.synth.isRecording = event.data.isRecording;
                 this.synth.enableMetronome = event.data.enableMetronome;
                 this.synth.countInMetronome = event.data.countInMetronome;
+                break;
+            }
+            case MessageFlag.synthVolume: {
+                this.synth.volume = event.data.volume;
+                break;
             }
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();
-                this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting)
+                this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
+                break;
             }
         }
     }

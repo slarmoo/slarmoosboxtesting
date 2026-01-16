@@ -12,6 +12,7 @@ export enum MessageFlag {
     setPrevBar,
     isRecording,
     oscilloscope,
+    synthVolume,
     updateSong,
 }
 
@@ -84,6 +85,11 @@ export interface OscilloscopeMessage extends Message {
     flag: MessageFlag.oscilloscope,
     left: Float32Array,
     right: Float32Array
+}
+
+export interface SynthVolumeMessage extends Message {
+    flag: MessageFlag.synthVolume,
+    volume: number
 }
 
 export interface UpdateSongMessage extends Message {
@@ -232,6 +238,10 @@ export enum InstrumentSettings {
     customChipWave,
     customChipWaveIntegral,
     operators,
+    // operatorFrequency,
+    // operatorAmplitude, 
+    // operatorWaveform,
+    // operatorPulseWidth,
     spectrumWave,
     harmonicsWave,
     drumsetEnvelopes,

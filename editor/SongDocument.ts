@@ -12,6 +12,7 @@ import { Preferences } from "./Preferences";
 import { Change } from "./Change";
 import { ChangeNotifier } from "./ChangeNotifier";
 import { ChangeSong, setDefaultInstruments, discardInvalidPatternInstruments, ChangeHoldingModRecording } from "./changes";
+import { MessageFlag, SynthVolumeMessage } from "../synth/synthMessages";
 
 interface HistoryState {
     canUndo: boolean;
@@ -89,7 +90,11 @@ export class SongDocument {
         }
         songString = this.song.toBase64String();
         this.synth = new SynthMessenger(this.song);
-        this.synth.volume = this._calcVolume();
+        const synthVolumeMessage: SynthVolumeMessage = {
+            flag: MessageFlag.synthVolume,
+            volume: this._calcVolume()
+        };
+        this.synth.sendMessage(synthVolumeMessage);
         this.synth.anticipatePoorPerformance = isMobile;
 
         let state: HistoryState | null = this._getHistoryState();
@@ -436,7 +441,11 @@ export class SongDocument {
     public setVolume(val: number): void {
         this.prefs.volume = val;
         this.prefs.save();
-        this.synth.volume = this._calcVolume();
+        const synthVolumeMessage: SynthVolumeMessage = {
+            flag: MessageFlag.synthVolume,
+            volume: this._calcVolume()
+        };
+        this.synth.sendMessage(synthVolumeMessage);
     }
 
     private _calcVolume(): number {
