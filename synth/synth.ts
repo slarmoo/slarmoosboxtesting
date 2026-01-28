@@ -2287,7 +2287,7 @@ export class Synth {
         // Don't bother to generate the drum waves unless the song actually
         // uses them, since they may require a lot of computation.
         var dummyArray = new Float32Array(1);
-        if (!this.tempMonoInstrumentSampleBuffer) this.tempMonoInstrumentSampleBuffer = new Float32Array(1);
+        // if (!this.tempMonoInstrumentSampleBuffer) this.tempMonoInstrumentSampleBuffer = new Float32Array(1);
         if (song != null) {
             this.syncSongState();
             const samplesPerTick: number = this.getSamplesPerTick();
@@ -2302,8 +2302,8 @@ export class Synth {
                     instrumentState.arpTime = 0;
                     instrumentState.updateWaves(instrument, this.samplesPerSecond);
                     instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick);
-                    instrumentState.effects = instrument.effects;
-                    Synth.effectsSynth(this, dummyArray, dummyArray, 0, 1, instrumentState);
+                    // instrumentState.effects = instrument.effects;
+                    // Synth.effectsSynth(this, dummyArray, dummyArray, 0, 1, instrumentState);
                 }
 
             }
@@ -4559,7 +4559,6 @@ export class Synth {
         if (!effectsIncludeNoteFilter(instrument.effects)) {
             tone.noteFilterCount = 0;
         } else {
-
             const noteAllFreqsEnvelopeStart: number = envelopeStarts[EnvelopeComputeIndex.noteFilterAllFreqs];
             const noteAllFreqsEnvelopeEnd: number = envelopeEnds[EnvelopeComputeIndex.noteFilterAllFreqs];
 
@@ -5443,25 +5442,25 @@ export class Synth {
             return Synth.fmSynthFunctionCache[fingerprint];
         } else if (instrument.type == InstrumentType.chip) {
             if (instrument.isUsingAdvancedLoopControls) {
-                return Synth.loopableChipSynth;
+                return Synth.loopableChipSynth(instrument);
             }
-            return Synth.chipSynth;
+            return Synth.chipSynth(instrument);
         } else if (instrument.type == InstrumentType.customChipWave) {
-            return Synth.chipSynth;
+            return Synth.chipSynth(instrument);
         } else if (instrument.type == InstrumentType.harmonics) {
-            return Synth.harmonicsSynth;
+            return Synth.harmonicsSynth(instrument);
         } else if (instrument.type == InstrumentType.pwm) {
-            return Synth.pulseWidthSynth;
+            return Synth.pulseWidthSynth(instrument);
         } else if (instrument.type == InstrumentType.supersaw) {
-            return Synth.supersawSynth;
+            return Synth.supersawSynth(instrument);
         } else if (instrument.type == InstrumentType.pickedString) {
-            return Synth.pickedStringSynth;
+            return Synth.pickedStringSynth(instrument);
         } else if (instrument.type == InstrumentType.noise) {
-            return Synth.noiseSynth;
+            return Synth.noiseSynth(instrument);
         } else if (instrument.type == InstrumentType.spectrum) {
-            return Synth.spectrumSynth;
+            return Synth.spectrumSynth(instrument);
         } else if (instrument.type == InstrumentType.drumset) {
-            return Synth.drumsetSynth;
+            return Synth.drumsetSynth(instrument);
         } else if (instrument.type == InstrumentType.mod) {
             return Synth.modSynth;
         } else if (instrument.type == InstrumentType.fm6op) {
@@ -5535,19 +5534,18 @@ export class Synth {
         }
         return x;
     }
-    static loopableChipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    static loopableChipSynth(instrument: Instrument): Function {
         // @TODO:
         // - Longer declicking? This is more difficult than I thought.
         //   When determining this automatically is difficult (or the input
         //   samples are expected to vary too much), this is left up to the
         //   user.
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let chipFunction: Function = Synth.loopableChipFunctionCache[instrumentState.unisonVoices];
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let chipFunction: Function = Synth.loopableChipFunctionCache[instrument.unisonVoices];
         if (chipFunction == undefined) {
-            let chipSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
-
-
-            chipSource += `
+            //TODO Pull out the chipwave loop mode and cache based on that as well
+            let chipSource: string = `return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {
+            
             const aliases = (effectsIncludeDistortion(instrumentState.effects) && instrumentState.aliases);
             // const aliases = false;
             const data = synth.tempMonoInstrumentSampleBuffer;
@@ -5557,14 +5555,13 @@ export class Synth {
 
             let chipWaveLoopEnd = Math.max(0, Math.min(waveLength, instrumentState.chipWaveLoopEnd));
             let chipWaveLoopStart = Math.max(0, Math.min(chipWaveLoopEnd - 1, instrumentState.chipWaveLoopStart));
-            `
+            
             // @TODO: This is where to set things up for the release loop mode.
             // const ticksSinceReleased = tone.ticksSinceReleased;
             // if (ticksSinceReleased > 0) {
             //     chipWaveLoopStart = 0;
             //     chipWaveLoopEnd = waveLength - 1;
             // }
-            chipSource += `
             let chipWaveLoopLength = chipWaveLoopEnd - chipWaveLoopStart;
             if (chipWaveLoopLength < 2) {
                 chipWaveLoopStart = 0;
@@ -5575,84 +5572,39 @@ export class Synth {
             const chipWavePlayBackwards = instrumentState.chipWavePlayBackwards;
             const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
             if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
-            `
-            for (let i: number = 1; i < voiceCount; i++) {
-                chipSource += `
-                if (instrumentState.unisonVoices <= #)
-                    tone.phases[#] = tone.phases[#-1];
-                `.replaceAll("#", i + "");
+                if (instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[#-1];
             }
-            chipSource += `
-            }`
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                let phaseDelta# = tone.phaseDeltas[#] * waveLength;
-                let direction# = tone.directions[#];
-                let chipWaveCompletion# = tone.chipWaveCompletions[#];
-
-                `.replaceAll("#", i + "");
-            }
-
-            chipSource += `
+            let phaseDelta# = tone.phaseDeltas[#] * waveLength;
+            let direction# = tone.directions[#];
+            let chipWaveCompletion# = tone.chipWaveCompletions[#];
             if (chipWaveLoopMode === 3 || chipWaveLoopMode === 2 || chipWaveLoopMode === 0) {
                 // If playing once or looping, we force the correct direction,
                 // since it shouldn't really change. This is mostly so that if
                 // the mode is changed midway through playback, it won't get
                 // stuck on the wrong direction.
-                if (!chipWavePlayBackwards) {`
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                        direction# = 1;
-                        `.replaceAll("#", i + "");
-            }
-            chipSource += `} else {`
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                        direction# = -1;
-                        `.replaceAll("#", i + "");
-            }
-            chipSource += `
+                if (!chipWavePlayBackwards) {
+                    direction# = 1;
+                } else {
+                    direction# = -1;
                 }
             }
-            if (chipWaveLoopMode === 0 || chipWaveLoopMode === 1) {`
-            // If looping or ping-ponging, we clear the completion status,
-            // as it's not relevant anymore. This is mostly so that if the
-            // mode is changed midway through playback, it won't get stuck
-            // on zero volume.
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                    chipWaveCompletion# = 0;
-                    `.replaceAll("#", i + "");
-            }
-            chipSource += `    
+            if (chipWaveLoopMode === 0 || chipWaveLoopMode === 1) {
+                chipWaveCompletion# = 0;  
             }
             
             const chipWaveCompletionFadeLength = 1000;
             let expression = +tone.expression;
             const expressionDelta = +tone.expressionDelta;
-            `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                let lastWave# = tone.chipWaveCompletionsLastWave[#];
-                const phaseDeltaScale# = +tone.phaseDeltaScales[#];
-                let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
-                let prevWaveIntegral# = 0;
-
-                `.replaceAll("#", i + "");
-            }
-            chipSource += `
+            let lastWave# = tone.chipWaveCompletionsLastWave[#];
+            const phaseDeltaScale# = +tone.phaseDeltaScales[#];
+            let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
+            let prevWaveIntegral# = 0;
             if (!aliases) {
-            `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                    const phase#Int = Math.floor(phase#);
-                    const index# = Synth.wrap(phase#Int, waveLength);
-                    const phaseRatio# = phase# - phase#Int;
-                    prevWaveIntegral# = +wave[index#];
-                    prevWaveIntegral# += (wave[Synth.wrap(index# + 1, waveLength)] - prevWaveIntegral#) * phaseRatio#;
-                    `.replaceAll("#", i + "");
-            }
-            chipSource += `
+                const phase#Int = Math.floor(phase#);
+                const index# = Synth.wrap(phase#Int, waveLength);
+                const phaseRatio# = phase# - phase#Int;
+                prevWaveIntegral# = +wave[index#];
+                prevWaveIntegral# += (wave[Synth.wrap(index# + 1, waveLength)] - prevWaveIntegral#) * phaseRatio#;
             }
             const filters = tone.noteFilters;
             const filterCount = tone.noteFilterCount | 0;
@@ -5660,27 +5612,11 @@ export class Synth {
             let initialFilterInput2 = +tone.initialNoteFilterInput2;
             const applyFilters = Synth.applyFilters;
             const stopIndex = bufferIndex + roundedSamplesPerTick;
-            `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                let prevWave# = tone.chipWavePrevWaves[#];
-
-                `.replaceAll("#", i + "");
-            }
-            chipSource += `
+            let prevWave# = tone.chipWavePrevWaves[#];
             for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
                 let wrapped = 0;
-            `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                    if (chipWaveCompletion# > 0 && chipWaveCompletion# < chipWaveCompletionFadeLength) {
-                        chipWaveCompletion#++;
-                    }
-                    phase# += phaseDelta# * direction#;
-
-                    `.replaceAll("#", i + "");
-            }
-            chipSource += `
+                if (chipWaveCompletion# > 0 && chipWaveCompletion# < chipWaveCompletionFadeLength) chipWaveCompletion#++;
+                phase# += phaseDelta# * direction#;
                 if (chipWaveLoopMode === 2) {
                 `
             // once
@@ -5780,13 +5716,7 @@ export class Synth {
             }
             chipSource += `    
                 }
-                `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                    let wave# = 0;
-                    `.replaceAll("#", i + "");
-            }
-            chipSource += `    
+                let wave# = 0;    
                 let inputSample = 0;
                 if (aliases) {
                     inputSample = 0;
@@ -5806,49 +5736,24 @@ export class Synth {
             }
             chipSource += `   
                 } else {
-                `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                        const phase#Int = Math.floor(phase#);
-                        const index# = Synth.wrap(phase#Int, waveLength);
-                        let nextWaveIntegral# = wave[index#];
-                        const phaseRatio# = phase# - phase#Int;
-                        nextWaveIntegral# += (wave[Synth.wrap(index# + 1, waveLength)] - nextWaveIntegral#) * phaseRatio#;
-                        `.replaceAll("#", i + "");
-            }
-
-            chipSource += `
-                    if (!(chipWaveLoopMode === 0 && chipWaveLoopStart === 0 && chipWaveLoopEnd === waveLength) && wrapped !== 0) {
-                    `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                            let pwi# = 0;
-                            const phase#_ = Math.max(0, phase# - phaseDelta# * direction#);
-                            const phase#Int = Math.floor(phase#_);
-                            const index# = Synth.wrap(phase#Int, waveLength);
-                            pwi# = wave[index#];
-                            pwi# += (wave[Synth.wrap(index# + 1, waveLength)] - pwi#) * (phase#_ - phase#Int) * direction#;
-                            prevWaveIntegral# = pwi#;
-                            `.replaceAll("#", i + "");
-            }
-            chipSource += `    
-                    }
-                    if (chipWaveLoopMode === 1 && wrapped !== 0) {
-                    `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                            wave# = prevWave#;
-                            `.replaceAll("#", i + "");
-            }
-            chipSource += `
+                    const phase#Int = Math.floor(phase#);
+                    const index# = Synth.wrap(phase#Int, waveLength);
+                    let nextWaveIntegral# = wave[index#];
+                    const phaseRatio# = phase# - phase#Int;
+                    nextWaveIntegral# += (wave[Synth.wrap(index# + 1, waveLength)] - nextWaveIntegral#) * phaseRatio#;
+                if (!(chipWaveLoopMode === 0 && chipWaveLoopStart === 0 && chipWaveLoopEnd === waveLength) && wrapped !== 0) {
+                    let pwi# = 0;
+                    const phase#_ = Math.max(0, phase# - phaseDelta# * direction#);
+                    const phase#Int = Math.floor(phase#_);
+                    const index# = Synth.wrap(phase#Int, waveLength);
+                    pwi# = wave[index#];
+                    pwi# += (wave[Synth.wrap(index# + 1, waveLength)] - pwi#) * (phase#_ - phase#Int) * direction#;
+                    prevWaveIntegral# = pwi#;
+                }
+                if (chipWaveLoopMode === 1 && wrapped !== 0) {
+                        wave# = prevWave#;
                     } else {
-                    `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                            wave# = (nextWaveIntegral# - prevWaveIntegral#) / (phaseDelta# * direction#);
-                            `.replaceAll("#", i + "");
-            }
-            chipSource += `
+                        wave# = (nextWaveIntegral# - prevWaveIntegral#) / (phaseDelta# * direction#);
                     }
                     `
             for (let i: number = 0; i < voiceCount; i++) {
@@ -5871,46 +5776,40 @@ export class Synth {
                 const output = sample * expression;
                 expression += expressionDelta;
                 data[sampleIndex] += output;
+                phaseDelta# *= phaseDeltaScale#;
                 `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                    phaseDelta# *= phaseDeltaScale#;
-                    `.replaceAll("#", i + "");
-            }
             chipSource += `
             }
-            `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `
-                tone.phases[#] = phase# / waveLength;
-                tone.phaseDeltas[#] = phaseDelta# / waveLength;
-                tone.directions[#] = direction#;
-                tone.chipWaveCompletions[#] = chipWaveCompletion#;
-                tone.chipWavePrevWaves[#] = prevWave#;
-                tone.chipWaveCompletionsLastWave[#] = lastWave#;
-                
-                `.replaceAll("#", i + "");
-            }
-            chipSource += `
+            tone.phases[#] = phase# / waveLength;
+            tone.phaseDeltas[#] = phaseDelta# / waveLength;
+            tone.directions[#] = direction#;
+            tone.chipWaveCompletions[#] = chipWaveCompletion#;
+            tone.chipWavePrevWaves[#] = prevWave#;
+            tone.chipWaveCompletionsLastWave[#] = lastWave#;
             tone.expression = expression;
             synth.sanitizeFilters(filters);
             tone.initialNoteFilterInput1 = initialFilterInput1;
             tone.initialNoteFilterInput2 = initialFilterInput2;
         }`
+            // Duplicate lines containing "#" for each voice and replace the "#" with the voice index.
+            chipSource = chipSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, Synth, effectsIncludeDistortion);
-            Synth.loopableChipFunctionCache[instrumentState.unisonVoices] = chipFunction;
+            Synth.loopableChipFunctionCache[instrument.unisonVoices] = chipFunction;
         }
-        chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState) => chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static chipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let chipFunction: Function = Synth.chipFunctionCache[instrumentState.unisonVoices];
+    private static chipSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let chipFunction: Function = Synth.chipFunctionCache[instrument.unisonVoices];
         if (chipFunction == undefined) {
-            let chipSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
-
-
-            chipSource += `
+            let chipSource: string = `return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {
         const aliases = (effectsIncludeDistortion(instrumentState.effects) && instrumentState.aliases);
         const data = synth.tempMonoInstrumentSampleBuffer;
         const wave = instrumentState.wave;
@@ -5921,126 +5820,96 @@ export class Synth {
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
-            let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        let phaseDelta# = tone.phaseDeltas[#] * waveLength;
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
-            `.replaceAll("#", i + "");
-            }
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
-            let prevWaveIntegral# = 0.0;
-            `.replaceAll("#", i + "");
-            }
-
-            chipSource += `const filters = tone.noteFilters;
+        if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if(instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[# - 1];
+        }
+        let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
+        let prevWaveIntegral# = 0.0;
+        const filters = tone.noteFilters;
         const filterCount = tone.noteFilterCount | 0;
         let initialFilterInput1 = +tone.initialNoteFilterInput1;
         let initialFilterInput2 = +tone.initialNoteFilterInput2;
         const applyFilters = Synth.applyFilters;
 
         if (!aliases) {
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `const phase#Int = phase# | 0;
-                const index# = phase#Int % waveLength;
-                prevWaveIntegral# = +wave[index#]
-                const phase#Ratio = phase# - phase#Int;
-                prevWaveIntegral# += (wave[index# + 1] - prevWaveIntegral#) * phase#Ratio;
-                `.replaceAll("#", i + "");
-            }
-            chipSource += `
+            const phase#Int = phase# | 0;
+            const index# = phase#Int % waveLength;
+            prevWaveIntegral# = +wave[index#]
+            const phase#Ratio = phase# - phase#Int;
+            prevWaveIntegral# += (wave[index# + 1] - prevWaveIntegral#) * phase#Ratio;
         } 
 
         const stopIndex = bufferIndex + roundedSamplesPerTick;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
-        let inputSample = 0;
+            let inputSample = 0;
             if (aliases) {
-                `;
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `phase# += phaseDelta#;
-
-                    const inputSample# = wave[(0 | phase#) % waveLength];
-                    `.replaceAll("#", i + "");
-            }
+                phase# += phaseDelta#;
+                const inputSample# = wave[(0 | phase#) % waveLength];
+                `
             const sampleListAliased: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
                 sampleListAliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += "inputSample = " + sampleListAliased.join(" + ") + ";";
-            chipSource += `} else {
-                    `;
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `phase# += phaseDelta#;
-
-                     
-                        const phase#Int = phase# | 0;
-                        const index# = phase#Int % waveLength;
-                        let nextWaveIntegral# = wave[index#]
-                        const phase#Ratio = phase# - phase#Int;
-                        nextWaveIntegral# += (wave[index# + 1] - nextWaveIntegral#) * phase#Ratio;
-                        const wave# = (nextWaveIntegral# - prevWaveIntegral#) / phaseDelta#;
-                        prevWaveIntegral# = nextWaveIntegral#;
-                        let inputSample# = wave#;
-                        `.replaceAll("#", i + "");
-            }
+            chipSource += `inputSample = ${sampleListAliased.join(" + ")}`;
+            chipSource += `
+            } else {
+                phase# += phaseDelta#;
+                const phase#Int = phase# | 0;
+                const index# = phase#Int % waveLength;
+                let nextWaveIntegral# = wave[index#]
+                const phase#Ratio = phase# - phase#Int;
+                nextWaveIntegral# += (wave[index# + 1] - nextWaveIntegral#) * phase#Ratio;
+                const wave# = (nextWaveIntegral# - prevWaveIntegral#) / phaseDelta#;
+                prevWaveIntegral# = nextWaveIntegral#;
+                let inputSample# = wave#;
+                        `
             const sampleListUnaliased: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
                 sampleListUnaliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += "inputSample = " + sampleListUnaliased.join(" + ") + ";";
-            chipSource += `}
-        `;
-
-
-            chipSource += `const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
-            initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample * volumeScale;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                chipSource += `
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
+            chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}`;
+            chipSource += `
             }
-
-            chipSource += `const output = sample * expression;
+            const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            initialFilterInput2 = initialFilterInput1;
+            initialFilterInput1 = inputSample * volumeScale;
+            
+            phaseDelta# *= phaseDeltaScale#;
+            const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
         }
-            `
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                chipSource += `tone.phases[#] = phase# / waveLength;
-            tone.phaseDeltas[#] = phaseDelta# / waveLength;
-            `.replaceAll("#", i + "");
-            }
-
-            chipSource += "tone.expression = expression;";
-
-            chipSource += `
+        tone.phases[#] = phase# / waveLength;
+        tone.phaseDeltas[#] = phaseDelta# / waveLength;
+        tone.expression = expression;
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
+            // Duplicate lines containing "#" for each voice and replace the "#" with the voice index.
+            chipSource = chipSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             chipFunction = new Function("Config", "Synth", "effectsIncludeDistortion", chipSource)(Config, Synth, effectsIncludeDistortion);
-            Synth.chipFunctionCache[instrumentState.unisonVoices] = chipFunction;
+            Synth.chipFunctionCache[instrument.unisonVoices] = chipFunction;
         }
-        chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState) => chipFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static harmonicsSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let harmonicsFunction: Function = Synth.harmonicsFunctionCache[instrumentState.unisonVoices];
+    private static harmonicsSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let harmonicsFunction: Function = Synth.harmonicsFunctionCache[instrument.unisonVoices];
         if (harmonicsFunction == undefined) {
-            let harmonicsSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
-
-
-            harmonicsSource += `
+            let harmonicsSource: string = `return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
         const wave = instrumentState.wave;
         const waveLength = wave.length - 1; // The first sample is duplicated at the end, don't double-count it.
@@ -6048,96 +5917,73 @@ export class Synth {
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
-         `
-            for (let i: number = 0; i < voiceCount; i++) {
-                harmonicsSource += `let phaseDelta# = tone.phaseDeltas[#] * waveLength;
-            let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        let phaseDelta# = tone.phaseDeltas[#] * waveLength;
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
-            `.replaceAll("#", i + "");
-            }
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                harmonicsSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
-            `.replaceAll("#", i + "");
-            }
-
-            harmonicsSource += `const filters = tone.noteFilters;
+        if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if(instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[# - 1];
+        }
+        let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * waveLength;
+        const filters = tone.noteFilters;
         const filterCount = tone.noteFilterCount | 0;
         let initialFilterInput1 = +tone.initialNoteFilterInput1;
         let initialFilterInput2 = +tone.initialNoteFilterInput2;
         const applyFilters = Synth.applyFilters;
-        `
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                harmonicsSource += `const phase#Int = phase# | 0;
-            const index# = phase#Int % waveLength;
-            prevWaveIntegral# = +wave[index#]
-            const phase#Ratio = phase# - phase#Int;
-            prevWaveIntegral# += (wave[index# + 1] - prevWaveIntegral#) * phase#Ratio;
-            `.replaceAll("#", i + "");
-            }
-
-            harmonicsSource += `const stopIndex = bufferIndex + roundedSamplesPerTick;
+        const phase#Int = phase# | 0;
+        const index# = phase#Int % waveLength;
+        prevWaveIntegral# = +wave[index#]
+        const phase#Ratio = phase# - phase#Int;
+        prevWaveIntegral# += (wave[index# + 1] - prevWaveIntegral#) * phase#Ratio;
+        const stopIndex = bufferIndex + roundedSamplesPerTick;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                harmonicsSource += `
-                        phase# += phaseDelta#;
-                        const phase#Int = phase# | 0;
-                        const index# = phase#Int % waveLength;
-                        let nextWaveIntegral# = wave[index#]
-                        const phase#Ratio = phase# - phase#Int;
-                        nextWaveIntegral# += (wave[index# + 1] - nextWaveIntegral#) * phase#Ratio;
-                        const wave# = (nextWaveIntegral# - prevWaveIntegral#) / phaseDelta#;
-                        prevWaveIntegral# = nextWaveIntegral#;
-                        let inputSample# = wave#;
-                        `.replaceAll("#", i + "");
-            }
+            phase# += phaseDelta#;
+            const phase#Int = phase# | 0;
+            const index# = phase#Int % waveLength;
+            let nextWaveIntegral# = wave[index#]
+            const phase#Ratio = phase# - phase#Int;
+            nextWaveIntegral# += (wave[index# + 1] - nextWaveIntegral#) * phase#Ratio;
+            const wave# = (nextWaveIntegral# - prevWaveIntegral#) / phaseDelta#;
+            prevWaveIntegral# = nextWaveIntegral#;
+            let inputSample# = wave#;
+                        `
             const sampleList: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
                 sampleList.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            harmonicsSource += "inputSample = " + sampleList.join(" + ") + ";";
+            harmonicsSource += `inputSample = ${sampleList.join(" + ")}`;
 
 
-            harmonicsSource += `const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            harmonicsSource += `
+            const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                harmonicsSource += `
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
-            }
-
-            harmonicsSource += `const output = sample * expression;
+            initialFilterInput1 = inputSample;
+            phaseDelta# *= phaseDeltaScale#;
+            const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
         }
-            `
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                harmonicsSource += `tone.phases[#] = phase# / waveLength;
-            tone.phaseDeltas[#] = phaseDelta# / waveLength;
-            `.replaceAll("#", i + "");
-            }
-
-            harmonicsSource += "tone.expression = expression;";
-
-            harmonicsSource += `
+        tone.phases[#] = phase# / waveLength;
+        tone.phaseDeltas[#] = phaseDelta# / waveLength;tone.expression = expression;
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
+            // Duplicate lines containing "#" for each voice and replace the "#" with the voice index.
+            harmonicsSource = harmonicsSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             harmonicsFunction = new Function("Config", "Synth", harmonicsSource)(Config, Synth);
-            Synth.harmonicsFunctionCache[instrumentState.unisonVoices] = harmonicsFunction;
+            Synth.harmonicsFunctionCache[instrument.unisonVoices] = harmonicsFunction;
         }
-        harmonicsFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState) => harmonicsFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static pickedStringSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static pickedStringSynth(instrument: Instrument): Function {
         // This algorithm is similar to the Karpluss-Strong algorithm in principle, but with an
         // all-pass filter for dispersion and with more control over the impulse harmonics.
         // The source code is processed as a string before being compiled, in order to
@@ -6147,13 +5993,10 @@ export class Synth {
         // processing extra ones if possible. Any line containing a "#" is duplicated for
         // each required voice, replacing the "#" with the voice index.
 
-        const voiceCount: number = instrumentState.unisonVoices;
+        const voiceCount: number = instrument.unisonVoices;
         let pickedStringFunction: Function = Synth.pickedStringFunctionCache[voiceCount];
         if (pickedStringFunction == undefined) {
-            let pickedStringSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
-
-
-            pickedStringSource += `
+            let pickedStringSource: string = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
 				const data = synth.tempMonoInstrumentSampleBuffer;
 				
 				let pickedString# = tone.pickedStrings[#];
@@ -6281,7 +6124,7 @@ export class Synth {
             pickedStringSource = pickedStringSource.replace(/^.*\#.*$/mg, line => {
                 const lines: string[] = [];
                 for (let voice: number = 0; voice < voiceCount; voice++) {
-                    lines.push(line.replace(/\#/g, String(voice)));
+                    lines.push(line.replace(/\#/g, `${voice}`));
                 }
                 return lines.join("\n");
             });
@@ -6289,7 +6132,7 @@ export class Synth {
             Synth.pickedStringFunctionCache[voiceCount] = pickedStringFunction;
         }
 
-        pickedStringFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState) => pickedStringFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
     private static effectsSynth(synth: Synth, outputDataL: Float32Array, outputDataR: Float32Array, bufferIndex: number, runLength: number, instrumentState: InstrumentState): void {
@@ -6319,6 +6162,7 @@ export class Synth {
 
         let effectsFunction: Function = Synth.effectsFunctionCache[signature];
         if (effectsFunction == undefined) {
+            console.log("Adding to effects cache!")
             let effectsSource: string = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
 
             const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
@@ -7079,36 +6923,25 @@ export class Synth {
         effectsFunction(synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState);
     }
 
-    private static pulseWidthSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let pulseFunction: Function = Synth.pulseFunctionCache[instrumentState.unisonVoices];
+    private static pulseWidthSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let pulseFunction: Function = Synth.pulseFunctionCache[instrument.unisonVoices];
         if (pulseFunction == undefined) {
-            let pulseSource: string = "return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {";
-
-
-            pulseSource += `
+            let pulseSource: string = `return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
 
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
 
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                pulseSource += `let phaseDelta# = tone.phaseDeltas[#];
-            let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        let phaseDelta# = tone.phaseDeltas[#];
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
 
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
-            `.replaceAll("#", i + "");
-            }
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                pulseSource += `phase# = (tone.phases[#] - (tone.phases[#] | 0));
-            `.replaceAll("#", i + "");
-
-            }
-
-            pulseSource += `let pulseWidth = tone.pulseWidth;
+        if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if(instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[# - 1];
+        }
+        phase# = (tone.phases[#] - (tone.phases[#] | 0));
+        let pulseWidth = tone.pulseWidth;
         const pulseWidthDelta = tone.pulseWidthDelta;
 
         const filters = tone.noteFilters;
@@ -7151,53 +6984,47 @@ export class Synth {
 
             pulseSource += "let inputSample = " + sampleList.join(" + ") + ";";
 
-            pulseSource += `const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            pulseSource += `
+            const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                pulseSource += `phase# += phaseDelta#;
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
-            }
-
-            pulseSource += `pulseWidth += pulseWidthDelta;
+            initialFilterInput1 = inputSample;
+            phase# += phaseDelta#;
+            phaseDelta# *= phaseDeltaScale#;
+            pulseWidth += pulseWidthDelta;
 
             const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
-        }`
-
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                pulseSource += `tone.phases[#] = phase#;
-            tone.phaseDeltas[#] = phaseDelta#;
-                `.replaceAll("#", i + "");
-            }
-
-            pulseSource += `tone.expression = expression;
+        }
+        tone.phases[#] = phase#;
+        tone.phaseDeltas[#] = phaseDelta#;
+        tone.expression = expression;
         tone.pulseWidth = pulseWidth;
 
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`
+            pulseSource = pulseSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             pulseFunction = new Function("Config", "Synth", pulseSource)(Config, Synth);
-            Synth.pulseFunctionCache[instrumentState.unisonVoices] = pulseFunction;
+            Synth.pulseFunctionCache[instrument.unisonVoices] = pulseFunction;
         }
 
-        pulseFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState) => pulseFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
     }
 
-    private static supersawSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+    private static supersawSynth(instrument: Instrument): Function {
         const voiceCount: number = Config.supersawVoiceCount | 0;
-        const unisonsVoices: number = instrumentState.unisonVoices;
+        const unisonsVoices: number = instrument.unisonVoices;
         let supersawFunction: Function = Synth.supersawFunctionCache[unisonsVoices]; 
         if (supersawFunction == undefined) {
-            let supersawSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
-
-
-            supersawSource += `
+            let supersawSource: string = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
 
         let expression = +tone.expression;
@@ -7371,7 +7198,7 @@ export class Synth {
             Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
         }
 
-        supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState) => supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
     // # denotes operator number, ~ denotes voice number for unison
@@ -7444,32 +7271,27 @@ export class Synth {
 				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
 
-    private static noiseSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let noiseFunction: Function = Synth.noiseFunctionCache[instrumentState.unisonVoices];
+    private static noiseSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let noiseFunction: Function = Synth.noiseFunctionCache[instrument.unisonVoices];
         if (noiseFunction == undefined) {
-            let noiseSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
-
-            noiseSource += `
+            let noiseSource: string = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
         const wave = instrumentState.wave;
 
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                noiseSource += `
-            let phaseDelta# = tone.phaseDeltas[#];
-            let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-            let noiseSample# = +tone.noiseSamples[#];
-            // This is for a "legacy" style simplified 1st order lowpass filter with
-            // a cutoff frequency that is relative to the tone's fundamental frequency.
-            const pitchRelativefilter# = Math.min(1.0, phaseDelta# * instrumentState.noisePitchFilterMult);
+        
+        let phaseDelta# = tone.phaseDeltas[#];
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        let noiseSample# = +tone.noiseSamples[#];
+        // This is for a "legacy" style simplified 1st order lowpass filter with
+        // a cutoff frequency that is relative to the tone's fundamental frequency.
+        const pitchRelativefilter# = Math.min(1.0, phaseDelta# * instrumentState.noisePitchFilterMult);
+        
+        if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if (instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[#-1];
+        }
             
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
-            `.replaceAll("#", i + "");
-            }
-
-            noiseSource += `
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
 
@@ -7481,45 +7303,25 @@ export class Synth {
 
         const phaseMask = Config.spectrumNoiseLength - 1;
 
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                noiseSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.chipNoiseLength;
-                `.replaceAll("#", i + "");
+        let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.chipNoiseLength;
+        if (tone.phases[0] == 0.0) {
+            // Zero phase means the tone was reset, just give noise a random start phase instead.
+            phase0 = Math.random() * Config.chipNoiseLength;
+            if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                if(instrumentState.unisonVoices <= #) phase# = phase0;
             }
-            noiseSource += `
-            if (tone.phases[0] == 0.0) {
-                // Zero phase means the tone was reset, just give noise a random start phase instead.
-                phase0 = Math.random() * Config.chipNoiseLength;
-            `
-            for (let i: number = 1; i < voiceCount; i++) {
-                noiseSource += `
-                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
-                    phase# = phase0;
-                }
-            `.replaceAll("#", i + "");
-            }
-            noiseSource += `}`;
-            for (let i: number = 1; i < voiceCount; i++) {
-                noiseSource += `
-                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
-                // Zero phase means the tone was reset, just give noise a random start phase instead.
-                phase# = Math.random() * Config.chipNoiseLength;
-                }
-            `.replaceAll("#", i + "");
-            }
-
-            noiseSource += `
+        }
+        if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
+            // Zero phase means the tone was reset, just give noise a random start phase instead.
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Math.random() * Config.chipNoiseLength;
+        }
         const stopIndex = bufferIndex + runLength;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
+            
+            let waveSample# = wave[phase# & phaseMask];
+
+            noiseSample# += (waveSample# - noiseSample#) * pitchRelativefilter#;
             `
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                noiseSource += `
-                let waveSample# = wave[phase# & phaseMask];
-
-                noiseSample# += (waveSample# - noiseSample#) * pitchRelativefilter#;
-                `.replaceAll("#", i + "");
-            }
 
             const sampleList: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
@@ -7528,73 +7330,57 @@ export class Synth {
 
             noiseSource += "let inputSample = " + sampleList.join(" + ") + ";";
 
-            noiseSource += `const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            noiseSource += `
+            const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                noiseSource += `phase# += phaseDelta#;
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
-            }
-
-            noiseSource += `const output = sample * expression;
+            initialFilterInput1 = inputSample;
+            phase# += phaseDelta#;
+            phaseDelta# *= phaseDeltaScale#;
+            const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
-        }`
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                noiseSource += `tone.phases[#] = phase# / `.replaceAll("#", i + "") + Config.chipNoiseLength + `;
-            tone.phaseDeltas[#] = phaseDelta#;
-            `.replaceAll("#", i + "");
-            }
-
-            noiseSource += "tone.expression = expression;";
-            for (let i: number = 0; i < voiceCount; i++) {
-                noiseSource += `tone.noiseSamples[#] = noiseSample#;
-             `.replaceAll("#", i + "");
-            }
-
-            noiseSource += `
+        }
+        tone.phases[#] = phase# / ${Config.chipNoiseLength};
+        tone.phaseDeltas[#] = phaseDelta#;
+        tone.expression = expression; 
+        tone.noiseSamples[#] = noiseSample#;
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
+            noiseSource = noiseSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             noiseFunction = new Function("Config", "Synth", noiseSource)(Config, Synth);;
-            Synth.noiseFunctionCache[instrumentState.unisonVoices] = noiseFunction;
+            Synth.noiseFunctionCache[instrument.unisonVoices] = noiseFunction;
         }
-        noiseFunction(synth, bufferIndex, runLength, tone, instrumentState);
-
+        return (synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState) => noiseFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
 
-    private static spectrumSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let spectrumFunction: Function = Synth.spectrumFunctionCache[instrumentState.unisonVoices];
+    private static spectrumSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let spectrumFunction: Function = Synth.spectrumFunctionCache[instrument.unisonVoices];
         if (spectrumFunction == undefined) {
-            let spectrumSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
-
-
-            spectrumSource += `
+            let spectrumSource: string = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
         const wave = instrumentState.wave;
         const samplesInPeriod = (1 << 7);
 
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                spectrumSource += `
-                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[#-1];
-                let phaseDelta# = tone.phaseDeltas[#] * samplesInPeriod;
-                let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-                let noiseSample# = +tone.noiseSamples[#];
-                // This is for a "legacy" style simplified 1st order lowpass filter with
-                // a cutoff frequency that is relative to the tone's fundamental frequency.
-                const pitchRelativefilter# = Math.min(1.0, phaseDelta#);
-                `.replaceAll("#", i + "");
-            }
-
-            spectrumSource += `
+        if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if (instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[#-1];
+        }
+        let phaseDelta# = tone.phaseDeltas[#] * samplesInPeriod;
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        let noiseSample# = +tone.noiseSamples[#];
+        // This is for a "legacy" style simplified 1st order lowpass filter with
+        // a cutoff frequency that is relative to the tone's fundamental frequency.
+        const pitchRelativefilter# = Math.min(1.0, phaseDelta#);
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
 
@@ -7605,47 +7391,29 @@ export class Synth {
         const applyFilters = Synth.applyFilters;
 
         const phaseMask = Config.spectrumNoiseLength - 1;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                spectrumSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.spectrumNoiseLength;
-                `.replaceAll("#", i + "");
+        let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.spectrumNoiseLength;
+        if (tone.phases[0] == 0.0) {
+            // Zero phase means the tone was reset, just give noise a random start phase instead.
+            phase0 = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta0;
+        
+            if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                if(instrumentState.unisonVoices <= #) phase# = phase0;
             }
-            spectrumSource += `
-            if (tone.phases[0] == 0.0) {
-                // Zero phase means the tone was reset, just give noise a random start phase instead.
-                phase0 = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta0;
-            `
-            for (let i: number = 1; i < voiceCount; i++) {
-                spectrumSource += `
-                if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
-                    phase# = phase0;
-                }
-            `.replaceAll("#", i + "");
-            }
-            spectrumSource += `}`;
-            for (let i: number = 1; i < voiceCount; i++) {
-                spectrumSource += `
-                if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
-                    // Zero phase means the tone was reset, just give noise a random start phase instead.
-                phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
-                }
-            `.replaceAll("#", i + "");
-            }
-            spectrumSource += `
+        }
+        if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
+            // Zero phase means the tone was reset, just give noise a random start phase instead.
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+        }
         const stopIndex = bufferIndex + runLength;
-        for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {`
+        for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
+            const phase#Int = phase# | 0;
+            const index# = phase#Int & phaseMask;
+            let waveSample# = wave[index#]
+            const phase#Ratio = phase# - phase#Int;
+            waveSample# += (wave[index# + 1] - waveSample#) * phase#Ratio;
 
-            for (let i: number = 0; i < voiceCount; i++) {
-                spectrumSource += `
-                const phase#Int = phase# | 0;
-                const index# = phase#Int & phaseMask;
-                let waveSample# = wave[index#]
-                const phase#Ratio = phase# - phase#Int;
-                waveSample# += (wave[index# + 1] - waveSample#) * phase#Ratio;
-
-                noiseSample# += (waveSample# - noiseSample#) * pitchRelativefilter#;
-                `.replaceAll("#", i + "");
-            }
+            noiseSample# += (waveSample# - noiseSample#) * pitchRelativefilter#;
+            `
 
             const sampleList: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
@@ -7654,113 +7422,81 @@ export class Synth {
 
             spectrumSource += "let inputSample = " + sampleList.join(" + ") + ";";
 
-            spectrumSource += `const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            spectrumSource += `
+            const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                spectrumSource += `phase# += phaseDelta#;
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
-            }
-
-            spectrumSource += `const output = sample * expression;
+            initialFilterInput1 = inputSample;
+            phase# += phaseDelta#;
+            phaseDelta# *= phaseDeltaScale#;
+            const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
-        }`
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                spectrumSource += `tone.phases[#] = phase# / `.replaceAll("#", i + "") + Config.spectrumNoiseLength + `;
-            tone.phaseDeltas[#] = phaseDelta# / samplesInPeriod;
-            `.replaceAll("#", i + "");
-            }
-
-            spectrumSource += "tone.expression = expression;";
-            for (let i: number = 0; i < voiceCount; i++) {
-                spectrumSource += `tone.noiseSamples[#] = noiseSample#;
-             `.replaceAll("#", i + "");
-            }
-
-            spectrumSource += `
+        }
+        tone.phases[#] = phase# / ${Config.spectrumNoiseLength};
+        tone.phaseDeltas[#] = phaseDelta# / samplesInPeriod;
+        tone.expression = expression;
+        tone.noiseSamples[#] = noiseSample#;
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
+            spectrumSource = spectrumSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             spectrumFunction = new Function("Config", "Synth", spectrumSource)(Config, Synth);;
-            Synth.spectrumFunctionCache[instrumentState.unisonVoices] = spectrumFunction;
+            Synth.spectrumFunctionCache[instrument.unisonVoices] = spectrumFunction;
         }
-        spectrumFunction(synth, bufferIndex, runLength, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState) => spectrumFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
-    private static drumsetSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
-        const voiceCount: number = Math.max(2, instrumentState.unisonVoices);
-        let drumFunction: Function = Synth.drumFunctionCache[instrumentState.unisonVoices];
+    private static drumsetSynth(instrument: Instrument): Function {
+        const voiceCount: number = Math.max(2, instrument.unisonVoices);
+        let drumFunction: Function = Synth.drumFunctionCache[instrument.unisonVoices];
         if (drumFunction == undefined) {
-            let drumSource: string = "return (synth, bufferIndex, runLength, tone, instrumentState) => {";
-
-
-            drumSource += `
+            let drumSource: string = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempMonoInstrumentSampleBuffer;
         let wave = instrumentState.getDrumsetWave(tone.drumsetPitch);
         const referenceDelta = InstrumentState.drumsetIndexReferenceDelta(tone.drumsetPitch);
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                drumSource += `let phaseDelta# = tone.phaseDeltas[#] / referenceDelta;
-            let phaseDeltaScale# = +tone.phaseDeltaScales[#];
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[#] = tone.phases[# - 1];
-            `.replaceAll("#", i + "");
-            }
-
-            drumSource += `let expression = +tone.expression;
+        let phaseDelta# = tone.phaseDeltas[#] / referenceDelta;
+        let phaseDeltaScale# = +tone.phaseDeltaScales[#];
+        if ((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+            if(instrumentState.unisonVoices <= #) tone.phases[#] = tone.phases[# - 1];
+        }
+        let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
 
         const filters = tone.noteFilters;
         const filterCount = tone.noteFilterCount | 0;
         let initialFilterInput1 = +tone.initialNoteFilterInput1;
         let initialFilterInput2 = +tone.initialNoteFilterInput2;
-        const applyFilters = Synth.applyFilters;`
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                drumSource += `let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.spectrumNoiseLength;
-            `.replaceAll("#", i + "");
-            }
-            drumSource += `
+        const applyFilters = Synth.applyFilters;
+        let phase# = (tone.phases[#] - (tone.phases[#] | 0)) * Config.spectrumNoiseLength;
         if (tone.phases[0] == 0.0) {
             // Zero phase means the tone was reset, just give noise a random start phase instead.
             phase0 = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta0;
-        `
-            for (let i: number = 1; i < voiceCount; i++) {
-                drumSource += `
-            if (instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
-                phase# = phase0;
+            if((instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) {
+                if (instrumentState.unisonVoices <= #) phase# = phase0;
             }
-        `.replaceAll("#", i + "");
-            }
-            drumSource += `}`;
-            for (let i: number = 1; i < voiceCount; i++) {
-                drumSource += `
-            if (tone.phases[#] == 0.0 && !(instrumentState.unisonVoices <= # && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval)) {
-                // Zero phase means the tone was reset, just give noise a random start phase instead.
-            phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
-            }
-        `.replaceAll("#", i + "");
-            }
-
-            drumSource += `const phaseMask = Config.spectrumNoiseLength - 1;
+        }
+        if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
+            // Zero phase means the tone was reset, just give noise a random start phase instead.
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+        }
+        const phaseMask = Config.spectrumNoiseLength - 1;
 
         const stopIndex = bufferIndex + runLength;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
-        `
-            for (let i: number = 0; i < voiceCount; i++) {
-                drumSource += `
-                const phase#Int = phase# | 0;
-                const index# = phase#Int & phaseMask;
-                let noiseSample# = wave[index#]
-                const phase#Ratio = phase# - phase#Int;
-                noiseSample# += (wave[index# + 1] - noiseSample#) * phase#Ratio;
-                `.replaceAll("#", i + "");
-            }
+            const phase#Int = phase# | 0;
+            const index# = phase#Int & phaseMask;
+            let noiseSample# = wave[index#]
+            const phase#Ratio = phase# - phase#Int;
+            noiseSample# += (wave[index# + 1] - noiseSample#) * phase#Ratio;
+            `
 
             const sampleList: string[] = [];
             for (let voice: number = 0; voice < voiceCount; voice++) {
@@ -7769,36 +7505,34 @@ export class Synth {
 
             drumSource += "let inputSample = " + sampleList.join(" + ") + ";";
 
-            drumSource += `const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+            drumSource += `
+            const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
-            initialFilterInput1 = inputSample;`;
-
-            for (let i = 0; i < voiceCount; i++) {
-                drumSource += `phase# += phaseDelta#;
-                phaseDelta# *= phaseDeltaScale#;
-                `.replaceAll("#", i + "");
-            }
-
-            drumSource += `const output = sample * expression;
+            initialFilterInput1 = inputSample;
+            phase# += phaseDelta#;
+            phaseDelta# *= phaseDeltaScale#;
+            const output = sample * expression;
             expression += expressionDelta;
             data[sampleIndex] += output;
-        }`
-
-            for (let i: number = 0; i < voiceCount; i++) {
-                drumSource += `tone.phases[#] = phase# / `.replaceAll("#", i + "") + Config.spectrumNoiseLength + `;
-            tone.phaseDeltas[#] = phaseDelta# * referenceDelta;
-            `.replaceAll("#", i + "");
-            }
-
-            drumSource += `tone.expression = expression;
+        }
+        tone.phases[#] = phase# / ${Config.spectrumNoiseLength};
+        tone.phaseDeltas[#] = phaseDelta# * referenceDelta;
+        tone.expression = expression;
         synth.sanitizeFilters(filters);
         tone.initialNoteFilterInput1 = initialFilterInput1;
         tone.initialNoteFilterInput2 = initialFilterInput2;
     }`;
+            drumSource = drumSource.replace(/^.*\#.*$/mg, line => {
+                const lines: string[] = [];
+                for (let voice: number = 0; voice < voiceCount; voice++) {
+                    lines.push(line.replace(/\#/g, `${voice}`));
+                }
+                return lines.join("\n");
+            });
             drumFunction = new Function("Config", "Synth", "InstrumentState", drumSource)(Config, Synth, InstrumentState);;
-            Synth.drumFunctionCache[instrumentState.unisonVoices] = drumFunction;
+            Synth.drumFunctionCache[instrument.unisonVoices] = drumFunction;
         }
-        drumFunction(synth, bufferIndex, runLength, tone, instrumentState);
+        return (synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState) => drumFunction(synth, bufferIndex, runLength, tone, instrumentState);
     }
 
     private static modSynth(synth: Synth, stereoBufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrument: Instrument): void {

@@ -8247,13 +8247,7 @@ export class SynthMessenger {
                 prevBar: null
             }
             this.sendMessage(prevBar);
-            const songPositionMessage: SongPositionMessage = {
-                flag: MessageFlag.songPosition,
-                bar: this.bar,
-                beat: this.beat,
-                part: this.part
-            }
-            this.sendMessage(songPositionMessage);
+            this.updateProcessorLocation();
         }
     }
 
@@ -8274,8 +8268,8 @@ export class SynthMessenger {
     public sendMessage(message: Message) { //reworked from Jummbus's prototype
         if (this.workletNode == null) {
             this.messageQueue.push(message);
-        }
-        else {
+        } else {
+            this.workletNode.port.postMessage(message);
             // Handle sending any queued messages
             while (this.messageQueue.length > 0) {
                 let next: Message | undefined = this.messageQueue.shift();
@@ -8283,8 +8277,6 @@ export class SynthMessenger {
                     this.workletNode.port.postMessage(next);
                 }
             }
-
-            this.workletNode.port.postMessage(message);
         }
     }
 
@@ -8408,7 +8400,6 @@ export class SynthMessenger {
                 //add more here if needed
             }
             this.sendMessage(sabMessage);
-            this.updateWorkletSong();
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
             this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
@@ -8425,6 +8416,7 @@ export class SynthMessenger {
 
             this.workletNode.connect(this.audioContext.destination);
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
+            this.updateWorkletSong();
         }
         this.audioContext.resume();
     }
@@ -8515,6 +8507,8 @@ export class SynthMessenger {
             }
             this.sendMessage(playMessage);
         }
+        this.tick = 0;
+        this.updatePlayhead(this.bar, 0, 0);
     }
 
     public startRecording(): void {
@@ -8535,6 +8529,7 @@ export class SynthMessenger {
         const resetEffectsMessage: ResetEffectsMessage = {
             flag: MessageFlag.resetEffects
         }
+        this.updateProcessorLocation();
         this.sendMessage(resetEffectsMessage);
         this.snapToBar();
     }

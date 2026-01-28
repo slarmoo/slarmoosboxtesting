@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-export class Change {
+export abstract class Change {
     private _noop: boolean = true;
 
     protected _didSomething(): void {
@@ -14,7 +14,7 @@ export class Change {
     public commit(): void { }
 }
 
-export class UndoableChange extends Change {
+export abstract class UndoableChange extends Change {
     private _reversed: boolean;
     private _doneForwards: boolean;
     constructor(reversed: boolean) {

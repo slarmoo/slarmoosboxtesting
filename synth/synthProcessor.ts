@@ -61,6 +61,12 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 break;
             case MessageFlag.loadSong:
                 this.synth.setSong(event.data.song);
+                for (let channelIndex: number = 0; channelIndex < this.synth.song!.getChannelCount(); channelIndex++) {
+                    for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song!.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        const instrument = this.synth.song!.channels[channelIndex].instruments[instrumentIndex];
+                        Synth.getInstrumentSynthFunction(instrument);
+                    }
+                }
                 break;
             case MessageFlag.resetEffects:
                 this.synth.resetEffects();
