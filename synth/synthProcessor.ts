@@ -152,7 +152,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 Config.chipWaves[index].samples = integratedSamples;
                 Config.rawChipWaves[index].samples = event.data.samples;
                 Config.rawRawChipWaves[index].samples = event.data.samples;
-            break;
+                break;
             }
             case MessageFlag.pluginMessage: {
                 Synth.pluginValueNames = event.data.names;

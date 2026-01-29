@@ -25104,7 +25104,11 @@ li.select2-results__option[role=group] > strong:hover {
                     if (updateProcessorPlugin) {
                         PluginConfig.pluginUIElements = plugin.elements || [];
                         PluginConfig.pluginName = plugin.pluginName || "plugin";
-                        updateProcessorPlugin(plugin.variableNames || [], plugin.instrumentStateFunction || "", plugin.synthFunction || "", plugin.effectOrderIndex || 0, plugin.delayLineSize || 0);
+                        try {
+                            updateProcessorPlugin(plugin.variableNames || [], plugin.instrumentStateFunction || "", plugin.synthFunction || "", plugin.effectOrderIndex || 0, plugin.delayLineSize || 0);
+                        }
+                        catch (_a) {
+                        }
                     }
                 }).catch(() => {
                     window.alert("couldn't load plugin " + pluginurl);
@@ -25322,7 +25326,11 @@ li.select2-results__option[role=group] > strong:hover {
                     samples: defaultSamples,
                     index: chipWaveIndex,
                 };
-                updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+                try {
+                    updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+                }
+                catch (_a) {
+                }
                 const customSamplePresetSettings = {
                     "type": "chip",
                     "eqFilter": [],
@@ -25359,7 +25367,11 @@ li.select2-results__option[role=group] > strong:hover {
                         "chipWavePlayBackwards": presetChipWavePlayBackwards,
                         "chipWaveStartOffset": presetChipWaveStartOffset,
                     };
-                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                    try {
+                        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                    }
+                    catch (_b) {
+                    }
                 }
                 sampleLoadingState.statusTable[chipWaveIndex] = 0;
                 sampleLoadingState.urlTable[chipWaveIndex] = urlSliced;

@@ -6530,13 +6530,17 @@ export class Song {
                 if (updateProcessorPlugin) {
                     PluginConfig.pluginUIElements = plugin.elements || [];
                     PluginConfig.pluginName = plugin.pluginName || "plugin";
-                    updateProcessorPlugin(
-                        plugin.variableNames || [],
-                        plugin.instrumentStateFunction || "",
-                        plugin.synthFunction || "",
-                        plugin.effectOrderIndex || 0,
-                        plugin.delayLineSize || 0
-                    );   
+                    try {
+                        updateProcessorPlugin(
+                            plugin.variableNames || [],
+                            plugin.instrumentStateFunction || "",
+                            plugin.synthFunction || "",
+                            plugin.effectOrderIndex || 0,
+                            plugin.delayLineSize || 0
+                        );
+                    } catch {
+                        
+                    }
                 }
             }).catch(() => {
                 window.alert("couldn't load plugin "+ pluginurl);
@@ -6782,7 +6786,11 @@ export class Song {
                 samples: defaultSamples,
                 index: chipWaveIndex,
             };
-            updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+            try {
+                updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+            } catch {
+
+            }
             const customSamplePresetSettings: Dictionary<any> = {
                 "type": "chip",
                 "eqFilter": [],
@@ -6819,7 +6827,11 @@ export class Song {
                     "chipWavePlayBackwards": presetChipWavePlayBackwards,
                     "chipWaveStartOffset": presetChipWaveStartOffset,
                 };
-                startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                try {
+                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                } catch {
+
+                }
             }
             sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loading;
             sampleLoadingState.urlTable[chipWaveIndex] = urlSliced;
