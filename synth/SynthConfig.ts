@@ -360,7 +360,9 @@ export class SampleLoadEvents extends EventTarget {
 
 export const sampleLoadEvents: SampleLoadEvents = new SampleLoadEvents();
 
-export async function startLoadingSample(url: string, chipWaveIndex: number, presetSettings: Dictionary<any>, rawLoopOptions: any, customSampleRate: number): Promise<void> {
+export async function startLoadingSample(url: string, chipWaveIndex: number, presetSettings: Dictionary<any>, rawLoopOptions: any, customSampleRate: number,
+    finishLoadingSample: (samples: Float32Array, index: number) => void
+): Promise<void> {
     // @TODO: Make parts of the code that expect everything to already be
     // in memory work correctly.
     // It would be easy to only instantiate `SongEditor` and company after
@@ -392,6 +394,7 @@ export async function startLoadingSample(url: string, chipWaveIndex: number, pre
     }).then((audioBuffer) => {
 	// @TODO: Downmix.
 	const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
+    finishLoadingSample(samples, chipWaveIndex);
 	const integratedSamples = performIntegral(samples);
 	chipWave.samples = integratedSamples;
 	rawChipWave.samples = samples;

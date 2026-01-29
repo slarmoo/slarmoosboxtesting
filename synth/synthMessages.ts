@@ -13,6 +13,9 @@ export enum MessageFlag {
     isRecording,
     oscilloscope,
     synthVolume,
+    sampleStartMessage,
+    sampleFinishMessage,
+    pluginMessage,
     updateSong,
 }
 
@@ -90,6 +93,32 @@ export interface OscilloscopeMessage extends Message {
 export interface SynthVolumeMessage extends Message {
     flag: MessageFlag.synthVolume,
     volume: number
+}
+
+export interface SampleStartMessage extends Message {
+    flag: MessageFlag.sampleStartMessage,
+    name: string,
+    expression: number,
+    isCustomSampled: boolean,
+    isPercussion: boolean,
+    rootKey: number,
+    sampleRate: number,
+    index: number
+}
+
+export interface SampleFinishMessage extends Message {
+    flag: MessageFlag.sampleFinishMessage,
+    samples: Float32Array,
+    index: number
+}
+
+export interface PluginMessage extends Message {
+    flag: MessageFlag.pluginMessage,
+    names: string[],
+    instrumentStateFunction: string,
+    synthFunction: string,
+    effectOrder: number[] | number,
+    delayLineSize: number
 }
 
 export interface UpdateSongMessage extends Message {

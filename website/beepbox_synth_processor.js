@@ -37,7 +37,7 @@ var SampleLoadEvents = class extends EventTarget {
   }
 };
 var sampleLoadEvents = new SampleLoadEvents();
-async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate) {
+async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate, finishLoadingSample) {
   const sampleLoaderAudioContext = new AudioContext({ sampleRate: customSampleRate });
   let closedSampleLoaderAudioContext = false;
   const chipWave = Config.chipWaves[chipWaveIndex];
@@ -60,6 +60,7 @@ async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOpt
     return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
   }).then((audioBuffer) => {
     const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
+    finishLoadingSample(samples, chipWaveIndex);
     const integratedSamples = performIntegral(samples);
     chipWave.samples = integratedSamples;
     rawChipWave.samples = samples;
@@ -3175,7 +3176,7 @@ var EditorConfig = class _EditorConfig {
     __name(this, "EditorConfig");
   }
   static {
-    this.version = "1.5";
+    this.version = "2.0";
   }
   static {
     // Currently using patch versions in display (unlike JB)
@@ -14078,7 +14079,10 @@ var Channel2 = class {
   }
 };
 var Song = class _Song {
-  constructor(string) {
+  constructor(string, updateSynthSamplesStart, updateSynthSamplesFinish, updateSynthPlugin) {
+    this.updateSynthSamplesStart = updateSynthSamplesStart;
+    this.updateSynthSamplesFinish = updateSynthSamplesFinish;
+    this.updateSynthPlugin = updateSynthPlugin;
     this.scaleCustom = [];
     this.channels = [];
     this.limitDecay = 4;
@@ -15117,9 +15121,11 @@ var Song = class _Song {
             }
           } else {
             const parseOldSyntax = beforeThree;
-            const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
-            if (!ok) {
-              continue;
+            if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
+              const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
+              if (!ok) {
+                continue;
+              }
             }
           }
         }
@@ -15137,7 +15143,7 @@ var Song = class _Song {
       }
       if (this.pluginurl != pluginurl) {
         this.pluginurl = pluginurl;
-        if (pluginurl) this.fetchPlugin(pluginurl);
+        if (pluginurl && this.updateSynthPlugin) this.fetchPlugin(pluginurl, this.updateSynthPlugin);
       }
     }
     if (beforeThree && fromBeepBox) {
@@ -15498,16 +15504,16 @@ var Song = class _Song {
                 const chipWaveReal = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 const chipWaveCounter = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 if (chipWaveCounter == 3) {
-                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp2(0, Config.chipWaves.length, chipWaveReal + 186);
+                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 186;
                 } else if (chipWaveCounter == 2) {
-                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp2(0, Config.chipWaves.length, chipWaveReal + 124);
+                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 124;
                 } else if (chipWaveCounter == 1) {
-                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp2(0, Config.chipWaves.length, chipWaveReal + 62);
+                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 62;
                 } else {
-                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp2(0, Config.chipWaves.length, chipWaveReal);
+                  this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal;
                 }
               } else {
-                this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp2(0, Config.chipWaves.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
             }
           }
@@ -17090,7 +17096,7 @@ var Song = class _Song {
       }, 50);
     }
   }
-  fetchPlugin(pluginurl) {
+  fetchPlugin(pluginurl, updateProcessorPlugin) {
     if (pluginurl != null) {
       fetch(pluginurl).then((response) => {
         if (!response.ok) {
@@ -17100,15 +17106,17 @@ var Song = class _Song {
       }).then((response) => {
         return response.json();
       }).then((plugin) => {
-        SynthMessenger.pluginValueNames = plugin.variableNames || [];
-        SynthMessenger.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-        SynthMessenger.pluginFunction = plugin.synthFunction || "";
-        SynthMessenger.pluginIndex = plugin.effectOrderIndex || 0;
-        SynthMessenger.PluginDelayLineSize = plugin.delayLineSize || 0;
-        PluginConfig.pluginUIElements = plugin.elements || [];
-        PluginConfig.pluginName = plugin.pluginName || "plugin";
-      }).then(() => {
-        if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
+        if (updateProcessorPlugin) {
+          PluginConfig.pluginUIElements = plugin.elements || [];
+          PluginConfig.pluginName = plugin.pluginName || "plugin";
+          updateProcessorPlugin(
+            plugin.variableNames || [],
+            plugin.instrumentStateFunction || "",
+            plugin.synthFunction || "",
+            plugin.effectOrderIndex || 0,
+            plugin.delayLineSize || 0
+          );
+        }
       }).catch(() => {
         window.alert("couldn't load plugin " + pluginurl);
       });
@@ -17126,7 +17134,7 @@ var Song = class _Song {
     }
   }
   // @TODO: Share more of this code with AddSamplesPrompt.
-  static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState2, parseOldSyntax) {
+  static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState2, parseOldSyntax, updateSynthSamplesStart, updateSynthSamplesFinish) {
     const defaultIndex = 0;
     const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
     const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
@@ -17302,6 +17310,7 @@ var Song = class _Song {
         samples: defaultSamples,
         index: chipWaveIndex
       };
+      updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
       const customSamplePresetSettings = {
         "type": "chip",
         "eqFilter": [],
@@ -17339,7 +17348,7 @@ var Song = class _Song {
           "chipWavePlayBackwards": presetChipWavePlayBackwards,
           "chipWaveStartOffset": presetChipWaveStartOffset
         };
-        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate);
+        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
       }
       sampleLoadingState2.statusTable[chipWaveIndex] = 0 /* loading */;
       sampleLoadingState2.urlTable[chipWaveIndex] = urlSliced;
@@ -18048,7 +18057,7 @@ var Song = class _Song {
     }
     if (jsonObject["pluginurl"] != void 0) {
       this.pluginurl = jsonObject["pluginurl"];
-      this.fetchPlugin(jsonObject["pluginurl"]);
+      if (this.updateSynthPlugin) this.fetchPlugin(jsonObject["pluginurl"], this.updateSynthPlugin);
     }
     if (jsonObject["customSamples"] != void 0) {
       const customSamples = jsonObject["customSamples"];
@@ -18079,9 +18088,9 @@ var Song = class _Song {
               customSampleUrls.push(url);
               loadBuiltInSamples(2);
             }
-          } else {
+          } else if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
             const parseOldSyntax = false;
-            _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+            _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
           }
         }
         if (customSampleUrls.length > 0) {
@@ -18583,7 +18592,7 @@ function discardInvalidPatternInstruments(instruments, song, channelIndex) {
   }
 }
 __name(discardInvalidPatternInstruments, "discardInvalidPatternInstruments");
-var SynthMessenger = class {
+var SynthMessenger = class _SynthMessenger {
   constructor(song = null) {
     this.samplesPerSecond = 44100;
     this.song = null;
@@ -18762,8 +18771,8 @@ var SynthMessenger = class {
         song
       };
       this.sendMessage(songMessage);
-      this.song = new Song(song);
-    } else if (song instanceof Song) {
+      this.song = new Song(song, this.updateProcessorSamplesStart.bind(this), this.updateProcessorSamplesFinish.bind(this), this.updateProcessorPlugin.bind(this));
+    } else {
       const songMessage = {
         flag: 0 /* loadSong */,
         song: song.toBase64String()
@@ -18779,7 +18788,7 @@ var SynthMessenger = class {
       }
     }
     const updateMessage = {
-      flag: 12 /* updateSong */,
+      flag: 15 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18855,6 +18864,39 @@ var SynthMessenger = class {
   maintainLiveInput() {
     this.activateAudio();
     this.liveInputEndTime = performance.now() + 1e4;
+  }
+  updateProcessorSamplesStart(name, expression, isCustomSampled, isPercussion, rootKey, sampleRate2, index) {
+    let samplesMessage = {
+      flag: 12 /* sampleStartMessage */,
+      name,
+      expression,
+      isCustomSampled,
+      isPercussion,
+      rootKey,
+      sampleRate: sampleRate2,
+      index
+    };
+    this.sendMessage(samplesMessage);
+  }
+  updateProcessorSamplesFinish(samples, index) {
+    let samplesMessage = {
+      flag: 13 /* sampleFinishMessage */,
+      samples,
+      index
+    };
+    this.sendMessage(samplesMessage);
+  }
+  updateProcessorPlugin(names, instrumentStateFunction, synthFunction, effectOrder, delayLineSize) {
+    let pluginMessage = {
+      flag: 14 /* pluginMessage */,
+      names,
+      instrumentStateFunction,
+      synthFunction,
+      effectOrder,
+      delayLineSize
+    };
+    this.sendMessage(pluginMessage);
+    if (_SynthMessenger.rerenderSongEditorAfterPluginLoad) _SynthMessenger.rerenderSongEditorAfterPluginLoad();
   }
   updatePlayhead(bar, beat, part) {
     this.bar = bar;
@@ -19612,7 +19654,66 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         this.synth.volume = event.data.volume;
         break;
       }
-      case 12 /* updateSong */: {
+      case 12 /* sampleStartMessage */: {
+        const name = event.data.string;
+        const expression = event.data.expression;
+        const isCustomSampled = event.data.isCustomSampled;
+        const isPercussion = event.data.isPercussion;
+        const rootKey = event.data.rootKey;
+        const sampleRate2 = event.data.sampleRate;
+        const chipWaveIndex = event.data.index;
+        const defaultIndex = 0;
+        const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
+        const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
+        Config.chipWaves[chipWaveIndex] = {
+          name,
+          expression,
+          isCustomSampled,
+          isPercussion,
+          rootKey,
+          sampleRate: sampleRate2,
+          samples: defaultIntegratedSamples,
+          index: chipWaveIndex
+        };
+        Config.rawChipWaves[chipWaveIndex] = {
+          name,
+          expression,
+          isCustomSampled,
+          isPercussion,
+          rootKey,
+          sampleRate: sampleRate2,
+          samples: defaultSamples,
+          index: chipWaveIndex
+        };
+        Config.rawRawChipWaves[chipWaveIndex] = {
+          name,
+          expression,
+          isCustomSampled,
+          isPercussion,
+          rootKey,
+          sampleRate: sampleRate2,
+          samples: defaultSamples,
+          index: chipWaveIndex
+        };
+        break;
+      }
+      case 13 /* sampleFinishMessage */: {
+        const integratedSamples = performIntegral(event.data.samples);
+        const index = event.data.index;
+        Config.chipWaves[index].samples = integratedSamples;
+        Config.rawChipWaves[index].samples = event.data.samples;
+        Config.rawRawChipWaves[index].samples = event.data.samples;
+        break;
+      }
+      case 14 /* pluginMessage */: {
+        Synth.pluginValueNames = event.data.names;
+        Synth.pluginInstrumentStateFunction = event.data.instrumentStateFunction;
+        Synth.pluginFunction = event.data.synthFunction;
+        Synth.pluginIndex = event.data.effectOrder;
+        Synth.PluginDelayLineSize = event.data.delayLineSize;
+        break;
+      }
+      case 15 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
         break;

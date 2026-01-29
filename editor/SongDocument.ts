@@ -80,7 +80,8 @@ export class SongDocument {
             songString = this._getHash();
         }
         try {
-            this.song = new Song(songString);
+            this.synth = new SynthMessenger(songString);
+            this.song = this.synth.song!
             if (songString == "" || songString == undefined) {
                 setDefaultInstruments(this.song);
                 this.song.scale = this.prefs.defaultScale;
@@ -89,7 +90,6 @@ export class SongDocument {
             errorAlert(error);
         }
         songString = this.song.toBase64String();
-        this.synth = new SynthMessenger(this.song);
         const synthVolumeMessage: SynthVolumeMessage = {
             flag: MessageFlag.synthVolume,
             volume: this._calcVolume()

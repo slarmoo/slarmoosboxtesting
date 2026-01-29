@@ -1,6 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Song } from "./synthMessenger"
+import { Config, performIntegral } from "./SynthConfig";
+import { Song } from "./synthMessenger";
 import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, OscilloscopeMessage, SongPositionMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
@@ -99,6 +100,66 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             case MessageFlag.synthVolume: {
                 this.synth.volume = event.data.volume;
+                break;
+            }
+            case MessageFlag.sampleStartMessage: {
+                const name: string = event.data.string
+                const expression: number = event.data.expression;
+                const isCustomSampled: boolean = event.data.isCustomSampled;
+                const isPercussion: boolean = event.data.isPercussion;
+                const rootKey: number = event.data.rootKey;
+                const sampleRate: number = event.data.sampleRate;
+                const chipWaveIndex: number = event.data.index;
+
+                const defaultIndex: number = 0;
+                const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
+                const defaultSamples: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
+                Config.chipWaves[chipWaveIndex] = {
+                    name: name,
+                    expression: expression,
+                    isCustomSampled: isCustomSampled,
+                    isPercussion: isPercussion,
+                    rootKey: rootKey,
+                    sampleRate: sampleRate,
+                    samples: defaultIntegratedSamples,
+                    index: chipWaveIndex,
+                };
+                Config.rawChipWaves[chipWaveIndex] = {
+                    name: name,
+                    expression: expression,
+                    isCustomSampled: isCustomSampled,
+                    isPercussion: isPercussion,
+                    rootKey: rootKey,
+                    sampleRate: sampleRate,
+                    samples: defaultSamples,
+                    index: chipWaveIndex,
+                };
+                Config.rawRawChipWaves[chipWaveIndex] = {
+                    name: name,
+                    expression: expression,
+                    isCustomSampled: isCustomSampled,
+                    isPercussion: isPercussion,
+                    rootKey: rootKey,
+                    sampleRate: sampleRate,
+                    samples: defaultSamples,
+                    index: chipWaveIndex,
+                };
+                break;
+            }
+            case MessageFlag.sampleFinishMessage: {
+                const integratedSamples = performIntegral(event.data.samples);
+                const index: number = event.data.index;
+                Config.chipWaves[index].samples = integratedSamples;
+                Config.rawChipWaves[index].samples = event.data.samples;
+                Config.rawRawChipWaves[index].samples = event.data.samples;
+            break;
+            }
+            case MessageFlag.pluginMessage: {
+                Synth.pluginValueNames = event.data.names;
+                Synth.pluginInstrumentStateFunction = event.data.instrumentStateFunction;
+                Synth.pluginFunction = event.data.synthFunction;
+                Synth.pluginIndex = event.data.effectOrder;
+                Synth.PluginDelayLineSize = event.data.delayLineSize;
                 break;
             }
             case MessageFlag.updateSong: {

@@ -62,7 +62,7 @@ var beepbox = (function (exports) {
         }
     }
     const sampleLoadEvents = new SampleLoadEvents();
-    function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate) {
+    function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate, finishLoadingSample) {
         return __awaiter$2(this, void 0, void 0, function* () {
             const sampleLoaderAudioContext = new AudioContext({ sampleRate: customSampleRate });
             let closedSampleLoaderAudioContext = false;
@@ -86,6 +86,7 @@ var beepbox = (function (exports) {
                 return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
             }).then((audioBuffer) => {
                 const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
+                finishLoadingSample(samples, chipWaveIndex);
                 const integratedSamples = performIntegral(samples);
                 chipWave.samples = integratedSamples;
                 rawChipWave.samples = samples;
@@ -11215,7 +11216,10 @@ li.select2-results__option[role=group] > strong:hover {
         MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
         MessageFlag[MessageFlag["oscilloscope"] = 10] = "oscilloscope";
         MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
-        MessageFlag[MessageFlag["updateSong"] = 12] = "updateSong";
+        MessageFlag[MessageFlag["sampleStartMessage"] = 12] = "sampleStartMessage";
+        MessageFlag[MessageFlag["sampleFinishMessage"] = 13] = "sampleFinishMessage";
+        MessageFlag[MessageFlag["pluginMessage"] = 14] = "pluginMessage";
+        MessageFlag[MessageFlag["updateSong"] = 15] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -21892,7 +21896,10 @@ li.select2-results__option[role=group] > strong:hover {
         }
     }
     class Song {
-        constructor(string) {
+        constructor(string, updateSynthSamplesStart, updateSynthSamplesFinish, updateSynthPlugin) {
+            this.updateSynthSamplesStart = updateSynthSamplesStart;
+            this.updateSynthSamplesFinish = updateSynthSamplesFinish;
+            this.updateSynthPlugin = updateSynthPlugin;
             this.scaleCustom = [];
             this.channels = [];
             this.limitDecay = 4.0;
@@ -22961,9 +22968,11 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                         else {
                             const parseOldSyntax = beforeThree;
-                            const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
-                            if (!ok) {
-                                continue;
+                            if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
+                                const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
+                                if (!ok) {
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -22981,8 +22990,8 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 if (this.pluginurl != pluginurl) {
                     this.pluginurl = pluginurl;
-                    if (pluginurl)
-                        this.fetchPlugin(pluginurl);
+                    if (pluginurl && this.updateSynthPlugin)
+                        this.fetchPlugin(pluginurl, this.updateSynthPlugin);
                 }
             }
             if (beforeThree && fromBeepBox) {
@@ -23374,20 +23383,20 @@ li.select2-results__option[role=group] > strong:hover {
                                         const chipWaveReal = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                         const chipWaveCounter = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                         if (chipWaveCounter == 3) {
-                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp(0, Config.chipWaves.length, chipWaveReal + 186);
+                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 186;
                                         }
                                         else if (chipWaveCounter == 2) {
-                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp(0, Config.chipWaves.length, chipWaveReal + 124);
+                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 124;
                                         }
                                         else if (chipWaveCounter == 1) {
-                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp(0, Config.chipWaves.length, chipWaveReal + 62);
+                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal + 62;
                                         }
                                         else {
-                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp(0, Config.chipWaves.length, chipWaveReal);
+                                            this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = chipWaveReal;
                                         }
                                     }
                                     else {
-                                        this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = clamp(0, Config.chipWaves.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator].chipWave = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     }
                                 }
                             }
@@ -25082,7 +25091,7 @@ li.select2-results__option[role=group] > strong:hover {
                 setTimeout(() => { location.reload(); }, 50);
             }
         }
-        fetchPlugin(pluginurl) {
+        fetchPlugin(pluginurl, updateProcessorPlugin) {
             if (pluginurl != null) {
                 fetch(pluginurl).then((response) => {
                     if (!response.ok) {
@@ -25092,16 +25101,11 @@ li.select2-results__option[role=group] > strong:hover {
                 }).then((response) => {
                     return response.json();
                 }).then((plugin) => {
-                    SynthMessenger.pluginValueNames = plugin.variableNames || [];
-                    SynthMessenger.pluginInstrumentStateFunction = plugin.instrumentStateFunction || "";
-                    SynthMessenger.pluginFunction = plugin.synthFunction || "";
-                    SynthMessenger.pluginIndex = plugin.effectOrderIndex || 0;
-                    SynthMessenger.PluginDelayLineSize = plugin.delayLineSize || 0;
-                    PluginConfig.pluginUIElements = plugin.elements || [];
-                    PluginConfig.pluginName = plugin.pluginName || "plugin";
-                }).then(() => {
-                    if (SynthMessenger.rerenderSongEditorAfterPluginLoad)
-                        SynthMessenger.rerenderSongEditorAfterPluginLoad();
+                    if (updateProcessorPlugin) {
+                        PluginConfig.pluginUIElements = plugin.elements || [];
+                        PluginConfig.pluginName = plugin.pluginName || "plugin";
+                        updateProcessorPlugin(plugin.variableNames || [], plugin.instrumentStateFunction || "", plugin.synthFunction || "", plugin.effectOrderIndex || 0, plugin.delayLineSize || 0);
+                    }
                 }).catch(() => {
                     window.alert("couldn't load plugin " + pluginurl);
                 });
@@ -25120,7 +25124,7 @@ li.select2-results__option[role=group] > strong:hover {
                 return false;
             }
         }
-        static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax) {
+        static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, updateSynthSamplesStart, updateSynthSamplesFinish) {
             const defaultIndex = 0;
             const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
             const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
@@ -25318,6 +25322,7 @@ li.select2-results__option[role=group] > strong:hover {
                     samples: defaultSamples,
                     index: chipWaveIndex,
                 };
+                updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
                 const customSamplePresetSettings = {
                     "type": "chip",
                     "eqFilter": [],
@@ -25354,7 +25359,7 @@ li.select2-results__option[role=group] > strong:hover {
                         "chipWavePlayBackwards": presetChipWavePlayBackwards,
                         "chipWaveStartOffset": presetChipWaveStartOffset,
                     };
-                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate);
+                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
                 }
                 sampleLoadingState.statusTable[chipWaveIndex] = 0;
                 sampleLoadingState.urlTable[chipWaveIndex] = urlSliced;
@@ -26054,7 +26059,8 @@ li.select2-results__option[role=group] > strong:hover {
             }
             if (jsonObject["pluginurl"] != undefined) {
                 this.pluginurl = jsonObject["pluginurl"];
-                this.fetchPlugin(jsonObject["pluginurl"]);
+                if (this.updateSynthPlugin)
+                    this.fetchPlugin(jsonObject["pluginurl"], this.updateSynthPlugin);
             }
             if (jsonObject["customSamples"] != undefined) {
                 const customSamples = jsonObject["customSamples"];
@@ -26088,9 +26094,9 @@ li.select2-results__option[role=group] > strong:hover {
                                 loadBuiltInSamples(2);
                             }
                         }
-                        else {
+                        else if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
                             const parseOldSyntax = false;
-                            Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                            Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
                         }
                     }
                     if (customSampleUrls.length > 0) {
@@ -26786,9 +26792,9 @@ li.select2-results__option[role=group] > strong:hover {
                     song: song
                 };
                 this.sendMessage(songMessage);
-                this.song = new Song(song);
+                this.song = new Song(song, this.updateProcessorSamplesStart.bind(this), this.updateProcessorSamplesFinish.bind(this), this.updateProcessorPlugin.bind(this));
             }
-            else if (song instanceof Song) {
+            else {
                 const songMessage = {
                     flag: MessageFlag.loadSong,
                     song: song.toBase64String()
@@ -26883,6 +26889,40 @@ li.select2-results__option[role=group] > strong:hover {
         maintainLiveInput() {
             this.activateAudio();
             this.liveInputEndTime = performance.now() + 10000.0;
+        }
+        updateProcessorSamplesStart(name, expression, isCustomSampled, isPercussion, rootKey, sampleRate, index) {
+            let samplesMessage = {
+                flag: MessageFlag.sampleStartMessage,
+                name: name,
+                expression: expression,
+                isCustomSampled: isCustomSampled,
+                isPercussion: isPercussion,
+                rootKey: rootKey,
+                sampleRate: sampleRate,
+                index: index
+            };
+            this.sendMessage(samplesMessage);
+        }
+        updateProcessorSamplesFinish(samples, index) {
+            let samplesMessage = {
+                flag: MessageFlag.sampleFinishMessage,
+                samples: samples,
+                index: index
+            };
+            this.sendMessage(samplesMessage);
+        }
+        updateProcessorPlugin(names, instrumentStateFunction, synthFunction, effectOrder, delayLineSize) {
+            let pluginMessage = {
+                flag: MessageFlag.pluginMessage,
+                names: names,
+                instrumentStateFunction: instrumentStateFunction,
+                synthFunction: synthFunction,
+                effectOrder: effectOrder,
+                delayLineSize: delayLineSize
+            };
+            this.sendMessage(pluginMessage);
+            if (SynthMessenger.rerenderSongEditorAfterPluginLoad)
+                SynthMessenger.rerenderSongEditorAfterPluginLoad();
         }
         updatePlayhead(bar, beat, part) {
             this.bar = bar;
@@ -35815,7 +35855,8 @@ li.select2-results__option[role=group] > strong:hover {
                 songString = this._getHash();
             }
             try {
-                this.song = new Song(songString);
+                this.synth = new SynthMessenger(songString);
+                this.song = this.synth.song;
                 if (songString == "" || songString == undefined) {
                     setDefaultInstruments(this.song);
                     this.song.scale = this.prefs.defaultScale;
@@ -35825,7 +35866,6 @@ li.select2-results__option[role=group] > strong:hover {
                 errorAlert(error);
             }
             songString = this.song.toBase64String();
-            this.synth = new SynthMessenger(this.song);
             const synthVolumeMessage = {
                 flag: MessageFlag.synthVolume,
                 volume: this._calcVolume()
