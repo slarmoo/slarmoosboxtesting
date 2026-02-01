@@ -30179,11 +30179,12 @@ li.select2-results__option[role=group] > strong:hover {
             count = newLength - doc.song.barCount;
             if (count == 0)
                 return;
-            for (const channel of doc.song.channels) {
+            for (let channelIndex = 0; channelIndex < doc.song.channels.length; channelIndex++) {
+                const channel = doc.song.channels[channelIndex];
                 while (channel.bars.length < newLength) {
                     channel.bars.splice(start, 0, 0);
                 }
-                doc.synth.updateSong(doc.song.channels[doc.channel].bars, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.bars);
+                doc.synth.updateSong(channel.bars, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.bars);
             }
             doc.song.barCount = newLength;
             doc.bar += count;
