@@ -7031,10 +7031,14 @@ export class Song {
                         discardInvalidPatternInstruments(channel.patterns[instrumentIndex!].instruments, this, channelIndex!);
                         break;
                     } case ChannelSettings.bars:
-                        const newBars = data as number[];
-                        channel.bars.forEach((_, index) => {
-                            channel.bars[index] = newBars[index];
-                        });
+                        if (typeof data == "number") {
+                            channel.bars[instrumentIndex!] = data as number;
+                        } else {
+                            const newBars = data as number[];
+                            channel.bars.forEach((_, index) => {
+                                channel.bars[index] = newBars[index];
+                            });
+                        }
                         break;
                 case ChannelSettings.muted:
                         channel.muted = numberData == 1;

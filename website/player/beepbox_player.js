@@ -23646,10 +23646,15 @@ var beepbox = (function (exports) {
                             break;
                         }
                         case ChannelSettings.bars:
-                            const newBars = data;
-                            channel.bars.forEach((_, index) => {
-                                channel.bars[index] = newBars[index];
-                            });
+                            if (typeof data == "number") {
+                                channel.bars[instrumentIndex] = data;
+                            }
+                            else {
+                                const newBars = data;
+                                channel.bars.forEach((_, index) => {
+                                    channel.bars[index] = newBars[index];
+                                });
+                            }
                             break;
                         case ChannelSettings.muted:
                             channel.muted = numberData == 1;

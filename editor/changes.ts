@@ -1879,8 +1879,7 @@ export class ChangePatternNumbers extends Change {
             const pattern: Pattern | null = doc.getCurrentPattern();
             if (pattern != null) {
                 doc.viewedInstrument[startChannel] = pattern.instruments[0];
-            }
-            else {
+            } else {
                 doc.viewedInstrument[startChannel] = 0;
             }
         }

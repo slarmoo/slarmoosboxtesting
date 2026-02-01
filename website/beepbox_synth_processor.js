@@ -17536,10 +17536,14 @@ var Song = class _Song {
             break;
           }
           case 3 /* bars */:
-            const newBars = data;
-            channel.bars.forEach((_, index) => {
-              channel.bars[index] = newBars[index];
-            });
+            if (typeof data == "number") {
+              channel.bars[instrumentIndex] = data;
+            } else {
+              const newBars = data;
+              channel.bars.forEach((_, index) => {
+                channel.bars[index] = newBars[index];
+              });
+            }
             break;
           case 4 /* muted */:
             channel.muted = numberData == 1;
