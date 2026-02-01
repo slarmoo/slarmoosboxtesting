@@ -18617,7 +18617,7 @@ var SynthMessenger = class _SynthMessenger {
     this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
     this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
     this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
-    this.loopRepeatCount = -1;
+    this.loopRepeats = -1;
     this.oscRefreshEventTimer = 0;
     this.oscEnabled = true;
     this.enableMetronome = false;
@@ -18712,6 +18712,17 @@ var SynthMessenger = class _SynthMessenger {
       this.sendMessage(prevBar);
     }
   }
+  set loopRepeatCount(value) {
+    this.loopRepeats = value;
+    const loopRepeatCountMessage = {
+      flag: 13 /* loopRepeatCount */,
+      count: value
+    };
+    this.sendMessage(loopRepeatCountMessage);
+  }
+  get loopRepeatCount() {
+    return this.loopRepeats;
+  }
   getTicksIntoBar() {
     return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
   }
@@ -18790,7 +18801,7 @@ var SynthMessenger = class _SynthMessenger {
       }
     }
     const updateMessage = {
-      flag: 13 /* updateSong */,
+      flag: 14 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -19632,12 +19643,6 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         if (event.data.initFilters) this.synth.initModFilters(this.synth.song);
         this.synth.computeLatestModValues();
         break;
-      // case MessageFlag.songPosition: {
-      //     this.synth.bar = event.data.bar;
-      //     this.synth.beat = event.data.beat;
-      //     this.synth.part = event.data.part;
-      //     break;
-      // }
       case 5 /* sharedArrayBuffers */: {
         console.log("LOADING SABS");
         this.synth.liveInputValues = event.data.liveInputValues;
@@ -19718,7 +19723,10 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         Synth.PluginDelayLineSize = event.data.delayLineSize;
         break;
       }
-      case 13 /* updateSong */: {
+      case 13 /* loopRepeatCount */: {
+        this.synth.loopRepeatCount = event.data.count;
+      }
+      case 14 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
         break;

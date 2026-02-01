@@ -4,7 +4,6 @@ export enum MessageFlag {
     loadSong,
     togglePlay,
     deactivate,
-    // songPosition,
     resetEffects,
     computeMods,
     sharedArrayBuffers,
@@ -15,6 +14,7 @@ export enum MessageFlag {
     sampleStartMessage,
     sampleFinishMessage,
     pluginMessage,
+    loopRepeatCount,
     updateSong,
 }
 
@@ -44,13 +44,6 @@ export interface LoadSongMessage extends Message {
 export interface DeactivateMessage extends Message {
     flag: MessageFlag.deactivate
 }
-
-// export interface SongPositionMessage extends Message {
-//     flag: MessageFlag.songPosition,
-//     bar: number,
-//     beat: number,
-//     part: number
-// }
 
 export interface ResetEffectsMessage extends Message {
     flag: MessageFlag.resetEffects
@@ -114,6 +107,11 @@ export interface PluginMessage extends Message {
     synthFunction: string,
     effectOrder: number[] | number,
     delayLineSize: number
+}
+
+export interface LoopRepeatCountMessage extends Message {
+    flag: MessageFlag.loopRepeatCount,
+    count: number
 }
 
 export interface UpdateSongMessage extends Message {

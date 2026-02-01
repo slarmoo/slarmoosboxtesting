@@ -9319,7 +9319,8 @@ var beepbox = (function (exports) {
         MessageFlag[MessageFlag["sampleStartMessage"] = 10] = "sampleStartMessage";
         MessageFlag[MessageFlag["sampleFinishMessage"] = 11] = "sampleFinishMessage";
         MessageFlag[MessageFlag["pluginMessage"] = 12] = "pluginMessage";
-        MessageFlag[MessageFlag["updateSong"] = 13] = "updateSong";
+        MessageFlag[MessageFlag["loopRepeatCount"] = 13] = "loopRepeatCount";
+        MessageFlag[MessageFlag["updateSong"] = 14] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -24779,6 +24780,17 @@ var beepbox = (function (exports) {
                 this.sendMessage(prevBar);
             }
         }
+        set loopRepeatCount(value) {
+            this.loopRepeats = value;
+            const loopRepeatCountMessage = {
+                flag: MessageFlag.loopRepeatCount,
+                count: value
+            };
+            this.sendMessage(loopRepeatCountMessage);
+        }
+        get loopRepeatCount() {
+            return this.loopRepeats;
+        }
         getTicksIntoBar() {
             return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
         }
@@ -24793,7 +24805,7 @@ var beepbox = (function (exports) {
             this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
-            this.loopRepeatCount = -1;
+            this.loopRepeats = -1;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
             this.enableMetronome = false;

@@ -76,12 +76,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (event.data.initFilters) this.synth.initModFilters(this.synth.song);
                 this.synth.computeLatestModValues();
                 break;
-            // case MessageFlag.songPosition: {
-            //     this.synth.bar = event.data.bar;
-            //     this.synth.beat = event.data.beat;
-            //     this.synth.part = event.data.part;
-            //     break;
-            // }
             case MessageFlag.sharedArrayBuffers: {
                 console.log("LOADING SABS");
                 this.synth.liveInputValues = event.data.liveInputValues;
@@ -162,6 +156,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 Synth.pluginIndex = event.data.effectOrder;
                 Synth.PluginDelayLineSize = event.data.delayLineSize;
                 break;
+            }
+            case MessageFlag.loopRepeatCount: {
+                this.synth.loopRepeatCount = event.data.count;
             }
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();

@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events } from "../global/Events";
@@ -8223,7 +8223,7 @@ export class SynthMessenger {
     private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch);
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
 
-    public loopRepeatCount: number = -1;
+    private loopRepeats: number = -1;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
     public enableMetronome: boolean = false;
@@ -8304,6 +8304,19 @@ export class SynthMessenger {
             }
             this.sendMessage(prevBar);
         }
+    }
+
+    public set loopRepeatCount(value: number) {
+        this.loopRepeats = value;
+        const loopRepeatCountMessage: LoopRepeatCountMessage = {
+            flag: MessageFlag.loopRepeatCount,
+            count: value
+        };
+        this.sendMessage(loopRepeatCountMessage);
+    }
+
+    public get loopRepeatCount(): number {
+        return this.loopRepeats;
     }
 
     public getTicksIntoBar(): number {
