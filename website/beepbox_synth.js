@@ -10433,6 +10433,8 @@ var beepbox = (function (exports) {
                 if (this.audioContext == null || this.workletNode == null) {
                     if (this.workletNode != null)
                         this.deactivateAudio();
+                    if (this.audioContext && this.audioContext.state == "suspended")
+                        this.audioContext.resume();
                     const sabMessage = {
                         flag: MessageFlag.sharedArrayBuffers,
                         liveInputValues: this.liveInputValues,
@@ -16088,9 +16090,11 @@ var beepbox = (function (exports) {
                     tone.phaseDeltas[0] = startFreq * sampleTime;
                     tone.phaseDeltaScales[0] = basePhaseDeltaScale;
                 }
-                let supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
-                let supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+                let supersawExpressionStart = 1.0;
+                let supersawExpressionEnd = 1.0;
                 if (instrument.type == 8) {
+                    supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+                    supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
                     const minFirstVoiceAmplitude = 1.0 / Math.sqrt(Config.supersawVoiceCount);
                     let useDynamismStart = instrument.supersawDynamism / Config.supersawDynamismMax;
                     let useDynamismEnd = instrument.supersawDynamism / Config.supersawDynamismMax;

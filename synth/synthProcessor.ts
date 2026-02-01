@@ -23,15 +23,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             this.sendMessage(DeactivateMessage);
         }
-        // const updatePlayhead = (bar: number, beat: number, part: number) => {
-        //     const playheadMessage: SongPositionMessage = {
-        //         flag: MessageFlag.songPosition,
-        //         bar: bar,
-        //         beat: beat,
-        //         part: part,
-        //     }
-        //     this.sendMessage(playheadMessage);
-        // }
         const endCountIn = () => {
             const metronomeMessage: IsRecordingMessage = {
                 flag: MessageFlag.isRecording,
@@ -193,7 +184,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.synth.synthesize(outputDataL, outputDataR, outputDataL.length, this.synth.isPlayingSong);
         } catch (e) {
             console.log(e);
-            // this.deactivateAudio();
+            // this.synth.deactivateAudio();
         }
 
         const oscilloscopeMessage: OscilloscopeMessage = {

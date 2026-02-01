@@ -6545,11 +6545,8 @@ var Synth = class _Synth {
     this.renderingSong = false;
     this.heldMods = [];
     this.wantToSkip = false;
-    // public bar: number = 0;
     this.prevBar = null;
     this.nextBar = null;
-    // public beat: number = 0;
-    // public part: number = 0;
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -8929,9 +8926,11 @@ var Synth = class _Synth {
         tone.phaseDeltas[0] = startFreq * sampleTime;
         tone.phaseDeltaScales[0] = basePhaseDeltaScale;
       }
-      let supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
-      let supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+      let supersawExpressionStart = 1;
+      let supersawExpressionEnd = 1;
       if (instrument.type == 8 /* supersaw */) {
+        supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+        supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
         const minFirstVoiceAmplitude = 1 / Math.sqrt(Config.supersawVoiceCount);
         let useDynamismStart = instrument.supersawDynamism / Config.supersawDynamismMax;
         let useDynamismEnd = instrument.supersawDynamism / Config.supersawDynamismMax;
@@ -18625,12 +18624,11 @@ var SynthMessenger = class _SynthMessenger {
     this.renderingSong = false;
     this.heldMods = [];
     this.playheadInternal = 0;
-    // private bar: number = 0;
-    // private beat: number = 0;
-    // private part: number = 0;
     /**
      * beat [0]: number
+     * 
      * bar [1]: number
+     * 
      * part [2]: number
      */
     this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
@@ -18835,6 +18833,7 @@ var SynthMessenger = class _SynthMessenger {
   async activateAudio() {
     if (this.audioContext == null || this.workletNode == null) {
       if (this.workletNode != null) this.deactivateAudio();
+      if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
       const sabMessage = {
         flag: 5 /* sharedArrayBuffers */,
         liveInputValues: this.liveInputValues,

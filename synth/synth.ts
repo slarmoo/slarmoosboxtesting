@@ -2538,17 +2538,16 @@ export class Synth {
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = [];
     private wantToSkip: boolean = false;
-    // public bar: number = 0;
     public prevBar: number | null = null;
     private nextBar: number | null = null;
     /**
      * beat [0]: number
+     * 
      * bar [1]: number
+     * 
      * part [2]: number
      */
     public songPosition: Uint16Array;
-    // public beat: number = 0;
-    // public part: number = 0;
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -5119,10 +5118,12 @@ export class Synth {
 
             // TODO: make expressionStart and expressionEnd variables earlier and modify those
             // instead of these supersawExpression variables.
-            let supersawExpressionStart: number = instrument.unisonExpression * instrument.unisonVoices / 1.4;
-            let supersawExpressionEnd: number = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+            let supersawExpressionStart: number = 1.0;
+            let supersawExpressionEnd: number = 1.0;
 
             if (instrument.type == InstrumentType.supersaw) {
+                supersawExpressionStart = instrument.unisonExpression * instrument.unisonVoices / 1.4;
+                supersawExpressionEnd = instrument.unisonExpression * instrument.unisonVoices / 1.4;
                 const minFirstVoiceAmplitude: number = 1.0 / Math.sqrt(Config.supersawVoiceCount);
 
                 // Dynamism mods

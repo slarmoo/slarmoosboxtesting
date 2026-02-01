@@ -8231,12 +8231,11 @@ export class SynthMessenger {
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = []; 
     private playheadInternal: number = 0.0;
-    // private bar: number = 0;
-    // private beat: number = 0;
-    // private part: number = 0;
     /**
      * beat [0]: number
+     * 
      * bar [1]: number
+     * 
      * part [2]: number
      */
     public songPosition: Uint16Array = new Uint16Array(new SharedArrayBuffer(3 * 2));
@@ -8448,6 +8447,7 @@ export class SynthMessenger {
     private async activateAudio(): Promise<void> {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
+            if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
             // make sure that the workletNode has access to the shared array buffers and the song
             const sabMessage: SendSharedArrayBuffers = {
                 flag: MessageFlag.sharedArrayBuffers,
@@ -8508,10 +8508,6 @@ export class SynthMessenger {
     private deactivateAudio(): void {
         if (this.audioContext != null && this.workletNode != null) {
             this.audioContext.suspend();
-            // this.workletNode.disconnect(this.audioContext.destination);
-            // this.workletNode = null;
-            // if (this.audioContext.close) this.audioContext.close(); // firefox is missing this function?
-            // this.audioContext = null;
         }
     }
 
