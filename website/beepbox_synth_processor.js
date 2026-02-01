@@ -5028,23 +5028,16 @@ var EnvelopeComputer = class _EnvelopeComputer {
         this._noteSizeFinal = Config.noteSizeMax;
       }
     }
-    const tickTimeEnd = [];
     const tickTimeEndReal = tickTimeStartReal + 1;
-    const noteSecondsStart = [];
     const noteSecondsStartUnscaled = this.noteSecondsEndUnscaled;
-    const noteSecondsEnd = [];
     const noteSecondsEndUnscaled = noteSecondsStartUnscaled + secondsPerTickUnscaled;
     const noteTicksStart = this.noteTicksEnd;
     const noteTicksEnd = noteTicksStart + 1;
-    const prevNoteSecondsStart = [];
-    const prevNoteSecondsEnd = [];
     const prevNoteSecondsStartUnscaled = this.prevNoteSecondsEndUnscaled;
     const prevNoteSecondsEndUnscaled = prevNoteSecondsStartUnscaled + secondsPerTickUnscaled;
     const prevNoteTicksStart = this.prevNoteTicksEnd;
     const prevNoteTicksEnd = prevNoteTicksStart + 1;
     const beatsPerTick = 1 / (Config.ticksPerPart * Config.partsPerBeat);
-    const beatTimeStart = [];
-    const beatTimeEnd = [];
     let noteSizeStart = this._noteSizeFinal;
     let noteSizeEnd = this._noteSizeFinal;
     let prevNoteSize = this._prevNoteSizeFinal;
@@ -5128,6 +5121,9 @@ var EnvelopeComputer = class _EnvelopeComputer {
       let startPinTickAbsolute = this.startPinTickAbsolute || 0;
       let defaultPitch = this.startPinTickDefaultPitch || 0;
       let sequence = null;
+      let tickTimeEnd = 0;
+      let beatTimeStart = 0;
+      let beatTimeEnd = 0;
       if (envelopeIndex == instrument.envelopeCount) {
         if (usedNoteSize) break;
         automationTarget = Config.instrumentAutomationTargets.dictionary["noteVolume"];
@@ -5168,36 +5164,36 @@ var EnvelopeComputer = class _EnvelopeComputer {
         if (!timeScale[envelopeIndex]) timeScale[envelopeIndex] = 0;
         const secondsPerTickScaled = secondsPerTick * timeScale[envelopeIndex];
         if (!tickTimeStart[envelopeIndex]) tickTimeStart[envelopeIndex] = 0;
-        tickTimeEnd[envelopeIndex] = tickTimeStart[envelopeIndex] ? tickTimeStart[envelopeIndex] + timeScale[envelopeIndex] : timeScale[envelopeIndex];
-        noteSecondsStart[envelopeIndex] = this.noteSecondsEnd[envelopeIndex] ? this.noteSecondsEnd[envelopeIndex] : 0;
-        prevNoteSecondsStart[envelopeIndex] = this.prevNoteSecondsEnd[envelopeIndex] ? this.prevNoteSecondsEnd[envelopeIndex] : 0;
-        noteSecondsEnd[envelopeIndex] = noteSecondsStart[envelopeIndex] ? noteSecondsStart[envelopeIndex] + secondsPerTickScaled : secondsPerTickScaled;
-        prevNoteSecondsEnd[envelopeIndex] = prevNoteSecondsStart[envelopeIndex] ? prevNoteSecondsStart[envelopeIndex] + secondsPerTickScaled : secondsPerTickScaled;
-        beatTimeStart[envelopeIndex] = tickTimeStart[envelopeIndex] ? beatsPerTick * tickTimeStart[envelopeIndex] : beatsPerTick;
-        beatTimeEnd[envelopeIndex] = tickTimeEnd[envelopeIndex] ? beatsPerTick * tickTimeEnd[envelopeIndex] : beatsPerTick;
+        tickTimeEnd = tickTimeStart[envelopeIndex] + timeScale[envelopeIndex] || timeScale[envelopeIndex];
+        this.noteSecondsStart[envelopeIndex] = this.noteSecondsEnd[envelopeIndex] || 0;
+        this.prevNoteSecondsStart[envelopeIndex] = this.prevNoteSecondsEnd[envelopeIndex] || 0;
+        this.noteSecondsEnd[envelopeIndex] = this.noteSecondsStart[envelopeIndex] + secondsPerTickScaled || secondsPerTickScaled;
+        this.prevNoteSecondsEnd[envelopeIndex] = this.prevNoteSecondsStart[envelopeIndex] + secondsPerTickScaled || secondsPerTickScaled;
+        beatTimeStart = beatsPerTick * tickTimeStart[envelopeIndex] || beatsPerTick;
+        beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
         if (envelope.type == 1 /* noteSize */) usedNoteSize = true;
       }
       const pitch = envelope.type == 2 /* pitch */ ? this.computePitchEnvelope(instrument, envelopeIndex, this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true)) : 0;
       if (automationTarget.computeIndex != null && automationTarget.perNote == perNote) {
         const computeIndex = automationTarget.computeIndex + targetIndex;
-        let envelopeStart = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, noteSecondsStart[envelopeIndex], beatTimeStart[envelopeIndex], timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+        let envelopeStart = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, this.noteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
         if (prevSlideStart) {
-          const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, prevNoteSecondsStart[envelopeIndex], beatTimeStart[envelopeIndex], timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+          const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, this.prevNoteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
           envelopeStart += (other - envelopeStart) * prevSlideRatioStart;
         }
         if (nextSlideStart) {
-          const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0, 0, beatTimeStart[envelopeIndex], timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+          const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0, 0, beatTimeStart, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
           envelopeStart += (other - envelopeStart) * nextSlideRatioStart;
         }
         let envelopeEnd = envelopeStart;
         if (isDiscrete == false) {
-          envelopeEnd = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, noteSecondsEnd[envelopeIndex], beatTimeEnd[envelopeIndex], timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+          envelopeEnd = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, this.noteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
           if (prevSlideEnd) {
-            const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, prevNoteSecondsEnd[envelopeIndex], beatTimeEnd[envelopeIndex], timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+            const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, this.prevNoteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
             envelopeEnd += (other - envelopeEnd) * prevSlideRatioEnd;
           }
           if (nextSlideEnd) {
-            const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0, 0, beatTimeEnd[envelopeIndex], timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+            const other = _EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0, 0, beatTimeEnd, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
             envelopeEnd += (other - envelopeEnd) * nextSlideRatioEnd;
           }
         }
@@ -5223,12 +5219,6 @@ var EnvelopeComputer = class _EnvelopeComputer {
     this.prevNoteSecondsEndUnscaled = prevNoteSecondsEndUnscaled;
     this.prevNoteTicksStart = prevNoteTicksStart;
     this.prevNoteTicksEnd = prevNoteTicksEnd;
-    for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
-      this.noteSecondsStart[envelopeIndex] = noteSecondsStart[envelopeIndex];
-      this.noteSecondsEnd[envelopeIndex] = noteSecondsEnd[envelopeIndex];
-      this.prevNoteSecondsStart[envelopeIndex] = prevNoteSecondsStart[envelopeIndex];
-      this.prevNoteSecondsEnd[envelopeIndex] = prevNoteSecondsEnd[envelopeIndex];
-    }
     this.prevNoteSize = prevNoteSize;
     this.nextNoteSize = nextNoteSize;
     this.noteSizeStart = noteSizeStart;
@@ -5251,6 +5241,9 @@ var EnvelopeComputer = class _EnvelopeComputer {
     }
     this._modifiedEnvelopeCount = 0;
   }
+  static {
+    this.unitarraybuffer = new Uint8Array(1);
+  }
   static computeEnvelope(envelope, perEnvelopeSpeed, globalEnvelopeSpeed, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, isDrumset = false, steps, seed, waveform, defaultPitch, notePinStart, sequence) {
     const envelopeSpeed = isDrumset ? envelope.speed : 1;
     const boundAdjust = perEnvelopeUpperBound - perEnvelopeLowerBound;
@@ -5268,20 +5261,19 @@ var EnvelopeComputer = class _EnvelopeComputer {
       case 3 /* pseudorandom */:
         const hashMax = 4294967295;
         const step = steps;
-        let unitarraybuffer = new Uint8Array(1);
         switch (waveform) {
           case 0 /* time */:
             if (step <= 1) return 1;
-            unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor(timeSinceStart * perEnvelopeSpeed / 256);
-            const timeHash = xxHash32(unitarraybuffer, seed);
+            _EnvelopeComputer.unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor(timeSinceStart * perEnvelopeSpeed / 256);
+            const timeHash = xxHash32(_EnvelopeComputer.unitarraybuffer, seed);
             if (inverse) {
               return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(timeHash * step / (hashMax + 1)) / step;
             } else {
               return boundAdjust * (step / (step - 1)) * Math.floor(timeHash * step / (hashMax + 1)) / step + perEnvelopeLowerBound;
             }
           case 1 /* pitch */:
-            unitarraybuffer[0] = defaultPitch;
-            const pitchHash = xxHash32(unitarraybuffer, seed);
+            _EnvelopeComputer.unitarraybuffer[0] = defaultPitch;
+            const pitchHash = xxHash32(_EnvelopeComputer.unitarraybuffer, seed);
             if (inverse) {
               return perEnvelopeUpperBound - boundAdjust * pitchHash / (hashMax + 1);
             } else {
@@ -5289,18 +5281,18 @@ var EnvelopeComputer = class _EnvelopeComputer {
             }
           case 2 /* note */:
             if (step <= 1) return 1;
-            unitarraybuffer[0] = notePinStart;
-            const noteHash = xxHash32(unitarraybuffer, seed);
+            _EnvelopeComputer.unitarraybuffer[0] = notePinStart;
+            const noteHash = xxHash32(_EnvelopeComputer.unitarraybuffer, seed);
             if (inverse) {
               return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(noteHash * step / (hashMax + 1)) / step;
             } else {
               return boundAdjust * (step / (step - 1)) * Math.floor(noteHash * step / (hashMax + 1)) / step + perEnvelopeLowerBound;
             }
           case 3 /* timeSmooth */:
-            unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor(timeSinceStart * perEnvelopeSpeed / 256);
-            const timeHashA = xxHash32(unitarraybuffer, seed);
-            unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / 256);
-            const timeHashB = xxHash32(unitarraybuffer, seed);
+            _EnvelopeComputer.unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor(timeSinceStart * perEnvelopeSpeed / 256);
+            const timeHashA = xxHash32(_EnvelopeComputer.unitarraybuffer, seed);
+            _EnvelopeComputer.unitarraybuffer[0] = perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / 256);
+            const timeHashB = xxHash32(_EnvelopeComputer.unitarraybuffer, seed);
             const weightedAverage = timeHashA * (1 - timeSinceStart * perEnvelopeSpeed / 256 % 1) + timeHashB * (timeSinceStart * perEnvelopeSpeed / 256 % 1);
             if (inverse) {
               return perEnvelopeUpperBound - boundAdjust * weightedAverage / (hashMax + 1);
@@ -6533,9 +6525,8 @@ var ChannelState = class {
   // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
 };
 var Synth = class _Synth {
-  constructor(deactivate, updatePlayhead, endCountIn) {
+  constructor(deactivate, endCountIn) {
     this.deactivate = deactivate;
-    this.updatePlayhead = updatePlayhead;
     this.endCountIn = endCountIn;
     this.samplesPerSecond = 44100;
     // TODO: reverb
@@ -6554,11 +6545,11 @@ var Synth = class _Synth {
     this.renderingSong = false;
     this.heldMods = [];
     this.wantToSkip = false;
-    this.bar = 0;
+    // public bar: number = 0;
     this.prevBar = null;
     this.nextBar = null;
-    this.beat = 0;
-    this.part = 0;
+    // public beat: number = 0;
+    // public part: number = 0;
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -6598,6 +6589,7 @@ var Synth = class _Synth {
     this.tempMonoInstrumentSampleBuffer = null;
     this.outputDataLUnfiltered = null;
     this.outputDataRUnfiltered = null;
+    this.dequeLivePitchesArray = new Uint16Array(Config.maxPitch);
     this.computeDelayBufferSizes();
   }
   static {
@@ -6683,18 +6675,18 @@ var Synth = class _Synth {
           latestModInsTimes[channel][instrument] = [];
         }
       }
-      let currentPart = this.beat * Config.partsPerBeat + this.part;
+      let currentPart = this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
       for (let channelIndex = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
         if (!this.song.channels[channelIndex].muted) {
           let pattern;
-          for (let currentBar = this.bar; currentBar >= 0; currentBar--) {
+          for (let currentBar = this.songPosition[0]; currentBar >= 0; currentBar--) {
             pattern = this.song.getPattern(channelIndex, currentBar);
             if (pattern != null) {
               let instrumentIdx = pattern.instruments[0];
               let instrument = this.song.channels[channelIndex].instruments[instrumentIdx];
               let latestPinParts = [];
               let latestPinValues = [];
-              let partsInBar = currentBar == this.bar ? currentPart : this.findPartsInBar(currentBar);
+              let partsInBar = currentBar == this.songPosition[0] ? currentPart : this.findPartsInBar(currentBar);
               for (const note of pattern.notes) {
                 if (note.start <= partsInBar && (latestPinParts[Config.modCount - 1 - note.pitches[0]] == null || note.end > latestPinParts[Config.modCount - 1 - note.pitches[0]])) {
                   if (note.start == partsInBar) {
@@ -6890,10 +6882,10 @@ var Synth = class _Synth {
     this.rerenderSongEditorAfterPluginLoad = null;
   }
   getTicksIntoBar() {
-    return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+    return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
   }
   getCurrentPart() {
-    return this.beat * Config.partsPerBeat + this.part;
+    return this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
   }
   findPartsInBar(bar) {
     if (this.song == null) return 0;
@@ -7012,12 +7004,12 @@ var Synth = class _Synth {
     return false;
   }
   getNextBar() {
-    let nextBar = this.bar + 1;
+    let nextBar = this.songPosition[0] + 1;
     if (this.isRecording) {
       if (nextBar >= this.song.barCount) {
         nextBar = this.song.barCount - 1;
       }
-    } else if (this.bar == this.loopBarEnd && !this.renderingSong) {
+    } else if (this.songPosition[0] == this.loopBarEnd && !this.renderingSong) {
       nextBar = this.loopBarStart;
     } else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song.loopStart + this.song.loopLength)) {
       nextBar = this.song.loopStart;
@@ -7027,21 +7019,21 @@ var Synth = class _Synth {
   skipBar() {
     if (!this.song) return;
     const samplesPerTick = this.getSamplesPerTick();
-    this.prevBar = this.bar;
-    if (this.loopBarEnd != this.bar)
-      this.bar++;
+    this.prevBar = this.songPosition[0];
+    if (this.loopBarEnd != this.songPosition[0])
+      this.songPosition[0]++;
     else {
-      this.bar = this.loopBarStart;
+      this.songPosition[0] = this.loopBarStart;
     }
-    this.beat = 0;
-    this.part = 0;
+    this.songPosition[1] = 0;
+    this.songPosition[2] = 0;
     this.tick = 0;
     this.tickSampleCountdown = samplesPerTick;
     this.isAtStartOfTick = true;
-    if (this.loopRepeatCount != 0 && this.bar == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd + 1)) {
-      this.bar = this.song.loopStart;
+    if (this.loopRepeatCount != 0 && this.songPosition[0] == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd + 1)) {
+      this.songPosition[0] = this.song.loopStart;
       if (this.loopBarStart != -1)
-        this.bar = this.loopBarStart;
+        this.songPosition[0] = this.loopBarStart;
       if (this.loopRepeatCount > 0) this.loopRepeatCount--;
     }
   }
@@ -7110,18 +7102,18 @@ var Synth = class _Synth {
       this.isAtStartOfTick = true;
     }
     if (playSong) {
-      if (this.beat >= song.beatsPerBar) {
-        this.beat = 0;
-        this.part = 0;
+      if (this.songPosition[1] >= song.beatsPerBar) {
+        this.songPosition[1] = 0;
+        this.songPosition[2] = 0;
         this.tick = 0;
         this.tickSampleCountdown = samplesPerTick;
         this.isAtStartOfTick = true;
-        this.prevBar = this.bar;
-        this.bar = this.getNextBar();
-        if (this.bar <= this.prevBar && this.loopRepeatCount > 0) this.loopRepeatCount--;
+        this.prevBar = this.songPosition[0];
+        this.songPosition[0] = this.getNextBar();
+        if (this.songPosition[0] <= this.prevBar && this.loopRepeatCount > 0) this.loopRepeatCount--;
       }
-      if (this.bar >= song.barCount) {
-        this.bar = 0;
+      if (this.songPosition[0] >= song.barCount) {
+        this.songPosition[0] = 0;
         if (this.loopRepeatCount != -1) {
           ended = true;
           this.pause();
@@ -7183,7 +7175,7 @@ var Synth = class _Synth {
         }
       }
       if (this.wantToSkip) {
-        let barVisited = skippedBars.includes(this.bar);
+        let barVisited = skippedBars.includes(this.songPosition[0]);
         if (barVisited && bufferIndex == firstSkippedBufferIndex) {
           this.resetEffects();
           this.pause();
@@ -7193,7 +7185,7 @@ var Synth = class _Synth {
           firstSkippedBufferIndex = bufferIndex;
         }
         if (!barVisited)
-          skippedBars.push(this.bar);
+          skippedBars.push(this.songPosition[0]);
         this.wantToSkip = false;
         this.skipBar();
         continue;
@@ -7252,7 +7244,7 @@ var Synth = class _Synth {
           const tickSampleCountdown = this.tickSampleCountdown;
           const startRatio = 1 - tickSampleCountdown / samplesPerTick;
           const endRatio = 1 - (tickSampleCountdown - runLength) / samplesPerTick;
-          const ticksIntoBar = (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+          const ticksIntoBar = (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
           const partTimeTickStart = ticksIntoBar / Config.ticksPerPart;
           const partTimeTickEnd = (ticksIntoBar + 1) / Config.ticksPerPart;
           const partTimeStart = partTimeTickStart + (partTimeTickEnd - partTimeTickStart) * startRatio;
@@ -7272,12 +7264,12 @@ var Synth = class _Synth {
         }
       }
       if (this.enableMetronome || this.countInMetronome) {
-        if (this.part == 0) {
+        if (this.songPosition[2] == 0) {
           if (!this.startedMetronome) {
-            const midBeat = song.beatsPerBar > 4 && song.beatsPerBar % 2 == 0 && this.beat == song.beatsPerBar / 2;
-            const periods = this.beat == 0 ? 8 : midBeat ? 6 : 4;
-            const hz = this.beat == 0 ? 1600 : midBeat ? 1200 : 800;
-            const amplitude = this.beat == 0 ? 0.06 : midBeat ? 0.05 : 0.04;
+            const midBeat = song.beatsPerBar > 4 && song.beatsPerBar % 2 == 0 && this.songPosition[1] == song.beatsPerBar / 2;
+            const periods = this.songPosition[1] == 0 ? 8 : midBeat ? 6 : 4;
+            const hz = this.songPosition[1] == 0 ? 1600 : midBeat ? 1200 : 800;
+            const amplitude = this.songPosition[1] == 0 ? 0.06 : midBeat ? 0.05 : 0.04;
             const samplesPerPeriod = this.samplesPerSecond / hz;
             const radiansPerSample = Math.PI * 2 / samplesPerPeriod;
             this.metronomeSamplesRemaining = Math.floor(samplesPerPeriod * periods);
@@ -7451,7 +7443,7 @@ var Synth = class _Synth {
         this.tickSampleCountdown += samplesPerTick;
         if (this.tick == Config.ticksPerPart) {
           this.tick = 0;
-          this.part++;
+          if (this.isPlayingSong) this.songPosition[2]++;
           if (this.liveInputValues) {
             this.liveInputValues[0 /* liveInputDuration */]--;
             this.liveInputValues[1 /* liveBassInputDuration */]--;
@@ -7462,21 +7454,21 @@ var Synth = class _Synth {
               this.heldMods.splice(i, 1);
             }
           }
-          if (this.part == Config.partsPerBeat) {
-            this.part = 0;
+          if (this.songPosition[2] == Config.partsPerBeat) {
+            this.songPosition[2] = 0;
             if (playSong) {
-              this.beat++;
-              if (this.beat == song.beatsPerBar) {
-                this.beat = 0;
+              this.songPosition[1]++;
+              if (this.songPosition[1] == song.beatsPerBar) {
+                this.songPosition[1] = 0;
                 if (this.countInMetronome) {
                   this.countInMetronome = false;
                   this.endCountIn();
                 } else {
-                  this.prevBar = this.bar;
-                  this.bar = this.getNextBar();
-                  if (this.bar <= this.prevBar && this.loopRepeatCount > 0) this.loopRepeatCount--;
-                  if (this.bar >= song.barCount) {
-                    this.bar = 0;
+                  this.prevBar = this.songPosition[0];
+                  this.songPosition[0] = this.getNextBar();
+                  if (this.songPosition[0] <= this.prevBar && this.loopRepeatCount > 0) this.loopRepeatCount--;
+                  if (this.songPosition[0] >= song.barCount) {
+                    this.songPosition[0] = 0;
                     if (this.loopRepeatCount != -1) {
                       ended = true;
                       this.resetEffects();
@@ -7521,9 +7513,6 @@ var Synth = class _Synth {
     }
     if (!Number.isFinite(limit) || Math.abs(limit) < epsilon) limit = 0;
     this.limit = limit;
-    if (playSong && !this.countInMetronome) {
-      this.updatePlayhead(this.bar, this.beat, this.part);
-    }
   }
   freeTone(tone) {
     this.tonePool.pushBack(tone);
@@ -7559,10 +7548,9 @@ var Synth = class _Synth {
     if (!this.liveInputPitchesOnOffRequests) return;
     const queuedTones = this.liveInputPitchesOnOffRequests.availableRead();
     if (queuedTones > 0) {
-      const vals = new Uint16Array(queuedTones);
-      this.liveInputPitchesOnOffRequests.pop(vals, queuedTones);
+      this.liveInputPitchesOnOffRequests.pop(this.dequeLivePitchesArray, queuedTones);
       for (let i = 0; i < queuedTones; i++) {
-        let val = vals[i];
+        let val = this.dequeLivePitchesArray[i];
         const isBass = Boolean(val & 1);
         val = val >> 1;
         const turnOn = Boolean(val & 1);
@@ -7599,7 +7587,7 @@ var Synth = class _Synth {
       let filteredBassPitches = bassPitches;
       if (effectsIncludeNoteRange(instrument.effects)) filteredBassPitches = bassPitches.filter((pitch) => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
       if (filteredPitches.size > 0 && this.liveInputValues[0 /* liveInputDuration */] > 0 && channelIndex == this.liveInputValues[4 /* liveInputChannel */]) {
-        const pattern = song.getPattern(channelIndex, this.bar);
+        const pattern = song.getPattern(channelIndex, this.songPosition[0]);
         if (!this.song?.patternInstruments || pattern?.instruments.indexOf(instrumentIndex) != -1) {
           const instrument2 = channel.instruments[instrumentIndex];
           if (instrument2.getChord().singleTone) {
@@ -7656,7 +7644,7 @@ var Synth = class _Synth {
         }
       }
       if (filteredBassPitches.size > 0 && this.liveInputValues[1 /* liveBassInputDuration */] > 0 && channelIndex == this.liveInputValues[5 /* liveBassInputChannel */]) {
-        const pattern = song.getPattern(channelIndex, this.bar);
+        const pattern = song.getPattern(channelIndex, this.songPosition[0]);
         if (pattern?.instruments.indexOf(instrumentIndex) != -1) {
           const instrument2 = channel.instruments[instrumentIndex];
           if (instrument2.getChord().singleTone) {
@@ -7798,7 +7786,7 @@ var Synth = class _Synth {
   determineCurrentActiveTones(song, channelIndex, samplesPerTick, playSong) {
     const channel = song.channels[channelIndex];
     const channelState = this.channels[channelIndex];
-    const pattern = song.getPattern(channelIndex, this.bar);
+    const pattern = song.getPattern(channelIndex, this.songPosition[0]);
     const currentPart = this.getCurrentPart();
     const currentTick = this.tick + Config.ticksPerPart * currentPart;
     if (playSong && song.getChannelIsMod(channelIndex)) {
@@ -11169,8 +11157,8 @@ var Synth = class _Synth {
           usedInstruments.push(i);
         }
       } else if (instrument.modInstruments[mod] > synth.song.channels[instrument.modChannels[mod]].instruments.length) {
-        if (synth.song.getPattern(instrument.modChannels[mod], synth.bar) != null)
-          usedInstruments = synth.song.getPattern(instrument.modChannels[mod], synth.bar).instruments;
+        if (synth.song.getPattern(instrument.modChannels[mod], synth.songPosition[0]) != null)
+          usedInstruments = synth.song.getPattern(instrument.modChannels[mod], synth.songPosition[0]).instruments;
       } else {
         usedInstruments.push(instrument.modInstruments[mod]);
       }
@@ -11185,9 +11173,9 @@ var Synth = class _Synth {
           synth.setModValue(synth.heldMods[i].volume, synth.heldMods[i].volume, instrument.modChannels[mod], usedInstruments[instrumentIndex], setting);
         }
       }
-      if (setting == Config.modulators.dictionary["reset arp"].index && synth.tick == 0 && tone.noteStartPart == synth.beat * Config.partsPerBeat + synth.part) {
+      if (setting == Config.modulators.dictionary["reset arp"].index && synth.tick == 0 && tone.noteStartPart == synth.songPosition[1] * Config.partsPerBeat + synth.songPosition[2]) {
         synth.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]].arpTime = 0;
-      } else if (setting == Config.modulators.dictionary["reset envelope"].index && synth.tick == 0 && tone.noteStartPart == synth.beat * Config.partsPerBeat + synth.part) {
+      } else if (setting == Config.modulators.dictionary["reset envelope"].index && synth.tick == 0 && tone.noteStartPart == synth.songPosition[1] * Config.partsPerBeat + synth.songPosition[2]) {
         let envelopeTarget = instrument.modEnvelopeNumbers[mod];
         const tgtInstrumentState = synth.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
         const tgtInstrument = synth.song.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
@@ -11486,9 +11474,9 @@ var Synth = class _Synth {
   computeTicksSinceStart(ofBar = false) {
     const beatsPerBar = this.song?.beatsPerBar ? this.song?.beatsPerBar : 8;
     if (ofBar) {
-      return Config.ticksPerPart * Config.partsPerBeat * beatsPerBar * this.bar;
+      return Config.ticksPerPart * Config.partsPerBeat * beatsPerBar * this.songPosition[0];
     } else {
-      return this.tick + Config.ticksPerPart * (this.part + Config.partsPerBeat * (this.beat + beatsPerBar * this.bar));
+      return this.tick + Config.ticksPerPart * (this.songPosition[2] + Config.partsPerBeat * (this.songPosition[1] + beatsPerBar * this.songPosition[0]));
     }
   }
 };
@@ -17109,13 +17097,16 @@ var Song = class _Song {
         if (updateProcessorPlugin) {
           PluginConfig.pluginUIElements = plugin.elements || [];
           PluginConfig.pluginName = plugin.pluginName || "plugin";
-          updateProcessorPlugin(
-            plugin.variableNames || [],
-            plugin.instrumentStateFunction || "",
-            plugin.synthFunction || "",
-            plugin.effectOrderIndex || 0,
-            plugin.delayLineSize || 0
-          );
+          try {
+            updateProcessorPlugin(
+              plugin.variableNames || [],
+              plugin.instrumentStateFunction || "",
+              plugin.synthFunction || "",
+              plugin.effectOrderIndex || 0,
+              plugin.delayLineSize || 0
+            );
+          } catch {
+          }
         }
       }).catch(() => {
         window.alert("couldn't load plugin " + pluginurl);
@@ -17310,7 +17301,10 @@ var Song = class _Song {
         samples: defaultSamples,
         index: chipWaveIndex
       };
-      updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+      try {
+        updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+      } catch {
+      }
       const customSamplePresetSettings = {
         "type": "chip",
         "eqFilter": [],
@@ -17348,7 +17342,10 @@ var Song = class _Song {
           "chipWavePlayBackwards": presetChipWavePlayBackwards,
           "chipWaveStartOffset": presetChipWaveStartOffset
         };
-        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+        try {
+          startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+        } catch {
+        }
       }
       sampleLoadingState2.statusTable[chipWaveIndex] = 0 /* loading */;
       sampleLoadingState2.urlTable[chipWaveIndex] = urlSliced;
@@ -18624,9 +18621,15 @@ var SynthMessenger = class _SynthMessenger {
     this.renderingSong = false;
     this.heldMods = [];
     this.playheadInternal = 0;
-    this.bar = 0;
-    this.beat = 0;
-    this.part = 0;
+    // private bar: number = 0;
+    // private beat: number = 0;
+    // private part: number = 0;
+    /**
+     * beat [0]: number
+     * bar [1]: number
+     * part [2]: number
+     */
+    this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -18643,8 +18646,13 @@ var SynthMessenger = class _SynthMessenger {
     this.loopBarEnd = -1;
     this.audioContext = null;
     this.workletNode = null;
+    this.splitterNode = null;
+    this.analyserNodeLeft = null;
+    this.analyserNodeRight = null;
+    this.leftData = new Float32Array(1024);
+    this.rightData = new Float32Array(1024);
     this.messageQueue = [];
-    this.pushArray = new Uint16Array(1);
+    this.liveInputPushArray = new Uint16Array(Config.maxPitch);
     this.exportProcessor = null;
     if (song != null) this.setSong(song);
     this.activateAudio();
@@ -18677,34 +18685,34 @@ var SynthMessenger = class _SynthMessenger {
     return this.isRecording;
   }
   get playhead() {
+    if (this.song) this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
     return this.playheadInternal;
   }
   set playhead(value) {
     if (this.song != null) {
       this.playheadInternal = Math.max(0, Math.min(this.song.barCount, value));
       let remainder = this.playheadInternal;
-      this.bar = Math.floor(remainder);
-      remainder = this.song.beatsPerBar * (remainder - this.bar);
-      this.beat = Math.floor(remainder);
-      remainder = Config.partsPerBeat * (remainder - this.beat);
-      this.part = Math.floor(remainder);
-      remainder = Config.ticksPerPart * (remainder - this.part);
+      this.songPosition[0] = Math.floor(remainder);
+      remainder = this.song.beatsPerBar * (remainder - this.songPosition[0]);
+      this.songPosition[1] = Math.floor(remainder);
+      remainder = Config.partsPerBeat * (remainder - this.songPosition[1]);
+      this.songPosition[2] = Math.floor(remainder);
+      remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
       this.tick = Math.floor(remainder);
       this.tickSampleCountdown = 0;
       this.isAtStartOfTick = true;
       const prevBar = {
-        flag: 8 /* setPrevBar */,
+        flag: 6 /* setPrevBar */,
         prevBar: null
       };
       this.sendMessage(prevBar);
-      this.updateProcessorLocation();
     }
   }
   getTicksIntoBar() {
-    return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+    return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
   }
   getCurrentPart() {
-    return this.beat * Config.partsPerBeat + this.part;
+    return this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
   }
   sendMessage(message) {
     if (this.workletNode == null) {
@@ -18730,22 +18738,21 @@ var SynthMessenger = class _SynthMessenger {
         this.pause(false);
         break;
       }
-      case 3 /* songPosition */: {
-        this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
-        break;
-      }
-      case 4 /* maintainLiveInput */: {
-        if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
-        break;
-      }
-      case 9 /* isRecording */: {
+      // case MessageFlag.songPosition: {
+      //     this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
+      //     break;
+      // }
+      case 7 /* isRecording */: {
         this.countInMetronome = event.data.countInMetronome;
         break;
       }
-      case 10 /* oscilloscope */: {
+      case 8 /* oscilloscope */: {
+        if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
         if (this.oscEnabled) {
           if (this.oscRefreshEventTimer <= 0) {
-            events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+            this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
+            this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
+            events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
             this.oscRefreshEventTimer = 4;
           } else {
             this.oscRefreshEventTimer--;
@@ -18754,15 +18761,6 @@ var SynthMessenger = class _SynthMessenger {
         break;
       }
     }
-  }
-  updateProcessorLocation() {
-    const songPositionMessage = {
-      flag: 3 /* songPosition */,
-      bar: this.bar,
-      beat: this.beat,
-      part: this.part
-    };
-    this.sendMessage(songPositionMessage);
   }
   setSong(song) {
     if (typeof song == "string") {
@@ -18788,7 +18786,7 @@ var SynthMessenger = class _SynthMessenger {
       }
     }
     const updateMessage = {
-      flag: 15 /* updateSong */,
+      flag: 13 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18805,33 +18803,33 @@ var SynthMessenger = class _SynthMessenger {
       val += +turnOn;
       val = val << 1;
       val += +isBass;
-      this.pushArray[0] = val;
-      this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+      this.liveInputPushArray[0] = val;
+      this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, 1);
     } else if (pitches instanceof Array && pitches.length > 0) {
-      const pushArray = new Uint16Array(pitches.length);
       for (let i = 0; i < pitches.length; i++) {
         let val = pitches[i];
         val = val << 1;
         val += +turnOn;
         val = val << 1;
         val += +isBass;
-        pushArray[i] = val;
+        this.liveInputPushArray[i] = val;
       }
-      this.liveInputPitchesOnOffRequests.push(pushArray);
+      this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, pitches.length);
     }
   }
   async activateAudio() {
     if (this.audioContext == null || this.workletNode == null) {
       if (this.workletNode != null) this.deactivateAudio();
       const sabMessage = {
-        flag: 7 /* sharedArrayBuffers */,
+        flag: 5 /* sharedArrayBuffers */,
         liveInputValues: this.liveInputValues,
-        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
+        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+        songPosition: this.songPosition
         //add more here if needed
       };
       this.sendMessage(sabMessage);
       const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
-      this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
+      if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
       this.samplesPerSecond = this.audioContext.sampleRate;
       await this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
       this.workletNode = new AudioWorkletNode(this.audioContext, "synth-processor", {
@@ -18841,7 +18839,23 @@ var SynthMessenger = class _SynthMessenger {
         channelCountMode: "explicit",
         numberOfInputs: 0
       });
+      if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
+      if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext, {
+        channelCount: 2,
+        channelInterpretation: "speakers",
+        channelCountMode: "explicit",
+        fftSize: 1024
+      });
+      if (!this.analyserNodeRight) this.analyserNodeRight = new AnalyserNode(this.audioContext, {
+        channelCount: 2,
+        channelInterpretation: "speakers",
+        channelCountMode: "explicit",
+        fftSize: 1024
+      });
       this.workletNode.connect(this.audioContext.destination);
+      this.workletNode.connect(this.splitterNode);
+      this.splitterNode.connect(this.analyserNodeLeft, 0);
+      this.splitterNode.connect(this.analyserNodeRight, 1);
       this.workletNode.port.onmessage = (event) => this.receiveMessage(event);
       this.updateWorkletSong();
     }
@@ -18867,7 +18881,7 @@ var SynthMessenger = class _SynthMessenger {
   }
   updateProcessorSamplesStart(name, expression, isCustomSampled, isPercussion, rootKey, sampleRate2, index) {
     let samplesMessage = {
-      flag: 12 /* sampleStartMessage */,
+      flag: 10 /* sampleStartMessage */,
       name,
       expression,
       isCustomSampled,
@@ -18880,7 +18894,7 @@ var SynthMessenger = class _SynthMessenger {
   }
   updateProcessorSamplesFinish(samples, index) {
     let samplesMessage = {
-      flag: 13 /* sampleFinishMessage */,
+      flag: 11 /* sampleFinishMessage */,
       samples,
       index
     };
@@ -18888,7 +18902,7 @@ var SynthMessenger = class _SynthMessenger {
   }
   updateProcessorPlugin(names, instrumentStateFunction, synthFunction, effectOrder, delayLineSize) {
     let pluginMessage = {
-      flag: 14 /* pluginMessage */,
+      flag: 12 /* pluginMessage */,
       names,
       instrumentStateFunction,
       synthFunction,
@@ -18899,24 +18913,25 @@ var SynthMessenger = class _SynthMessenger {
     if (_SynthMessenger.rerenderSongEditorAfterPluginLoad) _SynthMessenger.rerenderSongEditorAfterPluginLoad();
   }
   updatePlayhead(bar, beat, part) {
-    this.bar = bar;
-    this.beat = beat;
-    this.part = part;
-    this.playheadInternal = ((this.tick / 2 + this.part) / Config.partsPerBeat + this.beat) / this.song.beatsPerBar + this.bar;
+    this.songPosition[0] = bar;
+    this.songPosition[1] = beat;
+    this.songPosition[2] = part;
+    this.playheadInternal = ((this.tick / 2 + this.songPosition[2]) / Config.partsPerBeat + this.songPosition[1]) / this.song.beatsPerBar + this.songPosition[0];
   }
   warmUpSynthesizer(song) {
     this.initSynth();
-    this.exportProcessor.bar = this.bar;
+    this.exportProcessor.songPosition[0] = this.songPosition[0];
     this.exportProcessor.computeLatestModValues();
     this.exportProcessor.initModFilters(this.song);
     this.exportProcessor.warmUpSynthesizer(song);
   }
   initSynth() {
     if (this.exportProcessor == null) {
-      this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {
+      this.exportProcessor = new Synth(this.deactivateAudio, () => {
         this.countInMetronome = false;
       });
       this.exportProcessor.song = this.song;
+      this.exportProcessor.songPosition = new Uint16Array(3);
       this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
       this.exportProcessor.liveInputValues = new Uint32Array(1);
     }
@@ -18924,7 +18939,6 @@ var SynthMessenger = class _SynthMessenger {
     this.exportProcessor.renderingSong = this.renderingSong;
     this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
   }
-  // Direct synthesize request, get from worker
   synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
     this.initSynth();
     this.exportProcessor.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
@@ -18952,13 +18966,13 @@ var SynthMessenger = class _SynthMessenger {
       this.sendMessage(playMessage);
     }
     this.tick = 0;
-    this.updatePlayhead(this.bar, 0, 0);
+    this.updatePlayhead(this.songPosition[0], 0, 0);
   }
   startRecording() {
     this.preferLowerLatency = true;
     this.isRecording = true;
     const isRecordingMessage = {
-      flag: 9 /* isRecording */,
+      flag: 7 /* isRecording */,
       isRecording: this.isRecording,
       enableMetronome: this.enableMetronome,
       countInMetronome: this.countInMetronome
@@ -18967,37 +18981,34 @@ var SynthMessenger = class _SynthMessenger {
     this.play();
   }
   snapToStart() {
-    this.bar = 0;
+    this.songPosition[0] = 0;
     const resetEffectsMessage = {
-      flag: 5 /* resetEffects */
+      flag: 3 /* resetEffects */
     };
-    this.updateProcessorLocation();
     this.sendMessage(resetEffectsMessage);
     this.snapToBar();
   }
   goToBar(bar) {
-    this.bar = bar;
+    this.songPosition[0] = bar;
     const resetEffectsMessage = {
-      flag: 5 /* resetEffects */
+      flag: 3 /* resetEffects */
     };
-    this.updateProcessorLocation();
     this.sendMessage(resetEffectsMessage);
-    this.playheadInternal = this.bar;
+    this.playheadInternal = this.songPosition[0];
   }
   snapToBar() {
-    this.playheadInternal = this.bar;
-    this.beat = 0;
-    this.part = 0;
+    this.playheadInternal = this.songPosition[0];
+    this.songPosition[1] = 0;
+    this.songPosition[2] = 0;
     this.tick = 0;
     this.tickSampleCountdown = 0;
-    this.updateProcessorLocation();
   }
   jumpIntoLoop() {
     if (!this.song) return;
-    if (this.bar < this.song.loopStart || this.bar >= this.song.loopStart + this.song.loopLength) {
-      const oldBar = this.bar;
-      this.bar = this.song.loopStart;
-      this.playheadInternal += this.bar - oldBar;
+    if (this.songPosition[0] < this.song.loopStart || this.songPosition[0] >= this.song.loopStart + this.song.loopLength) {
+      const oldBar = this.songPosition[0];
+      this.songPosition[0] = this.song.loopStart;
+      this.playheadInternal += this.songPosition[0] - oldBar;
       if (this.playing) {
         this.computeLatestModValues();
       }
@@ -19006,17 +19017,16 @@ var SynthMessenger = class _SynthMessenger {
   goToNextBar() {
     if (!this.song) return;
     const prevBar = {
-      flag: 8 /* setPrevBar */,
-      prevBar: this.bar
+      flag: 6 /* setPrevBar */,
+      prevBar: this.songPosition[0]
     };
     this.sendMessage(prevBar);
-    const oldBar = this.bar;
-    this.bar++;
-    if (this.bar >= this.song.barCount) {
-      this.bar = 0;
+    const oldBar = this.songPosition[0];
+    this.songPosition[0]++;
+    if (this.songPosition[0] >= this.song.barCount) {
+      this.songPosition[0] = 0;
     }
-    this.playheadInternal += this.bar - oldBar;
-    this.updateProcessorLocation();
+    this.playheadInternal += this.songPosition[0] - oldBar;
     if (this.playing) {
       this.computeLatestModValues();
     }
@@ -19024,17 +19034,16 @@ var SynthMessenger = class _SynthMessenger {
   goToPrevBar() {
     if (!this.song) return;
     const prevBar = {
-      flag: 8 /* setPrevBar */,
+      flag: 6 /* setPrevBar */,
       prevBar: null
     };
     this.sendMessage(prevBar);
-    const oldBar = this.bar;
-    this.bar--;
-    if (this.bar < 0 || this.bar >= this.song.barCount) {
-      this.bar = this.song.barCount - 1;
+    const oldBar = this.songPosition[0];
+    this.songPosition[0]--;
+    if (this.songPosition[0] < 0 || this.songPosition[0] >= this.song.barCount) {
+      this.songPosition[0] = this.song.barCount - 1;
     }
-    this.playheadInternal += this.bar - oldBar;
-    this.updateProcessorLocation();
+    this.playheadInternal += this.songPosition[0] - oldBar;
     if (this.playing) {
       this.computeLatestModValues();
     }
@@ -19220,7 +19229,7 @@ var SynthMessenger = class _SynthMessenger {
   }
   computeLatestModValues(modEffects = false) {
     const computeModsMessage = {
-      flag: 6 /* computeMods */,
+      flag: 4 /* computeMods */,
       initFilters: modEffects
     };
     this.sendMessage(computeModsMessage);
@@ -19242,18 +19251,18 @@ var SynthMessenger = class _SynthMessenger {
           latestModInsTimes[channel][instrument] = [];
         }
       }
-      let currentPart = this.beat * Config.partsPerBeat + this.part;
+      let currentPart = this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
       for (let channelIndex = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
         if (!this.song.channels[channelIndex].muted) {
           let pattern;
-          for (let currentBar = this.bar; currentBar >= 0; currentBar--) {
+          for (let currentBar = this.songPosition[0]; currentBar >= 0; currentBar--) {
             pattern = this.song.getPattern(channelIndex, currentBar);
             if (pattern != null) {
               let instrumentIdx = pattern.instruments[0];
               let instrument = this.song.channels[channelIndex].instruments[instrumentIdx];
               let latestPinParts = [];
               let latestPinValues = [];
-              let partsInBar = currentBar == this.bar ? currentPart : this.findPartsInBar(currentBar);
+              let partsInBar = currentBar == this.songPosition[0] ? currentPart : this.findPartsInBar(currentBar);
               for (const note of pattern.notes) {
                 if (note.start <= partsInBar && (latestPinParts[Config.modCount - 1 - note.pitches[0]] == null || note.end > latestPinParts[Config.modCount - 1 - note.pitches[0]])) {
                   if (note.start == partsInBar) {
@@ -19576,25 +19585,16 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       };
       this.sendMessage(DeactivateMessage2);
     }, "deactivate");
-    const updatePlayhead = /* @__PURE__ */ __name((bar, beat, part) => {
-      const playheadMessage = {
-        flag: 3 /* songPosition */,
-        bar,
-        beat,
-        part
-      };
-      this.sendMessage(playheadMessage);
-    }, "updatePlayhead");
     const endCountIn = /* @__PURE__ */ __name(() => {
       const metronomeMessage = {
-        flag: 9 /* isRecording */,
+        flag: 7 /* isRecording */,
         isRecording: true,
         enableMetronome: true,
         countInMetronome: false
       };
       this.sendMessage(metronomeMessage);
     }, "endCountIn");
-    this.synth = new Synth(deactivate, updatePlayhead, endCountIn);
+    this.synth = new Synth(deactivate, endCountIn);
   }
   static {
     __name(this, "SynthProcessor");
@@ -19621,40 +19621,41 @@ var SynthProcessor = class extends AudioWorkletProcessor {
           }
         }
         break;
-      case 5 /* resetEffects */:
+      case 3 /* resetEffects */:
         this.synth.resetEffects();
         break;
-      case 6 /* computeMods */:
+      case 4 /* computeMods */:
         if (event.data.initFilters) this.synth.initModFilters(this.synth.song);
         this.synth.computeLatestModValues();
         break;
-      case 3 /* songPosition */: {
-        this.synth.bar = event.data.bar;
-        this.synth.beat = event.data.beat;
-        this.synth.part = event.data.part;
-        break;
-      }
-      case 7 /* sharedArrayBuffers */: {
+      // case MessageFlag.songPosition: {
+      //     this.synth.bar = event.data.bar;
+      //     this.synth.beat = event.data.beat;
+      //     this.synth.part = event.data.part;
+      //     break;
+      // }
+      case 5 /* sharedArrayBuffers */: {
         console.log("LOADING SABS");
         this.synth.liveInputValues = event.data.liveInputValues;
         this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
+        this.synth.songPosition = event.data.songPosition;
         break;
       }
-      case 8 /* setPrevBar */: {
+      case 6 /* setPrevBar */: {
         this.synth.prevBar = event.data.prevBar;
         break;
       }
-      case 9 /* isRecording */: {
+      case 7 /* isRecording */: {
         this.synth.isRecording = event.data.isRecording;
         this.synth.enableMetronome = event.data.enableMetronome;
         this.synth.countInMetronome = event.data.countInMetronome;
         break;
       }
-      case 11 /* synthVolume */: {
+      case 9 /* synthVolume */: {
         this.synth.volume = event.data.volume;
         break;
       }
-      case 12 /* sampleStartMessage */: {
+      case 10 /* sampleStartMessage */: {
         const name = event.data.string;
         const expression = event.data.expression;
         const isCustomSampled = event.data.isCustomSampled;
@@ -19697,7 +19698,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         };
         break;
       }
-      case 13 /* sampleFinishMessage */: {
+      case 11 /* sampleFinishMessage */: {
         const integratedSamples = performIntegral(event.data.samples);
         const index = event.data.index;
         Config.chipWaves[index].samples = integratedSamples;
@@ -19705,7 +19706,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         Config.rawRawChipWaves[index].samples = event.data.samples;
         break;
       }
-      case 14 /* pluginMessage */: {
+      case 12 /* pluginMessage */: {
         Synth.pluginValueNames = event.data.names;
         Synth.pluginInstrumentStateFunction = event.data.instrumentStateFunction;
         Synth.pluginFunction = event.data.synthFunction;
@@ -19713,7 +19714,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         Synth.PluginDelayLineSize = event.data.delayLineSize;
         break;
       }
-      case 15 /* updateSong */: {
+      case 13 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
         break;
@@ -19734,21 +19735,14 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         outputDataR[i] = 0;
       }
     }
-    if (!this.synth.isPlayingSong) {
-      const maintainLiveInputMessage = {
-        flag: 4 /* maintainLiveInput */
-      };
-      this.sendMessage(maintainLiveInputMessage);
-    }
     try {
       this.synth.synthesize(outputDataL, outputDataR, outputDataL.length, this.synth.isPlayingSong);
     } catch (e) {
       console.log(e);
     }
     const oscilloscopeMessage = {
-      flag: 10 /* oscilloscope */,
-      left: outputDataL,
-      right: outputDataR
+      flag: 8 /* oscilloscope */,
+      maintainLiveInput: !this.synth.isPlayingSong
     };
     this.sendMessage(oscilloscopeMessage);
     return true;

@@ -11207,19 +11207,17 @@ li.select2-results__option[role=group] > strong:hover {
         MessageFlag[MessageFlag["loadSong"] = 0] = "loadSong";
         MessageFlag[MessageFlag["togglePlay"] = 1] = "togglePlay";
         MessageFlag[MessageFlag["deactivate"] = 2] = "deactivate";
-        MessageFlag[MessageFlag["songPosition"] = 3] = "songPosition";
-        MessageFlag[MessageFlag["maintainLiveInput"] = 4] = "maintainLiveInput";
-        MessageFlag[MessageFlag["resetEffects"] = 5] = "resetEffects";
-        MessageFlag[MessageFlag["computeMods"] = 6] = "computeMods";
-        MessageFlag[MessageFlag["sharedArrayBuffers"] = 7] = "sharedArrayBuffers";
-        MessageFlag[MessageFlag["setPrevBar"] = 8] = "setPrevBar";
-        MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
-        MessageFlag[MessageFlag["oscilloscope"] = 10] = "oscilloscope";
-        MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
-        MessageFlag[MessageFlag["sampleStartMessage"] = 12] = "sampleStartMessage";
-        MessageFlag[MessageFlag["sampleFinishMessage"] = 13] = "sampleFinishMessage";
-        MessageFlag[MessageFlag["pluginMessage"] = 14] = "pluginMessage";
-        MessageFlag[MessageFlag["updateSong"] = 15] = "updateSong";
+        MessageFlag[MessageFlag["resetEffects"] = 3] = "resetEffects";
+        MessageFlag[MessageFlag["computeMods"] = 4] = "computeMods";
+        MessageFlag[MessageFlag["sharedArrayBuffers"] = 5] = "sharedArrayBuffers";
+        MessageFlag[MessageFlag["setPrevBar"] = 6] = "setPrevBar";
+        MessageFlag[MessageFlag["isRecording"] = 7] = "isRecording";
+        MessageFlag[MessageFlag["oscilloscope"] = 8] = "oscilloscope";
+        MessageFlag[MessageFlag["synthVolume"] = 9] = "synthVolume";
+        MessageFlag[MessageFlag["sampleStartMessage"] = 10] = "sampleStartMessage";
+        MessageFlag[MessageFlag["sampleFinishMessage"] = 11] = "sampleFinishMessage";
+        MessageFlag[MessageFlag["pluginMessage"] = 12] = "pluginMessage";
+        MessageFlag[MessageFlag["updateSong"] = 13] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -12542,23 +12540,16 @@ li.select2-results__option[role=group] > strong:hover {
                     this._noteSizeFinal = Config.noteSizeMax;
                 }
             }
-            const tickTimeEnd = [];
             const tickTimeEndReal = tickTimeStartReal + 1.0;
-            const noteSecondsStart = [];
             const noteSecondsStartUnscaled = this.noteSecondsEndUnscaled;
-            const noteSecondsEnd = [];
             const noteSecondsEndUnscaled = noteSecondsStartUnscaled + secondsPerTickUnscaled;
             const noteTicksStart = this.noteTicksEnd;
             const noteTicksEnd = noteTicksStart + 1.0;
-            const prevNoteSecondsStart = [];
-            const prevNoteSecondsEnd = [];
             const prevNoteSecondsStartUnscaled = this.prevNoteSecondsEndUnscaled;
             const prevNoteSecondsEndUnscaled = prevNoteSecondsStartUnscaled + secondsPerTickUnscaled;
             const prevNoteTicksStart = this.prevNoteTicksEnd;
             const prevNoteTicksEnd = prevNoteTicksStart + 1.0;
             const beatsPerTick = 1.0 / (Config.ticksPerPart * Config.partsPerBeat);
-            const beatTimeStart = [];
-            const beatTimeEnd = [];
             let noteSizeStart = this._noteSizeFinal;
             let noteSizeEnd = this._noteSizeFinal;
             let prevNoteSize = this._prevNoteSizeFinal;
@@ -12644,6 +12635,9 @@ li.select2-results__option[role=group] > strong:hover {
                 let startPinTickAbsolute = this.startPinTickAbsolute || 0.0;
                 let defaultPitch = this.startPinTickDefaultPitch || 0.0;
                 let sequence = null;
+                let tickTimeEnd = 0;
+                let beatTimeStart = 0;
+                let beatTimeEnd = 0;
                 if (envelopeIndex == instrument.envelopeCount) {
                     if (usedNoteSize)
                         break;
@@ -12688,37 +12682,37 @@ li.select2-results__option[role=group] > strong:hover {
                     const secondsPerTickScaled = secondsPerTick * timeScale[envelopeIndex];
                     if (!tickTimeStart[envelopeIndex])
                         tickTimeStart[envelopeIndex] = 0;
-                    tickTimeEnd[envelopeIndex] = tickTimeStart[envelopeIndex] ? tickTimeStart[envelopeIndex] + timeScale[envelopeIndex] : timeScale[envelopeIndex];
-                    noteSecondsStart[envelopeIndex] = this.noteSecondsEnd[envelopeIndex] ? this.noteSecondsEnd[envelopeIndex] : 0;
-                    prevNoteSecondsStart[envelopeIndex] = this.prevNoteSecondsEnd[envelopeIndex] ? this.prevNoteSecondsEnd[envelopeIndex] : 0;
-                    noteSecondsEnd[envelopeIndex] = noteSecondsStart[envelopeIndex] ? noteSecondsStart[envelopeIndex] + secondsPerTickScaled : secondsPerTickScaled;
-                    prevNoteSecondsEnd[envelopeIndex] = prevNoteSecondsStart[envelopeIndex] ? prevNoteSecondsStart[envelopeIndex] + secondsPerTickScaled : secondsPerTickScaled;
-                    beatTimeStart[envelopeIndex] = tickTimeStart[envelopeIndex] ? beatsPerTick * tickTimeStart[envelopeIndex] : beatsPerTick;
-                    beatTimeEnd[envelopeIndex] = tickTimeEnd[envelopeIndex] ? beatsPerTick * tickTimeEnd[envelopeIndex] : beatsPerTick;
+                    tickTimeEnd = tickTimeStart[envelopeIndex] + timeScale[envelopeIndex] || timeScale[envelopeIndex];
+                    this.noteSecondsStart[envelopeIndex] = this.noteSecondsEnd[envelopeIndex] || 0;
+                    this.prevNoteSecondsStart[envelopeIndex] = this.prevNoteSecondsEnd[envelopeIndex] || 0;
+                    this.noteSecondsEnd[envelopeIndex] = this.noteSecondsStart[envelopeIndex] + secondsPerTickScaled || secondsPerTickScaled;
+                    this.prevNoteSecondsEnd[envelopeIndex] = this.prevNoteSecondsStart[envelopeIndex] + secondsPerTickScaled || secondsPerTickScaled;
+                    beatTimeStart = beatsPerTick * tickTimeStart[envelopeIndex] || beatsPerTick;
+                    beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
                     if (envelope.type == 1)
                         usedNoteSize = true;
                 }
                 const pitch = (envelope.type == 2) ? this.computePitchEnvelope(instrument, envelopeIndex, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true))) : 0;
                 if (automationTarget.computeIndex != null && automationTarget.perNote == perNote) {
                     const computeIndex = automationTarget.computeIndex + targetIndex;
-                    let envelopeStart = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, noteSecondsStart[envelopeIndex], beatTimeStart[envelopeIndex], timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                    let envelopeStart = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, this.noteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                     if (prevSlideStart) {
-                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, prevNoteSecondsStart[envelopeIndex], beatTimeStart[envelopeIndex], timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, this.prevNoteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         envelopeStart += (other - envelopeStart) * prevSlideRatioStart;
                     }
                     if (nextSlideStart) {
-                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeStart[envelopeIndex], timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeStart, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         envelopeStart += (other - envelopeStart) * nextSlideRatioStart;
                     }
                     let envelopeEnd = envelopeStart;
                     if (isDiscrete == false) {
-                        envelopeEnd = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, noteSecondsEnd[envelopeIndex], beatTimeEnd[envelopeIndex], timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        envelopeEnd = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, this.noteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         if (prevSlideEnd) {
-                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, prevNoteSecondsEnd[envelopeIndex], beatTimeEnd[envelopeIndex], timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, this.prevNoteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                             envelopeEnd += (other - envelopeEnd) * prevSlideRatioEnd;
                         }
                         if (nextSlideEnd) {
-                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeEnd[envelopeIndex], timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeEnd, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                             envelopeEnd += (other - envelopeEnd) * nextSlideRatioEnd;
                         }
                     }
@@ -12741,12 +12735,6 @@ li.select2-results__option[role=group] > strong:hover {
             this.prevNoteSecondsEndUnscaled = prevNoteSecondsEndUnscaled;
             this.prevNoteTicksStart = prevNoteTicksStart;
             this.prevNoteTicksEnd = prevNoteTicksEnd;
-            for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
-                this.noteSecondsStart[envelopeIndex] = noteSecondsStart[envelopeIndex];
-                this.noteSecondsEnd[envelopeIndex] = noteSecondsEnd[envelopeIndex];
-                this.prevNoteSecondsStart[envelopeIndex] = prevNoteSecondsStart[envelopeIndex];
-                this.prevNoteSecondsEnd[envelopeIndex] = prevNoteSecondsEnd[envelopeIndex];
-            }
             this.prevNoteSize = prevNoteSize;
             this.nextNoteSize = nextNoteSize;
             this.noteSizeStart = noteSizeStart;
@@ -12786,13 +12774,12 @@ li.select2-results__option[role=group] > strong:hover {
                 case 3:
                     const hashMax = 0xffffffff;
                     const step = steps;
-                    let unitarraybuffer = new Uint8Array(1);
                     switch (waveform) {
                         case 0:
                             if (step <= 1)
                                 return 1;
-                            unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
-                            const timeHash = xxHash32(unitarraybuffer, seed);
+                            EnvelopeComputer.unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
+                            const timeHash = xxHash32(EnvelopeComputer.unitarraybuffer, seed);
                             if (inverse) {
                                 return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(timeHash * step / (hashMax + 1)) / step;
                             }
@@ -12800,8 +12787,8 @@ li.select2-results__option[role=group] > strong:hover {
                                 return boundAdjust * (step / (step - 1)) * Math.floor(timeHash * (step) / (hashMax + 1)) / step + perEnvelopeLowerBound;
                             }
                         case 1:
-                            unitarraybuffer[0] = defaultPitch;
-                            const pitchHash = xxHash32(unitarraybuffer, seed);
+                            EnvelopeComputer.unitarraybuffer[0] = defaultPitch;
+                            const pitchHash = xxHash32(EnvelopeComputer.unitarraybuffer, seed);
                             if (inverse) {
                                 return perEnvelopeUpperBound - boundAdjust * pitchHash / (hashMax + 1);
                             }
@@ -12811,8 +12798,8 @@ li.select2-results__option[role=group] > strong:hover {
                         case 2:
                             if (step <= 1)
                                 return 1;
-                            unitarraybuffer[0] = notePinStart;
-                            const noteHash = xxHash32(unitarraybuffer, seed);
+                            EnvelopeComputer.unitarraybuffer[0] = notePinStart;
+                            const noteHash = xxHash32(EnvelopeComputer.unitarraybuffer, seed);
                             if (inverse) {
                                 return perEnvelopeUpperBound - boundAdjust * (step / (step - 1)) * Math.floor(noteHash * step / (hashMax + 1)) / step;
                             }
@@ -12820,10 +12807,10 @@ li.select2-results__option[role=group] > strong:hover {
                                 return boundAdjust * (step / (step - 1)) * Math.floor(noteHash * (step) / (hashMax + 1)) / step + perEnvelopeLowerBound;
                             }
                         case 3:
-                            unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
-                            const timeHashA = xxHash32(unitarraybuffer, seed);
-                            unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / (256)));
-                            const timeHashB = xxHash32(unitarraybuffer, seed);
+                            EnvelopeComputer.unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed) / (256)));
+                            const timeHashA = xxHash32(EnvelopeComputer.unitarraybuffer, seed);
+                            EnvelopeComputer.unitarraybuffer[0] = (perEnvelopeSpeed == 0 ? 0 : Math.floor((timeSinceStart * perEnvelopeSpeed + 256) / (256)));
+                            const timeHashB = xxHash32(EnvelopeComputer.unitarraybuffer, seed);
                             const weightedAverage = timeHashA * (1 - ((timeSinceStart * perEnvelopeSpeed) / (256)) % 1) + timeHashB * (((timeSinceStart * perEnvelopeSpeed) / (256)) % 1);
                             if (inverse) {
                                 return perEnvelopeUpperBound - boundAdjust * weightedAverage / (hashMax + 1);
@@ -13086,6 +13073,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeEnd;
         }
     }
+    EnvelopeComputer.unitarraybuffer = new Uint8Array(1);
     class Tone {
         constructor() {
             this.pitches = Array(Config.maxChordSize + 2).fill(0);
@@ -14160,18 +14148,18 @@ li.select2-results__option[role=group] > strong:hover {
                         latestModInsTimes[channel][instrument] = [];
                     }
                 }
-                let currentPart = this.beat * Config.partsPerBeat + this.part;
+                let currentPart = this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
                 for (let channelIndex = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
                     if (!(this.song.channels[channelIndex].muted)) {
                         let pattern;
-                        for (let currentBar = this.bar; currentBar >= 0; currentBar--) {
+                        for (let currentBar = this.songPosition[0]; currentBar >= 0; currentBar--) {
                             pattern = this.song.getPattern(channelIndex, currentBar);
                             if (pattern != null) {
                                 let instrumentIdx = pattern.instruments[0];
                                 let instrument = this.song.channels[channelIndex].instruments[instrumentIdx];
                                 let latestPinParts = [];
                                 let latestPinValues = [];
-                                let partsInBar = (currentBar == this.bar)
+                                let partsInBar = (currentBar == this.songPosition[0])
                                     ? currentPart
                                     : this.findPartsInBar(currentBar);
                                 for (const note of pattern.notes) {
@@ -14318,10 +14306,10 @@ li.select2-results__option[role=group] > strong:hover {
             return (Math.pow(16.0, amplitude / 15.0) - 1.0) / 15.0;
         }
         getTicksIntoBar() {
-            return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+            return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
         }
         getCurrentPart() {
-            return (this.beat * Config.partsPerBeat + this.part);
+            return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]);
         }
         findPartsInBar(bar) {
             if (this.song == null)
@@ -14345,9 +14333,8 @@ li.select2-results__option[role=group] > strong:hover {
             }
             return partsInBar;
         }
-        constructor(deactivate, updatePlayhead, endCountIn) {
+        constructor(deactivate, endCountIn) {
             this.deactivate = deactivate;
-            this.updatePlayhead = updatePlayhead;
             this.endCountIn = endCountIn;
             this.samplesPerSecond = 44100;
             this.song = null;
@@ -14364,11 +14351,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.renderingSong = false;
             this.heldMods = [];
             this.wantToSkip = false;
-            this.bar = 0;
             this.prevBar = null;
             this.nextBar = null;
-            this.beat = 0;
-            this.part = 0;
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -14404,6 +14388,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.tempMonoInstrumentSampleBuffer = null;
             this.outputDataLUnfiltered = null;
             this.outputDataRUnfiltered = null;
+            this.dequeLivePitchesArray = new Uint16Array(Config.maxPitch);
             this.computeDelayBufferSizes();
         }
         setSong(song) {
@@ -14510,13 +14495,13 @@ li.select2-results__option[role=group] > strong:hover {
             return false;
         }
         getNextBar() {
-            let nextBar = this.bar + 1;
+            let nextBar = this.songPosition[0] + 1;
             if (this.isRecording) {
                 if (nextBar >= this.song.barCount) {
                     nextBar = this.song.barCount - 1;
                 }
             }
-            else if (this.bar == this.loopBarEnd && !this.renderingSong) {
+            else if (this.songPosition[0] == this.loopBarEnd && !this.renderingSong) {
                 nextBar = this.loopBarStart;
             }
             else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song.loopStart + this.song.loopLength)) {
@@ -14528,21 +14513,21 @@ li.select2-results__option[role=group] > strong:hover {
             if (!this.song)
                 return;
             const samplesPerTick = this.getSamplesPerTick();
-            this.prevBar = this.bar;
-            if (this.loopBarEnd != this.bar)
-                this.bar++;
+            this.prevBar = this.songPosition[0];
+            if (this.loopBarEnd != this.songPosition[0])
+                this.songPosition[0]++;
             else {
-                this.bar = this.loopBarStart;
+                this.songPosition[0] = this.loopBarStart;
             }
-            this.beat = 0;
-            this.part = 0;
+            this.songPosition[1] = 0;
+            this.songPosition[2] = 0;
             this.tick = 0;
             this.tickSampleCountdown = samplesPerTick;
             this.isAtStartOfTick = true;
-            if (this.loopRepeatCount != 0 && this.bar == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd + 1)) {
-                this.bar = this.song.loopStart;
+            if (this.loopRepeatCount != 0 && this.songPosition[0] == Math.max(this.song.loopStart + this.song.loopLength, this.loopBarEnd + 1)) {
+                this.songPosition[0] = this.song.loopStart;
                 if (this.loopBarStart != -1)
-                    this.bar = this.loopBarStart;
+                    this.songPosition[0] = this.loopBarStart;
                 if (this.loopRepeatCount > 0)
                     this.loopRepeatCount--;
             }
@@ -14604,19 +14589,19 @@ li.select2-results__option[role=group] > strong:hover {
                 this.isAtStartOfTick = true;
             }
             if (playSong) {
-                if (this.beat >= song.beatsPerBar) {
-                    this.beat = 0;
-                    this.part = 0;
+                if (this.songPosition[1] >= song.beatsPerBar) {
+                    this.songPosition[1] = 0;
+                    this.songPosition[2] = 0;
                     this.tick = 0;
                     this.tickSampleCountdown = samplesPerTick;
                     this.isAtStartOfTick = true;
-                    this.prevBar = this.bar;
-                    this.bar = this.getNextBar();
-                    if (this.bar <= this.prevBar && this.loopRepeatCount > 0)
+                    this.prevBar = this.songPosition[0];
+                    this.songPosition[0] = this.getNextBar();
+                    if (this.songPosition[0] <= this.prevBar && this.loopRepeatCount > 0)
                         this.loopRepeatCount--;
                 }
-                if (this.bar >= song.barCount) {
-                    this.bar = 0;
+                if (this.songPosition[0] >= song.barCount) {
+                    this.songPosition[0] = 0;
                     if (this.loopRepeatCount != -1) {
                         ended = true;
                         this.pause();
@@ -14685,7 +14670,7 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 }
                 if (this.wantToSkip) {
-                    let barVisited = skippedBars.includes(this.bar);
+                    let barVisited = skippedBars.includes(this.songPosition[0]);
                     if (barVisited && bufferIndex == firstSkippedBufferIndex) {
                         this.resetEffects();
                         this.pause();
@@ -14695,7 +14680,7 @@ li.select2-results__option[role=group] > strong:hover {
                         firstSkippedBufferIndex = bufferIndex;
                     }
                     if (!barVisited)
-                        skippedBars.push(this.bar);
+                        skippedBars.push(this.songPosition[0]);
                     this.wantToSkip = false;
                     this.skipBar();
                     continue;
@@ -14754,7 +14739,7 @@ li.select2-results__option[role=group] > strong:hover {
                         const tickSampleCountdown = this.tickSampleCountdown;
                         const startRatio = 1.0 - (tickSampleCountdown) / samplesPerTick;
                         const endRatio = 1.0 - (tickSampleCountdown - runLength) / samplesPerTick;
-                        const ticksIntoBar = (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+                        const ticksIntoBar = (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
                         const partTimeTickStart = (ticksIntoBar) / Config.ticksPerPart;
                         const partTimeTickEnd = (ticksIntoBar + 1) / Config.ticksPerPart;
                         const partTimeStart = partTimeTickStart + (partTimeTickEnd - partTimeTickStart) * startRatio;
@@ -14775,12 +14760,12 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 }
                 if (this.enableMetronome || this.countInMetronome) {
-                    if (this.part == 0) {
+                    if (this.songPosition[2] == 0) {
                         if (!this.startedMetronome) {
-                            const midBeat = (song.beatsPerBar > 4 && (song.beatsPerBar % 2 == 0) && this.beat == song.beatsPerBar / 2);
-                            const periods = (this.beat == 0) ? 8 : midBeat ? 6 : 4;
-                            const hz = (this.beat == 0) ? 1600 : midBeat ? 1200 : 800;
-                            const amplitude = (this.beat == 0) ? 0.06 : midBeat ? 0.05 : 0.04;
+                            const midBeat = (song.beatsPerBar > 4 && (song.beatsPerBar % 2 == 0) && this.songPosition[1] == song.beatsPerBar / 2);
+                            const periods = (this.songPosition[1] == 0) ? 8 : midBeat ? 6 : 4;
+                            const hz = (this.songPosition[1] == 0) ? 1600 : midBeat ? 1200 : 800;
+                            const amplitude = (this.songPosition[1] == 0) ? 0.06 : midBeat ? 0.05 : 0.04;
                             const samplesPerPeriod = this.samplesPerSecond / hz;
                             const radiansPerSample = Math.PI * 2.0 / samplesPerPeriod;
                             this.metronomeSamplesRemaining = Math.floor(samplesPerPeriod * periods);
@@ -14968,7 +14953,8 @@ li.select2-results__option[role=group] > strong:hover {
                     this.tickSampleCountdown += samplesPerTick;
                     if (this.tick == Config.ticksPerPart) {
                         this.tick = 0;
-                        this.part++;
+                        if (this.isPlayingSong)
+                            this.songPosition[2]++;
                         if (this.liveInputValues) {
                             this.liveInputValues[LiveInputValues.liveInputDuration]--;
                             this.liveInputValues[LiveInputValues.liveBassInputDuration]--;
@@ -14979,23 +14965,23 @@ li.select2-results__option[role=group] > strong:hover {
                                 this.heldMods.splice(i, 1);
                             }
                         }
-                        if (this.part == Config.partsPerBeat) {
-                            this.part = 0;
+                        if (this.songPosition[2] == Config.partsPerBeat) {
+                            this.songPosition[2] = 0;
                             if (playSong) {
-                                this.beat++;
-                                if (this.beat == song.beatsPerBar) {
-                                    this.beat = 0;
+                                this.songPosition[1]++;
+                                if (this.songPosition[1] == song.beatsPerBar) {
+                                    this.songPosition[1] = 0;
                                     if (this.countInMetronome) {
                                         this.countInMetronome = false;
                                         this.endCountIn();
                                     }
                                     else {
-                                        this.prevBar = this.bar;
-                                        this.bar = this.getNextBar();
-                                        if (this.bar <= this.prevBar && this.loopRepeatCount > 0)
+                                        this.prevBar = this.songPosition[0];
+                                        this.songPosition[0] = this.getNextBar();
+                                        if (this.songPosition[0] <= this.prevBar && this.loopRepeatCount > 0)
                                             this.loopRepeatCount--;
-                                        if (this.bar >= song.barCount) {
-                                            this.bar = 0;
+                                        if (this.songPosition[0] >= song.barCount) {
+                                            this.songPosition[0] = 0;
                                             if (this.loopRepeatCount != -1) {
                                                 ended = true;
                                                 this.resetEffects();
@@ -15041,9 +15027,6 @@ li.select2-results__option[role=group] > strong:hover {
             if (!Number.isFinite(limit) || Math.abs(limit) < epsilon)
                 limit = 0.0;
             this.limit = limit;
-            if (playSong && !this.countInMetronome) {
-                this.updatePlayhead(this.bar, this.beat, this.part);
-            }
         }
         freeTone(tone) {
             this.tonePool.pushBack(tone);
@@ -15084,10 +15067,9 @@ li.select2-results__option[role=group] > strong:hover {
                 return;
             const queuedTones = this.liveInputPitchesOnOffRequests.availableRead();
             if (queuedTones > 0) {
-                const vals = new Uint16Array(queuedTones);
-                this.liveInputPitchesOnOffRequests.pop(vals, queuedTones);
+                this.liveInputPitchesOnOffRequests.pop(this.dequeLivePitchesArray, queuedTones);
                 for (let i = 0; i < queuedTones; i++) {
-                    let val = vals[i];
+                    let val = this.dequeLivePitchesArray[i];
                     const isBass = Boolean(val & 1);
                     val = val >> 1;
                     const turnOn = Boolean(val & 1);
@@ -15130,7 +15112,7 @@ li.select2-results__option[role=group] > strong:hover {
                 if (effectsIncludeNoteRange(instrument.effects))
                     filteredBassPitches = bassPitches.filter(pitch => pitch >= instrument.lowerNoteLimit && pitch <= instrument.upperNoteLimit);
                 if (filteredPitches.size > 0 && this.liveInputValues[LiveInputValues.liveInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveInputChannel])) {
-                    const pattern = song.getPattern(channelIndex, this.bar);
+                    const pattern = song.getPattern(channelIndex, this.songPosition[0]);
                     if (!((_a = this.song) === null || _a === void 0 ? void 0 : _a.patternInstruments) || (pattern === null || pattern === void 0 ? void 0 : pattern.instruments.indexOf(instrumentIndex)) != -1) {
                         const instrument = channel.instruments[instrumentIndex];
                         if (instrument.getChord().singleTone) {
@@ -15192,7 +15174,7 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 }
                 if (filteredBassPitches.size > 0 && this.liveInputValues[LiveInputValues.liveBassInputDuration] > 0 && (channelIndex == this.liveInputValues[LiveInputValues.liveBassInputChannel])) {
-                    const pattern = song.getPattern(channelIndex, this.bar);
+                    const pattern = song.getPattern(channelIndex, this.songPosition[0]);
                     if ((pattern === null || pattern === void 0 ? void 0 : pattern.instruments.indexOf(instrumentIndex)) != -1) {
                         const instrument = channel.instruments[instrumentIndex];
                         if (instrument.getChord().singleTone) {
@@ -15333,7 +15315,7 @@ li.select2-results__option[role=group] > strong:hover {
         determineCurrentActiveTones(song, channelIndex, samplesPerTick, playSong) {
             const channel = song.channels[channelIndex];
             const channelState = this.channels[channelIndex];
-            const pattern = song.getPattern(channelIndex, this.bar);
+            const pattern = song.getPattern(channelIndex, this.songPosition[0]);
             const currentPart = this.getCurrentPart();
             const currentTick = this.tick + Config.ticksPerPart * currentPart;
             if (playSong && song.getChannelIsMod(channelIndex)) {
@@ -18753,8 +18735,8 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 }
                 else if (instrument.modInstruments[mod] > synth.song.channels[instrument.modChannels[mod]].instruments.length) {
-                    if (synth.song.getPattern(instrument.modChannels[mod], synth.bar) != null)
-                        usedInstruments = synth.song.getPattern(instrument.modChannels[mod], synth.bar).instruments;
+                    if (synth.song.getPattern(instrument.modChannels[mod], synth.songPosition[0]) != null)
+                        usedInstruments = synth.song.getPattern(instrument.modChannels[mod], synth.songPosition[0]).instruments;
                 }
                 else {
                     usedInstruments.push(instrument.modInstruments[mod]);
@@ -18771,10 +18753,10 @@ li.select2-results__option[role=group] > strong:hover {
                         synth.setModValue(synth.heldMods[i].volume, synth.heldMods[i].volume, instrument.modChannels[mod], usedInstruments[instrumentIndex], setting);
                     }
                 }
-                if (setting == Config.modulators.dictionary["reset arp"].index && synth.tick == 0 && tone.noteStartPart == synth.beat * Config.partsPerBeat + synth.part) {
+                if (setting == Config.modulators.dictionary["reset arp"].index && synth.tick == 0 && tone.noteStartPart == synth.songPosition[1] * Config.partsPerBeat + synth.songPosition[2]) {
                     synth.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]].arpTime = 0;
                 }
-                else if (setting == Config.modulators.dictionary["reset envelope"].index && synth.tick == 0 && tone.noteStartPart == synth.beat * Config.partsPerBeat + synth.part) {
+                else if (setting == Config.modulators.dictionary["reset envelope"].index && synth.tick == 0 && tone.noteStartPart == synth.songPosition[1] * Config.partsPerBeat + synth.songPosition[2]) {
                     let envelopeTarget = instrument.modEnvelopeNumbers[mod];
                     const tgtInstrumentState = synth.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
                     const tgtInstrument = synth.song.channels[instrument.modChannels[mod]].instruments[usedInstruments[instrumentIndex]];
@@ -19098,10 +19080,10 @@ li.select2-results__option[role=group] > strong:hover {
             var _a, _b;
             const beatsPerBar = ((_a = this.song) === null || _a === void 0 ? void 0 : _a.beatsPerBar) ? (_b = this.song) === null || _b === void 0 ? void 0 : _b.beatsPerBar : 8;
             if (ofBar) {
-                return Config.ticksPerPart * Config.partsPerBeat * beatsPerBar * this.bar;
+                return Config.ticksPerPart * Config.partsPerBeat * beatsPerBar * this.songPosition[0];
             }
             else {
-                return this.tick + Config.ticksPerPart * (this.part + Config.partsPerBeat * (this.beat + beatsPerBar * this.bar));
+                return this.tick + Config.ticksPerPart * (this.songPosition[2] + Config.partsPerBeat * (this.songPosition[1] + beatsPerBar * this.songPosition[0]));
             }
         }
     }
@@ -26666,18 +26648,20 @@ li.select2-results__option[role=group] > strong:hover {
             return this.isRecording;
         }
         get playhead() {
+            if (this.song)
+                this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
             return this.playheadInternal;
         }
         set playhead(value) {
             if (this.song != null) {
                 this.playheadInternal = Math.max(0, Math.min(this.song.barCount, value));
                 let remainder = this.playheadInternal;
-                this.bar = Math.floor(remainder);
-                remainder = this.song.beatsPerBar * (remainder - this.bar);
-                this.beat = Math.floor(remainder);
-                remainder = Config.partsPerBeat * (remainder - this.beat);
-                this.part = Math.floor(remainder);
-                remainder = Config.ticksPerPart * (remainder - this.part);
+                this.songPosition[0] = Math.floor(remainder);
+                remainder = this.song.beatsPerBar * (remainder - this.songPosition[0]);
+                this.songPosition[1] = Math.floor(remainder);
+                remainder = Config.partsPerBeat * (remainder - this.songPosition[1]);
+                this.songPosition[2] = Math.floor(remainder);
+                remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
                 this.tick = Math.floor(remainder);
                 this.tickSampleCountdown = 0;
                 this.isAtStartOfTick = true;
@@ -26686,14 +26670,13 @@ li.select2-results__option[role=group] > strong:hover {
                     prevBar: null
                 };
                 this.sendMessage(prevBar);
-                this.updateProcessorLocation();
             }
         }
         getTicksIntoBar() {
-            return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+            return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
         }
         getCurrentPart() {
-            return (this.beat * Config.partsPerBeat + this.part);
+            return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]);
         }
         constructor(song = null) {
             this.samplesPerSecond = 44100;
@@ -26711,9 +26694,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.renderingSong = false;
             this.heldMods = [];
             this.playheadInternal = 0.0;
-            this.bar = 0;
-            this.beat = 0;
-            this.part = 0;
+            this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -26729,8 +26710,13 @@ li.select2-results__option[role=group] > strong:hover {
             this.loopBarEnd = -1;
             this.audioContext = null;
             this.workletNode = null;
+            this.splitterNode = null;
+            this.analyserNodeLeft = null;
+            this.analyserNodeRight = null;
+            this.leftData = new Float32Array(1024);
+            this.rightData = new Float32Array(1024);
             this.messageQueue = [];
-            this.pushArray = new Uint16Array(1);
+            this.liveInputPushArray = new Uint16Array(Config.maxPitch);
             this.exportProcessor = null;
             if (song != null)
                 this.setSong(song);
@@ -26761,23 +26747,18 @@ li.select2-results__option[role=group] > strong:hover {
                     this.pause(false);
                     break;
                 }
-                case MessageFlag.songPosition: {
-                    this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
-                    break;
-                }
-                case MessageFlag.maintainLiveInput: {
-                    if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime)
-                        this.deactivateAudio();
-                    break;
-                }
                 case MessageFlag.isRecording: {
                     this.countInMetronome = event.data.countInMetronome;
                     break;
                 }
                 case MessageFlag.oscilloscope: {
+                    if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime)
+                        this.deactivateAudio();
                     if (this.oscEnabled) {
                         if (this.oscRefreshEventTimer <= 0) {
-                            events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+                            this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
+                            this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
+                            events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
                             this.oscRefreshEventTimer = 4;
                         }
                         else {
@@ -26787,15 +26768,6 @@ li.select2-results__option[role=group] > strong:hover {
                     break;
                 }
             }
-        }
-        updateProcessorLocation() {
-            const songPositionMessage = {
-                flag: MessageFlag.songPosition,
-                bar: this.bar,
-                beat: this.beat,
-                part: this.part
-            };
-            this.sendMessage(songPositionMessage);
         }
         setSong(song) {
             if (typeof (song) == "string") {
@@ -26839,20 +26811,19 @@ li.select2-results__option[role=group] > strong:hover {
                 val += +turnOn;
                 val = val << 1;
                 val += +isBass;
-                this.pushArray[0] = val;
-                this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+                this.liveInputPushArray[0] = val;
+                this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, 1);
             }
             else if (pitches instanceof Array && pitches.length > 0) {
-                const pushArray = new Uint16Array(pitches.length);
                 for (let i = 0; i < pitches.length; i++) {
                     let val = pitches[i];
                     val = val << 1;
                     val += +turnOn;
                     val = val << 1;
                     val += +isBass;
-                    pushArray[i] = val;
+                    this.liveInputPushArray[i] = val;
                 }
-                this.liveInputPitchesOnOffRequests.push(pushArray);
+                this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, pitches.length);
             }
         }
         activateAudio() {
@@ -26863,11 +26834,13 @@ li.select2-results__option[role=group] > strong:hover {
                     const sabMessage = {
                         flag: MessageFlag.sharedArrayBuffers,
                         liveInputValues: this.liveInputValues,
-                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
+                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+                        songPosition: this.songPosition
                     };
                     this.sendMessage(sabMessage);
                     const latencyHint = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
-                    this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
+                    if (!this.audioContext)
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
                     this.samplesPerSecond = this.audioContext.sampleRate;
                     yield this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
                     this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
@@ -26877,7 +26850,26 @@ li.select2-results__option[role=group] > strong:hover {
                         channelCountMode: "explicit",
                         numberOfInputs: 0
                     });
+                    if (!this.splitterNode)
+                        this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
+                    if (!this.analyserNodeLeft)
+                        this.analyserNodeLeft = new AnalyserNode(this.audioContext, {
+                            channelCount: 2,
+                            channelInterpretation: "speakers",
+                            channelCountMode: "explicit",
+                            fftSize: 1024
+                        });
+                    if (!this.analyserNodeRight)
+                        this.analyserNodeRight = new AnalyserNode(this.audioContext, {
+                            channelCount: 2,
+                            channelInterpretation: "speakers",
+                            channelCountMode: "explicit",
+                            fftSize: 1024
+                        });
                     this.workletNode.connect(this.audioContext.destination);
+                    this.workletNode.connect(this.splitterNode);
+                    this.splitterNode.connect(this.analyserNodeLeft, 0);
+                    this.splitterNode.connect(this.analyserNodeRight, 1);
                     this.workletNode.port.onmessage = (event) => this.receiveMessage(event);
                     this.updateWorkletSong();
                 }
@@ -26937,22 +26929,23 @@ li.select2-results__option[role=group] > strong:hover {
                 SynthMessenger.rerenderSongEditorAfterPluginLoad();
         }
         updatePlayhead(bar, beat, part) {
-            this.bar = bar;
-            this.beat = beat;
-            this.part = part;
-            this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song.beatsPerBar + this.bar;
+            this.songPosition[0] = bar;
+            this.songPosition[1] = beat;
+            this.songPosition[2] = part;
+            this.playheadInternal = (((this.tick) / 2.0 + this.songPosition[2]) / Config.partsPerBeat + this.songPosition[1]) / this.song.beatsPerBar + this.songPosition[0];
         }
         warmUpSynthesizer(song) {
             this.initSynth();
-            this.exportProcessor.bar = this.bar;
+            this.exportProcessor.songPosition[0] = this.songPosition[0];
             this.exportProcessor.computeLatestModValues();
             this.exportProcessor.initModFilters(this.song);
             this.exportProcessor.warmUpSynthesizer(song);
         }
         initSynth() {
             if (this.exportProcessor == null) {
-                this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => { this.countInMetronome = false; });
+                this.exportProcessor = new Synth(this.deactivateAudio, () => { this.countInMetronome = false; });
                 this.exportProcessor.song = this.song;
+                this.exportProcessor.songPosition = new Uint16Array(3);
                 this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
                 this.exportProcessor.liveInputValues = new Uint32Array(1);
             }
@@ -26989,7 +26982,7 @@ li.select2-results__option[role=group] > strong:hover {
                 this.sendMessage(playMessage);
             }
             this.tick = 0;
-            this.updatePlayhead(this.bar, 0, 0);
+            this.updatePlayhead(this.songPosition[0], 0, 0);
         }
         startRecording() {
             this.preferLowerLatency = true;
@@ -27004,38 +26997,35 @@ li.select2-results__option[role=group] > strong:hover {
             this.play();
         }
         snapToStart() {
-            this.bar = 0;
+            this.songPosition[0] = 0;
             const resetEffectsMessage = {
                 flag: MessageFlag.resetEffects
             };
-            this.updateProcessorLocation();
             this.sendMessage(resetEffectsMessage);
             this.snapToBar();
         }
         goToBar(bar) {
-            this.bar = bar;
+            this.songPosition[0] = bar;
             const resetEffectsMessage = {
                 flag: MessageFlag.resetEffects
             };
-            this.updateProcessorLocation();
             this.sendMessage(resetEffectsMessage);
-            this.playheadInternal = this.bar;
+            this.playheadInternal = this.songPosition[0];
         }
         snapToBar() {
-            this.playheadInternal = this.bar;
-            this.beat = 0;
-            this.part = 0;
+            this.playheadInternal = this.songPosition[0];
+            this.songPosition[1] = 0;
+            this.songPosition[2] = 0;
             this.tick = 0;
             this.tickSampleCountdown = 0;
-            this.updateProcessorLocation();
         }
         jumpIntoLoop() {
             if (!this.song)
                 return;
-            if (this.bar < this.song.loopStart || this.bar >= this.song.loopStart + this.song.loopLength) {
-                const oldBar = this.bar;
-                this.bar = this.song.loopStart;
-                this.playheadInternal += this.bar - oldBar;
+            if (this.songPosition[0] < this.song.loopStart || this.songPosition[0] >= this.song.loopStart + this.song.loopLength) {
+                const oldBar = this.songPosition[0];
+                this.songPosition[0] = this.song.loopStart;
+                this.playheadInternal += this.songPosition[0] - oldBar;
                 if (this.playing) {
                     this.computeLatestModValues();
                 }
@@ -27046,16 +27036,15 @@ li.select2-results__option[role=group] > strong:hover {
                 return;
             const prevBar = {
                 flag: MessageFlag.setPrevBar,
-                prevBar: this.bar
+                prevBar: this.songPosition[0]
             };
             this.sendMessage(prevBar);
-            const oldBar = this.bar;
-            this.bar++;
-            if (this.bar >= this.song.barCount) {
-                this.bar = 0;
+            const oldBar = this.songPosition[0];
+            this.songPosition[0]++;
+            if (this.songPosition[0] >= this.song.barCount) {
+                this.songPosition[0] = 0;
             }
-            this.playheadInternal += this.bar - oldBar;
-            this.updateProcessorLocation();
+            this.playheadInternal += this.songPosition[0] - oldBar;
             if (this.playing) {
                 this.computeLatestModValues();
             }
@@ -27068,13 +27057,12 @@ li.select2-results__option[role=group] > strong:hover {
                 prevBar: null
             };
             this.sendMessage(prevBar);
-            const oldBar = this.bar;
-            this.bar--;
-            if (this.bar < 0 || this.bar >= this.song.barCount) {
-                this.bar = this.song.barCount - 1;
+            const oldBar = this.songPosition[0];
+            this.songPosition[0]--;
+            if (this.songPosition[0] < 0 || this.songPosition[0] >= this.song.barCount) {
+                this.songPosition[0] = this.song.barCount - 1;
             }
-            this.playheadInternal += this.bar - oldBar;
-            this.updateProcessorLocation();
+            this.playheadInternal += this.songPosition[0] - oldBar;
             if (this.playing) {
                 this.computeLatestModValues();
             }
@@ -27290,18 +27278,18 @@ li.select2-results__option[role=group] > strong:hover {
                         latestModInsTimes[channel][instrument] = [];
                     }
                 }
-                let currentPart = this.beat * Config.partsPerBeat + this.part;
+                let currentPart = this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
                 for (let channelIndex = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
                     if (!(this.song.channels[channelIndex].muted)) {
                         let pattern;
-                        for (let currentBar = this.bar; currentBar >= 0; currentBar--) {
+                        for (let currentBar = this.songPosition[0]; currentBar >= 0; currentBar--) {
                             pattern = this.song.getPattern(channelIndex, currentBar);
                             if (pattern != null) {
                                 let instrumentIdx = pattern.instruments[0];
                                 let instrument = this.song.channels[channelIndex].instruments[instrumentIdx];
                                 let latestPinParts = [];
                                 let latestPinValues = [];
-                                let partsInBar = (currentBar == this.bar)
+                                let partsInBar = (currentBar == this.songPosition[0])
                                     ? currentPart
                                     : this.findPartsInBar(currentBar);
                                 for (const note of pattern.notes) {
@@ -37603,6 +37591,7 @@ You should be redirected to the song at:<br /><br />
                 this._whenCursorMoved();
             };
             this._whenCursorReleased = (event) => {
+                let isDirty = false;
                 if (this._writingMods) {
                     if (this._forSong) {
                         this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
@@ -37630,6 +37619,7 @@ You should be redirected to the song at:<br /><br />
                                     this._doc.record(change);
                                 }
                             }
+                            isDirty = true;
                         }
                     }
                     else if (!this._larger) {
@@ -37648,11 +37638,13 @@ You should be redirected to the song at:<br /><br />
                 this._mouseDown = false;
                 this._writingMods = false;
                 this._updateCursor();
-                if (this._forSong) {
-                    this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
-                }
-                else {
-                    this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+                if (isDirty) {
+                    if (this._forSong) {
+                        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+                    }
+                    else {
+                        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+                    }
                 }
             };
             this._useNoteFilter = useNoteFilter;
@@ -37779,6 +37771,7 @@ You should be redirected to the song at:<br /><br />
             }
         }
         _whenCursorMoved() {
+            let isDirty = false;
             if (this._writingMods) {
                 if (this._forSong) {
                     this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
@@ -37858,6 +37851,7 @@ You should be redirected to the song at:<br /><br />
                         if (this.coordText != null) {
                             this.coordText.innerText = "(" + freq + ", " + gain + ")";
                         }
+                        isDirty = true;
                     }
                     else {
                         this._deletingPoint = true;
@@ -37909,16 +37903,19 @@ You should be redirected to the song at:<br /><br />
                         }
                         this._deletingPoint = true;
                     }
+                    isDirty = true;
                 }
             }
             if (this._mouseDown || this._mouseOver) {
                 this._updatePath();
             }
-            if (this._forSong) {
-                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
-            }
-            else {
-                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+            if (isDirty) {
+                if (this._forSong) {
+                    this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+                }
+                else {
+                    this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+                }
             }
         }
         _findNearestFreqSlot(filterSettings, targetFreq, ignoreIndex) {
@@ -50621,7 +50618,7 @@ You should be redirected to the song at:<br /><br />
                     SVG$1.path({ d: "M200-120v-40h560v40H200Zm185.384-150.769v-271.539H254.615L480-840l224.616 297.692h-130.77v271.539H385.384Zm40.001-40h108.461v-272.308h88.308L480-774.615 337.077-583.077h88.308v272.308ZM480-583.077Z", fill: "currentColor" }),
                 ]),
             ]);
-            this._globalOscscope = new oscilloscopeCanvas(canvas({ width: 128, height: 32, style: `border: 2px solid ${ColorConfig.uiWidgetBackground}; position: static;`, id: "oscilloscopeAll" }), 1);
+            this._globalOscscope = new oscilloscopeCanvas(canvas({ width: 144, height: 32, style: `border: 2px solid ${ColorConfig.uiWidgetBackground}; position: static;`, id: "oscilloscopeAll" }), 1);
             this._globalOscscopeContainer = div({ style: "height: 38px; margin-left: auto; margin-right: auto;" }, this._globalOscscope.canvas);
             this._customWaveDrawCanvas = new CustomChipCanvas(canvas({ width: 128, height: 52, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" }), this.doc, (newArray) => new ChangeCustomWave(this.doc, newArray));
             this._customWavePresetDrop = buildHeaderedOptions("Load Preset", select({ style: "width: 50%; height:1.5em; text-align: center; text-align-last: center;" }), Config.chipWaves.map(wave => wave.name));

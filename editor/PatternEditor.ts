@@ -2792,8 +2792,7 @@ export class PatternEditor {
         if (this._doc.song.getChannelIsNoise(this._doc.channel)) {
             this._pitchBorder = 0;
             this._pitchCount = Config.drumCount;
-        }
-        else if (this._doc.song.getChannelIsMod(this._doc.channel)) {
+        } else if (this._doc.song.getChannelIsMod(this._doc.channel)) {
             this._pitchBorder = this._defaultModBorder;
             this._pitchCount = Config.modCount;
 
@@ -2816,8 +2815,7 @@ export class PatternEditor {
                     }
                 }
             }
-        }
-        else {
+        } else {
             this._pitchBorder = 0;
             this._pitchCount = this._doc.getVisiblePitchCount();
         }

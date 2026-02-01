@@ -275,6 +275,7 @@ export class FilterEditor {
     }
 
     private _whenCursorMoved(): void {
+        let isDirty: boolean = false;
         if (this._writingMods) {
             if (this._forSong) {
                 this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
@@ -355,6 +356,7 @@ export class FilterEditor {
                     if (this.coordText != null) {
                         this.coordText.innerText = "(" + freq + ", " + gain + ")";
                     }
+                    isDirty = true;
                 } else {
                     this._deletingPoint = true;
                 }
@@ -401,19 +403,23 @@ export class FilterEditor {
                     }
                     this._deletingPoint = true;
                 }
+                isDirty = true;
             }
         }
         if (this._mouseDown || this._mouseOver) {
             this._updatePath();
         }
-        if (this._forSong) {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
-        } else {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        if (isDirty) {
+            if (this._forSong) {
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+            } else {
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+            }
         }
     }
 
     private _whenCursorReleased = (event: Event): void => {
+        let isDirty: boolean = false;
         if (this._writingMods) {
             if (this._forSong) {
                 this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
@@ -439,6 +445,7 @@ export class FilterEditor {
                             this._doc.record(change);
                         }
                     }
+                    isDirty = true;
                 }
             } else if (!this._larger) {
                 this._doc.record(this._dragChange);
@@ -456,10 +463,12 @@ export class FilterEditor {
         this._mouseDown = false;
         this._writingMods = false;
         this._updateCursor();
-        if (this._forSong) {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
-        } else {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        if (isDirty) {
+            if (this._forSong) {
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+            } else {
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+            }
         }
     }
 

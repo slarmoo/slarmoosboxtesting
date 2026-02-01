@@ -163,7 +163,7 @@ let outVolumeHistoricTimer: number = 0;
 let outVolumeHistoricCap: number = 0;
 
 const synth: SynthMessenger = new SynthMessenger();
-const oscilloscope: oscilloscopeCanvas = new oscilloscopeCanvas(canvas({ width: 128, height: isMobile?32:64, style: `border:2px solid ${ColorConfig.uiWidgetBackground}; overflow: hidden;` , id: "oscilloscopeAll" }), isMobile?1:2);
+const oscilloscope: oscilloscopeCanvas = new oscilloscopeCanvas(canvas({ width: isMobile ? 144 : 288, height: isMobile?32:64, style: `border:2px solid ${ColorConfig.uiWidgetBackground}; overflow: hidden;` , id: "oscilloscopeAll" }), isMobile?1:2);
 const showOscilloscope: boolean = getLocalStorage("showOscilloscope") != "false";
 if (!showOscilloscope) {
 	oscilloscope.canvas.style.display = "none";
@@ -467,7 +467,6 @@ function onTimelineCursorMove(mouseX: number): void {
 	if (draggingPlayhead && synth.song != null) {
 		const boundingRect: ClientRect = visualizationContainer.getBoundingClientRect();
 		synth.playhead = synth.song.barCount * (mouseX - boundingRect.left) / (boundingRect.right - boundingRect.left);
-		synth.updateProcessorLocation();
 		synth.computeLatestModValues();
 		renderPlayhead();
 	}

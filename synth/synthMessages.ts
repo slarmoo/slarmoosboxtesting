@@ -4,8 +4,7 @@ export enum MessageFlag {
     loadSong,
     togglePlay,
     deactivate,
-    songPosition,
-    maintainLiveInput,
+    // songPosition,
     resetEffects,
     computeMods,
     sharedArrayBuffers,
@@ -46,16 +45,12 @@ export interface DeactivateMessage extends Message {
     flag: MessageFlag.deactivate
 }
 
-export interface SongPositionMessage extends Message {
-    flag: MessageFlag.songPosition,
-    bar: number,
-    beat: number,
-    part: number
-}
-
-export interface MaintainLiveInputMessage extends Message {
-    flag: MessageFlag.maintainLiveInput,
-}
+// export interface SongPositionMessage extends Message {
+//     flag: MessageFlag.songPosition,
+//     bar: number,
+//     beat: number,
+//     part: number
+// }
 
 export interface ResetEffectsMessage extends Message {
     flag: MessageFlag.resetEffects
@@ -69,7 +64,8 @@ export interface ComputeModsMessage extends Message {
 export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
     liveInputValues: Uint32Array,
-    liveInputPitchesOnOffRequests: SharedArrayBuffer
+    liveInputPitchesOnOffRequests: SharedArrayBuffer,
+    songPosition: Uint16Array
 }
 
 export interface SetPrevBarMessage extends Message {
@@ -86,8 +82,7 @@ export interface IsRecordingMessage extends Message {
 
 export interface OscilloscopeMessage extends Message {
     flag: MessageFlag.oscilloscope,
-    left: Float32Array,
-    right: Float32Array
+    maintainLiveInput: boolean
 }
 
 export interface SynthVolumeMessage extends Message {

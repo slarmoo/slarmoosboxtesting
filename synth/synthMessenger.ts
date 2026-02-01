@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SongPositionMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events } from "../global/Events";
@@ -8216,8 +8216,9 @@ export class SynthMessenger {
      * liveBassInputChannel [5]: integer
      */
     public liveInputValues: Uint32Array = new Uint32Array(new SharedArrayBuffer(6 * 4));
-    private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch)
-    private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array)
+    private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch);
+    private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
+
     public loopRepeatCount: number = -1;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
@@ -8226,9 +8227,15 @@ export class SynthMessenger {
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = []; 
     private playheadInternal: number = 0.0;
-    private bar: number = 0;
-    private beat: number = 0;
-    private part: number = 0;
+    // private bar: number = 0;
+    // private beat: number = 0;
+    // private part: number = 0;
+    /**
+     * beat [0]: number
+     * bar [1]: number
+     * part [2]: number
+     */
+    public songPosition: Uint16Array = new Uint16Array(new SharedArrayBuffer(3 * 2));
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -8252,8 +8259,14 @@ export class SynthMessenger {
     public static PluginDelayLineSize: number = 0;
     public static rerenderSongEditorAfterPluginLoad: Function | null = null;
 
-    private audioContext: any | null = null;
+    private audioContext: AudioContext | null = null;
     private workletNode: AudioWorkletNode | null = null;
+    private splitterNode: ChannelSplitterNode | null = null;
+    private analyserNodeLeft: AnalyserNode | null = null;
+    private analyserNodeRight: AnalyserNode | null = null;
+
+    private readonly leftData: Float32Array = new Float32Array(1024);
+    private readonly rightData: Float32Array = new Float32Array(1024);
 
     public get playing(): boolean {
         return this.isPlayingSong;
@@ -8264,6 +8277,7 @@ export class SynthMessenger {
     }
 
     public get playhead(): number {
+        if (this.song) this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song!.beatsPerBar
         return this.playheadInternal;
     }
 
@@ -8271,12 +8285,12 @@ export class SynthMessenger {
         if (this.song != null) {
             this.playheadInternal = Math.max(0, Math.min(this.song.barCount, value));
             let remainder: number = this.playheadInternal;
-            this.bar = Math.floor(remainder);
-            remainder = this.song.beatsPerBar * (remainder - this.bar);
-            this.beat = Math.floor(remainder);
-            remainder = Config.partsPerBeat * (remainder - this.beat);
-            this.part = Math.floor(remainder);
-            remainder = Config.ticksPerPart * (remainder - this.part);
+            this.songPosition[0] = Math.floor(remainder);
+            remainder = this.song.beatsPerBar * (remainder - this.songPosition[0]);
+            this.songPosition[1] = Math.floor(remainder);
+            remainder = Config.partsPerBeat * (remainder - this.songPosition[1]);
+            this.songPosition[2] = Math.floor(remainder);
+            remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
             this.tick = Math.floor(remainder);
             this.tickSampleCountdown = 0;
             this.isAtStartOfTick = true;
@@ -8285,15 +8299,14 @@ export class SynthMessenger {
                 prevBar: null
             }
             this.sendMessage(prevBar);
-            this.updateProcessorLocation();
         }
     }
 
     public getTicksIntoBar(): number {
-        return (this.beat * Config.partsPerBeat + this.part) * Config.ticksPerPart + this.tick;
+        return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
     }
     public getCurrentPart(): number {
-        return (this.beat * Config.partsPerBeat + this.part);
+        return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]);
     }
 
     constructor(song: Song | string | null = null) {
@@ -8323,7 +8336,7 @@ export class SynthMessenger {
 
         switch (flag) {
             case MessageFlag.deactivate: {
-                this.audioContext.suspend();
+                this.audioContext!.suspend();
                 break;
             }
 
@@ -8332,25 +8345,23 @@ export class SynthMessenger {
                 break;
             }
 
-            case MessageFlag.songPosition: {
-                this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
-                break;
-            }
+            // case MessageFlag.songPosition: {
+            //     this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
+            //     break;
+            // }
 
-            case MessageFlag.maintainLiveInput: {
-                if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
-                break;
-            }
-                
             case MessageFlag.isRecording: {
                 this.countInMetronome = event.data.countInMetronome;
                 break;
             }
                 
             case MessageFlag.oscilloscope: {
+                if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
                 if (this.oscEnabled) {
                     if (this.oscRefreshEventTimer <= 0) {
-                        events.raise("oscilloscopeUpdate", event.data.left, event.data.right);
+                        this.analyserNodeLeft!.getFloatTimeDomainData(this.leftData);
+                        this.analyserNodeRight!.getFloatTimeDomainData(this.rightData);
+                        events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
                         this.oscRefreshEventTimer = 4; //oscilloscope refresh rate
                     } else {
                         this.oscRefreshEventTimer--;
@@ -8359,16 +8370,6 @@ export class SynthMessenger {
                 break;
             }
         }
-    }
-
-    public updateProcessorLocation() {
-        const songPositionMessage: SongPositionMessage = {
-            flag: MessageFlag.songPosition,
-            bar: this.bar,
-            beat: this.beat,
-            part: this.part
-        }
-        this.sendMessage(songPositionMessage);
     }
 
     public setSong(song: Song | string): void {
@@ -8407,23 +8408,23 @@ export class SynthMessenger {
         this.sendMessage(updateMessage);
     }
 
-    private readonly pushArray: Uint16Array = new Uint16Array(1);
+    private readonly liveInputPushArray: Uint16Array = new Uint16Array(Config.maxPitch);
     public addRemoveLiveInputTone(pitches: number | number[], isBass: boolean, turnOn: boolean) {
         if (typeof pitches === "number") {
             let val: number = pitches; val = val << 1;
             val += +turnOn; val = val << 1;
             val += +isBass;
-            this.pushArray[0] = val;
-            this.liveInputPitchesOnOffRequests.push(this.pushArray, 1);
+            this.liveInputPushArray[0] = val;
+            this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, 1);
         } else if (pitches instanceof Array && pitches.length > 0) {
-            const pushArray: Uint16Array = new Uint16Array(pitches.length)
+            // const pushArray: Uint16Array = new Uint16Array(pitches.length)
             for (let i: number = 0; i < pitches.length; i++) {
                 let val: number = pitches[i]; val = val << 1;
                 val += +turnOn; val = val << 1;
                 val += +isBass;
-                pushArray[i] = val
+                this.liveInputPushArray[i] = val
             }
-            this.liveInputPitchesOnOffRequests.push(pushArray);
+            this.liveInputPitchesOnOffRequests.push(this.liveInputPushArray, pitches.length);
         }
     }
 
@@ -8434,29 +8435,47 @@ export class SynthMessenger {
             const sabMessage: SendSharedArrayBuffers = {
                 flag: MessageFlag.sharedArrayBuffers,
                 liveInputValues: this.liveInputValues,
-                liveInputPitchesOnOffRequests: this.liveInputPitchesSAB
+                liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+                songPosition: this.songPosition
                 //add more here if needed
             }
             this.sendMessage(sabMessage);
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
-            this.audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
-            this.samplesPerSecond = this.audioContext.sampleRate;
+            if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
+            this.samplesPerSecond = this.audioContext!.sampleRate;
 
-            await this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
-            this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
+            await this.audioContext!.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+            this.workletNode = new AudioWorkletNode(this.audioContext!, 'synth-processor', {
                 numberOfOutputs: 1,
                 outputChannelCount: [2],
                 channelInterpretation: "speakers",
                 channelCountMode: "explicit",
                 numberOfInputs: 0
             });
+            if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext!, { numberOfOutputs: 2 });
+            if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext!, {
+                channelCount: 2,
+                channelInterpretation: "speakers",
+                channelCountMode: "explicit",
+                fftSize: 1024
+            });
+            if (!this.analyserNodeRight) this.analyserNodeRight = new AnalyserNode(this.audioContext!, {
+                channelCount: 2,
+                channelInterpretation: "speakers",
+                channelCountMode: "explicit",
+                fftSize: 1024
+            });
+            
 
-            this.workletNode.connect(this.audioContext.destination);
+            this.workletNode.connect(this.audioContext!.destination);
+            this.workletNode.connect(this.splitterNode);
+            this.splitterNode.connect(this.analyserNodeLeft, 0);
+            this.splitterNode.connect(this.analyserNodeRight, 1);
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.updateWorkletSong();
         }
-        this.audioContext.resume();
+        this.audioContext!.resume();
     }
 
     public updateWorkletSong(): void {
@@ -8524,15 +8543,15 @@ export class SynthMessenger {
     private exportProcessor: Synth | null = null;
 
     private updatePlayhead(bar: number, beat: number, part: number): void {
-        this.bar = bar;
-        this.beat = beat;
-        this.part = part;
-        this.playheadInternal = (((this.tick) / 2.0 + this.part) / Config.partsPerBeat + this.beat) / this.song!.beatsPerBar + this.bar;
+        this.songPosition[0] = bar;
+        this.songPosition[1] = beat;
+        this.songPosition[2] = part;
+        this.playheadInternal = (((this.tick) / 2.0 + this.songPosition[2]) / Config.partsPerBeat + this.songPosition[1]) / this.song!.beatsPerBar + this.songPosition[0];
     }
 
     public warmUpSynthesizer(song: Song) {
         this.initSynth();
-        this.exportProcessor!.bar = this.bar;
+        this.exportProcessor!.songPosition[0] = this.songPosition[0];
         this.exportProcessor!.computeLatestModValues();
         this.exportProcessor!.initModFilters(this.song);
         this.exportProcessor!.warmUpSynthesizer(song);
@@ -8540,8 +8559,9 @@ export class SynthMessenger {
 
     private initSynth() {
         if (this.exportProcessor == null) {
-            this.exportProcessor = new Synth(this.deactivateAudio, this.updatePlayhead, () => {this.countInMetronome = false});
+            this.exportProcessor = new Synth(this.deactivateAudio, () => {this.countInMetronome = false});
             this.exportProcessor.song = this.song;
+            this.exportProcessor.songPosition = new Uint16Array(3);
             this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
             this.exportProcessor.liveInputValues = new Uint32Array(1);
         }
@@ -8550,9 +8570,7 @@ export class SynthMessenger {
         this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
     }
 
-    // Direct synthesize request, get from worker
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {
-        // TODO: Feed params to worker (do NOT feed arrays, just do some trickery where audio context is connected differently so you can set them in this function)
         this.initSynth();
         this.exportProcessor!.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
     }
@@ -8583,7 +8601,7 @@ export class SynthMessenger {
             this.sendMessage(playMessage);
         }
         this.tick = 0;
-        this.updatePlayhead(this.bar, 0, 0);
+        this.updatePlayhead(this.songPosition[0], 0, 0);
     }
 
     public startRecording(): void {
@@ -8600,40 +8618,37 @@ export class SynthMessenger {
     }
 
     public snapToStart(): void {
-        this.bar = 0;
+        this.songPosition[0] = 0;
         const resetEffectsMessage: ResetEffectsMessage = {
             flag: MessageFlag.resetEffects
         }
-        this.updateProcessorLocation();
         this.sendMessage(resetEffectsMessage);
         this.snapToBar();
     }
 
     public goToBar(bar: number): void {
-        this.bar = bar;
+        this.songPosition[0] = bar;
         const resetEffectsMessage: ResetEffectsMessage = {
             flag: MessageFlag.resetEffects
         }
-        this.updateProcessorLocation();
         this.sendMessage(resetEffectsMessage);
-        this.playheadInternal = this.bar;
+        this.playheadInternal = this.songPosition[0];
     }
 
     public snapToBar(): void {
-        this.playheadInternal = this.bar;
-        this.beat = 0;
-        this.part = 0;
+        this.playheadInternal = this.songPosition[0];
+        this.songPosition[1] = 0;
+        this.songPosition[2] = 0;
         this.tick = 0;
         this.tickSampleCountdown = 0;
-        this.updateProcessorLocation();
     }
 
     public jumpIntoLoop(): void {
         if (!this.song) return;
-        if (this.bar < this.song.loopStart || this.bar >= this.song.loopStart + this.song.loopLength) {
-            const oldBar: number = this.bar;
-            this.bar = this.song.loopStart;
-            this.playheadInternal += this.bar - oldBar;
+        if (this.songPosition[0] < this.song.loopStart || this.songPosition[0] >= this.song.loopStart + this.song.loopLength) {
+            const oldBar: number = this.songPosition[0];
+            this.songPosition[0] = this.song.loopStart;
+            this.playheadInternal += this.songPosition[0] - oldBar;
 
             if (this.playing) {
                 this.computeLatestModValues();
@@ -8645,16 +8660,15 @@ export class SynthMessenger {
         if (!this.song) return;
         const prevBar: SetPrevBarMessage = {
             flag: MessageFlag.setPrevBar,
-            prevBar: this.bar
+            prevBar: this.songPosition[0]
         }
         this.sendMessage(prevBar);
-        const oldBar: number = this.bar;
-        this.bar++;
-        if (this.bar >= this.song.barCount) {
-            this.bar = 0;
+        const oldBar: number = this.songPosition[0];
+        this.songPosition[0]++;
+        if (this.songPosition[0] >= this.song.barCount) {
+            this.songPosition[0] = 0;
         }
-        this.playheadInternal += this.bar - oldBar;
-        this.updateProcessorLocation();
+        this.playheadInternal += this.songPosition[0] - oldBar;
 
         if (this.playing) {
             this.computeLatestModValues();
@@ -8668,14 +8682,13 @@ export class SynthMessenger {
             prevBar: null
         }
         this.sendMessage(prevBar);
-        const oldBar: number = this.bar;
-        this.bar--;
-        if (this.bar < 0 || this.bar >= this.song.barCount) {
-            this.bar = this.song.barCount - 1;
+        const oldBar: number = this.songPosition[0];
+        this.songPosition[0]--;
+        if (this.songPosition[0] < 0 || this.songPosition[0] >= this.song.barCount) {
+            this.songPosition[0] = this.song.barCount - 1;
         }
-        this.playheadInternal += this.bar - oldBar;
+        this.playheadInternal += this.songPosition[0] - oldBar;
 
-        this.updateProcessorLocation();
         if (this.playing) {
             this.computeLatestModValues();
         }
@@ -8951,7 +8964,7 @@ export class SynthMessenger {
             }
 
             // Find out where we're at in the fraction of the current bar.
-            let currentPart: number = this.beat * Config.partsPerBeat + this.part;
+            let currentPart: number = this.songPosition[1] * Config.partsPerBeat + this.songPosition[2];
 
             // For mod channels, calculate last set value for each mod
             for (let channelIndex: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex < this.song.getChannelCount(); channelIndex++) {
@@ -8959,7 +8972,7 @@ export class SynthMessenger {
 
                     let pattern: Pattern | null;
 
-                    for (let currentBar: number = this.bar; currentBar >= 0; currentBar--) {
+                    for (let currentBar: number = this.songPosition[0]; currentBar >= 0; currentBar--) {
                         pattern = this.song.getPattern(channelIndex, currentBar);
 
                         if (pattern != null) {
@@ -8968,7 +8981,7 @@ export class SynthMessenger {
                             let latestPinParts: number[] = [];
                             let latestPinValues: number[] = [];
 
-                            let partsInBar: number = (currentBar == this.bar)
+                            let partsInBar: number = (currentBar == this.songPosition[0])
                                 ? currentPart
                                 : this.findPartsInBar(currentBar);
 

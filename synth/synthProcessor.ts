@@ -2,7 +2,7 @@
 
 import { Config, performIntegral } from "./SynthConfig";
 import { Song } from "./synthMessenger";
-import { DeactivateMessage, IsRecordingMessage, MaintainLiveInputMessage, Message, MessageFlag, OscilloscopeMessage, SongPositionMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, OscilloscopeMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -23,15 +23,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             this.sendMessage(DeactivateMessage);
         }
-        const updatePlayhead = (bar: number, beat: number, part: number) => {
-            const playheadMessage: SongPositionMessage = {
-                flag: MessageFlag.songPosition,
-                bar: bar,
-                beat: beat,
-                part: part,
-            }
-            this.sendMessage(playheadMessage);
-        }
+        // const updatePlayhead = (bar: number, beat: number, part: number) => {
+        //     const playheadMessage: SongPositionMessage = {
+        //         flag: MessageFlag.songPosition,
+        //         bar: bar,
+        //         beat: beat,
+        //         part: part,
+        //     }
+        //     this.sendMessage(playheadMessage);
+        // }
         const endCountIn = () => {
             const metronomeMessage: IsRecordingMessage = {
                 flag: MessageFlag.isRecording,
@@ -42,7 +42,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.sendMessage(metronomeMessage);
         }
 
-        this.synth = new Synth(deactivate, updatePlayhead, endCountIn);
+        this.synth = new Synth(deactivate, endCountIn);
     }
 
     private sendMessage(message: Message) {
@@ -76,16 +76,17 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (event.data.initFilters) this.synth.initModFilters(this.synth.song);
                 this.synth.computeLatestModValues();
                 break;
-            case MessageFlag.songPosition: {
-                this.synth.bar = event.data.bar;
-                this.synth.beat = event.data.beat;
-                this.synth.part = event.data.part;
-                break;
-            }
+            // case MessageFlag.songPosition: {
+            //     this.synth.bar = event.data.bar;
+            //     this.synth.beat = event.data.beat;
+            //     this.synth.part = event.data.part;
+            //     break;
+            // }
             case MessageFlag.sharedArrayBuffers: {
                 console.log("LOADING SABS");
                 this.synth.liveInputValues = event.data.liveInputValues;
                 this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
+                this.synth.songPosition = event.data.songPosition;
                 break;
             }
             case MessageFlag.setPrevBar: {
@@ -191,13 +192,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
         }
 
-        //liveInputEndTime is now handled on the main thread
-        if (!this.synth.isPlayingSong) {
-            const maintainLiveInputMessage: MaintainLiveInputMessage = {
-                flag: MessageFlag.maintainLiveInput
-            }
-            this.sendMessage(maintainLiveInputMessage);
-        }
         try {
             this.synth.synthesize(outputDataL, outputDataR, outputDataL.length, this.synth.isPlayingSong);
         } catch (e) {
@@ -205,11 +199,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
             // this.deactivateAudio();
         }
 
-        //TODO: have oscEnabled be threadside to avoid copying the arrays even when disabled?
         const oscilloscopeMessage: OscilloscopeMessage = {
             flag: MessageFlag.oscilloscope,
-            left: outputDataL,
-            right: outputDataR
+            maintainLiveInput: !this.synth.isPlayingSong
         }
         this.sendMessage(oscilloscopeMessage);
 
