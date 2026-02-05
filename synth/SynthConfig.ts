@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+import { events } from "../global/Events";
+
 export interface Dictionary<T> {
     [K: string]: T;
 }
@@ -342,9 +344,9 @@ export class SampleLoadedEvent extends Event {
     public readonly samplesLoaded: number;
 
     constructor(totalSamples: number, samplesLoaded: number) {
-	super("sampleloaded");
-	this.totalSamples = totalSamples;
-	this.samplesLoaded = samplesLoaded;
+        super("sampleloaded");
+        this.totalSamples = totalSamples;
+        this.samplesLoaded = samplesLoaded;
     }
 }
 
@@ -360,9 +362,7 @@ export class SampleLoadEvents extends EventTarget {
 
 export const sampleLoadEvents: SampleLoadEvents = new SampleLoadEvents();
 
-export async function startLoadingSample(url: string, chipWaveIndex: number, presetSettings: Dictionary<any>, rawLoopOptions: any, customSampleRate: number,
-    finishLoadingSample: (samples: Float32Array, index: number) => void
-): Promise<void> {
+export async function startLoadingSample(url: string, chipWaveIndex: number, presetSettings: Dictionary<any>, rawLoopOptions: any, customSampleRate: number): Promise<void> {
     // @TODO: Make parts of the code that expect everything to already be
     // in memory work correctly.
     // It would be easy to only instantiate `SongEditor` and company after
@@ -394,7 +394,7 @@ export async function startLoadingSample(url: string, chipWaveIndex: number, pre
     }).then((audioBuffer) => {
 	// @TODO: Downmix.
 	const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-    finishLoadingSample(samples, chipWaveIndex);
+    events.raise("sampleLoaded", samples, chipWaveIndex);
 	const integratedSamples = performIntegral(samples);
 	chipWave.samples = integratedSamples;
 	rawChipWave.samples = samples;

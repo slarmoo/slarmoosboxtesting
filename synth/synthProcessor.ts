@@ -2,7 +2,7 @@
 
 import { Config, performIntegral } from "./SynthConfig";
 import { Song } from "./synthMessenger";
-import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, OscilloscopeMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, UIRenderMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -17,12 +17,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
 
         //give the synth the needed functions
-        const deactivate = () => {
-            const DeactivateMessage: DeactivateMessage = {
-                flag: MessageFlag.deactivate
-            }
-            this.sendMessage(DeactivateMessage);
-        }
         const endCountIn = () => {
             const metronomeMessage: IsRecordingMessage = {
                 flag: MessageFlag.isRecording,
@@ -33,8 +27,16 @@ export class SynthProcessor extends AudioWorkletProcessor {
             this.sendMessage(metronomeMessage);
         }
 
-        this.synth = new Synth(deactivate, endCountIn);
+        this.synth = new Synth(this.deactivate, endCountIn);
     }
+
+    private deactivate = () => {
+        const DeactivateMessage: DeactivateMessage = {
+            flag: MessageFlag.deactivate
+        }
+        this.sendMessage(DeactivateMessage);
+    }
+
 
     private sendMessage(message: Message) {
         this.port.postMessage(message);
@@ -69,9 +71,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 break;
             case MessageFlag.sharedArrayBuffers: {
                 console.log("LOADING SABS");
-                this.synth.liveInputValues = event.data.liveInputValues;
-                this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
-                this.synth.songPosition = event.data.songPosition;
+                if (!event.data.liveInputValues ||
+                    !event.data.liveInputPitchesOnOffRequests ||
+                    !event.data.songPosition
+                ) this.deactivate();
+                else {
+                    this.synth.liveInputValues = event.data.liveInputValues;
+                    this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
+                    this.synth.songPosition = event.data.songPosition;
+                }
                 break;
             }
             case MessageFlag.setPrevBar: {
@@ -150,6 +158,13 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             case MessageFlag.loopRepeatCount: {
                 this.synth.loopRepeatCount = event.data.count;
+                break;
+            }
+            case MessageFlag.loopBar: {
+                this.synth.loopBarStart = event.data.loopBarStart;
+                this.synth.loopBarEnd = event.data.loopBarEnd;
+                console.log(event.data.loopBarStart, event.data.loopBarEnd);
+                break;
             }
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();
@@ -187,8 +202,8 @@ export class SynthProcessor extends AudioWorkletProcessor {
             // this.synth.deactivateAudio();
         }
 
-        const oscilloscopeMessage: OscilloscopeMessage = {
-            flag: MessageFlag.oscilloscope,
+        const oscilloscopeMessage: UIRenderMessage = {
+            flag: MessageFlag.uiRender,
             maintainLiveInput: !this.synth.isPlayingSong
         }
         this.sendMessage(oscilloscopeMessage);

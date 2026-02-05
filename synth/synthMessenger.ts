@@ -4,7 +4,7 @@ import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadE
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events } from "../global/Events";
@@ -3147,13 +3147,7 @@ export class Song {
     public sequences: SequenceSettings[] = [new SequenceSettings()];
     public pluginurl: string | null = null;
 
-    
-
-    constructor(string?: string,
-        private updateSynthSamplesStart?: (name: string, expression: number, isCustomSampled: boolean, isPercussion: boolean, rootKey: number, sampleRate: number, index: number) => void,
-        private updateSynthSamplesFinish?: (samples: Float32Array, index: number) => void,
-        private updateSynthPlugin?: (names: string[], instrumentStateFunction: string, synthFunction: string, effectOrder: number[] | number, delayLineSize: number) => void
-) {
+    constructor(string?: string) {
         if (string != undefined) {
             this.fromBase64String(string);
         } else {
@@ -4332,11 +4326,9 @@ export class Song {
                         // UB version 2 URLs and below will be using the old syntax, so we do need to parse it in that case.
                         // UB version 3 URLs should only have the new syntax, though, unless the user has edited the URL manually.
                         const parseOldSyntax: boolean = beforeThree;
-                        if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
-                            const ok: boolean = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
-                            if (!ok) {
-                                continue;
-                            }
+                        const ok: boolean = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                        if (!ok) {
+                            continue;
                         }
                     }
                 }
@@ -4364,7 +4356,7 @@ export class Song {
             //set the pluginurl
             if (this.pluginurl != pluginurl) {
                 this.pluginurl = pluginurl;
-                if (pluginurl && this.updateSynthPlugin) this.fetchPlugin(pluginurl, this.updateSynthPlugin);
+                if (pluginurl) this.fetchPlugin(pluginurl);
             }
         }
 
@@ -6512,10 +6504,7 @@ export class Song {
         }
     }
 
-    private fetchPlugin(
-        pluginurl: string,
-        updateProcessorPlugin: (names: string[], instrumentStateFunction: string, synthFunction: string, effectOrder: number[] | number, delayLineSize: number) => void
-    ) {
+    private fetchPlugin(pluginurl: string) {
         if (pluginurl != null) {
             fetch(pluginurl).then((response) => {
                 if (!response.ok) {
@@ -6527,17 +6516,19 @@ export class Song {
                 return response.json();
             }).then((plugin) => {
                 //decode and store the data
-                if (updateProcessorPlugin) {
+                if (document.URL) {
                     PluginConfig.pluginUIElements = plugin.elements || [];
                     PluginConfig.pluginName = plugin.pluginName || "plugin";
                     try {
-                        updateProcessorPlugin(
-                            plugin.variableNames || [],
-                            plugin.instrumentStateFunction || "",
-                            plugin.synthFunction || "",
-                            plugin.effectOrderIndex || 0,
-                            plugin.delayLineSize || 0
-                        );
+                        let pluginMessage: PluginMessage = {
+                            flag: MessageFlag.pluginMessage,
+                            names: plugin.variableNames || [],
+                            instrumentStateFunction: plugin.instrumentStateFunction || "",
+                            synthFunction: plugin.synthFunction || "",
+                            effectOrder: plugin.effectOrderIndex || 0,
+                            delayLineSize: plugin.delayLineSize || 0
+                        }
+                        events.raise("loadedPlugin", pluginMessage)
                     } catch {
                         
                     }
@@ -6566,17 +6557,7 @@ export class Song {
         customSampleUrls: string[],
         customSamplePresets: Preset[],
         sampleLoadingState: SampleLoadingState,
-        parseOldSyntax: boolean,
-        updateSynthSamplesStart: (
-            name: string,
-            expression: number,
-            isCustomSampled: boolean,
-            isPercussion: boolean,
-            rootKey: number,
-            sampleRate: number,
-            index: number
-        ) => void,
-        updateSynthSamplesFinish: (samples: Float32Array, index: number) => void
+        parseOldSyntax: boolean
     ): boolean {
         const defaultIndex: number = 0;
         const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
@@ -6650,6 +6631,7 @@ export class Song {
         }
 
         let parsedUrl: URL | string | null = null;
+        if (!document.URL) return true;
         if (Song._isProperUrl(urlSliced)) {
             if (OFFLINE) {
                 parsedUrl = urlSliced;
@@ -6787,7 +6769,17 @@ export class Song {
                 index: chipWaveIndex,
             };
             try {
-                updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+                const sampleStartMessage: SampleStartMessage = {
+                    flag: MessageFlag.sampleStartMessage,
+                    name: name,
+                    expression: expression,
+                    isCustomSampled: true,
+                    isPercussion: isCustomPercussive,
+                    rootKey: customRootKey,
+                    sampleRate: customSampleRate,
+                    index: chipWaveIndex
+                }
+                events.raise("sampleLoading", sampleStartMessage);
             } catch {
 
             }
@@ -6828,7 +6820,7 @@ export class Song {
                     "chipWaveStartOffset": presetChipWaveStartOffset,
                 };
                 try {
-                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                    startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate);
                 } catch {
 
                 }
@@ -7587,7 +7579,7 @@ export class Song {
 
         if (jsonObject["pluginurl"] != undefined) {
             this.pluginurl = jsonObject["pluginurl"];
-            if (this.updateSynthPlugin) this.fetchPlugin(jsonObject["pluginurl"], this.updateSynthPlugin);
+            this.fetchPlugin(jsonObject["pluginurl"]);
         }
 
         if (jsonObject["customSamples"] != undefined) {
@@ -7625,13 +7617,13 @@ export class Song {
                             customSampleUrls.push(url);
                             loadBuiltInSamples(2);
                         }
-                    } else if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
+                    } else {
                         // When EditorConfig.customSamples is saved in the json
                         // export, it should be using the new syntax, unless
                         // the user has manually modified the URL, so we don't
                         // really need to parse the old syntax here.
                         const parseOldSyntax: boolean = false;
-                        Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
+                        Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
                     }
                 }
                 if (customSampleUrls.length > 0) {
@@ -8242,7 +8234,6 @@ export class SynthMessenger {
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
-    public tickSampleCountdown: number = 0;
     private modValues: (number | null)[] = [];
     public modInsValues: (number | null)[][][] = [];
     private nextModValues: (number | null)[] = [];
@@ -8251,9 +8242,10 @@ export class SynthMessenger {
     private isRecording: boolean = false;
     private liveInputEndTime: number = 0.0;
 
-    public loopBarStart: number = -1;
+    private _loopBarStart: number = -1;
+
     /** An *inclusive* bound. */
-    public loopBarEnd: number = -1;
+    private _loopBarEnd: number = -1;
 
     public static pluginFunction: string | null = null;
     public static pluginIndex: number = 0;
@@ -8295,7 +8287,6 @@ export class SynthMessenger {
             this.songPosition[2] = Math.floor(remainder);
             remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
             this.tick = Math.floor(remainder);
-            this.tickSampleCountdown = 0;
             this.isAtStartOfTick = true;
             const prevBar: SetPrevBarMessage = {
                 flag: MessageFlag.setPrevBar,
@@ -8318,6 +8309,32 @@ export class SynthMessenger {
         return this.loopRepeats;
     }
 
+    public get loopBarStart(): number {
+        return this._loopBarStart;
+    }
+    public set loopBarStart(value: number) {
+        this._loopBarStart = value;
+        const loopBarMessage: LoopBarMessage = {
+            flag: MessageFlag.loopBar,
+            loopBarStart: this._loopBarStart,
+            loopBarEnd: this._loopBarEnd
+        }
+        this.sendMessage(loopBarMessage);
+    }
+
+    public get loopBarEnd(): number {
+        return this._loopBarEnd;
+    }
+    public set loopBarEnd(value: number) {
+        this._loopBarEnd = value;
+        const loopBarMessage: LoopBarMessage = {
+            flag: MessageFlag.loopBar,
+            loopBarStart: this._loopBarStart,
+            loopBarEnd: this._loopBarEnd
+        }
+        this.sendMessage(loopBarMessage);
+    }
+
     public getTicksIntoBar(): number {
         return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
     }
@@ -8328,6 +8345,9 @@ export class SynthMessenger {
     constructor(song: Song | string | null = null) {
         if (song != null) this.setSong(song);
         this.activateAudio();
+        events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
+        events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
+        events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
     }
 
     private messageQueue: Message[] = [];
@@ -8361,17 +8381,12 @@ export class SynthMessenger {
                 break;
             }
 
-            // case MessageFlag.songPosition: {
-            //     this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
-            //     break;
-            // }
-
             case MessageFlag.isRecording: {
                 this.countInMetronome = event.data.countInMetronome;
                 break;
             }
                 
-            case MessageFlag.oscilloscope: {
+            case MessageFlag.uiRender: {
                 if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
                 if (this.oscEnabled) {
                     if (this.oscRefreshEventTimer <= 0) {
@@ -8383,6 +8398,7 @@ export class SynthMessenger {
                         this.oscRefreshEventTimer--;
                     }
                 }
+                if (this.playing) this.computeMods();
                 break;
             }
         }
@@ -8395,7 +8411,7 @@ export class SynthMessenger {
                 song: song
             }
             this.sendMessage(songMessage);
-            this.song = new Song(song, this.updateProcessorSamplesStart.bind(this), this.updateProcessorSamplesFinish.bind(this), this.updateProcessorPlugin.bind(this));
+            this.song = new Song(song);
         } else {
             const songMessage: LoadSongMessage = {
                 flag: MessageFlag.loadSong,
@@ -8516,17 +8532,7 @@ export class SynthMessenger {
         this.liveInputEndTime = performance.now() + 10000.0;
     }
 
-    public updateProcessorSamplesStart(name: string, expression: number, isCustomSampled: boolean, isPercussion: boolean, rootKey: number, sampleRate: number, index: number) {
-        let samplesMessage: SampleStartMessage = {
-            flag: MessageFlag.sampleStartMessage,
-            name: name,
-            expression: expression,
-            isCustomSampled: isCustomSampled,
-            isPercussion: isPercussion,
-            rootKey: rootKey,
-            sampleRate: sampleRate,
-            index: index
-        }
+    public updateProcessorSamplesStart(samplesMessage: SampleStartMessage) {
         this.sendMessage(samplesMessage);
     }
 
@@ -8539,15 +8545,7 @@ export class SynthMessenger {
         this.sendMessage(samplesMessage);
     }
 
-    public updateProcessorPlugin(names: string[], instrumentStateFunction: string, synthFunction: string, effectOrder: number[] | number, delayLineSize: number): void {
-        let pluginMessage: PluginMessage = {
-            flag: MessageFlag.pluginMessage,
-            names: names,
-            instrumentStateFunction: instrumentStateFunction,
-            synthFunction: synthFunction,
-            effectOrder: effectOrder,
-            delayLineSize: delayLineSize
-        }
+    public updateProcessorPlugin(pluginMessage: PluginMessage): void {
         this.sendMessage(pluginMessage);
         if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
     }
@@ -8596,6 +8594,7 @@ export class SynthMessenger {
             flag: MessageFlag.togglePlay,
             play: this.isPlayingSong,
         }
+        this.initModFilters(this.song);
         this.sendMessage(playMessage);
     }
 
@@ -8653,7 +8652,6 @@ export class SynthMessenger {
         this.songPosition[1] = 0;
         this.songPosition[2] = 0;
         this.tick = 0;
-        this.tickSampleCountdown = 0;
     }
 
     public jumpIntoLoop(): void {
@@ -8952,6 +8950,10 @@ export class SynthMessenger {
             initFilters: modEffects
         }
         this.sendMessage(computeModsMessage);
+        this.computeMods();
+    }
+
+    private computeMods(): void {
 
         if (this.song != null && this.song.modChannelCount > 0) {
 
@@ -9007,8 +9009,7 @@ export class SynthMessenger {
                                     if (note.end <= partsInBar) {
                                         latestPinParts[Config.modCount - 1 - note.pitches[0]] = note.end;
                                         latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[note.pins.length - 1].size;
-                                    }
-                                    else {
+                                    } else {
                                         latestPinParts[Config.modCount - 1 - note.pitches[0]] = partsInBar;
                                         // Find the pin where bar change happens, and compute where pin volume would be at that time
                                         for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
@@ -9017,7 +9018,7 @@ export class SynthMessenger {
                                                 const toNextBarLength: number = partsInBar - note.start - note.pins[pinIdx - 1].time;
                                                 const deltaVolume: number = note.pins[pinIdx].size - note.pins[pinIdx - 1].size;
 
-                                                latestPinValues[Config.modCount - 1 - note.pitches[0]] = Math.round(note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength);
+                                                latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength;
                                                 pinIdx = note.pins.length;
                                             }
                                         }
@@ -9044,7 +9045,7 @@ export class SynthMessenger {
                                                         }
                                                     }
                                                     if (tgtSong.tmpEqFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtSong.tmpEqFilterStart.controlPointCount) {
-                                                        if (instrument.modFilterTypes[mod] % 2)
+                                                        if (instrument.modFilterTypes[mod] & 1)
                                                             tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
                                                         else
                                                             tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
@@ -9127,8 +9128,7 @@ export class SynthMessenger {
                                                         }
                                                     }
                                                     tgtInstrument.tmpNoteFilterEnd = tgtInstrument.tmpNoteFilterStart;
-                                                }
-                                                else this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], usedInstruments[instrumentIndex], modulatorAdjust);
+                                                } else this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], usedInstruments[instrumentIndex], modulatorAdjust);
 
                                                 latestModInsTimes[instrument.modChannels[mod]][usedInstruments[instrumentIndex]][modulatorAdjust] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
                                             }
@@ -9138,6 +9138,22 @@ export class SynthMessenger {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private initModFilters(song: Song | null): void {
+        if (song != null) {
+            song.tmpEqFilterStart = song.eqFilter;
+            song.tmpEqFilterEnd = null;
+            for (let channelIndex: number = 0; channelIndex < song.getChannelCount(); channelIndex++) {
+                for (let instrumentIndex: number = 0; instrumentIndex < song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                    const instrument: Instrument = song.channels[channelIndex].instruments[instrumentIndex];
+                    instrument.tmpEqFilterStart = instrument.eqFilter;
+                    instrument.tmpEqFilterEnd = null;
+                    instrument.tmpNoteFilterStart = instrument.noteFilter;
+                    instrument.tmpNoteFilterEnd = null;
                 }
             }
         }

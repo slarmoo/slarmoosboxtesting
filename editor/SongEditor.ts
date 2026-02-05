@@ -1488,8 +1488,7 @@ export class SongEditor {
                     }
                 }
 
-            }
-            else if (this._hasActiveModSliders) {
+            } else if (this._hasActiveModSliders) {
                 // Zero out show-mod-slider settings (since none are active) to kill active mod slider flag
                 for (let setting: number = 0; setting < Config.modulators.length; setting++) {
                     for (let index: number = 0; index <= Config.modulators[setting].maxIndex; index++) {
@@ -3776,8 +3775,7 @@ export class SongEditor {
                                 this.doc.synth.snapToBar();
                                 this.doc.performance.play();
                             }
-                        }
-                        else {
+                        } else {
                             this.doc.synth.loopBarStart = -1;
                             this.doc.synth.loopBarEnd = -1;
                         }
@@ -3795,7 +3793,6 @@ export class SongEditor {
                         }
 
                         this._loopEditor.setLoopAt(this.doc.synth.loopBarStart, this.doc.synth.loopBarEnd);
-
                     }
                 }
                 event.preventDefault();

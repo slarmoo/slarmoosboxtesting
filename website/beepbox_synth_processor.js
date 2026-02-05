@@ -4,6 +4,54 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // <define:document>
 var define_document_default = {};
 
+// global/Events.ts
+var EventManager = class {
+  constructor() {
+    this.activeEvents = [];
+    this.listeners = {};
+    this.activeEvents = [];
+    this.listeners = {};
+  }
+  static {
+    __name(this, "EventManager");
+  }
+  raise(eventType, eventData, extraEventData) {
+    this.activeEvents.push([eventType, eventData, extraEventData]);
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    while (this.activeEvents.length > 0) {
+      const [type, data, extraData] = this.activeEvents[0];
+      for (let i = 0; i < this.listeners[type].length; i++) {
+        this.listeners[type][i](data, extraData);
+      }
+      this.activeEvents.splice(0, 1);
+    }
+  }
+  listen(eventType, callback) {
+    if (this.listeners[eventType] == void 0) {
+      this.listeners[eventType] = [];
+    }
+    this.listeners[eventType].push(callback);
+  }
+  unlisten(eventType, callback) {
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    const listen = this.listeners[eventType].indexOf(callback);
+    if (listen != -1) {
+      this.listeners[eventType].splice(listen, 1);
+    }
+  }
+  unlistenAll(eventType) {
+    if (this.listeners[eventType] == void 0) {
+      return;
+    }
+    this.listeners[eventType] = [];
+  }
+};
+var events = new EventManager();
+
 // synth/SynthConfig.ts
 var TypePresets = ["chip", "FM", "noise", "spectrum", "drumset", "harmonics", "pulse width", "picked string", "supersaw", "chip (custom)", "mod", "FM (6-op)"];
 var SampleLoadingState = class {
@@ -37,7 +85,7 @@ var SampleLoadEvents = class extends EventTarget {
   }
 };
 var sampleLoadEvents = new SampleLoadEvents();
-async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate, finishLoadingSample) {
+async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate) {
   const sampleLoaderAudioContext = new AudioContext({ sampleRate: customSampleRate });
   let closedSampleLoaderAudioContext = false;
   const chipWave = Config.chipWaves[chipWaveIndex];
@@ -60,7 +108,7 @@ async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOpt
     return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
   }).then((audioBuffer) => {
     const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-    finishLoadingSample(samples, chipWaveIndex);
+    events.raise("sampleLoaded", samples, chipWaveIndex);
     const integratedSamples = performIntegral(samples);
     chipWave.samples = integratedSamples;
     rawChipWave.samples = samples;
@@ -6472,7 +6520,8 @@ var InstrumentState = class _InstrumentState {
       this.unisonBuzzes = instrument.unisonBuzzes;
     }
     if (instrument.type == 0 /* chip */) {
-      this.wave = this.aliases ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
+      const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+      this.wave = this.aliases ? Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samples;
       this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
       this.chipWaveLoopStart = instrument.chipWaveLoopStart;
       this.chipWaveLoopEnd = instrument.chipWaveLoopEnd;
@@ -6547,6 +6596,14 @@ var Synth = class _Synth {
     this.wantToSkip = false;
     this.prevBar = null;
     this.nextBar = null;
+    /**
+     * beat [0]: number
+     * 
+     * bar [1]: number
+     * 
+     * part [2]: number
+     */
+    this.songPosition = new Uint16Array(2 * 3);
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -8209,17 +8266,18 @@ var Synth = class _Synth {
       baseExpression = Config.fmBaseExpression;
     } else if (instrument.type == 0 /* chip */) {
       baseExpression = Config.chipBaseExpression;
-      if (Config.chipWaves[instrument.chipWave].isCustomSampled) {
-        if (Config.chipWaves[instrument.chipWave].isPercussion) {
-          basePitch = -84.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey);
+      const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+      if (Config.chipWaves[chipwaveIndex].isCustomSampled) {
+        if (Config.chipWaves[chipwaveIndex].isPercussion) {
+          basePitch = -84.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey);
         } else {
-          basePitch += -96.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey);
+          basePitch += -96.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey);
         }
       } else {
-        if (Config.chipWaves[instrument.chipWave].isSampled && !Config.chipWaves[instrument.chipWave].isPercussion) {
-          basePitch = basePitch - 63 + Config.chipWaves[instrument.chipWave].extraSampleDetune;
-        } else if (Config.chipWaves[instrument.chipWave].isSampled && Config.chipWaves[instrument.chipWave].isPercussion) {
-          basePitch = -51 + Config.chipWaves[instrument.chipWave].extraSampleDetune;
+        if (Config.chipWaves[chipwaveIndex].isSampled && !Config.chipWaves[chipwaveIndex].isPercussion) {
+          basePitch = basePitch - 63 + Config.chipWaves[chipwaveIndex].extraSampleDetune;
+        } else if (Config.chipWaves[chipwaveIndex].isSampled && Config.chipWaves[chipwaveIndex].isPercussion) {
+          basePitch = -51 + Config.chipWaves[chipwaveIndex].extraSampleDetune;
         }
       }
     } else if (instrument.type == 9 /* customChipWave */) {
@@ -8244,7 +8302,8 @@ var Synth = class _Synth {
       tone.reset();
       instrumentState.envelopeComputer.reset();
       if (instrument.type == 0 /* chip */ && instrument.isUsingAdvancedLoopControls) {
-        const chipWaveLength = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
+        const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+        const chipWaveLength = Config.rawRawChipWaves[chipwaveIndex].samples.length - 1;
         const firstOffset = instrument.chipWaveStartOffset / chipWaveLength;
         const lastOffset = 0.999999999999999;
         for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
@@ -8769,7 +8828,8 @@ var Synth = class _Synth {
         settingsExpressionMult *= Config.chipNoises[instrument.chipNoise].expression;
       }
       if (instrument.type == 0 /* chip */) {
-        settingsExpressionMult *= Config.chipWaves[instrument.chipWave].expression;
+        const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+        settingsExpressionMult *= Config.chipWaves[chipwaveIndex].expression;
       }
       if (instrument.type == 6 /* pwm */) {
         const basePulseWidth = getPulseWidthRatio(instrument.pulseWidth);
@@ -9858,7 +9918,6 @@ var Synth = class _Synth {
     if (usesPlugin) signature = signature | 1;
     let effectsFunction = _Synth.effectsFunctionCache[signature];
     if (effectsFunction == void 0) {
-      console.log("Adding to effects cache!");
       let effectsSource = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
       const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
       effectsSource += `
@@ -11208,7 +11267,7 @@ var Synth = class _Synth {
             tgtSong.tmpEqFilterEnd.fromJsonObject(tgtSong.eqFilter.toJsonObject());
           }
           if (tgtSong.tmpEqFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
-            if (dotTarget % 2) {
+            if (dotTarget & 1) {
               tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
             } else {
               tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
@@ -11479,51 +11538,6 @@ var Synth = class _Synth {
     }
   }
 };
-
-// global/Events.ts
-var EventManager = class {
-  constructor() {
-    this.activeEvents = [];
-    this.listeners = {};
-    this.activeEvents = [];
-    this.listeners = {};
-  }
-  static {
-    __name(this, "EventManager");
-  }
-  raise(eventType, eventData, extraEventData) {
-    if (this.listeners[eventType] == void 0) {
-      return;
-    }
-    this.activeEvents.push(eventType);
-    for (let i = 0; i < this.listeners[eventType].length; i++) {
-      this.listeners[eventType][i](eventData, extraEventData);
-    }
-    this.activeEvents.pop();
-  }
-  listen(eventType, callback) {
-    if (this.listeners[eventType] == void 0) {
-      this.listeners[eventType] = [];
-    }
-    this.listeners[eventType].push(callback);
-  }
-  unlisten(eventType, callback) {
-    if (this.listeners[eventType] == void 0) {
-      return;
-    }
-    const lisen = this.listeners[eventType].indexOf(callback);
-    if (lisen != -1) {
-      this.listeners[eventType].splice(lisen, 1);
-    }
-  }
-  unlistenAll(eventType) {
-    if (this.listeners[eventType] == void 0) {
-      return;
-    }
-    this.listeners[eventType] = [];
-  }
-};
-var events = new EventManager();
 
 // synth/synthMessenger.ts
 function clamp2(min, max, val) {
@@ -14066,10 +14080,7 @@ var Channel2 = class {
   }
 };
 var Song = class _Song {
-  constructor(string, updateSynthSamplesStart, updateSynthSamplesFinish, updateSynthPlugin) {
-    this.updateSynthSamplesStart = updateSynthSamplesStart;
-    this.updateSynthSamplesFinish = updateSynthSamplesFinish;
-    this.updateSynthPlugin = updateSynthPlugin;
+  constructor(string) {
     this.scaleCustom = [];
     this.channels = [];
     this.limitDecay = 4;
@@ -15108,11 +15119,9 @@ var Song = class _Song {
             }
           } else {
             const parseOldSyntax = beforeThree;
-            if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
-              const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
-              if (!ok) {
-                continue;
-              }
+            const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+            if (!ok) {
+              continue;
             }
           }
         }
@@ -15130,7 +15139,7 @@ var Song = class _Song {
       }
       if (this.pluginurl != pluginurl) {
         this.pluginurl = pluginurl;
-        if (pluginurl && this.updateSynthPlugin) this.fetchPlugin(pluginurl, this.updateSynthPlugin);
+        if (pluginurl) this.fetchPlugin(pluginurl);
       }
     }
     if (beforeThree && fromBeepBox) {
@@ -17083,7 +17092,7 @@ var Song = class _Song {
       }, 50);
     }
   }
-  fetchPlugin(pluginurl, updateProcessorPlugin) {
+  fetchPlugin(pluginurl) {
     if (pluginurl != null) {
       fetch(pluginurl).then((response) => {
         if (!response.ok) {
@@ -17093,17 +17102,19 @@ var Song = class _Song {
       }).then((response) => {
         return response.json();
       }).then((plugin) => {
-        if (updateProcessorPlugin) {
+        if (define_document_default.URL) {
           PluginConfig.pluginUIElements = plugin.elements || [];
           PluginConfig.pluginName = plugin.pluginName || "plugin";
           try {
-            updateProcessorPlugin(
-              plugin.variableNames || [],
-              plugin.instrumentStateFunction || "",
-              plugin.synthFunction || "",
-              plugin.effectOrderIndex || 0,
-              plugin.delayLineSize || 0
-            );
+            let pluginMessage = {
+              flag: 12 /* pluginMessage */,
+              names: plugin.variableNames || [],
+              instrumentStateFunction: plugin.instrumentStateFunction || "",
+              synthFunction: plugin.synthFunction || "",
+              effectOrder: plugin.effectOrderIndex || 0,
+              delayLineSize: plugin.delayLineSize || 0
+            };
+            events.raise("loadedPlugin", pluginMessage);
           } catch {
           }
         }
@@ -17124,7 +17135,7 @@ var Song = class _Song {
     }
   }
   // @TODO: Share more of this code with AddSamplesPrompt.
-  static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState2, parseOldSyntax, updateSynthSamplesStart, updateSynthSamplesFinish) {
+  static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState2, parseOldSyntax) {
     const defaultIndex = 0;
     const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
     const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
@@ -17188,6 +17199,7 @@ var Song = class _Song {
       }
     }
     let parsedUrl = null;
+    if (!define_document_default.URL) return true;
     if (_Song._isProperUrl(urlSliced)) {
       if (OFFLINE) {
         parsedUrl = urlSliced;
@@ -17301,7 +17313,17 @@ var Song = class _Song {
         index: chipWaveIndex
       };
       try {
-        updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+        const sampleStartMessage = {
+          flag: 10 /* sampleStartMessage */,
+          name,
+          expression,
+          isCustomSampled: true,
+          isPercussion: isCustomPercussive,
+          rootKey: customRootKey,
+          sampleRate: customSampleRate,
+          index: chipWaveIndex
+        };
+        events.raise("sampleLoading", sampleStartMessage);
       } catch {
       }
       const customSamplePresetSettings = {
@@ -17342,7 +17364,7 @@ var Song = class _Song {
           "chipWaveStartOffset": presetChipWaveStartOffset
         };
         try {
-          startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+          startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate);
         } catch {
         }
       }
@@ -18057,7 +18079,7 @@ var Song = class _Song {
     }
     if (jsonObject["pluginurl"] != void 0) {
       this.pluginurl = jsonObject["pluginurl"];
-      if (this.updateSynthPlugin) this.fetchPlugin(jsonObject["pluginurl"], this.updateSynthPlugin);
+      this.fetchPlugin(jsonObject["pluginurl"]);
     }
     if (jsonObject["customSamples"] != void 0) {
       const customSamples = jsonObject["customSamples"];
@@ -18088,9 +18110,9 @@ var Song = class _Song {
               customSampleUrls.push(url);
               loadBuiltInSamples(2);
             }
-          } else if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
+          } else {
             const parseOldSyntax = false;
-            _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
+            _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
           }
         }
         if (customSampleUrls.length > 0) {
@@ -18635,7 +18657,6 @@ var SynthMessenger = class _SynthMessenger {
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
-    this.tickSampleCountdown = 0;
     this.modValues = [];
     this.modInsValues = [];
     this.nextModValues = [];
@@ -18643,9 +18664,9 @@ var SynthMessenger = class _SynthMessenger {
     this.isPlayingSong = false;
     this.isRecording = false;
     this.liveInputEndTime = 0;
-    this.loopBarStart = -1;
+    this._loopBarStart = -1;
     /** An *inclusive* bound. */
-    this.loopBarEnd = -1;
+    this._loopBarEnd = -1;
     this.audioContext = null;
     this.workletNode = null;
     this.splitterNode = null;
@@ -18658,6 +18679,9 @@ var SynthMessenger = class _SynthMessenger {
     this.exportProcessor = null;
     if (song != null) this.setSong(song);
     this.activateAudio();
+    events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
+    events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
+    events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
   }
   static {
     __name(this, "SynthMessenger");
@@ -18701,7 +18725,6 @@ var SynthMessenger = class _SynthMessenger {
       this.songPosition[2] = Math.floor(remainder);
       remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
       this.tick = Math.floor(remainder);
-      this.tickSampleCountdown = 0;
       this.isAtStartOfTick = true;
       const prevBar = {
         flag: 6 /* setPrevBar */,
@@ -18720,6 +18743,30 @@ var SynthMessenger = class _SynthMessenger {
   }
   get loopRepeatCount() {
     return this.loopRepeats;
+  }
+  get loopBarStart() {
+    return this._loopBarStart;
+  }
+  set loopBarStart(value) {
+    this._loopBarStart = value;
+    const loopBarMessage = {
+      flag: 14 /* loopBar */,
+      loopBarStart: this._loopBarStart,
+      loopBarEnd: this._loopBarEnd
+    };
+    this.sendMessage(loopBarMessage);
+  }
+  get loopBarEnd() {
+    return this._loopBarEnd;
+  }
+  set loopBarEnd(value) {
+    this._loopBarEnd = value;
+    const loopBarMessage = {
+      flag: 14 /* loopBar */,
+      loopBarStart: this._loopBarStart,
+      loopBarEnd: this._loopBarEnd
+    };
+    this.sendMessage(loopBarMessage);
   }
   getTicksIntoBar() {
     return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
@@ -18751,15 +18798,11 @@ var SynthMessenger = class _SynthMessenger {
         this.pause(false);
         break;
       }
-      // case MessageFlag.songPosition: {
-      //     this.updatePlayhead(event.data.bar, event.data.beat, event.data.part);
-      //     break;
-      // }
       case 7 /* isRecording */: {
         this.countInMetronome = event.data.countInMetronome;
         break;
       }
-      case 8 /* oscilloscope */: {
+      case 8 /* uiRender */: {
         if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
         if (this.oscEnabled) {
           if (this.oscRefreshEventTimer <= 0) {
@@ -18771,6 +18814,7 @@ var SynthMessenger = class _SynthMessenger {
             this.oscRefreshEventTimer--;
           }
         }
+        if (this.playing) this.computeMods();
         break;
       }
     }
@@ -18782,7 +18826,7 @@ var SynthMessenger = class _SynthMessenger {
         song
       };
       this.sendMessage(songMessage);
-      this.song = new Song(song, this.updateProcessorSamplesStart.bind(this), this.updateProcessorSamplesFinish.bind(this), this.updateProcessorPlugin.bind(this));
+      this.song = new Song(song);
     } else {
       const songMessage = {
         flag: 0 /* loadSong */,
@@ -18799,7 +18843,7 @@ var SynthMessenger = class _SynthMessenger {
       }
     }
     const updateMessage = {
-      flag: 14 /* updateSong */,
+      flag: 15 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18893,17 +18937,7 @@ var SynthMessenger = class _SynthMessenger {
     this.activateAudio();
     this.liveInputEndTime = performance.now() + 1e4;
   }
-  updateProcessorSamplesStart(name, expression, isCustomSampled, isPercussion, rootKey, sampleRate2, index) {
-    let samplesMessage = {
-      flag: 10 /* sampleStartMessage */,
-      name,
-      expression,
-      isCustomSampled,
-      isPercussion,
-      rootKey,
-      sampleRate: sampleRate2,
-      index
-    };
+  updateProcessorSamplesStart(samplesMessage) {
     this.sendMessage(samplesMessage);
   }
   updateProcessorSamplesFinish(samples, index) {
@@ -18914,15 +18948,7 @@ var SynthMessenger = class _SynthMessenger {
     };
     this.sendMessage(samplesMessage);
   }
-  updateProcessorPlugin(names, instrumentStateFunction, synthFunction, effectOrder, delayLineSize) {
-    let pluginMessage = {
-      flag: 12 /* pluginMessage */,
-      names,
-      instrumentStateFunction,
-      synthFunction,
-      effectOrder,
-      delayLineSize
-    };
+  updateProcessorPlugin(pluginMessage) {
     this.sendMessage(pluginMessage);
     if (_SynthMessenger.rerenderSongEditorAfterPluginLoad) _SynthMessenger.rerenderSongEditorAfterPluginLoad();
   }
@@ -18965,6 +18991,7 @@ var SynthMessenger = class _SynthMessenger {
       flag: 1 /* togglePlay */,
       play: this.isPlayingSong
     };
+    this.initModFilters(this.song);
     this.sendMessage(playMessage);
   }
   pause(communicate = true) {
@@ -19015,7 +19042,6 @@ var SynthMessenger = class _SynthMessenger {
     this.songPosition[1] = 0;
     this.songPosition[2] = 0;
     this.tick = 0;
-    this.tickSampleCountdown = 0;
   }
   jumpIntoLoop() {
     if (!this.song) return;
@@ -19247,6 +19273,9 @@ var SynthMessenger = class _SynthMessenger {
       initFilters: modEffects
     };
     this.sendMessage(computeModsMessage);
+    this.computeMods();
+  }
+  computeMods() {
     if (this.song != null && this.song.modChannelCount > 0) {
       let latestModTimes = [];
       let latestModInsTimes = [];
@@ -19293,7 +19322,7 @@ var SynthMessenger = class _SynthMessenger {
                         const transitionLength = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
                         const toNextBarLength = partsInBar - note.start - note.pins[pinIdx - 1].time;
                         const deltaVolume = note.pins[pinIdx].size - note.pins[pinIdx - 1].size;
-                        latestPinValues[Config.modCount - 1 - note.pitches[0]] = Math.round(note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength);
+                        latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength;
                         pinIdx = note.pins.length;
                       }
                     }
@@ -19318,7 +19347,7 @@ var SynthMessenger = class _SynthMessenger {
                             }
                           }
                           if (tgtSong.tmpEqFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtSong.tmpEqFilterStart.controlPointCount) {
-                            if (instrument.modFilterTypes[mod] % 2)
+                            if (instrument.modFilterTypes[mod] & 1)
                               tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
                             else
                               tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
@@ -19401,6 +19430,21 @@ var SynthMessenger = class _SynthMessenger {
               }
             }
           }
+        }
+      }
+    }
+  }
+  initModFilters(song) {
+    if (song != null) {
+      song.tmpEqFilterStart = song.eqFilter;
+      song.tmpEqFilterEnd = null;
+      for (let channelIndex = 0; channelIndex < song.getChannelCount(); channelIndex++) {
+        for (let instrumentIndex = 0; instrumentIndex < song.channels[channelIndex].instruments.length; instrumentIndex++) {
+          const instrument = song.channels[channelIndex].instruments[instrumentIndex];
+          instrument.tmpEqFilterStart = instrument.eqFilter;
+          instrument.tmpEqFilterEnd = null;
+          instrument.tmpNoteFilterStart = instrument.noteFilter;
+          instrument.tmpNoteFilterEnd = null;
         }
       }
     }
@@ -19592,13 +19636,13 @@ var SynthProcessor = class extends AudioWorkletProcessor {
   constructor() {
     super();
     this.browserAutomaticallyClearsAudioBuffer = true;
-    this.port.onmessage = (event) => this.receiveMessage(event);
-    const deactivate = /* @__PURE__ */ __name(() => {
+    this.deactivate = /* @__PURE__ */ __name(() => {
       const DeactivateMessage2 = {
         flag: 2 /* deactivate */
       };
       this.sendMessage(DeactivateMessage2);
     }, "deactivate");
+    this.port.onmessage = (event) => this.receiveMessage(event);
     const endCountIn = /* @__PURE__ */ __name(() => {
       const metronomeMessage = {
         flag: 7 /* isRecording */,
@@ -19608,7 +19652,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       };
       this.sendMessage(metronomeMessage);
     }, "endCountIn");
-    this.synth = new Synth(deactivate, endCountIn);
+    this.synth = new Synth(this.deactivate, endCountIn);
   }
   static {
     __name(this, "SynthProcessor");
@@ -19644,9 +19688,12 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         break;
       case 5 /* sharedArrayBuffers */: {
         console.log("LOADING SABS");
-        this.synth.liveInputValues = event.data.liveInputValues;
-        this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
-        this.synth.songPosition = event.data.songPosition;
+        if (!event.data.liveInputValues || !event.data.liveInputPitchesOnOffRequests || !event.data.songPosition) this.deactivate();
+        else {
+          this.synth.liveInputValues = event.data.liveInputValues;
+          this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
+          this.synth.songPosition = event.data.songPosition;
+        }
         break;
       }
       case 6 /* setPrevBar */: {
@@ -19724,8 +19771,15 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       }
       case 13 /* loopRepeatCount */: {
         this.synth.loopRepeatCount = event.data.count;
+        break;
       }
-      case 14 /* updateSong */: {
+      case 14 /* loopBar */: {
+        this.synth.loopBarStart = event.data.loopBarStart;
+        this.synth.loopBarEnd = event.data.loopBarEnd;
+        console.log(event.data.loopBarStart, event.data.loopBarEnd);
+        break;
+      }
+      case 15 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
         break;
@@ -19752,7 +19806,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       console.log(e);
     }
     const oscilloscopeMessage = {
-      flag: 8 /* oscilloscope */,
+      flag: 8 /* uiRender */,
       maintainLiveInput: !this.synth.isPlayingSong
     };
     this.sendMessage(oscilloscopeMessage);

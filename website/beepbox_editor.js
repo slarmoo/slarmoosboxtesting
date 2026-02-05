@@ -1,6 +1,50 @@
 var beepbox = (function (exports) {
     'use strict';
 
+    class EventManager {
+        constructor() {
+            this.activeEvents = [];
+            this.listeners = {};
+            this.activeEvents = [];
+            this.listeners = {};
+        }
+        raise(eventType, eventData, extraEventData) {
+            this.activeEvents.push([eventType, eventData, extraEventData]);
+            if (this.listeners[eventType] == undefined) {
+                return;
+            }
+            while (this.activeEvents.length > 0) {
+                const [type, data, extraData] = this.activeEvents[0];
+                for (let i = 0; i < this.listeners[type].length; i++) {
+                    this.listeners[type][i](data, extraData);
+                }
+                this.activeEvents.splice(0, 1);
+            }
+        }
+        listen(eventType, callback) {
+            if (this.listeners[eventType] == undefined) {
+                this.listeners[eventType] = [];
+            }
+            this.listeners[eventType].push(callback);
+        }
+        unlisten(eventType, callback) {
+            if (this.listeners[eventType] == undefined) {
+                return;
+            }
+            const listen = this.listeners[eventType].indexOf(callback);
+            if (listen != -1) {
+                this.listeners[eventType].splice(listen, 1);
+            }
+        }
+        unlistenAll(eventType) {
+            if (this.listeners[eventType] == undefined) {
+                return;
+            }
+            this.listeners[eventType] = [];
+        }
+    }
+    const events = new EventManager();
+
     /*!
     Copyright (c) 2012-2022 John Nesky and contributing authors
 
@@ -62,7 +106,7 @@ var beepbox = (function (exports) {
         }
     }
     const sampleLoadEvents = new SampleLoadEvents();
-    function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate, finishLoadingSample) {
+    function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOptions, customSampleRate) {
         return __awaiter$2(this, void 0, void 0, function* () {
             const sampleLoaderAudioContext = new AudioContext({ sampleRate: customSampleRate });
             let closedSampleLoaderAudioContext = false;
@@ -86,7 +130,7 @@ var beepbox = (function (exports) {
                 return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
             }).then((audioBuffer) => {
                 const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-                finishLoadingSample(samples, chipWaveIndex);
+                events.raise("sampleLoaded", samples, chipWaveIndex);
                 const integratedSamples = performIntegral(samples);
                 chipWave.samples = integratedSamples;
                 rawChipWave.samples = samples;
@@ -11212,13 +11256,14 @@ li.select2-results__option[role=group] > strong:hover {
         MessageFlag[MessageFlag["sharedArrayBuffers"] = 5] = "sharedArrayBuffers";
         MessageFlag[MessageFlag["setPrevBar"] = 6] = "setPrevBar";
         MessageFlag[MessageFlag["isRecording"] = 7] = "isRecording";
-        MessageFlag[MessageFlag["oscilloscope"] = 8] = "oscilloscope";
+        MessageFlag[MessageFlag["uiRender"] = 8] = "uiRender";
         MessageFlag[MessageFlag["synthVolume"] = 9] = "synthVolume";
         MessageFlag[MessageFlag["sampleStartMessage"] = 10] = "sampleStartMessage";
         MessageFlag[MessageFlag["sampleFinishMessage"] = 11] = "sampleFinishMessage";
         MessageFlag[MessageFlag["pluginMessage"] = 12] = "pluginMessage";
         MessageFlag[MessageFlag["loopRepeatCount"] = 13] = "loopRepeatCount";
-        MessageFlag[MessageFlag["updateSong"] = 14] = "updateSong";
+        MessageFlag[MessageFlag["loopBar"] = 14] = "loopBar";
+        MessageFlag[MessageFlag["updateSong"] = 15] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -14011,7 +14056,8 @@ li.select2-results__option[role=group] > strong:hover {
                 this.unisonBuzzes = instrument.unisonBuzzes;
             }
             if (instrument.type == 0) {
-                this.wave = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
+                const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+                this.wave = (this.aliases) ? Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samples;
                 this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
                 this.chipWaveLoopStart = instrument.chipWaveLoopStart;
                 this.chipWaveLoopEnd = instrument.chipWaveLoopEnd;
@@ -14354,6 +14400,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.wantToSkip = false;
             this.prevBar = null;
             this.nextBar = null;
+            this.songPosition = new Uint16Array(2 * 3);
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -15776,20 +15823,21 @@ li.select2-results__option[role=group] > strong:hover {
             }
             else if (instrument.type == 0) {
                 baseExpression = Config.chipBaseExpression;
-                if (Config.chipWaves[instrument.chipWave].isCustomSampled) {
-                    if (Config.chipWaves[instrument.chipWave].isPercussion) {
-                        basePitch = -84.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey);
+                const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+                if (Config.chipWaves[chipwaveIndex].isCustomSampled) {
+                    if (Config.chipWaves[chipwaveIndex].isPercussion) {
+                        basePitch = -84.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey);
                     }
                     else {
-                        basePitch += -96.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey);
+                        basePitch += -96.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey);
                     }
                 }
                 else {
-                    if (Config.chipWaves[instrument.chipWave].isSampled && !Config.chipWaves[instrument.chipWave].isPercussion) {
-                        basePitch = basePitch - 63 + Config.chipWaves[instrument.chipWave].extraSampleDetune;
+                    if (Config.chipWaves[chipwaveIndex].isSampled && !Config.chipWaves[chipwaveIndex].isPercussion) {
+                        basePitch = basePitch - 63 + Config.chipWaves[chipwaveIndex].extraSampleDetune;
                     }
-                    else if (Config.chipWaves[instrument.chipWave].isSampled && Config.chipWaves[instrument.chipWave].isPercussion) {
-                        basePitch = -51 + Config.chipWaves[instrument.chipWave].extraSampleDetune;
+                    else if (Config.chipWaves[chipwaveIndex].isSampled && Config.chipWaves[chipwaveIndex].isPercussion) {
+                        basePitch = -51 + Config.chipWaves[chipwaveIndex].extraSampleDetune;
                     }
                 }
             }
@@ -15821,7 +15869,8 @@ li.select2-results__option[role=group] > strong:hover {
                 tone.reset();
                 instrumentState.envelopeComputer.reset();
                 if (instrument.type == 0 && instrument.isUsingAdvancedLoopControls) {
-                    const chipWaveLength = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
+                    const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+                    const chipWaveLength = Config.rawRawChipWaves[chipwaveIndex].samples.length - 1;
                     const firstOffset = instrument.chipWaveStartOffset / chipWaveLength;
                     const lastOffset = 0.999999999999999;
                     for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
@@ -16376,7 +16425,8 @@ li.select2-results__option[role=group] > strong:hover {
                     settingsExpressionMult *= Config.chipNoises[instrument.chipNoise].expression;
                 }
                 if (instrument.type == 0) {
-                    settingsExpressionMult *= Config.chipWaves[instrument.chipWave].expression;
+                    const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+                    settingsExpressionMult *= Config.chipWaves[chipwaveIndex].expression;
                 }
                 if (instrument.type == 6) {
                     const basePulseWidth = getPulseWidthRatio(instrument.pulseWidth);
@@ -17501,7 +17551,6 @@ li.select2-results__option[role=group] > strong:hover {
                 signature = signature | 1;
             let effectsFunction = Synth.effectsFunctionCache[signature];
             if (effectsFunction == undefined) {
-                console.log("Adding to effects cache!");
                 let effectsSource = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
                 const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
                 effectsSource += `
@@ -18798,7 +18847,7 @@ li.select2-results__option[role=group] > strong:hover {
                             tgtSong.tmpEqFilterEnd.fromJsonObject(tgtSong.eqFilter.toJsonObject());
                         }
                         if (tgtSong.tmpEqFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
-                            if (dotTarget % 2) {
+                            if (dotTarget & 1) {
                                 tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
                             }
                             else {
@@ -19177,47 +19226,6 @@ li.select2-results__option[role=group] > strong:hover {
                 operator#Output~         = operator#Sample~ + (operator#Wave[operator#Index~ + 1] - operator#Sample~) * (operator#PhaseMix~ - operator#PhaseInt~);
 				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
-
-    class EventManager {
-        constructor() {
-            this.activeEvents = [];
-            this.listeners = {};
-            this.activeEvents = [];
-            this.listeners = {};
-        }
-        raise(eventType, eventData, extraEventData) {
-            if (this.listeners[eventType] == undefined) {
-                return;
-            }
-            this.activeEvents.push(eventType);
-            for (let i = 0; i < this.listeners[eventType].length; i++) {
-                this.listeners[eventType][i](eventData, extraEventData);
-            }
-            this.activeEvents.pop();
-        }
-        listen(eventType, callback) {
-            if (this.listeners[eventType] == undefined) {
-                this.listeners[eventType] = [];
-            }
-            this.listeners[eventType].push(callback);
-        }
-        unlisten(eventType, callback) {
-            if (this.listeners[eventType] == undefined) {
-                return;
-            }
-            const lisen = this.listeners[eventType].indexOf(callback);
-            if (lisen != -1) {
-                this.listeners[eventType].splice(lisen, 1);
-            }
-        }
-        unlistenAll(eventType) {
-            if (this.listeners[eventType] == undefined) {
-                return;
-            }
-            this.listeners[eventType] = [];
-        }
-    }
-    const events = new EventManager();
 
     var __awaiter$1 = (exports && exports.__awaiter) || function (thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -21881,10 +21889,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
     }
     class Song {
-        constructor(string, updateSynthSamplesStart, updateSynthSamplesFinish, updateSynthPlugin) {
-            this.updateSynthSamplesStart = updateSynthSamplesStart;
-            this.updateSynthSamplesFinish = updateSynthSamplesFinish;
-            this.updateSynthPlugin = updateSynthPlugin;
+        constructor(string) {
             this.scaleCustom = [];
             this.channels = [];
             this.limitDecay = 4.0;
@@ -22953,11 +22958,9 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                         else {
                             const parseOldSyntax = beforeThree;
-                            if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
-                                const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
-                                if (!ok) {
-                                    continue;
-                                }
+                            const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                            if (!ok) {
+                                continue;
                             }
                         }
                     }
@@ -22975,8 +22978,8 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 if (this.pluginurl != pluginurl) {
                     this.pluginurl = pluginurl;
-                    if (pluginurl && this.updateSynthPlugin)
-                        this.fetchPlugin(pluginurl, this.updateSynthPlugin);
+                    if (pluginurl)
+                        this.fetchPlugin(pluginurl);
                 }
             }
             if (beforeThree && fromBeepBox) {
@@ -25076,7 +25079,7 @@ li.select2-results__option[role=group] > strong:hover {
                 setTimeout(() => { location.reload(); }, 50);
             }
         }
-        fetchPlugin(pluginurl, updateProcessorPlugin) {
+        fetchPlugin(pluginurl) {
             if (pluginurl != null) {
                 fetch(pluginurl).then((response) => {
                     if (!response.ok) {
@@ -25086,11 +25089,19 @@ li.select2-results__option[role=group] > strong:hover {
                 }).then((response) => {
                     return response.json();
                 }).then((plugin) => {
-                    if (updateProcessorPlugin) {
+                    if (document.URL) {
                         PluginConfig.pluginUIElements = plugin.elements || [];
                         PluginConfig.pluginName = plugin.pluginName || "plugin";
                         try {
-                            updateProcessorPlugin(plugin.variableNames || [], plugin.instrumentStateFunction || "", plugin.synthFunction || "", plugin.effectOrderIndex || 0, plugin.delayLineSize || 0);
+                            let pluginMessage = {
+                                flag: MessageFlag.pluginMessage,
+                                names: plugin.variableNames || [],
+                                instrumentStateFunction: plugin.instrumentStateFunction || "",
+                                synthFunction: plugin.synthFunction || "",
+                                effectOrder: plugin.effectOrderIndex || 0,
+                                delayLineSize: plugin.delayLineSize || 0
+                            };
+                            events.raise("loadedPlugin", pluginMessage);
                         }
                         catch (_a) {
                         }
@@ -25113,7 +25124,7 @@ li.select2-results__option[role=group] > strong:hover {
                 return false;
             }
         }
-        static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, updateSynthSamplesStart, updateSynthSamplesFinish) {
+        static _parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax) {
             const defaultIndex = 0;
             const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
             const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
@@ -25184,6 +25195,8 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             let parsedUrl = null;
+            if (!document.URL)
+                return true;
             if (Song._isProperUrl(urlSliced)) {
                 if (OFFLINE) {
                     parsedUrl = urlSliced;
@@ -25312,7 +25325,17 @@ li.select2-results__option[role=group] > strong:hover {
                     index: chipWaveIndex,
                 };
                 try {
-                    updateSynthSamplesStart(name, expression, true, isCustomPercussive, customRootKey, customSampleRate, chipWaveIndex);
+                    const sampleStartMessage = {
+                        flag: MessageFlag.sampleStartMessage,
+                        name: name,
+                        expression: expression,
+                        isCustomSampled: true,
+                        isPercussion: isCustomPercussive,
+                        rootKey: customRootKey,
+                        sampleRate: customSampleRate,
+                        index: chipWaveIndex
+                    };
+                    events.raise("sampleLoading", sampleStartMessage);
                 }
                 catch (_a) {
                 }
@@ -25353,7 +25376,7 @@ li.select2-results__option[role=group] > strong:hover {
                         "chipWaveStartOffset": presetChipWaveStartOffset,
                     };
                     try {
-                        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate, updateSynthSamplesFinish);
+                        startLoadingSample(urlSliced, chipWaveIndex, customSamplePresetSettings, rawLoopOptions, customSampleRate);
                     }
                     catch (_b) {
                     }
@@ -26061,8 +26084,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
             if (jsonObject["pluginurl"] != undefined) {
                 this.pluginurl = jsonObject["pluginurl"];
-                if (this.updateSynthPlugin)
-                    this.fetchPlugin(jsonObject["pluginurl"], this.updateSynthPlugin);
+                this.fetchPlugin(jsonObject["pluginurl"]);
             }
             if (jsonObject["customSamples"] != undefined) {
                 const customSamples = jsonObject["customSamples"];
@@ -26096,9 +26118,9 @@ li.select2-results__option[role=group] > strong:hover {
                                 loadBuiltInSamples(2);
                             }
                         }
-                        else if (this.updateSynthSamplesStart && this.updateSynthSamplesFinish) {
+                        else {
                             const parseOldSyntax = false;
-                            Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax, this.updateSynthSamplesStart, this.updateSynthSamplesFinish);
+                            Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
                         }
                     }
                     if (customSampleUrls.length > 0) {
@@ -26671,7 +26693,6 @@ li.select2-results__option[role=group] > strong:hover {
                 this.songPosition[2] = Math.floor(remainder);
                 remainder = Config.ticksPerPart * (remainder - this.songPosition[2]);
                 this.tick = Math.floor(remainder);
-                this.tickSampleCountdown = 0;
                 this.isAtStartOfTick = true;
                 const prevBar = {
                     flag: MessageFlag.setPrevBar,
@@ -26690,6 +26711,30 @@ li.select2-results__option[role=group] > strong:hover {
         }
         get loopRepeatCount() {
             return this.loopRepeats;
+        }
+        get loopBarStart() {
+            return this._loopBarStart;
+        }
+        set loopBarStart(value) {
+            this._loopBarStart = value;
+            const loopBarMessage = {
+                flag: MessageFlag.loopBar,
+                loopBarStart: this._loopBarStart,
+                loopBarEnd: this._loopBarEnd
+            };
+            this.sendMessage(loopBarMessage);
+        }
+        get loopBarEnd() {
+            return this._loopBarEnd;
+        }
+        set loopBarEnd(value) {
+            this._loopBarEnd = value;
+            const loopBarMessage = {
+                flag: MessageFlag.loopBar,
+                loopBarStart: this._loopBarStart,
+                loopBarEnd: this._loopBarEnd
+            };
+            this.sendMessage(loopBarMessage);
         }
         getTicksIntoBar() {
             return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
@@ -26717,7 +26762,6 @@ li.select2-results__option[role=group] > strong:hover {
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
-            this.tickSampleCountdown = 0;
             this.modValues = [];
             this.modInsValues = [];
             this.nextModValues = [];
@@ -26725,8 +26769,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.isPlayingSong = false;
             this.isRecording = false;
             this.liveInputEndTime = 0.0;
-            this.loopBarStart = -1;
-            this.loopBarEnd = -1;
+            this._loopBarStart = -1;
+            this._loopBarEnd = -1;
             this.audioContext = null;
             this.workletNode = null;
             this.splitterNode = null;
@@ -26740,6 +26784,9 @@ li.select2-results__option[role=group] > strong:hover {
             if (song != null)
                 this.setSong(song);
             this.activateAudio();
+            events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
+            events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
+            events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
         }
         sendMessage(message) {
             if (this.workletNode == null) {
@@ -26770,7 +26817,7 @@ li.select2-results__option[role=group] > strong:hover {
                     this.countInMetronome = event.data.countInMetronome;
                     break;
                 }
-                case MessageFlag.oscilloscope: {
+                case MessageFlag.uiRender: {
                     if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime)
                         this.deactivateAudio();
                     if (this.oscEnabled) {
@@ -26784,6 +26831,8 @@ li.select2-results__option[role=group] > strong:hover {
                             this.oscRefreshEventTimer--;
                         }
                     }
+                    if (this.playing)
+                        this.computeMods();
                     break;
                 }
             }
@@ -26795,7 +26844,7 @@ li.select2-results__option[role=group] > strong:hover {
                     song: song
                 };
                 this.sendMessage(songMessage);
-                this.song = new Song(song, this.updateProcessorSamplesStart.bind(this), this.updateProcessorSamplesFinish.bind(this), this.updateProcessorPlugin.bind(this));
+                this.song = new Song(song);
             }
             else {
                 const songMessage = {
@@ -26915,17 +26964,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.activateAudio();
             this.liveInputEndTime = performance.now() + 10000.0;
         }
-        updateProcessorSamplesStart(name, expression, isCustomSampled, isPercussion, rootKey, sampleRate, index) {
-            let samplesMessage = {
-                flag: MessageFlag.sampleStartMessage,
-                name: name,
-                expression: expression,
-                isCustomSampled: isCustomSampled,
-                isPercussion: isPercussion,
-                rootKey: rootKey,
-                sampleRate: sampleRate,
-                index: index
-            };
+        updateProcessorSamplesStart(samplesMessage) {
             this.sendMessage(samplesMessage);
         }
         updateProcessorSamplesFinish(samples, index) {
@@ -26936,15 +26975,7 @@ li.select2-results__option[role=group] > strong:hover {
             };
             this.sendMessage(samplesMessage);
         }
-        updateProcessorPlugin(names, instrumentStateFunction, synthFunction, effectOrder, delayLineSize) {
-            let pluginMessage = {
-                flag: MessageFlag.pluginMessage,
-                names: names,
-                instrumentStateFunction: instrumentStateFunction,
-                synthFunction: synthFunction,
-                effectOrder: effectOrder,
-                delayLineSize: delayLineSize
-            };
+        updateProcessorPlugin(pluginMessage) {
             this.sendMessage(pluginMessage);
             if (SynthMessenger.rerenderSongEditorAfterPluginLoad)
                 SynthMessenger.rerenderSongEditorAfterPluginLoad();
@@ -26987,6 +27018,7 @@ li.select2-results__option[role=group] > strong:hover {
                 flag: MessageFlag.togglePlay,
                 play: this.isPlayingSong,
             };
+            this.initModFilters(this.song);
             this.sendMessage(playMessage);
         }
         pause(communicate = true) {
@@ -27038,7 +27070,6 @@ li.select2-results__option[role=group] > strong:hover {
             this.songPosition[1] = 0;
             this.songPosition[2] = 0;
             this.tick = 0;
-            this.tickSampleCountdown = 0;
         }
         jumpIntoLoop() {
             if (!this.song)
@@ -27281,6 +27312,9 @@ li.select2-results__option[role=group] > strong:hover {
                 initFilters: modEffects
             };
             this.sendMessage(computeModsMessage);
+            this.computeMods();
+        }
+        computeMods() {
             if (this.song != null && this.song.modChannelCount > 0) {
                 let latestModTimes = [];
                 let latestModInsTimes = [];
@@ -27330,7 +27364,7 @@ li.select2-results__option[role=group] > strong:hover {
                                                     const transitionLength = note.pins[pinIdx].time - note.pins[pinIdx - 1].time;
                                                     const toNextBarLength = partsInBar - note.start - note.pins[pinIdx - 1].time;
                                                     const deltaVolume = note.pins[pinIdx].size - note.pins[pinIdx - 1].size;
-                                                    latestPinValues[Config.modCount - 1 - note.pitches[0]] = Math.round(note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength);
+                                                    latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[pinIdx - 1].size + deltaVolume * toNextBarLength / transitionLength;
                                                     pinIdx = note.pins.length;
                                                 }
                                             }
@@ -27356,7 +27390,7 @@ li.select2-results__option[role=group] > strong:hover {
                                                             }
                                                         }
                                                         if (tgtSong.tmpEqFilterStart != null && Math.floor((instrument.modFilterTypes[mod] - 1) / 2) < tgtSong.tmpEqFilterStart.controlPointCount) {
-                                                            if (instrument.modFilterTypes[mod] % 2)
+                                                            if (instrument.modFilterTypes[mod] & 1)
                                                                 tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].freq = latestPinValues[mod];
                                                             else
                                                                 tgtSong.tmpEqFilterStart.controlPoints[Math.floor((instrument.modFilterTypes[mod] - 1) / 2)].gain = latestPinValues[mod];
@@ -27449,6 +27483,21 @@ li.select2-results__option[role=group] > strong:hover {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+        initModFilters(song) {
+            if (song != null) {
+                song.tmpEqFilterStart = song.eqFilter;
+                song.tmpEqFilterEnd = null;
+                for (let channelIndex = 0; channelIndex < song.getChannelCount(); channelIndex++) {
+                    for (let instrumentIndex = 0; instrumentIndex < song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        const instrument = song.channels[channelIndex].instruments[instrumentIndex];
+                        instrument.tmpEqFilterStart = instrument.eqFilter;
+                        instrument.tmpEqFilterEnd = null;
+                        instrument.tmpNoteFilterStart = instrument.noteFilter;
+                        instrument.tmpNoteFilterEnd = null;
                     }
                 }
             }

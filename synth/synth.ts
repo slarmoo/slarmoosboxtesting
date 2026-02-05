@@ -2181,7 +2181,8 @@ class InstrumentState {
             this.unisonBuzzes = instrument.unisonBuzzes;
         }
         if (instrument.type == InstrumentType.chip) {
-            this.wave = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
+            const chipwaveIndex: number = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+            this.wave = (this.aliases) ? Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samples;
             this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
             this.chipWaveLoopStart = instrument.chipWaveLoopStart;
             this.chipWaveLoopEnd = instrument.chipWaveLoopEnd;
@@ -2361,8 +2362,7 @@ export class Synth {
                                     if (note.end <= partsInBar) {
                                         latestPinParts[Config.modCount - 1 - note.pitches[0]] = note.end;
                                         latestPinValues[Config.modCount - 1 - note.pitches[0]] = note.pins[note.pins.length - 1].size;
-                                    }
-                                    else {
+                                    } else {
                                         latestPinParts[Config.modCount - 1 - note.pitches[0]] = partsInBar;
                                         // Find the pin where bar change happens, and compute where pin volume would be at that time
                                         for (let pinIdx = 0; pinIdx < note.pins.length; pinIdx++) {
@@ -2547,7 +2547,7 @@ export class Synth {
      * 
      * part [2]: number
      */
-    public songPosition: Uint16Array;
+    public songPosition: Uint16Array = new Uint16Array(2 * 3);
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -2768,8 +2768,7 @@ export class Synth {
             }
         } else if (this.songPosition[0] == this.loopBarEnd && !this.renderingSong) {
             nextBar = this.loopBarStart;
-        }
-        else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song!.loopStart + this.song!.loopLength)) {
+        } else if (this.loopRepeatCount != 0 && nextBar == Math.max(this.loopBarEnd + 1, this.song!.loopStart + this.song!.loopLength)) {
             nextBar = this.song!.loopStart;
         }
         return nextBar;
@@ -2796,7 +2795,6 @@ export class Synth {
                 this.songPosition[0] = this.loopBarStart;
             if (this.loopRepeatCount > 0) this.loopRepeatCount--;
         }
-
     }
 
     private computeSongState(samplesPerTick: number): void {
@@ -3074,8 +3072,7 @@ export class Synth {
                     if (useVibratoSpeed == 0) {
                         instrumentState.vibratoTime = 0;
                         instrumentState.nextVibratoTime = 0;
-                    }
-                    else {
+                    } else {
                         instrumentState.nextVibratoTime += useVibratoSpeed * 0.1 * (partTimeEnd - partTimeStart);
                     }
                 }
@@ -3254,8 +3251,7 @@ export class Synth {
                                 // Linear interpolate arpeggio values
                                 instrumentState.arpTime += (1 - (useArpeggioSpeed % 1)) * Config.arpSpeedScale[Math.floor(useArpeggioSpeed)] + (useArpeggioSpeed % 1) * Config.arpSpeedScale[Math.ceil(useArpeggioSpeed)];
                             }
-                        }
-                        else {
+                        } else {
                             useArpeggioSpeed = clamp(0, Config.arpSpeedScale.length, arpEnvelopeStart * useArpeggioSpeed);
                             if (Number.isInteger(useArpeggioSpeed)) {
                                 instrumentState.arpTime += Config.arpSpeedScale[useArpeggioSpeed];
@@ -4203,17 +4199,18 @@ export class Synth {
             baseExpression = Config.fmBaseExpression;
         } else if (instrument.type == InstrumentType.chip) {
             baseExpression = Config.chipBaseExpression;
-            if (Config.chipWaves[instrument.chipWave].isCustomSampled) {
-                if (Config.chipWaves[instrument.chipWave].isPercussion) {
-                    basePitch = -84.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate!) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey!);
+            const chipwaveIndex: number = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+            if (Config.chipWaves[chipwaveIndex].isCustomSampled) {
+                if (Config.chipWaves[chipwaveIndex].isPercussion) {
+                    basePitch = -84.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate!) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey!);
                 } else {
-                    basePitch += -96.37 + Math.log2(Config.chipWaves[instrument.chipWave].samples.length / Config.chipWaves[instrument.chipWave].sampleRate!) * -12 - (-60 + Config.chipWaves[instrument.chipWave].rootKey!);
+                    basePitch += -96.37 + Math.log2(Config.chipWaves[chipwaveIndex].samples.length / Config.chipWaves[chipwaveIndex].sampleRate!) * -12 - (-60 + Config.chipWaves[chipwaveIndex].rootKey!);
                 }
             } else {
-                if (Config.chipWaves[instrument.chipWave].isSampled && !Config.chipWaves[instrument.chipWave].isPercussion) {
-                    basePitch = basePitch - 63 + Config.chipWaves[instrument.chipWave].extraSampleDetune!
-                } else if (Config.chipWaves[instrument.chipWave].isSampled && Config.chipWaves[instrument.chipWave].isPercussion) {
-                    basePitch = -51 + Config.chipWaves[instrument.chipWave].extraSampleDetune!;
+                if (Config.chipWaves[chipwaveIndex].isSampled && !Config.chipWaves[chipwaveIndex].isPercussion) {
+                    basePitch = basePitch - 63 + Config.chipWaves[chipwaveIndex].extraSampleDetune!
+                } else if (Config.chipWaves[chipwaveIndex].isSampled && Config.chipWaves[chipwaveIndex].isPercussion) {
+                    basePitch = -51 + Config.chipWaves[chipwaveIndex].extraSampleDetune!;
                 }
             }
         } else if (instrument.type == InstrumentType.customChipWave) {
@@ -4239,7 +4236,9 @@ export class Synth {
             tone.reset();
             instrumentState.envelopeComputer.reset();
             if (instrument.type == InstrumentType.chip && instrument.isUsingAdvancedLoopControls) {
-                const chipWaveLength = Config.rawRawChipWaves[instrument.chipWave].samples.length - 1;
+                const chipwaveIndex: number = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+
+                const chipWaveLength = Config.rawRawChipWaves[chipwaveIndex].samples.length - 1;
                 const firstOffset = instrument.chipWaveStartOffset / chipWaveLength;
                 // const lastOffset = (chipWaveLength - 0.01) / chipWaveLength;
                 // @TODO: This is silly and I should actually figure out how to
@@ -4913,7 +4912,8 @@ export class Synth {
                 settingsExpressionMult *= Config.chipNoises[instrument.chipNoise].expression;
             }
             if (instrument.type == InstrumentType.chip) {
-                settingsExpressionMult *= Config.chipWaves[instrument.chipWave].expression;
+                const chipwaveIndex: number = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
+                settingsExpressionMult *= Config.chipWaves[chipwaveIndex].expression;
             }
             if (instrument.type == InstrumentType.pwm) {
                 const basePulseWidth: number = getPulseWidthRatio(instrument.pulseWidth);
@@ -6159,7 +6159,6 @@ export class Synth {
 
         let effectsFunction: Function = Synth.effectsFunctionCache[signature];
         if (effectsFunction == undefined) {
-            console.log("Adding to effects cache!")
             let effectsSource: string = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
 
             const usesDelays: boolean = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
@@ -7635,7 +7634,7 @@ export class Synth {
                     }
 
                     if (tgtSong.tmpEqFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
-                        if (dotTarget % 2) { // X
+                        if (dotTarget & 1) { // X
                             tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
                         } else { // Y
                             tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;

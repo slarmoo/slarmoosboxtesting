@@ -9,12 +9,13 @@ export enum MessageFlag {
     sharedArrayBuffers,
     setPrevBar,
     isRecording,
-    oscilloscope,
+    uiRender,
     synthVolume,
     sampleStartMessage,
     sampleFinishMessage,
     pluginMessage,
     loopRepeatCount,
+    loopBar,
     updateSong,
 }
 
@@ -73,8 +74,8 @@ export interface IsRecordingMessage extends Message {
     countInMetronome: boolean
 }
 
-export interface OscilloscopeMessage extends Message {
-    flag: MessageFlag.oscilloscope,
+export interface UIRenderMessage extends Message {
+    flag: MessageFlag.uiRender,
     maintainLiveInput: boolean
 }
 
@@ -112,6 +113,12 @@ export interface PluginMessage extends Message {
 export interface LoopRepeatCountMessage extends Message {
     flag: MessageFlag.loopRepeatCount,
     count: number
+}
+
+export interface LoopBarMessage extends Message {
+    flag: MessageFlag.loopBar,
+    loopBarStart: number,
+    loopBarEnd: number
 }
 
 export interface UpdateSongMessage extends Message {
