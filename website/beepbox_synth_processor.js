@@ -6583,6 +6583,21 @@ var Synth = class _Synth {
     this.preferLowerLatency = false;
     // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
     this.anticipatePoorPerformance = false;
+    // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
+    /**
+     * liveInputDuration [0]: number
+     * 
+     * liveBassInputDuration [1]: number
+     * 
+     * liveInputStarted [2]: 0 | 1
+     * 
+     * liveBassInputStarted [3]: 0 | 1
+     * 
+     * liveInputChannel [4]: integer
+     * 
+     * liveBassInputChannel [5]: integer
+     */
+    this.liveInputValues = new Uint32Array(6 * 4);
     this.liveInputPitches = new BeepboxSet();
     this.liveBassInputPitches = new BeepboxSet();
     this.loopRepeatCount = -1;
@@ -7134,7 +7149,7 @@ var Synth = class _Synth {
     this.songEqFilterVolumeDelta = (eqFilterVolumeEnd - eqFilterVolumeStart) / roundedSamplesPerTick;
   }
   synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
-    if (this.song == null || (this.liveInputValues == void 0 || this.liveInputPitchesOnOffRequests == void 0) && playSong) {
+    if (this.song == null || this.liveInputPitchesOnOffRequests == void 0 && playSong) {
       outputDataL.fill(0);
       outputDataR.fill(0);
       this.deactivateAudio();
@@ -7498,7 +7513,9 @@ var Synth = class _Synth {
         this.tickSampleCountdown += samplesPerTick;
         if (this.tick == Config.ticksPerPart) {
           this.tick = 0;
-          if (this.isPlayingSong) this.songPosition[2]++;
+          if (this.isPlayingSong) {
+            this.songPosition[2]++;
+          }
           if (this.liveInputValues) {
             this.liveInputValues[0 /* liveInputDuration */]--;
             this.liveInputValues[1 /* liveBassInputDuration */]--;
@@ -18973,9 +18990,7 @@ var SynthMessenger = class _SynthMessenger {
         this.countInMetronome = false;
       });
       this.exportProcessor.song = this.song;
-      this.exportProcessor.songPosition = new Uint16Array(3);
       this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
-      this.exportProcessor.liveInputValues = new Uint32Array(1);
     }
     this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
     this.exportProcessor.renderingSong = this.renderingSong;
@@ -18983,7 +18998,9 @@ var SynthMessenger = class _SynthMessenger {
   }
   synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
     this.initSynth();
+    this.exportProcessor.isPlayingSong = true;
     this.exportProcessor.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
+    this.exportProcessor.isPlayingSong = false;
   }
   play() {
     if (this.isPlayingSong) return;

@@ -8573,9 +8573,7 @@ export class SynthMessenger {
         if (this.exportProcessor == null) {
             this.exportProcessor = new Synth(this.deactivateAudio, () => {this.countInMetronome = false});
             this.exportProcessor.song = this.song;
-            this.exportProcessor.songPosition = new Uint16Array(3);
             this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
-            this.exportProcessor.liveInputValues = new Uint32Array(1);
         }
         this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
         this.exportProcessor.renderingSong = this.renderingSong;
@@ -8584,7 +8582,9 @@ export class SynthMessenger {
 
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {
         this.initSynth();
+        this.exportProcessor!.isPlayingSong = true;
         this.exportProcessor!.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
+        this.exportProcessor!.isPlayingSong = false;
     }
 
     public play(): void {

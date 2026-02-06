@@ -2524,7 +2524,7 @@ export class Synth {
      * 
      * liveBassInputChannel [5]: integer
      */
-    public liveInputValues: Uint32Array;
+    public liveInputValues: Uint32Array = new Uint32Array(6 * 4);
     private readonly liveInputPitches: BeepboxSet = new BeepboxSet();
     private readonly liveBassInputPitches: BeepboxSet = new BeepboxSet();
     public liveInputPitchesOnOffRequests: RingBuffer;
@@ -2836,8 +2836,7 @@ export class Synth {
 
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {
         if (this.song == null ||
-            ((this.liveInputValues == undefined ||
-            this.liveInputPitchesOnOffRequests == undefined) && playSong)
+            (this.liveInputPitchesOnOffRequests == undefined && playSong)
         ) {
             outputDataL.fill(0.0);
             outputDataR.fill(0.0);
@@ -3291,7 +3290,9 @@ export class Synth {
                 this.tickSampleCountdown += samplesPerTick;
                 if (this.tick == Config.ticksPerPart) {
                     this.tick = 0;
-                    if(this.isPlayingSong) this.songPosition[2]++;
+                    if (this.isPlayingSong) {
+                        this.songPosition[2]++;
+                    }
                     if (this.liveInputValues) {
                         this.liveInputValues[LiveInputValues.liveInputDuration]--;
                         this.liveInputValues[LiveInputValues.liveBassInputDuration]--;

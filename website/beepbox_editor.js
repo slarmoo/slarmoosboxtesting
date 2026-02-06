@@ -14386,6 +14386,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.song = null;
             this.preferLowerLatency = false;
             this.anticipatePoorPerformance = false;
+            this.liveInputValues = new Uint32Array(6 * 4);
             this.liveInputPitches = new BeepboxSet();
             this.liveBassInputPitches = new BeepboxSet();
             this.loopRepeatCount = -1;
@@ -14612,8 +14613,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             if (this.song == null ||
-                ((this.liveInputValues == undefined ||
-                    this.liveInputPitchesOnOffRequests == undefined) && playSong)) {
+                (this.liveInputPitchesOnOffRequests == undefined && playSong)) {
                 outputDataL.fill(0.0);
                 outputDataR.fill(0.0);
                 this.deactivateAudio();
@@ -15001,8 +15001,9 @@ li.select2-results__option[role=group] > strong:hover {
                     this.tickSampleCountdown += samplesPerTick;
                     if (this.tick == Config.ticksPerPart) {
                         this.tick = 0;
-                        if (this.isPlayingSong)
+                        if (this.isPlayingSong) {
                             this.songPosition[2]++;
+                        }
                         if (this.liveInputValues) {
                             this.liveInputValues[LiveInputValues.liveInputDuration]--;
                             this.liveInputValues[LiveInputValues.liveBassInputDuration]--;
@@ -26998,9 +26999,7 @@ li.select2-results__option[role=group] > strong:hover {
             if (this.exportProcessor == null) {
                 this.exportProcessor = new Synth(this.deactivateAudio, () => { this.countInMetronome = false; });
                 this.exportProcessor.song = this.song;
-                this.exportProcessor.songPosition = new Uint16Array(3);
                 this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
-                this.exportProcessor.liveInputValues = new Uint32Array(1);
             }
             this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
             this.exportProcessor.renderingSong = this.renderingSong;
@@ -27008,7 +27007,9 @@ li.select2-results__option[role=group] > strong:hover {
         }
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             this.initSynth();
+            this.exportProcessor.isPlayingSong = true;
             this.exportProcessor.synthesize(outputDataL, outputDataR, outputBufferLength, playSong);
+            this.exportProcessor.isPlayingSong = false;
         }
         play() {
             if (this.isPlayingSong)
