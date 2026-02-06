@@ -328,12 +328,12 @@ export class LimiterPrompt implements Prompt {
         if (this.outVolumeHistoricTimer <= 0) {
             this.outVolumeHistoricCap -= 0.03;
         }
-        if (this._doc.song.outVolumeCap > this.outVolumeHistoricCap) {
-            this.outVolumeHistoricCap = this._doc.song.outVolumeCap;
+        if (this._doc.synth.outVolumeCap[0] > this.outVolumeHistoricCap) {
+            this.outVolumeHistoricCap = this._doc.synth.outVolumeCap[0];
             this.outVolumeHistoricTimer = 50;
         }
 
-        this.limiterCanvas.animateVolume(this._doc.song.inVolumeCap, this.inVolumeHistoricCap, this._doc.song.outVolumeCap, this.outVolumeHistoricCap);
+        this.limiterCanvas.animateVolume(this._doc.song.inVolumeCap, this.inVolumeHistoricCap, this._doc.synth.outVolumeCap[0], this.outVolumeHistoricCap);
         window.requestAnimationFrame(this._volumeUpdate);
     }
 

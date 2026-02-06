@@ -791,6 +791,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
 
         const isNoise: boolean = doc.song.getChannelIsNoise(doc.channel);
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        instrument.setTypeAndReset(InstrumentType.chip, isNoise, false); //default settings
         instrument.effects = 1 << EffectType.panning; // disable all existing effects except panning, which should always be on.
         instrument.aliases = false;
         instrument.envelopeCount = 0;
@@ -2782,7 +2783,7 @@ export class ChangeDetune extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number) {
         super(doc);
         this._instrument.detune = newValue + Config.detuneCenter;
-        doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.detune);
+        doc.synth.updateSong(newValue + Config.detuneCenter, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.detune);
         doc.notifier.changed();
         doc.synth.unsetMod(Config.modulators.dictionary["detune"].index, doc.channel, doc.getCurrentInstrument());
         if (oldValue != newValue) this._didSomething();
@@ -3722,7 +3723,7 @@ export class ChangeRemoveChannelInstrument extends Change {
             }
         }
         doc.synth.updateSong(channel.patterns, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.allPatterns);
-        doc.synth.updateSong(channel.instruments, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.instruments);
+        doc.synth.updateSong(removedIndex, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.removeInstrunent);
 
 
         // Determine if any mod instruments now refer to an invalid instrument number. Unset them if so

@@ -11294,17 +11294,16 @@ li.select2-results__option[role=group] > strong:hover {
         SongSettings[SongSettings["modChannelCount"] = 15] = "modChannelCount";
         SongSettings[SongSettings["limiterSettings"] = 16] = "limiterSettings";
         SongSettings[SongSettings["inVolumeCap"] = 17] = "inVolumeCap";
-        SongSettings[SongSettings["outVolumeCap"] = 18] = "outVolumeCap";
-        SongSettings[SongSettings["eqFilter"] = 19] = "eqFilter";
-        SongSettings[SongSettings["eqSubFilters"] = 20] = "eqSubFilters";
-        SongSettings[SongSettings["addSequence"] = 21] = "addSequence";
-        SongSettings[SongSettings["sequenceLength"] = 22] = "sequenceLength";
-        SongSettings[SongSettings["sequenceHeight"] = 23] = "sequenceHeight";
-        SongSettings[SongSettings["sequenceValues"] = 24] = "sequenceValues";
-        SongSettings[SongSettings["pluginurl"] = 25] = "pluginurl";
-        SongSettings[SongSettings["channelOrder"] = 26] = "channelOrder";
-        SongSettings[SongSettings["updateChannel"] = 27] = "updateChannel";
-        SongSettings[SongSettings["updateInstrument"] = 28] = "updateInstrument";
+        SongSettings[SongSettings["eqFilter"] = 18] = "eqFilter";
+        SongSettings[SongSettings["eqSubFilters"] = 19] = "eqSubFilters";
+        SongSettings[SongSettings["addSequence"] = 20] = "addSequence";
+        SongSettings[SongSettings["sequenceLength"] = 21] = "sequenceLength";
+        SongSettings[SongSettings["sequenceHeight"] = 22] = "sequenceHeight";
+        SongSettings[SongSettings["sequenceValues"] = 23] = "sequenceValues";
+        SongSettings[SongSettings["pluginurl"] = 24] = "pluginurl";
+        SongSettings[SongSettings["channelOrder"] = 25] = "channelOrder";
+        SongSettings[SongSettings["updateChannel"] = 26] = "updateChannel";
+        SongSettings[SongSettings["updateInstrument"] = 27] = "updateInstrument";
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
@@ -11314,7 +11313,7 @@ li.select2-results__option[role=group] > strong:hover {
         ChannelSettings[ChannelSettings["bars"] = 3] = "bars";
         ChannelSettings[ChannelSettings["muted"] = 4] = "muted";
         ChannelSettings[ChannelSettings["newInstrument"] = 5] = "newInstrument";
-        ChannelSettings[ChannelSettings["instruments"] = 6] = "instruments";
+        ChannelSettings[ChannelSettings["removeInstrunent"] = 6] = "removeInstrunent";
     })(ChannelSettings || (ChannelSettings = {}));
     var InstrumentSettings;
     (function (InstrumentSettings) {
@@ -14401,6 +14400,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.prevBar = null;
             this.nextBar = null;
             this.songPosition = new Uint16Array(2 * 3);
+            this.outVolumeCap = new Float32Array(1 * 4);
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -14479,7 +14479,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.liveBassInputPitches.clear();
             if (this.song != null) {
                 this.song.inVolumeCap = 0.0;
-                this.song.outVolumeCap = 0.0;
+                this.outVolumeCap[0] = 0.0;
                 this.song.tmpEqFilterStart = null;
                 this.song.tmpEqFilterEnd = null;
                 for (let channelIndex = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
@@ -14629,7 +14629,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
             const song = this.song;
             this.song.inVolumeCap = 0.0;
-            this.song.outVolumeCap = 0.0;
+            this.outVolumeCap[0] = 0.0;
             let samplesPerTick = this.getSamplesPerTick();
             let ended = false;
             if (this.tickSampleCountdown <= 0 || this.tickSampleCountdown > samplesPerTick) {
@@ -14902,7 +14902,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const limitedVolume = volume / (limit >= 1 ? limit * 1.05 : limit * 0.8 + 0.25);
                     outputDataL[i] = sampleL * limitedVolume;
                     outputDataR[i] = sampleR * limitedVolume;
-                    this.song.outVolumeCap = (this.song.outVolumeCap > abs * limitedVolume ? this.song.outVolumeCap : abs * limitedVolume);
+                    this.outVolumeCap[0] = (this.outVolumeCap[0] > abs * limitedVolume ? this.outVolumeCap[0] : abs * limitedVolume);
                 }
                 bufferIndex += runLength;
                 this.isAtStartOfTick = false;
@@ -21900,7 +21900,6 @@ li.select2-results__option[role=group] > strong:hover {
             this.limitRatio = 1.0;
             this.masterGain = 1.0;
             this.inVolumeCap = 0.0;
-            this.outVolumeCap = 0.0;
             this.eqFilter = new FilterSettings();
             this.eqFilterType = false;
             this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -25501,9 +25500,6 @@ li.select2-results__option[role=group] > strong:hover {
                 case SongSettings.inVolumeCap:
                     this.inVolumeCap = numberData;
                     break;
-                case SongSettings.outVolumeCap:
-                    this.outVolumeCap = numberData;
-                    break;
                 case SongSettings.eqFilter:
                     this.eqFilter.fromJsonObject(data);
                     this.tmpEqFilterStart = this.eqFilter;
@@ -25583,16 +25579,18 @@ li.select2-results__option[role=group] > strong:hover {
                         case ChannelSettings.muted:
                             channel.muted = numberData == 1;
                             break;
-                        case ChannelSettings.newInstrument:
+                        case ChannelSettings.newInstrument: {
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
                             const ins = new Instrument(isNoise, isMod);
                             ins.fromJsonObject(data, isNoise, isMod, false, false);
                             channel.instruments.push(ins);
                             break;
-                        case ChannelSettings.instruments:
-                            channel.instruments.length = data.length;
+                        }
+                        case ChannelSettings.removeInstrunent: {
+                            channel.instruments.splice(data, 1);
                             break;
+                        }
                     }
                     break;
                 case SongSettings.updateInstrument:
@@ -25603,6 +25601,7 @@ li.select2-results__option[role=group] > strong:hover {
                         case InstrumentSettings.fromJson:
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
+                            instrument.setTypeAndReset(0, isNoise, isMod);
                             instrument.fromJsonObject(data, isNoise, isMod, false, false);
                             break;
                         case InstrumentSettings.type:
@@ -26759,6 +26758,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.heldMods = [];
             this.playheadInternal = 0.0;
             this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
+            this.outVolumeCap = new Float32Array(new SharedArrayBuffer(1 * 4));
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -26905,7 +26905,8 @@ li.select2-results__option[role=group] > strong:hover {
                         flag: MessageFlag.sharedArrayBuffers,
                         liveInputValues: this.liveInputValues,
                         liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                        songPosition: this.songPosition
+                        songPosition: this.songPosition,
+                        outVolumeCap: this.outVolumeCap
                     };
                     this.sendMessage(sabMessage);
                     const latencyHint = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
@@ -29147,6 +29148,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
             const isNoise = doc.song.getChannelIsNoise(doc.channel);
             const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+            instrument.setTypeAndReset(0, isNoise, false);
             instrument.effects = 1 << 2;
             instrument.aliases = false;
             instrument.envelopeCount = 0;
@@ -30983,7 +30985,7 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(doc, oldValue, newValue) {
             super(doc);
             this._instrument.detune = newValue + Config.detuneCenter;
-            doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.detune);
+            doc.synth.updateSong(newValue + Config.detuneCenter, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.detune);
             doc.notifier.changed();
             doc.synth.unsetMod(Config.modulators.dictionary["detune"].index, doc.channel, doc.getCurrentInstrument());
             if (oldValue != newValue)
@@ -31803,7 +31805,7 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             doc.synth.updateSong(channel.patterns, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.allPatterns);
-            doc.synth.updateSong(channel.instruments, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.instruments);
+            doc.synth.updateSong(removedIndex, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.removeInstrunent);
             for (let channelIndex = doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex < doc.song.getChannelCount(); channelIndex++) {
                 for (let instrumentIdx = 0; instrumentIdx < doc.song.channels[channelIndex].instruments.length; instrumentIdx++) {
                     for (let mod = 0; mod < Config.modCount; mod++) {
@@ -35931,6 +35933,7 @@ li.select2-results__option[role=group] > strong:hover {
                 if (songString == "" || songString == undefined) {
                     setDefaultInstruments(this.song);
                     this.song.scale = this.prefs.defaultScale;
+                    this.synth.updateWorkletSong();
                 }
             }
             catch (error) {
@@ -42058,11 +42061,11 @@ You should be redirected to the song at:<br /><br />
                 if (this.outVolumeHistoricTimer <= 0) {
                     this.outVolumeHistoricCap -= 0.03;
                 }
-                if (this._doc.song.outVolumeCap > this.outVolumeHistoricCap) {
-                    this.outVolumeHistoricCap = this._doc.song.outVolumeCap;
+                if (this._doc.synth.outVolumeCap[0] > this.outVolumeHistoricCap) {
+                    this.outVolumeHistoricCap = this._doc.synth.outVolumeCap[0];
                     this.outVolumeHistoricTimer = 50;
                 }
-                this.limiterCanvas.animateVolume(this._doc.song.inVolumeCap, this.inVolumeHistoricCap, this._doc.song.outVolumeCap, this.outVolumeHistoricCap);
+                this.limiterCanvas.animateVolume(this._doc.song.inVolumeCap, this.inVolumeHistoricCap, this._doc.synth.outVolumeCap[0], this.outVolumeHistoricCap);
                 window.requestAnimationFrame(this._volumeUpdate);
             };
             this._togglePlay = () => {
@@ -44908,10 +44911,11 @@ You should be redirected to the song at:<br /><br />
                     }
                 }
                 if (usedInstrumentIndices.length == 0) {
+                    let useInstrument = -1;
                     for (let channelIndex = this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channelIndex < this._doc.song.getChannelCount(); channelIndex++) {
                         const channel = this._doc.song.channels[channelIndex];
                         let pattern = this._doc.song.getPattern(channelIndex, currentBar);
-                        let useInstrument = -1;
+                        useInstrument = -1;
                         if (pattern != null) {
                             useInstrument = pattern.instruments[0];
                         }
@@ -44967,6 +44971,9 @@ You should be redirected to the song at:<br /><br />
                                 }
                             }
                         }
+                    }
+                    if (useInstrument == -1) {
+                        return false;
                     }
                 }
                 for (let i = 0; i < usedPatterns.length; i++) {
@@ -48883,12 +48890,14 @@ You should be redirected to the song at:<br /><br />
                 const newValue = +element.value;
                 this._chipWaveLoopMode = newValue;
                 this._instrument.chipWaveLoopMode = this._chipWaveLoopMode;
+                this._doc.synth.updateSong(this._chipWaveLoopMode, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopMode);
             };
             this._whenStartOffsetStepperChanges = (event) => {
                 const element = event.target;
                 const newValue = this._startOffsetValidator(+element.value);
                 this._chipWaveStartOffset = newValue;
                 this._instrument.chipWaveStartOffset = this._chipWaveStartOffset;
+                this._doc.synth.updateSong(this._chipWaveStartOffset, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveStartOffset);
                 element.value = "" + newValue;
                 this._startOffsetHandle.update(newValue);
                 this._startOffsetHandle.render();
@@ -48899,6 +48908,7 @@ You should be redirected to the song at:<br /><br />
                 const newValue = this._loopStartValidator(+element.value);
                 this._chipWaveLoopStart = newValue;
                 this._instrument.chipWaveLoopStart = this._chipWaveLoopStart;
+                this._doc.synth.updateSong(this._chipWaveLoopStart, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopStart);
                 element.value = "" + newValue;
                 this._loopStartHandle.update(newValue);
                 this._loopStartHandle.render();
@@ -48909,6 +48919,7 @@ You should be redirected to the song at:<br /><br />
                 const newValue = this._loopEndValidator(+element.value);
                 this._chipWaveLoopEnd = newValue;
                 this._instrument.chipWaveLoopEnd = this._chipWaveLoopEnd;
+                this._doc.synth.updateSong(this._chipWaveLoopEnd, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopEnd);
                 element.value = "" + newValue;
                 this._loopEndHandle.update(newValue);
                 this._loopEndHandle.render();
@@ -48919,6 +48930,7 @@ You should be redirected to the song at:<br /><br />
                 const newValue = element.checked;
                 this._chipWavePlayBackwards = newValue;
                 this._instrument.chipWavePlayBackwards = this._chipWavePlayBackwards;
+                this._doc.synth.updateSong(this._chipWavePlayBackwards, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWavePlayBackwards);
             };
             this._whenOverlayMouseMoves = (event) => {
                 if (!this._overlayIsMouseDown)
@@ -53064,13 +53076,13 @@ You should be redirected to the song at:<br /><br />
                 if (this.outVolumeHistoricTimer <= 0) {
                     this.outVolumeHistoricCap -= 0.03;
                 }
-                if (this.doc.song.outVolumeCap > this.outVolumeHistoricCap) {
-                    this.outVolumeHistoricCap = this.doc.song.outVolumeCap;
+                if (this.doc.synth.outVolumeCap[0] > this.outVolumeHistoricCap) {
+                    this.outVolumeHistoricCap = this.doc.synth.outVolumeCap[0];
                     this.outVolumeHistoricTimer = 50;
                 }
-                if (this.doc.song.outVolumeCap != this.lastOutVolumeCap) {
-                    this.lastOutVolumeCap = this.doc.song.outVolumeCap;
-                    this._animateVolume(this.doc.song.outVolumeCap, this.outVolumeHistoricCap);
+                if (this.doc.synth.outVolumeCap[0] != this.lastOutVolumeCap) {
+                    this.lastOutVolumeCap = this.doc.synth.outVolumeCap[0];
+                    this._animateVolume(this.doc.synth.outVolumeCap[0], this.outVolumeHistoricCap);
                 }
             };
             this._setVolumeSlider = () => {

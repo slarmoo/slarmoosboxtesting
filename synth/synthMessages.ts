@@ -59,7 +59,8 @@ export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
     liveInputValues: Uint32Array,
     liveInputPitchesOnOffRequests: SharedArrayBuffer,
-    songPosition: Uint16Array
+    songPosition: Uint16Array,
+    outVolumeCap: Float32Array
 }
 
 export interface SetPrevBarMessage extends Message {
@@ -151,7 +152,6 @@ export enum SongSettings {
     modChannelCount,
     limiterSettings,
     inVolumeCap,
-    outVolumeCap,
     eqFilter,
     eqSubFilters,
     addSequence,
@@ -171,7 +171,7 @@ export enum ChannelSettings {
     bars,
     muted,
     newInstrument,
-    instruments,
+    removeInstrunent,
 }
 
 export enum InstrumentSettings {

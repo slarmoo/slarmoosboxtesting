@@ -6,6 +6,7 @@ import { ChangeGroup } from "./Change";
 import { SongDocument } from "./SongDocument";
 import { SongEditor } from "./SongEditor";
 import { ChangeChipWaveLoopMode, ChangeChipWaveStartOffset, ChangeChipWaveLoopStart, ChangeChipWaveLoopEnd, ChangeChipWavePlayBackwards } from "./changes";
+import { InstrumentSettings, SongSettings } from "../synth/synthMessages";
 
 const { div, input, button, h2, select, option, canvas } = HTML;
 
@@ -748,6 +749,7 @@ export class VisualLoopControlsPrompt {
         const newValue: number = +element.value;
         this._chipWaveLoopMode = newValue;
         this._instrument!.chipWaveLoopMode = this._chipWaveLoopMode;
+        this._doc.synth.updateSong(this._chipWaveLoopMode, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopMode);
     }
 
     private _whenStartOffsetStepperChanges = (event: Event): void => {
@@ -755,6 +757,7 @@ export class VisualLoopControlsPrompt {
         const newValue: number = this._startOffsetValidator(+element.value);
         this._chipWaveStartOffset = newValue;
         this._instrument!.chipWaveStartOffset = this._chipWaveStartOffset;
+        this._doc.synth.updateSong(this._chipWaveStartOffset, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveStartOffset);
         element.value = "" + newValue;
         this._startOffsetHandle.update(newValue);
         this._startOffsetHandle.render();
@@ -766,6 +769,7 @@ export class VisualLoopControlsPrompt {
         const newValue: number = this._loopStartValidator(+element.value);
         this._chipWaveLoopStart = newValue;
         this._instrument!.chipWaveLoopStart = this._chipWaveLoopStart;
+        this._doc.synth.updateSong(this._chipWaveLoopStart, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopStart);
         element.value = "" + newValue;
         this._loopStartHandle.update(newValue);
         this._loopStartHandle.render();
@@ -777,6 +781,7 @@ export class VisualLoopControlsPrompt {
         const newValue: number = this._loopEndValidator(+element.value);
         this._chipWaveLoopEnd = newValue;
         this._instrument!.chipWaveLoopEnd = this._chipWaveLoopEnd;
+        this._doc.synth.updateSong(this._chipWaveLoopEnd, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWaveLoopEnd);
         element.value = "" + newValue;
         this._loopEndHandle.update(newValue);
         this._loopEndHandle.render();
@@ -788,6 +793,7 @@ export class VisualLoopControlsPrompt {
         const newValue: boolean = element.checked;
         this._chipWavePlayBackwards = newValue;
         this._instrument!.chipWavePlayBackwards = this._chipWavePlayBackwards;
+        this._doc.synth.updateSong(this._chipWavePlayBackwards, SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.chipWavePlayBackwards);
     };
 
     private _whenOverlayMouseMoves = (event: MouseEvent): void => {

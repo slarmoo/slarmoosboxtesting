@@ -3136,7 +3136,6 @@ export class Song {
     public limitRatio: number = 1.0;
     public masterGain: number = 1.0;
     public inVolumeCap: number = 0.0;
-    public outVolumeCap: number = 0.0;
     public eqFilter: FilterSettings = new FilterSettings();
     public eqFilterType: boolean = false;
     public eqFilterSimpleCut: number = Config.filterSimpleCutRange - 1;
@@ -6955,9 +6954,6 @@ export class Song {
             case SongSettings.inVolumeCap:
                 this.inVolumeCap = numberData;
                 break;
-            case SongSettings.outVolumeCap:
-                this.outVolumeCap = numberData;
-                break;
             case SongSettings.eqFilter:
                 this.eqFilter.fromJsonObject(data);
                 this.tmpEqFilterStart = this.eqFilter;
@@ -7035,16 +7031,18 @@ export class Song {
                 case ChannelSettings.muted:
                         channel.muted = numberData == 1;
                         break;
-                    case ChannelSettings.newInstrument:
+                    case ChannelSettings.newInstrument: {
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
                         const ins = new Instrument(isNoise, isMod)
                         ins.fromJsonObject(data as string, isNoise, isMod, false, false);
                         channel.instruments.push(ins);
                         break;
-                    case ChannelSettings.instruments:
-                        channel.instruments.length = data.length;
+                    }
+                    case ChannelSettings.removeInstrunent: {
+                        channel.instruments.splice(data, 1);                        
                         break;
+                    }
                 }
                 break;
             case SongSettings.updateInstrument:
@@ -7055,6 +7053,7 @@ export class Song {
                     case InstrumentSettings.fromJson:
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
+                        instrument.setTypeAndReset(InstrumentType.chip, isNoise, isMod); //default settings
                         instrument.fromJsonObject(data as string, isNoise, isMod, false, false);
                         break;
                     case InstrumentSettings.type:
@@ -8231,6 +8230,7 @@ export class SynthMessenger {
      * part [2]: number
      */
     public songPosition: Uint16Array = new Uint16Array(new SharedArrayBuffer(3 * 2));
+    public readonly outVolumeCap: Float32Array = new Float32Array(new SharedArrayBuffer(1 * 4)); 
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -8469,7 +8469,8 @@ export class SynthMessenger {
                 flag: MessageFlag.sharedArrayBuffers,
                 liveInputValues: this.liveInputValues,
                 liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                songPosition: this.songPosition
+                songPosition: this.songPosition,
+                outVolumeCap: this.outVolumeCap
                 //add more here if needed
             }
             this.sendMessage(sabMessage);

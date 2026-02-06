@@ -6604,6 +6604,7 @@ var Synth = class _Synth {
      * part [2]: number
      */
     this.songPosition = new Uint16Array(2 * 3);
+    this.outVolumeCap = new Float32Array(1 * 4);
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -6999,7 +7000,7 @@ var Synth = class _Synth {
     this.liveBassInputPitches.clear();
     if (this.song != null) {
       this.song.inVolumeCap = 0;
-      this.song.outVolumeCap = 0;
+      this.outVolumeCap[0] = 0;
       this.song.tmpEqFilterStart = null;
       this.song.tmpEqFilterEnd = null;
       for (let channelIndex = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
@@ -7148,7 +7149,7 @@ var Synth = class _Synth {
     }
     const song = this.song;
     this.song.inVolumeCap = 0;
-    this.song.outVolumeCap = 0;
+    this.outVolumeCap[0] = 0;
     let samplesPerTick = this.getSamplesPerTick();
     let ended = false;
     if (this.tickSampleCountdown <= 0 || this.tickSampleCountdown > samplesPerTick) {
@@ -7405,7 +7406,7 @@ var Synth = class _Synth {
         const limitedVolume = volume / (limit >= 1 ? limit * 1.05 : limit * 0.8 + 0.25);
         outputDataL[i] = sampleL * limitedVolume;
         outputDataR[i] = sampleR * limitedVolume;
-        this.song.outVolumeCap = this.song.outVolumeCap > abs * limitedVolume ? this.song.outVolumeCap : abs * limitedVolume;
+        this.outVolumeCap[0] = this.outVolumeCap[0] > abs * limitedVolume ? this.outVolumeCap[0] : abs * limitedVolume;
       }
       bufferIndex += runLength;
       this.isAtStartOfTick = false;
@@ -14091,7 +14092,6 @@ var Song = class _Song {
     this.limitRatio = 1;
     this.masterGain = 1;
     this.inVolumeCap = 0;
-    this.outVolumeCap = 0;
     this.eqFilter = new FilterSettings();
     this.eqFilterType = false;
     this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -17490,24 +17490,21 @@ var Song = class _Song {
       case 17 /* inVolumeCap */:
         this.inVolumeCap = numberData;
         break;
-      case 18 /* outVolumeCap */:
-        this.outVolumeCap = numberData;
-        break;
-      case 19 /* eqFilter */:
+      case 18 /* eqFilter */:
         this.eqFilter.fromJsonObject(data);
         this.tmpEqFilterStart = this.eqFilter;
         this.tmpEqFilterEnd = null;
         break;
-      case 20 /* eqSubFilters */:
+      case 19 /* eqSubFilters */:
         if (this.eqSubFilters[channelIndex] == null) this.eqSubFilters[channelIndex] = new FilterSettings();
         this.eqSubFilters[channelIndex].fromJsonObject(data);
         this.tmpEqFilterStart = this.eqFilter;
         this.tmpEqFilterEnd = null;
         break;
-      case 21 /* addSequence */:
+      case 20 /* addSequence */:
         this.sequences.push(new SequenceSettings2());
         break;
-      case 22 /* sequenceLength */: {
+      case 21 /* sequenceLength */: {
         const oldValue = this.sequences[channelIndex].length;
         this.sequences[channelIndex].length = numberData;
         if (numberData < oldValue) {
@@ -17517,7 +17514,7 @@ var Song = class _Song {
         }
         break;
       }
-      case 23 /* sequenceHeight */: {
+      case 22 /* sequenceHeight */: {
         const oldValue = this.sequences[channelIndex].length;
         this.sequences[channelIndex].height = numberData;
         if (numberData < oldValue) {
@@ -17527,18 +17524,18 @@ var Song = class _Song {
         }
         break;
       }
-      case 24 /* sequenceValues */:
+      case 23 /* sequenceValues */:
         this.sequences[channelIndex].values = data;
         break;
-      case 25 /* pluginurl */:
+      case 24 /* pluginurl */:
         break;
-      case 26 /* channelOrder */:
+      case 25 /* channelOrder */:
         const selectionMin = data.selectionMin;
         const selectionMax = data.selectionMax;
         const offset = data.offset;
         this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
         break;
-      case 27 /* updateChannel */:
+      case 26 /* updateChannel */:
         const channel = this.channels[channelIndex];
         switch (instrumentSetting) {
           case 0 /* fromJson */:
@@ -17569,19 +17566,21 @@ var Song = class _Song {
           case 4 /* muted */:
             channel.muted = numberData == 1;
             break;
-          case 5 /* newInstrument */:
+          case 5 /* newInstrument */: {
             const isNoise = this.getChannelIsNoise(channelIndex);
             const isMod = this.getChannelIsMod(channelIndex);
             const ins = new Instrument(isNoise, isMod);
             ins.fromJsonObject(data, isNoise, isMod, false, false);
             channel.instruments.push(ins);
             break;
-          case 6 /* instruments */:
-            channel.instruments.length = data.length;
+          }
+          case 6 /* removeInstrunent */: {
+            channel.instruments.splice(data, 1);
             break;
+          }
         }
         break;
-      case 28 /* updateInstrument */:
+      case 27 /* updateInstrument */:
         const instrument = this.channels[channelIndex].instruments[instrumentIndex];
         if (channelIndex === void 0 || instrumentSetting === void 0)
           return;
@@ -17589,6 +17588,7 @@ var Song = class _Song {
           case 0 /* fromJson */:
             const isNoise = this.getChannelIsNoise(channelIndex);
             const isMod = this.getChannelIsMod(channelIndex);
+            instrument.setTypeAndReset(0 /* chip */, isNoise, isMod);
             instrument.fromJsonObject(data, isNoise, isMod, false, false);
             break;
           case 1 /* type */:
@@ -18654,6 +18654,7 @@ var SynthMessenger = class _SynthMessenger {
      * part [2]: number
      */
     this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
+    this.outVolumeCap = new Float32Array(new SharedArrayBuffer(1 * 4));
     this.tick = 0;
     this.isAtStartOfTick = true;
     this.isAtEndOfTick = true;
@@ -18837,7 +18838,7 @@ var SynthMessenger = class _SynthMessenger {
     }
   }
   updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
-    if (songSetting == 28 /* updateInstrument */ || songSetting == 27 /* updateChannel */) {
+    if (songSetting == 27 /* updateInstrument */ || songSetting == 26 /* updateChannel */) {
       if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
         throw new Error("missing index or setting number");
       }
@@ -18882,7 +18883,8 @@ var SynthMessenger = class _SynthMessenger {
         flag: 5 /* sharedArrayBuffers */,
         liveInputValues: this.liveInputValues,
         liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-        songPosition: this.songPosition
+        songPosition: this.songPosition,
+        outVolumeCap: this.outVolumeCap
         //add more here if needed
       };
       this.sendMessage(sabMessage);
@@ -19688,11 +19690,12 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         break;
       case 5 /* sharedArrayBuffers */: {
         console.log("LOADING SABS");
-        if (!event.data.liveInputValues || !event.data.liveInputPitchesOnOffRequests || !event.data.songPosition) this.deactivate();
+        if (!event.data.liveInputValues || !event.data.liveInputPitchesOnOffRequests || !event.data.songPosition || !event.data.outVolumeCap) this.deactivate();
         else {
           this.synth.liveInputValues = event.data.liveInputValues;
           this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
           this.synth.songPosition = event.data.songPosition;
+          this.synth.outVolumeCap = event.data.outVolumeCap;
         }
         break;
       }
@@ -19776,7 +19779,6 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       case 14 /* loopBar */: {
         this.synth.loopBarStart = event.data.loopBarStart;
         this.synth.loopBarEnd = event.data.loopBarEnd;
-        console.log(event.data.loopBarStart, event.data.loopBarEnd);
         break;
       }
       case 15 /* updateSong */: {

@@ -385,12 +385,12 @@ function volumeUpdate(): void {
 	if (outVolumeHistoricTimer <= 0) {
 		outVolumeHistoricCap -= 0.03;
 	}
-	if (synth.song.outVolumeCap > outVolumeHistoricCap) {
-		outVolumeHistoricCap = synth.song.outVolumeCap;
+	if (synth.outVolumeCap[0] > outVolumeHistoricCap) {
+		outVolumeHistoricCap = synth.outVolumeCap[0];
 		outVolumeHistoricTimer = 50;
 	}
 
-	animateVolume(synth.song.outVolumeCap, outVolumeHistoricCap);
+	animateVolume(synth.outVolumeCap[0], outVolumeHistoricCap);
 
 	if (!synth.playing) {
 		outVolumeCap.setAttribute("x", "5%");

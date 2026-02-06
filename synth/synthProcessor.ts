@@ -73,12 +73,14 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 console.log("LOADING SABS");
                 if (!event.data.liveInputValues ||
                     !event.data.liveInputPitchesOnOffRequests ||
-                    !event.data.songPosition
+                    !event.data.songPosition ||
+                    !event.data.outVolumeCap
                 ) this.deactivate();
                 else {
                     this.synth.liveInputValues = event.data.liveInputValues;
                     this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
                     this.synth.songPosition = event.data.songPosition;
+                    this.synth.outVolumeCap = event.data.outVolumeCap;
                 }
                 break;
             }
@@ -163,7 +165,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.loopBar: {
                 this.synth.loopBarStart = event.data.loopBarStart;
                 this.synth.loopBarEnd = event.data.loopBarEnd;
-                console.log(event.data.loopBarStart, event.data.loopBarEnd);
                 break;
             }
             case MessageFlag.updateSong: {

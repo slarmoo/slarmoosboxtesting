@@ -2362,17 +2362,16 @@ var beepbox = (function (exports) {
         SongSettings[SongSettings["modChannelCount"] = 15] = "modChannelCount";
         SongSettings[SongSettings["limiterSettings"] = 16] = "limiterSettings";
         SongSettings[SongSettings["inVolumeCap"] = 17] = "inVolumeCap";
-        SongSettings[SongSettings["outVolumeCap"] = 18] = "outVolumeCap";
-        SongSettings[SongSettings["eqFilter"] = 19] = "eqFilter";
-        SongSettings[SongSettings["eqSubFilters"] = 20] = "eqSubFilters";
-        SongSettings[SongSettings["addSequence"] = 21] = "addSequence";
-        SongSettings[SongSettings["sequenceLength"] = 22] = "sequenceLength";
-        SongSettings[SongSettings["sequenceHeight"] = 23] = "sequenceHeight";
-        SongSettings[SongSettings["sequenceValues"] = 24] = "sequenceValues";
-        SongSettings[SongSettings["pluginurl"] = 25] = "pluginurl";
-        SongSettings[SongSettings["channelOrder"] = 26] = "channelOrder";
-        SongSettings[SongSettings["updateChannel"] = 27] = "updateChannel";
-        SongSettings[SongSettings["updateInstrument"] = 28] = "updateInstrument";
+        SongSettings[SongSettings["eqFilter"] = 18] = "eqFilter";
+        SongSettings[SongSettings["eqSubFilters"] = 19] = "eqSubFilters";
+        SongSettings[SongSettings["addSequence"] = 20] = "addSequence";
+        SongSettings[SongSettings["sequenceLength"] = 21] = "sequenceLength";
+        SongSettings[SongSettings["sequenceHeight"] = 22] = "sequenceHeight";
+        SongSettings[SongSettings["sequenceValues"] = 23] = "sequenceValues";
+        SongSettings[SongSettings["pluginurl"] = 24] = "pluginurl";
+        SongSettings[SongSettings["channelOrder"] = 25] = "channelOrder";
+        SongSettings[SongSettings["updateChannel"] = 26] = "updateChannel";
+        SongSettings[SongSettings["updateInstrument"] = 27] = "updateInstrument";
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
@@ -2382,7 +2381,7 @@ var beepbox = (function (exports) {
         ChannelSettings[ChannelSettings["bars"] = 3] = "bars";
         ChannelSettings[ChannelSettings["muted"] = 4] = "muted";
         ChannelSettings[ChannelSettings["newInstrument"] = 5] = "newInstrument";
-        ChannelSettings[ChannelSettings["instruments"] = 6] = "instruments";
+        ChannelSettings[ChannelSettings["removeInstrunent"] = 6] = "removeInstrunent";
     })(ChannelSettings || (ChannelSettings = {}));
     var InstrumentSettings;
     (function (InstrumentSettings) {
@@ -5479,7 +5478,6 @@ var beepbox = (function (exports) {
             this.limitRatio = 1.0;
             this.masterGain = 1.0;
             this.inVolumeCap = 0.0;
-            this.outVolumeCap = 0.0;
             this.eqFilter = new FilterSettings();
             this.eqFilterType = false;
             this.eqFilterSimpleCut = Config.filterSimpleCutRange - 1;
@@ -9080,9 +9078,6 @@ var beepbox = (function (exports) {
                 case SongSettings.inVolumeCap:
                     this.inVolumeCap = numberData;
                     break;
-                case SongSettings.outVolumeCap:
-                    this.outVolumeCap = numberData;
-                    break;
                 case SongSettings.eqFilter:
                     this.eqFilter.fromJsonObject(data);
                     this.tmpEqFilterStart = this.eqFilter;
@@ -9162,16 +9157,18 @@ var beepbox = (function (exports) {
                         case ChannelSettings.muted:
                             channel.muted = numberData == 1;
                             break;
-                        case ChannelSettings.newInstrument:
+                        case ChannelSettings.newInstrument: {
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
                             const ins = new Instrument(isNoise, isMod);
                             ins.fromJsonObject(data, isNoise, isMod, false, false);
                             channel.instruments.push(ins);
                             break;
-                        case ChannelSettings.instruments:
-                            channel.instruments.length = data.length;
+                        }
+                        case ChannelSettings.removeInstrunent: {
+                            channel.instruments.splice(data, 1);
                             break;
+                        }
                     }
                     break;
                 case SongSettings.updateInstrument:
@@ -9182,6 +9179,7 @@ var beepbox = (function (exports) {
                         case InstrumentSettings.fromJson:
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
+                            instrument.setTypeAndReset(0, isNoise, isMod);
                             instrument.fromJsonObject(data, isNoise, isMod, false, false);
                             break;
                         case InstrumentSettings.type:
@@ -10338,6 +10336,7 @@ var beepbox = (function (exports) {
             this.heldMods = [];
             this.playheadInternal = 0.0;
             this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
+            this.outVolumeCap = new Float32Array(new SharedArrayBuffer(1 * 4));
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -10484,7 +10483,8 @@ var beepbox = (function (exports) {
                         flag: MessageFlag.sharedArrayBuffers,
                         liveInputValues: this.liveInputValues,
                         liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                        songPosition: this.songPosition
+                        songPosition: this.songPosition,
+                        outVolumeCap: this.outVolumeCap
                     };
                     this.sendMessage(sabMessage);
                     const latencyHint = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
@@ -13954,6 +13954,7 @@ var beepbox = (function (exports) {
             this.prevBar = null;
             this.nextBar = null;
             this.songPosition = new Uint16Array(2 * 3);
+            this.outVolumeCap = new Float32Array(1 * 4);
             this.tick = 0;
             this.isAtStartOfTick = true;
             this.isAtEndOfTick = true;
@@ -14032,7 +14033,7 @@ var beepbox = (function (exports) {
             this.liveBassInputPitches.clear();
             if (this.song != null) {
                 this.song.inVolumeCap = 0.0;
-                this.song.outVolumeCap = 0.0;
+                this.outVolumeCap[0] = 0.0;
                 this.song.tmpEqFilterStart = null;
                 this.song.tmpEqFilterEnd = null;
                 for (let channelIndex = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
@@ -14182,7 +14183,7 @@ var beepbox = (function (exports) {
             }
             const song = this.song;
             this.song.inVolumeCap = 0.0;
-            this.song.outVolumeCap = 0.0;
+            this.outVolumeCap[0] = 0.0;
             let samplesPerTick = this.getSamplesPerTick();
             let ended = false;
             if (this.tickSampleCountdown <= 0 || this.tickSampleCountdown > samplesPerTick) {
@@ -14455,7 +14456,7 @@ var beepbox = (function (exports) {
                     const limitedVolume = volume / (limit >= 1 ? limit * 1.05 : limit * 0.8 + 0.25);
                     outputDataL[i] = sampleL * limitedVolume;
                     outputDataR[i] = sampleR * limitedVolume;
-                    this.song.outVolumeCap = (this.song.outVolumeCap > abs * limitedVolume ? this.song.outVolumeCap : abs * limitedVolume);
+                    this.outVolumeCap[0] = (this.outVolumeCap[0] > abs * limitedVolume ? this.outVolumeCap[0] : abs * limitedVolume);
                 }
                 bufferIndex += runLength;
                 this.isAtStartOfTick = false;

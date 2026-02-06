@@ -85,6 +85,7 @@ export class SongDocument {
             if (songString == "" || songString == undefined) {
                 setDefaultInstruments(this.song);
                 this.song.scale = this.prefs.defaultScale;
+                this.synth.updateWorkletSong();
             }
         } catch (error) {
             errorAlert(error);

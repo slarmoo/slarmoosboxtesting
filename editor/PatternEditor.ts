@@ -1525,10 +1525,11 @@ export class PatternEditor {
 
             // If the setting wasn't found in any channel or instruments, add it to the first unused slot in any channel.
             if (usedInstrumentIndices.length == 0) {
+                let useInstrument: number = -1;
                 for (let channelIndex: number = this._doc.song.pitchChannelCount + this._doc.song.noiseChannelCount; channelIndex < this._doc.song.getChannelCount(); channelIndex++) {
                     const channel: Channel = this._doc.song.channels[channelIndex];
                     let pattern: Pattern | null = this._doc.song.getPattern(channelIndex, currentBar);
-                    let useInstrument: number = -1;
+                    useInstrument = -1;
                     // If there's a pattern for this channel in this bar, it only makes sense to add the new slot in that instrument somewhere or give up and move to the next.
                     if (pattern != null) {
                         useInstrument = pattern.instruments[0];
@@ -1577,8 +1578,7 @@ export class PatternEditor {
                                         // Control+Shift key: Set the new mod target to the currently viewed instrument only.
                                         else
                                             instrument.modInstruments[mod] = this._doc.getCurrentInstrument();
-                                    }
-                                    else
+                                    } else
                                         instrument.modInstruments[mod] = 0;
 
                                     // Filter dot. Add appropriate filter target settings (dot# X and dot# Y mod).
@@ -1599,6 +1599,10 @@ export class PatternEditor {
                             }
                         }
                     }
+                }
+                // No empty slot found; cancel recording and treat as normal change
+                if (useInstrument == -1) {
+                    return false;
                 }
             }
 

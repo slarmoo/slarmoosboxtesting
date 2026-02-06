@@ -2548,6 +2548,7 @@ export class Synth {
      * part [2]: number
      */
     public songPosition: Uint16Array = new Uint16Array(2 * 3);
+    public outVolumeCap: Float32Array = new Float32Array(1 * 4);
     private tick: number = 0;
     public isAtStartOfTick: boolean = true;
     public isAtEndOfTick: boolean = true;
@@ -2694,7 +2695,7 @@ export class Synth {
         this.liveBassInputPitches.clear();
         if (this.song != null) {
             this.song.inVolumeCap = 0.0;
-            this.song.outVolumeCap = 0.0;
+            this.outVolumeCap[0] = 0.0;
             this.song.tmpEqFilterStart = null;
             this.song.tmpEqFilterEnd = null;
             for (let channelIndex: number = 0; channelIndex < this.song.pitchChannelCount + this.song.noiseChannelCount; channelIndex++) {
@@ -2854,7 +2855,7 @@ export class Synth {
         
         const song: Song = this.song;
         this.song.inVolumeCap = 0.0 // Reset volume cap for this run
-        this.song.outVolumeCap = 0.0;
+        this.outVolumeCap[0] = 0.0;
 
         let samplesPerTick: number = this.getSamplesPerTick();
         let ended: boolean = false;
@@ -3181,7 +3182,7 @@ export class Synth {
                 outputDataL[i] = sampleL * limitedVolume;
                 outputDataR[i] = sampleR * limitedVolume;
 
-                this.song.outVolumeCap = (this.song.outVolumeCap > abs * limitedVolume ? this.song.outVolumeCap : abs * limitedVolume); // Analytics, spit out limited output volume
+                this.outVolumeCap[0] = (this.outVolumeCap[0] > abs * limitedVolume ? this.outVolumeCap[0] : abs * limitedVolume); // Analytics, spit out limited output volume
             }
 
             bufferIndex += runLength;

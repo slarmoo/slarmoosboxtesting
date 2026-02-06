@@ -3318,8 +3318,7 @@ export class SongEditor {
                 if (changedPatterns)
                     this._trackEditor.render();
             }
-        }
-        else if (this.doc.recordingModulators) {
+        } else if (this.doc.recordingModulators) {
             this.doc.recordingModulators = false;
             // A dummy change that pushes history state.
             this.doc.record(new ChangeHoldingModRecording(this.doc, null, null, null));
@@ -4465,14 +4464,14 @@ export class SongEditor {
         if (this.outVolumeHistoricTimer <= 0) {
             this.outVolumeHistoricCap -= 0.03;
         }
-        if (this.doc.song.outVolumeCap > this.outVolumeHistoricCap) {
-            this.outVolumeHistoricCap = this.doc.song.outVolumeCap;
+        if (this.doc.synth.outVolumeCap[0] > this.outVolumeHistoricCap) {
+            this.outVolumeHistoricCap = this.doc.synth.outVolumeCap[0];
             this.outVolumeHistoricTimer = 50;
         }
 
-        if (this.doc.song.outVolumeCap != this.lastOutVolumeCap) {
-            this.lastOutVolumeCap = this.doc.song.outVolumeCap;
-            this._animateVolume(this.doc.song.outVolumeCap, this.outVolumeHistoricCap);
+        if (this.doc.synth.outVolumeCap[0] != this.lastOutVolumeCap) {
+            this.lastOutVolumeCap = this.doc.synth.outVolumeCap[0];
+            this._animateVolume(this.doc.synth.outVolumeCap[0], this.outVolumeHistoricCap);
         }
     }
 
