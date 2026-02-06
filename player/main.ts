@@ -290,7 +290,9 @@ function loadSong(songString: string, reuseParams: boolean): void {
 	synth.setSong(songString);
 	synth.snapToStart();
 	const updatedSongString: string = synth.song!.toBase64String();
-	editLink.href = "../" + (OFFLINE ? "index.html" : "") + "#" + updatedSongString;
+	let base = "../" + (OFFLINE ? "index.html" : "");
+	if (location.href.indexOf("127.0.0.1:4000") > -1) base = "../index_debug.html"; //the amount of times before this that I would go to index.html and have no clue why nothing was working....
+	editLink.href = base + "#" + updatedSongString;
 	//@jummbus - these lines convert old url vers loaded into the player to the new url ver. The problem is, if special chars are included,
 	// they appear to get double-encoded (e.g. the '%' in %20 is encoded again), which breaks the link. Disabled for now until I have a chance
 	// to look into it more.
@@ -713,7 +715,9 @@ function onKeyPressed(event: KeyboardEvent): void {
 		case 80: // p
 			if (event.shiftKey) {
 				hashUpdatedExternally();
-				location.href ="../" + (OFFLINE ? "index.html" : "") + "#" + synth.song!.toBase64String();
+				let base = "../" + (OFFLINE ? "index.html" : "");
+				if (location.href.indexOf("127.0.0.1:4000") > -1) base = "../index_debug.html";
+				location.href = base + "#" + synth.song!.toBase64String();
 				event.preventDefault();
 			}
 			break;

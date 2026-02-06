@@ -159,7 +159,6 @@ function loadBuiltInSamples(set) {
   const defaultIndex = 0;
   const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
   const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
-  console.log("here");
   if (set == 0) {
     const chipWaves = [
       { name: "paandorasbox kick", expression: 4, isSampled: true, isPercussion: true, extraSampleDetune: 0 },
@@ -329,6 +328,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -374,6 +374,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -433,6 +434,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -15136,9 +15138,11 @@ var Song = class _Song {
             }
           } else {
             const parseOldSyntax = beforeThree;
-            const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
-            if (!ok) {
-              continue;
+            if (define_document_default.URL) {
+              const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+              if (!ok) {
+                continue;
+              }
             }
           }
         }
@@ -18129,7 +18133,7 @@ var Song = class _Song {
             }
           } else {
             const parseOldSyntax = false;
-            _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+            if (define_document_default.URL) _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
           }
         }
         if (customSampleUrls.length > 0) {

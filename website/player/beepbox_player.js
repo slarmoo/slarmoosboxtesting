@@ -169,7 +169,6 @@ var beepbox = (function (exports) {
         const defaultIndex = 0;
         const defaultIntegratedSamples = Config.chipWaves[defaultIndex].samples;
         const defaultSamples = Config.rawRawChipWaves[defaultIndex].samples;
-        console.log("here");
         if (set == 0) {
             const chipWaves = [
                 { name: "paandorasbox kick", expression: 4.0, isSampled: true, isPercussion: true, extraSampleDetune: 0 },
@@ -345,6 +344,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
+                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -374,7 +374,7 @@ var beepbox = (function (exports) {
                 sampleLoadingState.statusTable[chipWaveIndex] = 0;
                 sampleLoadingState.urlTable[chipWaveIndex] = "nintariboxSamples";
             }
-            loadScript("nintaribox_samples.js")
+            loadScript(ISPLAYER ? "../nintaribox_samples.js" : "nintaribox_samples.js")
                 .then(() => {
                 const chipWaveSamples = [
                     centerWave(chronoperc1finalsample),
@@ -389,6 +389,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
+                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -425,7 +426,7 @@ var beepbox = (function (exports) {
                 sampleLoadingState.statusTable[chipWaveIndex] = 0;
                 sampleLoadingState.urlTable[chipWaveIndex] = "marioPaintboxSamples";
             }
-            loadScript("mario_paintbox_samples.js")
+            loadScript(ISPLAYER ? "../mario_paintbox_samples.js" : "mario_paintbox_samples.js")
                 .then(() => {
                 const chipWaveSamples = [
                     centerWave(catpaintboxsample),
@@ -447,6 +448,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
+                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -21060,9 +21062,11 @@ var beepbox = (function (exports) {
                         }
                         else {
                             const parseOldSyntax = beforeThree;
-                            const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
-                            if (!ok) {
-                                continue;
+                            if (document.URL) {
+                                const ok = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                                if (!ok) {
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -24222,7 +24226,8 @@ var beepbox = (function (exports) {
                         }
                         else {
                             const parseOldSyntax = false;
-                            Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                            if (document.URL)
+                                Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
                         }
                     }
                     if (customSampleUrls.length > 0) {
@@ -26073,7 +26078,10 @@ var beepbox = (function (exports) {
         synth.setSong(songString);
         synth.snapToStart();
         const updatedSongString = synth.song.toBase64String();
-        editLink.href = "../" + (OFFLINE ? "index.html" : "") + "#" + updatedSongString;
+        let base = "../" + (OFFLINE ? "index.html" : "");
+        if (location.href.indexOf("127.0.0.1:4000") > -1)
+            base = "../index_debug.html";
+        editLink.href = base + "#" + updatedSongString;
     }
     function hashUpdatedExternally() {
         let myHash = location.hash;
@@ -26432,7 +26440,10 @@ var beepbox = (function (exports) {
             case 80:
                 if (event.shiftKey) {
                     hashUpdatedExternally();
-                    location.href = "../" + (OFFLINE ? "index.html" : "") + "#" + synth.song.toBase64String();
+                    let base = "../" + (OFFLINE ? "index.html" : "");
+                    if (location.href.indexOf("127.0.0.1:4000") > -1)
+                        base = "../index_debug.html";
+                    location.href = base + "#" + synth.song.toBase64String();
                     event.preventDefault();
                 }
                 break;

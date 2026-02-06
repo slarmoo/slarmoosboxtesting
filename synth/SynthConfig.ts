@@ -552,7 +552,6 @@ export function loadBuiltInSamples(set: number): void {
     const defaultIndex: number = 0;
     const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
     const defaultSamples: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
-    console.log("here")
 
     if (set == 0) {
 	// Create chip waves with the wrong sound.
@@ -737,6 +736,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,
@@ -775,7 +775,7 @@ export function loadBuiltInSamples(set: number): void {
 	    sampleLoadingState.urlTable[chipWaveIndex] = "nintariboxSamples";
 	}
 
-	loadScript("nintaribox_samples.js")
+	loadScript(ISPLAYER ? "../nintaribox_samples.js" : "nintaribox_samples.js")
 	.then(() => {
 	    // Now put the right sounds in there after everything
 	    // got loaded.
@@ -792,6 +792,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,
@@ -836,7 +837,7 @@ export function loadBuiltInSamples(set: number): void {
 	    sampleLoadingState.urlTable[chipWaveIndex] = "marioPaintboxSamples";
 	}
 
-	loadScript("mario_paintbox_samples.js")
+	loadScript(ISPLAYER ? "../mario_paintbox_samples.js" : "mario_paintbox_samples.js")
 	.then(() => {
 	    // Now put the right sounds in there after everything
 	    // got loaded.
@@ -860,6 +861,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
+        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,

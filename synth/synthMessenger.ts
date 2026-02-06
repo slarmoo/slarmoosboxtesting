@@ -4325,9 +4325,11 @@ export class Song {
                         // UB version 2 URLs and below will be using the old syntax, so we do need to parse it in that case.
                         // UB version 3 URLs should only have the new syntax, though, unless the user has edited the URL manually.
                         const parseOldSyntax: boolean = beforeThree;
-                        const ok: boolean = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
-                        if (!ok) {
-                            continue;
+                        if (document.URL) {
+                            const ok: boolean = Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                            if (!ok) {
+                                continue;
+                            }
                         }
                     }
                 }
@@ -7622,7 +7624,7 @@ export class Song {
                         // the user has manually modified the URL, so we don't
                         // really need to parse the old syntax here.
                         const parseOldSyntax: boolean = false;
-                        Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
+                        if (document.URL) Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
                     }
                 }
                 if (customSampleUrls.length > 0) {
