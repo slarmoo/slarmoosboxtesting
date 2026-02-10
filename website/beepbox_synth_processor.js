@@ -360,7 +360,7 @@ function loadBuiltInSamples(set) {
       sampleLoadingState.statusTable[chipWaveIndex] = 0 /* loading */;
       sampleLoadingState.urlTable[chipWaveIndex] = "nintariboxSamples";
     }
-    loadScript("nintaribox_samples.js").then(() => {
+    loadScript(ISPLAYER ? "../nintaribox_samples.js" : "nintaribox_samples.js").then(() => {
       const chipWaveSamples = [
         centerWave(chronoperc1finalsample),
         centerWave(synthkickfmsample),
@@ -413,7 +413,7 @@ function loadBuiltInSamples(set) {
       sampleLoadingState.statusTable[chipWaveIndex] = 0 /* loading */;
       sampleLoadingState.urlTable[chipWaveIndex] = "marioPaintboxSamples";
     }
-    loadScript("mario_paintbox_samples.js").then(() => {
+    loadScript(ISPLAYER ? "../mario_paintbox_samples.js" : "mario_paintbox_samples.js").then(() => {
       const chipWaveSamples = [
         centerWave(catpaintboxsample),
         centerWave(gameboypaintboxsample),
@@ -17114,7 +17114,7 @@ var Song = class _Song {
     }
   }
   fetchPlugin(pluginurl) {
-    if (pluginurl != null) {
+    if (pluginurl != null && define_document_default.URL) {
       fetch(pluginurl).then((response) => {
         if (!response.ok) {
           throw new Error("Couldn't load plugin");
@@ -17123,21 +17123,19 @@ var Song = class _Song {
       }).then((response) => {
         return response.json();
       }).then((plugin) => {
-        if (define_document_default.URL) {
-          PluginConfig.pluginUIElements = plugin.elements || [];
-          PluginConfig.pluginName = plugin.pluginName || "plugin";
-          try {
-            let pluginMessage = {
-              flag: 12 /* pluginMessage */,
-              names: plugin.variableNames || [],
-              instrumentStateFunction: plugin.instrumentStateFunction || "",
-              synthFunction: plugin.synthFunction || "",
-              effectOrder: plugin.effectOrderIndex || 0,
-              delayLineSize: plugin.delayLineSize || 0
-            };
-            events.raise("loadedPlugin", pluginMessage);
-          } catch {
-          }
+        PluginConfig.pluginUIElements = plugin.elements || [];
+        PluginConfig.pluginName = plugin.pluginName || "plugin";
+        try {
+          let pluginMessage = {
+            flag: 12 /* pluginMessage */,
+            names: plugin.variableNames || [],
+            instrumentStateFunction: plugin.instrumentStateFunction || "",
+            synthFunction: plugin.synthFunction || "",
+            effectOrder: plugin.effectOrderIndex || 0,
+            delayLineSize: plugin.delayLineSize || 0
+          };
+          events.raise("pluginLoaded", pluginMessage);
+        } catch {
         }
       }).catch(() => {
         window.alert("couldn't load plugin " + pluginurl);

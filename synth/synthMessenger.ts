@@ -6506,7 +6506,7 @@ export class Song {
     }
 
     private fetchPlugin(pluginurl: string) {
-        if (pluginurl != null) {
+        if (pluginurl != null && document.URL) {
             fetch(pluginurl).then((response) => {
                 if (!response.ok) {
                     // @TODO: Be specific with the error handling.
@@ -6517,22 +6517,20 @@ export class Song {
                 return response.json();
             }).then((plugin) => {
                 //decode and store the data
-                if (document.URL) {
-                    PluginConfig.pluginUIElements = plugin.elements || [];
-                    PluginConfig.pluginName = plugin.pluginName || "plugin";
-                    try {
-                        let pluginMessage: PluginMessage = {
-                            flag: MessageFlag.pluginMessage,
-                            names: plugin.variableNames || [],
-                            instrumentStateFunction: plugin.instrumentStateFunction || "",
-                            synthFunction: plugin.synthFunction || "",
-                            effectOrder: plugin.effectOrderIndex || 0,
-                            delayLineSize: plugin.delayLineSize || 0
-                        }
-                        events.raise("loadedPlugin", pluginMessage)
-                    } catch {
-                        
+                PluginConfig.pluginUIElements = plugin.elements || [];
+                PluginConfig.pluginName = plugin.pluginName || "plugin";
+                try {
+                    let pluginMessage: PluginMessage = {
+                        flag: MessageFlag.pluginMessage,
+                        names: plugin.variableNames || [],
+                        instrumentStateFunction: plugin.instrumentStateFunction || "",
+                        synthFunction: plugin.synthFunction || "",
+                        effectOrder: plugin.effectOrderIndex || 0,
+                        delayLineSize: plugin.delayLineSize || 0
                     }
+                    events.raise("pluginLoaded", pluginMessage);
+                } catch {
+                    
                 }
             }).catch(() => {
                 window.alert("couldn't load plugin "+ pluginurl);

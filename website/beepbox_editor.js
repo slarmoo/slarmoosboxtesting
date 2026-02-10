@@ -25084,7 +25084,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
         }
         fetchPlugin(pluginurl) {
-            if (pluginurl != null) {
+            if (pluginurl != null && document.URL) {
                 fetch(pluginurl).then((response) => {
                     if (!response.ok) {
                         throw new Error("Couldn't load plugin");
@@ -25093,22 +25093,20 @@ li.select2-results__option[role=group] > strong:hover {
                 }).then((response) => {
                     return response.json();
                 }).then((plugin) => {
-                    if (document.URL) {
-                        PluginConfig.pluginUIElements = plugin.elements || [];
-                        PluginConfig.pluginName = plugin.pluginName || "plugin";
-                        try {
-                            let pluginMessage = {
-                                flag: MessageFlag.pluginMessage,
-                                names: plugin.variableNames || [],
-                                instrumentStateFunction: plugin.instrumentStateFunction || "",
-                                synthFunction: plugin.synthFunction || "",
-                                effectOrder: plugin.effectOrderIndex || 0,
-                                delayLineSize: plugin.delayLineSize || 0
-                            };
-                            events.raise("loadedPlugin", pluginMessage);
-                        }
-                        catch (_a) {
-                        }
+                    PluginConfig.pluginUIElements = plugin.elements || [];
+                    PluginConfig.pluginName = plugin.pluginName || "plugin";
+                    try {
+                        let pluginMessage = {
+                            flag: MessageFlag.pluginMessage,
+                            names: plugin.variableNames || [],
+                            instrumentStateFunction: plugin.instrumentStateFunction || "",
+                            synthFunction: plugin.synthFunction || "",
+                            effectOrder: plugin.effectOrderIndex || 0,
+                            delayLineSize: plugin.delayLineSize || 0
+                        };
+                        events.raise("pluginLoaded", pluginMessage);
+                    }
+                    catch (_a) {
                     }
                 }).catch(() => {
                     window.alert("couldn't load plugin " + pluginurl);
