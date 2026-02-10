@@ -14359,7 +14359,7 @@ var beepbox = (function (exports) {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
                 }
@@ -14417,7 +14417,7 @@ var beepbox = (function (exports) {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
                 }

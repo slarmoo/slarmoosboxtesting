@@ -23286,7 +23286,7 @@ li.select2-results__option[role=group] > strong:hover {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
                 }
@@ -23344,7 +23344,7 @@ li.select2-results__option[role=group] > strong:hover {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
                 }
