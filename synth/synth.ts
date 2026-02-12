@@ -9,6 +9,7 @@ import { xxHash32 } from "js-xxhash";
 import { LiveInputValues } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { BeepboxSet } from "./Set";
+import { EffectPlugin } from "./plugin";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -1351,10 +1352,7 @@ class InstrumentState {
     public reverbShelfPrevInput2: number = 0.0;
     public reverbShelfPrevInput3: number = 0.0;
 
-    public pluginValues: number[] = [];
-    public pluginDelayLine: Float32Array | null = null;
-    public pluginDelayLineSize: number = Synth.PluginDelayLineSize;
-    public pluginDelayLineDirty: boolean = false
+    public plugin: EffectPlugin | null = null;
 
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
     public readonly harmonicsWave: HarmonicsWaveState = new HarmonicsWaveState();
@@ -1418,11 +1416,8 @@ class InstrumentState {
                 this.granularGrainsLength = Math.round(this.granularMaximumGrains);
             }
         }
-        if (effectsIncludePlugin(instrument.effects)) {
-            //figure out plugin delay line
-            if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
-                this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
-            }
+        if (effectsIncludePlugin(instrument.effects) && this.plugin) {
+            this.plugin.initializeDelayLines(samplesPerTick);
         }
     }
 
@@ -1522,9 +1517,7 @@ class InstrumentState {
         if (this.granularDelayLineDirty) {
             for (let i: number = 0; i < this.granularDelayLine!.length; i++) this.granularDelayLine![i] = 0.0;
         }
-        if (this.pluginDelayLineDirty) {
-            for (let i: number = 0; i < this.pluginDelayLine!.length; i++) this.pluginDelayLine![i] = 0.0;
-        }
+        if (this.plugin) this.plugin.reset();
 
         this.chorusPhase = 0.0;
         this.ringModPhase = 0.0;
@@ -2072,11 +2065,9 @@ class InstrumentState {
             this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
             this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
         }
-        if (usesPlugin && Synth.pluginInstrumentStateFunction) {
-            //default delay line size. Can be updated in plugin function
-            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-            //fill plugin array
-            new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
+        if (usesPlugin && Synth.PluginClass) {
+            if (!this.plugin) this.plugin = new Synth.PluginClass();
+            this.plugin?.instrumentStateFunction(instrument);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -2123,9 +2114,10 @@ class InstrumentState {
                 this.computeGrains = false;
             }
 
-            if (usesPlugin) {
-                delayDuration += Synth.PluginDelayLineSize;
-            }
+            // TODO: PluginDelayLine
+            // if (usesPlugin) {
+            //     delayDuration += Synth.PluginDelayLineSize;
+            // }
 
             const secondsInTick: number = samplesPerTick / samplesPerSecond;
             const progressInTick: number = secondsInTick / delayDuration;
@@ -2150,7 +2142,8 @@ class InstrumentState {
             if (usesEcho) totalDelaySamples += this.echoDelayLineL!.length;
             if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
             if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
-            if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
+            //TODO: PluginDelayLine
+            // if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
 
             this.flushedSamples += roundedSamplesPerTick;
             if (this.flushedSamples >= totalDelaySamples) {
@@ -2580,13 +2573,7 @@ export class Synth {
     private static readonly supersawFunctionCache: Function[] = [];
     private static readonly harmonicsFunctionCache: Function[] = [];
     private static readonly loopableChipFunctionCache: Function[] = Array(Config.unisonVoicesMax + 1).fill(undefined); //For loopable chips, we have a matrix where the rows represent voices and the columns represent loop types
-
-    public static pluginFunction: string | null = null;
-    public static pluginIndex: number = 0;
-    public static pluginValueNames: string[] = [];
-    public static pluginInstrumentStateFunction: string | null = null;
-    public static PluginDelayLineSize: number = 0;
-    public static rerenderSongEditorAfterPluginLoad: Function | null = null;
+    public static PluginClass: any = null;
 
     public readonly channels: ChannelState[] = [];
     /**
@@ -6147,7 +6134,7 @@ export class Synth {
         const usesReverb: boolean = effectsIncludeReverb(instrumentState.effects);
         const usesGranular: boolean = effectsIncludeGranular(instrumentState.effects);
         const usesRingModulation: boolean = effectsIncludeRingModulation(instrumentState.effects);
-        const usesPlugin: boolean = effectsIncludePlugin(instrumentState.effects);
+        const usesPlugin: boolean = effectsIncludePlugin(instrumentState.effects) && Synth.PluginClass && instrumentState.plugin;
         let signature: number = 0; if (usesDistortion) signature = signature | 1;
         signature = signature << 1; if (usesBitcrusher) signature = signature | 1;
         signature = signature << 1; if (usesEqFilter) signature = signature | 1;
@@ -6401,13 +6388,16 @@ export class Synth {
             }
 
             if (usesPlugin) {
-                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
-                }
                 effectsSource += `
-                const pluginDelayLine = instrumentState.pluginDelayLine;
-                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
-                `
+                const plugin = instrumentState.plugin
+                `;
+                // for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
+                //     effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
+                // }
+                // effectsSource += `
+                // const pluginDelayLine = instrumentState.pluginDelayLine;
+                // instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                // `
             }
 
             effectsSource += `
@@ -6735,11 +6725,23 @@ export class Synth {
                 effectOrder.push("");
             }
 
-
-            if (usesPlugin && Synth.pluginFunction) {
-                effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
+            if (usesPlugin && instrumentState.plugin) {
+                if (typeof instrumentState.plugin.effectOrderIndex == "number") {
+                    instrumentState.plugin.synthFunction
+                    //TODO: figure out sampleL and sampleR (will likely come when porting theepbox stereo samples)
+                    effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+                    effectsSource += effectOrder.join("");
+                } else {
+                    //TODO: Strict plugin ordering (must include 0-9 exactly once)
+                    effectOrder.push("sample = plugin.synthFunction(sample, runLength);");
+                    for (const index of instrumentState.plugin.effectOrderIndex) {
+                        effectsSource += effectOrder[index];
+                    }
+                }
+            } else {
+                effectsSource += effectOrder.join("");
             }
-            effectsSource += effectOrder.join("");
+            
 
             effectsSource += `
 					
@@ -6905,12 +6907,6 @@ export class Synth {
 				instrumentState.reverbShelfPrevInput1 = reverbShelfPrevInput1;
 				instrumentState.reverbShelfPrevInput2 = reverbShelfPrevInput2;
 				instrumentState.reverbShelfPrevInput3 = reverbShelfPrevInput3;`
-            }
-
-            if (usesPlugin) {
-                for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                    effectsSource += "instrumentState.pluginValues[" + i + "] = " + Synth.pluginValueNames[i] + "; \n";
-                }
             }
 
             effectsSource += "}";

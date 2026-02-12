@@ -3679,6 +3679,9 @@ var PluginConfig = class {
   static {
     this.pluginUIElements = [];
   }
+  static {
+    this.pluginAbout = "";
+  }
 };
 
 // synth/filtering.ts
@@ -5851,10 +5854,7 @@ var InstrumentState = class _InstrumentState {
     this.reverbShelfPrevInput1 = 0;
     this.reverbShelfPrevInput2 = 0;
     this.reverbShelfPrevInput3 = 0;
-    this.pluginValues = [];
-    this.pluginDelayLine = null;
-    this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-    this.pluginDelayLineDirty = false;
+    this.plugin = null;
     this.spectrumWave = new SpectrumWaveState();
     this.harmonicsWave = new HarmonicsWaveState();
     this.drumsetSpectrumWaves = [];
@@ -5913,10 +5913,8 @@ var InstrumentState = class _InstrumentState {
         this.granularGrainsLength = Math.round(this.granularMaximumGrains);
       }
     }
-    if (effectsIncludePlugin(instrument.effects)) {
-      if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
-        this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
-      }
+    if (effectsIncludePlugin(instrument.effects) && this.plugin) {
+      this.plugin.initializeDelayLines(samplesPerTick);
     }
   }
   allocateEchoBuffers(samplesPerTick, echoDelay) {
@@ -6002,9 +6000,7 @@ var InstrumentState = class _InstrumentState {
     if (this.granularDelayLineDirty) {
       for (let i = 0; i < this.granularDelayLine.length; i++) this.granularDelayLine[i] = 0;
     }
-    if (this.pluginDelayLineDirty) {
-      for (let i = 0; i < this.pluginDelayLine.length; i++) this.pluginDelayLine[i] = 0;
-    }
+    if (this.plugin) this.plugin.reset();
     this.chorusPhase = 0;
     this.ringModPhase = 0;
     this.ringModMixFade = 1;
@@ -6434,9 +6430,9 @@ var InstrumentState = class _InstrumentState {
       this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
       this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
     }
-    if (usesPlugin && Synth.pluginInstrumentStateFunction) {
-      this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-      new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
+    if (usesPlugin && Synth.PluginClass) {
+      if (!this.plugin) this.plugin = new Synth.PluginClass();
+      this.plugin?.instrumentStateFunction(instrument);
     }
     if (this.tonesAddedInThisTick) {
       this.attentuationProgress = 0;
@@ -6472,9 +6468,6 @@ var InstrumentState = class _InstrumentState {
       if (usesGranular) {
         this.computeGrains = false;
       }
-      if (usesPlugin) {
-        delayDuration += Synth.PluginDelayLineSize;
-      }
       const secondsInTick = samplesPerTick / samplesPerSecond;
       const progressInTick = secondsInTick / delayDuration;
       const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -6495,7 +6488,6 @@ var InstrumentState = class _InstrumentState {
       if (usesEcho) totalDelaySamples += this.echoDelayLineL.length;
       if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
       if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
-      if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
       this.flushedSamples += roundedSamplesPerTick;
       if (this.flushedSamples >= totalDelaySamples) {
         this.deactivateAfterThisTick = true;
@@ -6936,22 +6928,7 @@ var Synth = class _Synth {
   }
   static {
     //For loopable chips, we have a matrix where the rows represent voices and the columns represent loop types
-    this.pluginFunction = null;
-  }
-  static {
-    this.pluginIndex = 0;
-  }
-  static {
-    this.pluginValueNames = [];
-  }
-  static {
-    this.pluginInstrumentStateFunction = null;
-  }
-  static {
-    this.PluginDelayLineSize = 0;
-  }
-  static {
-    this.rerenderSongEditorAfterPluginLoad = null;
+    this.PluginClass = null;
   }
   getTicksIntoBar() {
     return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
@@ -9915,7 +9892,7 @@ var Synth = class _Synth {
     const usesReverb = effectsIncludeReverb(instrumentState.effects);
     const usesGranular = effectsIncludeGranular(instrumentState.effects);
     const usesRingModulation = effectsIncludeRingModulation(instrumentState.effects);
-    const usesPlugin = effectsIncludePlugin(instrumentState.effects);
+    const usesPlugin = effectsIncludePlugin(instrumentState.effects) && _Synth.PluginClass && instrumentState.plugin;
     let signature = 0;
     if (usesDistortion) signature = signature | 1;
     signature = signature << 1;
@@ -10151,12 +10128,8 @@ var Synth = class _Synth {
 				let reverbShelfPrevInput3 = +instrumentState.reverbShelfPrevInput3;`;
       }
       if (usesPlugin) {
-        for (let i = 0; i < instrumentState.pluginValues.length; i++) {
-          effectsSource += "let " + _Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
-        }
         effectsSource += `
-                const pluginDelayLine = instrumentState.pluginDelayLine;
-                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                const plugin = instrumentState.plugin
                 `;
       }
       effectsSource += `
@@ -10463,10 +10436,20 @@ var Synth = class _Synth {
       } else {
         effectOrder.push("");
       }
-      if (usesPlugin && _Synth.pluginFunction) {
-        effectOrder.splice(_Synth.pluginIndex, 0, _Synth.pluginFunction);
+      if (usesPlugin && instrumentState.plugin) {
+        if (typeof instrumentState.plugin.effectOrderIndex == "number") {
+          instrumentState.plugin.synthFunction;
+          effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+          effectsSource += effectOrder.join("");
+        } else {
+          effectOrder.push("sample = plugin.synthFunction(sample, runLength);");
+          for (const index of instrumentState.plugin.effectOrderIndex) {
+            effectsSource += effectOrder[index];
+          }
+        }
+      } else {
+        effectsSource += effectOrder.join("");
       }
-      effectsSource += effectOrder.join("");
       effectsSource += `
 					
 					outputDataL[sampleIndex] += sampleL * mixVolume;
@@ -10618,11 +10601,6 @@ var Synth = class _Synth {
 				instrumentState.reverbShelfPrevInput1 = reverbShelfPrevInput1;
 				instrumentState.reverbShelfPrevInput2 = reverbShelfPrevInput2;
 				instrumentState.reverbShelfPrevInput3 = reverbShelfPrevInput3;`;
-      }
-      if (usesPlugin) {
-        for (let i = 0; i < instrumentState.pluginValues.length; i++) {
-          effectsSource += "instrumentState.pluginValues[" + i + "] = " + _Synth.pluginValueNames[i] + "; \n";
-        }
       }
       effectsSource += "}";
       effectsFunction = new Function("Config", "Synth", effectsSource)(Config, _Synth);
@@ -13194,7 +13172,7 @@ var Instrument = class {
       instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
     }
     if (effectsIncludePlugin(this.effects)) {
-      instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
+      instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
     }
     if (this.type != 4 /* drumset */) {
       instrumentObject["fadeInSeconds"] = Math.round(1e4 * SynthMessenger.fadeInSettingToSeconds(this.fadeIn)) / 1e4;
@@ -14366,14 +14344,6 @@ var Song = class _Song {
     this.patternInstruments = false;
     this.eqFilter.reset();
     this.sequences = [new SequenceSettings2()];
-    this.pluginurl = null;
-    SynthMessenger.pluginValueNames = [];
-    SynthMessenger.pluginInstrumentStateFunction = null;
-    SynthMessenger.pluginFunction = null;
-    SynthMessenger.pluginIndex = 0;
-    SynthMessenger.PluginDelayLineSize = 0;
-    PluginConfig.pluginUIElements = [];
-    PluginConfig.pluginName = "";
     for (let i = 0; i < Config.filterMorphCount - 1; i++) {
       this.eqSubFilters[i] = null;
     }
@@ -15158,9 +15128,9 @@ var Song = class _Song {
           };
         }
       }
-      if (this.pluginurl != pluginurl) {
+      if (!PluginConfig.pluginName) {
+        if (pluginurl && this.pluginurl != pluginurl) this.fetchPlugin(pluginurl);
         this.pluginurl = pluginurl;
-        if (pluginurl) this.fetchPlugin(pluginurl);
       }
     }
     if (beforeThree && fromBeepBox) {
@@ -17113,33 +17083,22 @@ var Song = class _Song {
       }, 50);
     }
   }
-  fetchPlugin(pluginurl) {
+  async fetchPlugin(pluginurl) {
     if (pluginurl != null && define_document_default.URL) {
-      fetch(pluginurl).then((response) => {
-        if (!response.ok) {
-          throw new Error("Couldn't load plugin");
-        }
-        return response;
-      }).then((response) => {
-        return response.json();
-      }).then((plugin) => {
-        PluginConfig.pluginUIElements = plugin.elements || [];
-        PluginConfig.pluginName = plugin.pluginName || "plugin";
-        try {
-          let pluginMessage = {
-            flag: 12 /* pluginMessage */,
-            names: plugin.variableNames || [],
-            instrumentStateFunction: plugin.instrumentStateFunction || "",
-            synthFunction: plugin.synthFunction || "",
-            effectOrder: plugin.effectOrderIndex || 0,
-            delayLineSize: plugin.delayLineSize || 0
-          };
-          events.raise("pluginLoaded", pluginMessage);
-        } catch {
-        }
-      }).catch(() => {
-        window.alert("couldn't load plugin " + pluginurl);
-      });
+      const code = await fetch(pluginurl).then((r) => r.text());
+      const blob = new Blob([code], { type: "text/javascript" });
+      const url = URL.createObjectURL(blob);
+      const pluginModule = await import(url);
+      const pluginClass = pluginModule.default;
+      const plugin = new pluginClass();
+      PluginConfig.pluginUIElements = plugin.elements || [];
+      PluginConfig.pluginName = plugin.pluginName || "plugin";
+      PluginConfig.pluginAbout = plugin.about;
+      const pluginMessage = {
+        flag: 12 /* pluginMessage */,
+        name: plugin.pluginName
+      };
+      events.raise("pluginLoaded", url, pluginMessage);
     }
   }
   static _isProperUrl(string) {
@@ -17547,6 +17506,11 @@ var Song = class _Song {
         this.sequences[channelIndex].values = data;
         break;
       case 24 /* pluginurl */:
+        for (let channelIndex2 = 0; channelIndex2 < this.pitchChannelCount + this.noiseChannelCount; channelIndex2++) {
+          for (let instrumentIndex2 = 0; instrumentIndex2 < this.channels[channelIndex2].instruments.length; instrumentIndex2++) {
+            this.channels[channelIndex2].instruments[instrumentIndex2].pluginValues.fill(0);
+          }
+        }
         break;
       case 25 /* channelOrder */:
         const selectionMin = data.selectionMin;
@@ -18633,7 +18597,7 @@ function discardInvalidPatternInstruments(instruments, song, channelIndex) {
   }
 }
 __name(discardInvalidPatternInstruments, "discardInvalidPatternInstruments");
-var SynthMessenger = class _SynthMessenger {
+var SynthMessenger = class {
   constructor(song = null) {
     this.samplesPerSecond = 44100;
     this.song = null;
@@ -18705,24 +18669,6 @@ var SynthMessenger = class _SynthMessenger {
   }
   static {
     __name(this, "SynthMessenger");
-  }
-  static {
-    this.pluginFunction = null;
-  }
-  static {
-    this.pluginIndex = 0;
-  }
-  static {
-    this.pluginValueNames = [];
-  }
-  static {
-    this.pluginInstrumentStateFunction = null;
-  }
-  static {
-    this.PluginDelayLineSize = 0;
-  }
-  static {
-    this.rerenderSongEditorAfterPluginLoad = null;
   }
   get playing() {
     return this.isPlayingSong;
@@ -18969,9 +18915,8 @@ var SynthMessenger = class _SynthMessenger {
     };
     this.sendMessage(samplesMessage);
   }
-  updateProcessorPlugin(pluginMessage) {
-    this.sendMessage(pluginMessage);
-    if (_SynthMessenger.rerenderSongEditorAfterPluginLoad) _SynthMessenger.rerenderSongEditorAfterPluginLoad();
+  updateProcessorPlugin(blob, pluginMessage) {
+    this.audioContext.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));
   }
   updatePlayhead(bar, beat, part) {
     this.songPosition[0] = bar;
@@ -19784,11 +19729,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         break;
       }
       case 12 /* pluginMessage */: {
-        Synth.pluginValueNames = event.data.names;
-        Synth.pluginInstrumentStateFunction = event.data.instrumentStateFunction;
-        Synth.pluginFunction = event.data.synthFunction;
-        Synth.pluginIndex = event.data.effectOrder;
-        Synth.PluginDelayLineSize = event.data.delayLineSize;
+        Synth.PluginClass = globalThis[event.data.name];
         break;
       }
       case 13 /* loopRepeatCount */: {
@@ -19803,6 +19744,15 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       case 15 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
+        if (event.data.songSetting == 24 /* pluginurl */) {
+          console.log("hello?");
+          for (let channelIndex = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
+            for (let instrumentIndex = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+              this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
+              console.log("reset", channelIndex, instrumentIndex);
+            }
+          }
+        }
         break;
       }
     }

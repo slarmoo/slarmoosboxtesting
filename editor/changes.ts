@@ -8,6 +8,7 @@ import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
 import { SongSettings, ChannelSettings, InstrumentSettings } from "../synth/synthMessages";
+import { PluginConfig } from "./PluginConfig";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
@@ -2999,7 +3000,7 @@ export class ChangePluginValue extends Change {
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         if (oldValue != newValue) {
             instrument.pluginValues[index] = newValue;
-            doc.synth.updateSong(index, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues);
+            doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues, index);
             this._didSomething();
         }
         doc.notifier.changed();
@@ -3012,7 +3013,15 @@ export class ChangePluginurl extends Change {
         const oldValue = doc.song.pluginurl;
         if (oldValue != value) {
             doc.song.pluginurl = value;
-            //TODO: Plugin url stuff; send synth info over
+            PluginConfig.pluginName = "";
+            PluginConfig.pluginUIElements = [];
+            PluginConfig.pluginAbout = "";
+            for (let channelIndex: number = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
+                for (let instrumentIndex: number = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                    doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                    doc.synth.updateSong(0, SongSettings.pluginurl);
+                }
+            }
             this._didSomething()
         }
         doc.notifier.changed();

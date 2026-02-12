@@ -2113,6 +2113,7 @@ var beepbox = (function (exports) {
     }
     PluginConfig.pluginName = "";
     PluginConfig.pluginUIElements = [];
+    PluginConfig.pluginAbout = "";
 
     class FilterCoefficients {
         constructor() {
@@ -4468,7 +4469,7 @@ var beepbox = (function (exports) {
                 instrumentObject["lowerNoteLimit"] = this.lowerNoteLimit;
             }
             if (effectsIncludePlugin(this.effects)) {
-                instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
+                instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
             }
             if (this.type != 4) {
                 instrumentObject["fadeInSeconds"] = Math.round(10000 * SynthMessenger.fadeInSettingToSeconds(this.fadeIn)) / 10000;
@@ -5698,14 +5699,6 @@ var beepbox = (function (exports) {
             this.patternInstruments = false;
             this.eqFilter.reset();
             this.sequences = [new SequenceSettings()];
-            this.pluginurl = null;
-            SynthMessenger.pluginValueNames = [];
-            SynthMessenger.pluginInstrumentStateFunction = null;
-            SynthMessenger.pluginFunction = null;
-            SynthMessenger.pluginIndex = 0;
-            SynthMessenger.PluginDelayLineSize = 0;
-            PluginConfig.pluginUIElements = [];
-            PluginConfig.pluginName = "";
             for (let i = 0; i < Config.filterMorphCount - 1; i++) {
                 this.eqSubFilters[i] = null;
             }
@@ -6557,10 +6550,10 @@ var beepbox = (function (exports) {
                         };
                     }
                 }
-                if (this.pluginurl != pluginurl) {
-                    this.pluginurl = pluginurl;
-                    if (pluginurl)
+                if (!PluginConfig.pluginName) {
+                    if (pluginurl && this.pluginurl != pluginurl)
                         this.fetchPlugin(pluginurl);
+                    this.pluginurl = pluginurl;
                 }
             }
             if (beforeThree && fromBeepBox) {
@@ -8661,34 +8654,24 @@ var beepbox = (function (exports) {
             }
         }
         fetchPlugin(pluginurl) {
-            if (pluginurl != null && document.URL) {
-                fetch(pluginurl).then((response) => {
-                    if (!response.ok) {
-                        throw new Error("Couldn't load plugin");
-                    }
-                    return response;
-                }).then((response) => {
-                    return response.json();
-                }).then((plugin) => {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (pluginurl != null && document.URL) {
+                    const code = yield fetch(pluginurl).then(r => r.text());
+                    const blob = new Blob([code], { type: 'text/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    const pluginModule = yield import(url);
+                    const pluginClass = pluginModule.default;
+                    const plugin = new pluginClass();
                     PluginConfig.pluginUIElements = plugin.elements || [];
                     PluginConfig.pluginName = plugin.pluginName || "plugin";
-                    try {
-                        let pluginMessage = {
-                            flag: MessageFlag.pluginMessage,
-                            names: plugin.variableNames || [],
-                            instrumentStateFunction: plugin.instrumentStateFunction || "",
-                            synthFunction: plugin.synthFunction || "",
-                            effectOrder: plugin.effectOrderIndex || 0,
-                            delayLineSize: plugin.delayLineSize || 0
-                        };
-                        events.raise("pluginLoaded", pluginMessage);
-                    }
-                    catch (_a) {
-                    }
-                }).catch(() => {
-                    window.alert("couldn't load plugin " + pluginurl);
-                });
-            }
+                    PluginConfig.pluginAbout = plugin.about;
+                    const pluginMessage = {
+                        flag: MessageFlag.pluginMessage,
+                        name: plugin.pluginName
+                    };
+                    events.raise("pluginLoaded", url, pluginMessage);
+                }
+            });
         }
         static _isProperUrl(string) {
             try {
@@ -9120,6 +9103,11 @@ var beepbox = (function (exports) {
                     this.sequences[channelIndex].values = data;
                     break;
                 case SongSettings.pluginurl:
+                    for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+                        for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+                            this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                        }
+                    }
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -10557,10 +10545,8 @@ var beepbox = (function (exports) {
             };
             this.sendMessage(samplesMessage);
         }
-        updateProcessorPlugin(pluginMessage) {
-            this.sendMessage(pluginMessage);
-            if (SynthMessenger.rerenderSongEditorAfterPluginLoad)
-                SynthMessenger.rerenderSongEditorAfterPluginLoad();
+        updateProcessorPlugin(blob, pluginMessage) {
+            this.audioContext.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));
         }
         updatePlayhead(bar, beat, part) {
             this.songPosition[0] = bar;
@@ -11287,12 +11273,6 @@ var beepbox = (function (exports) {
             return Math.pow(Math.max(0.0, volumeMult), 1 / 1.5) * Config.noteSizeMax;
         }
     }
-    SynthMessenger.pluginFunction = null;
-    SynthMessenger.pluginIndex = 0;
-    SynthMessenger.pluginValueNames = [];
-    SynthMessenger.pluginInstrumentStateFunction = null;
-    SynthMessenger.PluginDelayLineSize = 0;
-    SynthMessenger.rerenderSongEditorAfterPluginLoad = null;
 
     function scaleElementsByFactor(array, factor) {
         for (let i = 0; i < array.length; i++) {
@@ -12929,10 +12909,7 @@ var beepbox = (function (exports) {
             this.reverbShelfPrevInput1 = 0.0;
             this.reverbShelfPrevInput2 = 0.0;
             this.reverbShelfPrevInput3 = 0.0;
-            this.pluginValues = [];
-            this.pluginDelayLine = null;
-            this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-            this.pluginDelayLineDirty = false;
+            this.plugin = null;
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
             this.drumsetSpectrumWaves = [];
@@ -12988,10 +12965,8 @@ var beepbox = (function (exports) {
                     this.granularGrainsLength = Math.round(this.granularMaximumGrains);
                 }
             }
-            if (effectsIncludePlugin(instrument.effects)) {
-                if (this.pluginDelayLine == null || this.pluginDelayLine.length < this.pluginDelayLineSize) {
-                    this.pluginDelayLine = new Float32Array(this.pluginDelayLineSize);
-                }
+            if (effectsIncludePlugin(instrument.effects) && this.plugin) {
+                this.plugin.initializeDelayLines(samplesPerTick);
             }
         }
         allocateEchoBuffers(samplesPerTick, echoDelay) {
@@ -13087,15 +13062,14 @@ var beepbox = (function (exports) {
                 for (let i = 0; i < this.granularDelayLine.length; i++)
                     this.granularDelayLine[i] = 0.0;
             }
-            if (this.pluginDelayLineDirty) {
-                for (let i = 0; i < this.pluginDelayLine.length; i++)
-                    this.pluginDelayLine[i] = 0.0;
-            }
+            if (this.plugin)
+                this.plugin.reset();
             this.chorusPhase = 0.0;
             this.ringModPhase = 0.0;
             this.ringModMixFade = 1.0;
         }
         compute(synth, instrument, samplesPerTick, roundedSamplesPerTick, tone, channelIndex, instrumentIndex) {
+            var _a;
             this.computed = true;
             this.type = instrument.type;
             this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
@@ -13516,9 +13490,10 @@ var beepbox = (function (exports) {
                 this.reverbShelfB0 = Synth.tempFilterStartCoefficients.b[0];
                 this.reverbShelfB1 = Synth.tempFilterStartCoefficients.b[1];
             }
-            if (usesPlugin && Synth.pluginInstrumentStateFunction) {
-                this.pluginDelayLineSize = Synth.PluginDelayLineSize;
-                new Function("instrument", Synth.pluginInstrumentStateFunction).bind(this).call(this, instrument);
+            if (usesPlugin && Synth.PluginClass) {
+                if (!this.plugin)
+                    this.plugin = new Synth.PluginClass();
+                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(instrument);
             }
             if (this.tonesAddedInThisTick) {
                 this.attentuationProgress = 0.0;
@@ -13556,9 +13531,6 @@ var beepbox = (function (exports) {
                 if (usesGranular) {
                     this.computeGrains = false;
                 }
-                if (usesPlugin) {
-                    delayDuration += Synth.PluginDelayLineSize;
-                }
                 const secondsInTick = samplesPerTick / samplesPerSecond;
                 const progressInTick = secondsInTick / delayDuration;
                 const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -13584,8 +13556,6 @@ var beepbox = (function (exports) {
                     totalDelaySamples += Config.reverbDelayBufferSize;
                 if (usesGranular)
                     totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
-                if (usesPlugin)
-                    totalDelaySamples += Synth.PluginDelayLineSize;
                 this.flushedSamples += roundedSamplesPerTick;
                 if (this.flushedSamples >= totalDelaySamples) {
                     this.deactivateAfterThisTick = true;
@@ -17076,7 +17046,7 @@ var beepbox = (function (exports) {
             const usesReverb = effectsIncludeReverb(instrumentState.effects);
             const usesGranular = effectsIncludeGranular(instrumentState.effects);
             const usesRingModulation = effectsIncludeRingModulation(instrumentState.effects);
-            const usesPlugin = effectsIncludePlugin(instrumentState.effects);
+            const usesPlugin = effectsIncludePlugin(instrumentState.effects) && Synth.PluginClass && instrumentState.plugin;
             let signature = 0;
             if (usesDistortion)
                 signature = signature | 1;
@@ -17322,12 +17292,8 @@ var beepbox = (function (exports) {
 				let reverbShelfPrevInput3 = +instrumentState.reverbShelfPrevInput3;`;
                 }
                 if (usesPlugin) {
-                    for (let i = 0; i < instrumentState.pluginValues.length; i++) {
-                        effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
-                    }
                     effectsSource += `
-                const pluginDelayLine = instrumentState.pluginDelayLine;
-                instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
+                const plugin = instrumentState.plugin
                 `;
                 }
                 effectsSource += `
@@ -17644,10 +17610,22 @@ var beepbox = (function (exports) {
                 else {
                     effectOrder.push("");
                 }
-                if (usesPlugin && Synth.pluginFunction) {
-                    effectOrder.splice(Synth.pluginIndex, 0, Synth.pluginFunction);
+                if (usesPlugin && instrumentState.plugin) {
+                    if (typeof instrumentState.plugin.effectOrderIndex == "number") {
+                        instrumentState.plugin.synthFunction;
+                        effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+                        effectsSource += effectOrder.join("");
+                    }
+                    else {
+                        effectOrder.push("sample = plugin.synthFunction(sample, runLength);");
+                        for (const index of instrumentState.plugin.effectOrderIndex) {
+                            effectsSource += effectOrder[index];
+                        }
+                    }
                 }
-                effectsSource += effectOrder.join("");
+                else {
+                    effectsSource += effectOrder.join("");
+                }
                 effectsSource += `
 					
 					outputDataL[sampleIndex] += sampleL * mixVolume;
@@ -17799,11 +17777,6 @@ var beepbox = (function (exports) {
 				instrumentState.reverbShelfPrevInput1 = reverbShelfPrevInput1;
 				instrumentState.reverbShelfPrevInput2 = reverbShelfPrevInput2;
 				instrumentState.reverbShelfPrevInput3 = reverbShelfPrevInput3;`;
-                }
-                if (usesPlugin) {
-                    for (let i = 0; i < instrumentState.pluginValues.length; i++) {
-                        effectsSource += "instrumentState.pluginValues[" + i + "] = " + Synth.pluginValueNames[i] + "; \n";
-                    }
                 }
                 effectsSource += "}";
                 effectsFunction = new Function("Config", "Synth", effectsSource)(Config, Synth);
@@ -18711,12 +18684,7 @@ var beepbox = (function (exports) {
     Synth.supersawFunctionCache = [];
     Synth.harmonicsFunctionCache = [];
     Synth.loopableChipFunctionCache = Array(Config.unisonVoicesMax + 1).fill(undefined);
-    Synth.pluginFunction = null;
-    Synth.pluginIndex = 0;
-    Synth.pluginValueNames = [];
-    Synth.pluginInstrumentStateFunction = null;
-    Synth.PluginDelayLineSize = 0;
-    Synth.rerenderSongEditorAfterPluginLoad = null;
+    Synth.PluginClass = null;
     Synth.fmSourceTemplate = (`
 		const data = synth.tempMonoInstrumentSampleBuffer;
         const voiceCount = instrument.unisonVoices;

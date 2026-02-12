@@ -2,7 +2,7 @@
 
 import { Config, performIntegral } from "./SynthConfig";
 import { Song } from "./synthMessenger";
-import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, UIRenderMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, SongSettings, UIRenderMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 
@@ -151,11 +151,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 break;
             }
             case MessageFlag.pluginMessage: {
-                Synth.pluginValueNames = event.data.names;
-                Synth.pluginInstrumentStateFunction = event.data.instrumentStateFunction;
-                Synth.pluginFunction = event.data.synthFunction;
-                Synth.pluginIndex = event.data.effectOrder;
-                Synth.PluginDelayLineSize = event.data.delayLineSize;
+                Synth.PluginClass = globalThis[event.data.name];
                 break;
             }
             case MessageFlag.loopRepeatCount: {
@@ -170,6 +166,15 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();
                 this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
+                if (event.data.songSetting == SongSettings.pluginurl) { //reset plugins
+                    console.log("hello?")
+                    for (let channelIndex: number = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
+                        for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                            this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
+                            console.log("reset", channelIndex, instrumentIndex)
+                        }
+                    }
+                }
                 break;
             }
         }

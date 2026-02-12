@@ -8,6 +8,7 @@ import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events } from "../global/Events";
+import { EffectPlugin } from "./plugin";
 
 
 declare global {
@@ -2060,7 +2061,7 @@ export class Instrument {
         }
 
         if (effectsIncludePlugin(this.effects)) {
-            instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length - 1);
+            instrumentObject["plugin"] = this.pluginValues.slice(0, PluginConfig.pluginUIElements.length);
         }
 
         if (this.type != InstrumentType.drumset) {
@@ -3388,15 +3389,6 @@ export class Song {
         this.patternInstruments = false;
         this.eqFilter.reset();
         this.sequences = [new SequenceSettings()];
-        //clear plugin data
-        this.pluginurl = null;
-        SynthMessenger.pluginValueNames = [];
-        SynthMessenger.pluginInstrumentStateFunction = null;
-        SynthMessenger.pluginFunction = null;
-        SynthMessenger.pluginIndex = 0;
-        SynthMessenger.PluginDelayLineSize = 0;
-        PluginConfig.pluginUIElements = [];
-        PluginConfig.pluginName = "";
 
         for (let i: number = 0; i < Config.filterMorphCount - 1; i++) {
             this.eqSubFilters[i] = null;
@@ -4355,9 +4347,9 @@ export class Song {
             //samplemark
 
             //set the pluginurl
-            if (this.pluginurl != pluginurl) {
+            if (!PluginConfig.pluginName) {                
+                if (pluginurl && this.pluginurl != pluginurl) this.fetchPlugin(pluginurl);
                 this.pluginurl = pluginurl;
-                if (pluginurl) this.fetchPlugin(pluginurl);
             }
         }
 
@@ -6505,36 +6497,25 @@ export class Song {
         }
     }
 
-    private fetchPlugin(pluginurl: string) {
+    private async fetchPlugin(pluginurl: string) {
         if (pluginurl != null && document.URL) {
-            fetch(pluginurl).then((response) => {
-                if (!response.ok) {
-                    // @TODO: Be specific with the error handling.
-                    throw new Error("Couldn't load plugin");
-                }
-                return response;
-            }).then((response) => {
-                return response.json();
-            }).then((plugin) => {
-                //decode and store the data
-                PluginConfig.pluginUIElements = plugin.elements || [];
-                PluginConfig.pluginName = plugin.pluginName || "plugin";
-                try {
-                    let pluginMessage: PluginMessage = {
-                        flag: MessageFlag.pluginMessage,
-                        names: plugin.variableNames || [],
-                        instrumentStateFunction: plugin.instrumentStateFunction || "",
-                        synthFunction: plugin.synthFunction || "",
-                        effectOrder: plugin.effectOrderIndex || 0,
-                        delayLineSize: plugin.delayLineSize || 0
-                    }
-                    events.raise("pluginLoaded", pluginMessage);
-                } catch {
-                    
-                }
-            }).catch(() => {
-                window.alert("couldn't load plugin "+ pluginurl);
-            })
+            const code = await fetch(pluginurl).then(r => r.text());
+
+            const blob = new Blob([code], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+
+            const pluginModule = await import(url);
+            const pluginClass = pluginModule.default;
+            const plugin: EffectPlugin = new pluginClass();
+            PluginConfig.pluginUIElements = plugin.elements || [];
+            PluginConfig.pluginName = plugin.pluginName || "plugin";
+            PluginConfig.pluginAbout = plugin.about;
+
+            const pluginMessage: PluginMessage = {
+                flag: MessageFlag.pluginMessage,
+                name: plugin.pluginName
+            }
+            events.raise("pluginLoaded", url, pluginMessage);
         }
     }
 
@@ -6993,7 +6974,12 @@ export class Song {
                 this.sequences[channelIndex!].values = data as number[];
                 break;
             case SongSettings.pluginurl:
-                //do plugin stuff?
+                //flush old plugin values
+                for (let channelIndex: number = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+                    for (let instrumentIndex: number = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                    }
+                }
                 break;
             case SongSettings.channelOrder:
                 const selectionMin: number = data.selectionMin;
@@ -8247,13 +8233,6 @@ export class SynthMessenger {
     /** An *inclusive* bound. */
     private _loopBarEnd: number = -1;
 
-    public static pluginFunction: string | null = null;
-    public static pluginIndex: number = 0;
-    public static pluginValueNames: string[] = [];
-    public static pluginInstrumentStateFunction: string | null = null;
-    public static PluginDelayLineSize: number = 0;
-    public static rerenderSongEditorAfterPluginLoad: Function | null = null;
-
     private audioContext: AudioContext | null = null;
     private workletNode: AudioWorkletNode | null = null;
     private splitterNode: ChannelSplitterNode | null = null;
@@ -8546,9 +8525,8 @@ export class SynthMessenger {
         this.sendMessage(samplesMessage);
     }
 
-    public updateProcessorPlugin(pluginMessage: PluginMessage): void {
-        this.sendMessage(pluginMessage);
-        if (SynthMessenger.rerenderSongEditorAfterPluginLoad) SynthMessenger.rerenderSongEditorAfterPluginLoad();
+    public updateProcessorPlugin(blob: string, pluginMessage: PluginMessage): void {
+        this.audioContext!.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));   
     }
 
 

@@ -104,11 +104,7 @@ export interface SampleFinishMessage extends Message {
 
 export interface PluginMessage extends Message {
     flag: MessageFlag.pluginMessage,
-    names: string[],
-    instrumentStateFunction: string,
-    synthFunction: string,
-    effectOrder: number[] | number,
-    delayLineSize: number
+    name: string
 }
 
 export interface LoopRepeatCountMessage extends Message {

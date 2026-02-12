@@ -60,6 +60,7 @@ import { AddSamplesPrompt } from "./AddSamplesPrompt";
 import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
 import { CustomChipCanvas } from "./CustomChipCanvas";
 import { CustomAlgorithmCanvas } from "./CustomAlgorithmCanvas";
+import { events } from "../global/Events";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -947,7 +948,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
-        SynthMessenger.rerenderSongEditorAfterPluginLoad = this.whenUpdated.bind(this); //very hacky....
+        events.listen("pluginLoaded", this.whenUpdated.bind(this));
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);
@@ -2418,13 +2419,15 @@ export class SongEditor {
                 this._lowerNoteLimitRow.style.display = "none";
             }
             
-            if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length < PluginConfig.pluginUIElements.length) {
+            if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length != PluginConfig.pluginUIElements.length) {
                 this._pluginurl = this.doc.song.pluginurl;
                 for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
                     const pluginElement: PluginElement = PluginConfig.pluginUIElements[i];
+                    
                     switch (pluginElement.type) {
                         case "slider": {
-                            this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: (pluginElement as PluginSlider).max, value: instrument.pluginValues[i], step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
+                            const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginSlider).max);
+                            this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: (pluginElement as PluginSlider).max, value: value, step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, (pluginElement as PluginSlider).name + ":"), (this._pluginElements[i] as Slider).container);
                             break;
                         }
@@ -2435,8 +2438,9 @@ export class SongEditor {
                             break;
                         }
                         case "dropdown": {
+                            const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginDropdown).options.length - 1);
                             this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
-                            (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, instrument.pluginValues[i], parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
+                            (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
                             break;
                         }
