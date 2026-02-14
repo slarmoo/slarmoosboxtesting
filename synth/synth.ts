@@ -2114,10 +2114,9 @@ class InstrumentState {
                 this.computeGrains = false;
             }
 
-            // TODO: PluginDelayLine
-            // if (usesPlugin) {
-            //     delayDuration += Synth.PluginDelayLineSize;
-            // }
+            if (usesPlugin) {
+                delayDuration += this.plugin?.delayLineLength || 0;
+            }
 
             const secondsInTick: number = samplesPerTick / samplesPerSecond;
             const progressInTick: number = secondsInTick / delayDuration;
@@ -2143,7 +2142,7 @@ class InstrumentState {
             if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
             if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
             //TODO: PluginDelayLine
-            // if (usesPlugin) totalDelaySamples += Synth.PluginDelayLineSize;
+            if (usesPlugin) totalDelaySamples += this.plugin?.delayLineLength || 0;;
 
             this.flushedSamples += roundedSamplesPerTick;
             if (this.flushedSamples >= totalDelaySamples) {
@@ -6391,13 +6390,6 @@ export class Synth {
                 effectsSource += `
                 const plugin = instrumentState.plugin
                 `;
-                // for (let i: number = 0; i < instrumentState.pluginValues.length; i++) {
-                //     effectsSource += "let " + Synth.pluginValueNames[i] + " = instrumentState.pluginValues[" + i + "]; \n";
-                // }
-                // effectsSource += `
-                // const pluginDelayLine = instrumentState.pluginDelayLine;
-                // instrumentState.pluginDelayLineDirty = instrumentState.pluginDelayLineSize ? true : false;
-                // `
             }
 
             effectsSource += `
@@ -6729,7 +6721,8 @@ export class Synth {
                 if (typeof instrumentState.plugin.effectOrderIndex == "number") {
                     instrumentState.plugin.synthFunction
                     //TODO: figure out sampleL and sampleR (will likely come when porting theepbox stereo samples)
-                    effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+                    if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                    else effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                     effectsSource += effectOrder.join("");
                 } else {
                     //TODO: Strict plugin ordering (must include 0-9 exactly once)
@@ -7844,14 +7837,6 @@ export class Synth {
         }
         return Config.fadeOutTicks.length - 1;
     }
-
-    // public static lerp(t: number, a: number, b: number): number {
-    //     return a + (b - a) * t;
-    // }
-
-    // public static unlerp(x: number, a: number, b: number): number {
-    //     return (x - a) / (b - a);
-    // }
 
     public static detuneToCents(detune: number): number {
         // BeepBox formula, for reference:

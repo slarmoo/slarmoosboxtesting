@@ -6507,6 +6507,7 @@ export class Song {
             const pluginModule = await import(url);
             const pluginClass = pluginModule.default;
             const plugin: EffectPlugin = new pluginClass();
+            Synth.PluginClass = pluginClass;
             PluginConfig.pluginUIElements = plugin.elements || [];
             PluginConfig.pluginName = plugin.pluginName || "plugin";
             PluginConfig.pluginAbout = plugin.about;
@@ -7353,7 +7354,8 @@ export class Song {
                         instrument.echoDelay = numberData;
                         break;
                     case InstrumentSettings.pluginValues:
-                        instrument.pluginValues[settingIndex!] = numberData;
+                        if (typeof data == "number") instrument.pluginValues[settingIndex!] = numberData;
+                        else instrument.pluginValues = data as number[];
                         break;
                     case InstrumentSettings.algorithm:
                         instrument.algorithm = numberData;
@@ -8526,7 +8528,8 @@ export class SynthMessenger {
     }
 
     public updateProcessorPlugin(blob: string, pluginMessage: PluginMessage): void {
-        this.audioContext!.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));   
+        this.audioContext!.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));  
+        
     }
 
 
@@ -8549,13 +8552,14 @@ export class SynthMessenger {
 
     private initSynth() {
         if (this.exportProcessor == null) {
-            this.exportProcessor = new Synth(this.deactivateAudio, () => {this.countInMetronome = false});
+            this.exportProcessor = new Synth(this.deactivateAudio, () => { this.countInMetronome = false });
             this.exportProcessor.song = this.song;
             this.exportProcessor.liveInputPitchesOnOffRequests = new RingBuffer(new SharedArrayBuffer(16), Uint16Array);
         }
         this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
         this.exportProcessor.renderingSong = this.renderingSong;
         this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
+        (globalThis as any).sampleRate = this.samplesPerSecond;
     }
 
     public synthesize(outputDataL: Float32Array, outputDataR: Float32Array, outputBufferLength: number, playSong: boolean = true): void {

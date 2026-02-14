@@ -6468,6 +6468,9 @@ var InstrumentState = class _InstrumentState {
       if (usesGranular) {
         this.computeGrains = false;
       }
+      if (usesPlugin) {
+        delayDuration += this.plugin?.delayLineLength || 0;
+      }
       const secondsInTick = samplesPerTick / samplesPerSecond;
       const progressInTick = secondsInTick / delayDuration;
       const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -6488,6 +6491,8 @@ var InstrumentState = class _InstrumentState {
       if (usesEcho) totalDelaySamples += this.echoDelayLineL.length;
       if (usesReverb) totalDelaySamples += Config.reverbDelayBufferSize;
       if (usesGranular) totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+      if (usesPlugin) totalDelaySamples += this.plugin?.delayLineLength || 0;
+      ;
       this.flushedSamples += roundedSamplesPerTick;
       if (this.flushedSamples >= totalDelaySamples) {
         this.deactivateAfterThisTick = true;
@@ -10439,7 +10444,8 @@ var Synth = class _Synth {
       if (usesPlugin && instrumentState.plugin) {
         if (typeof instrumentState.plugin.effectOrderIndex == "number") {
           instrumentState.plugin.synthFunction;
-          effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+          if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+          else effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
           effectsSource += effectOrder.join("");
         } else {
           effectOrder.push("sample = plugin.synthFunction(sample, runLength);");
@@ -11434,12 +11440,6 @@ var Synth = class _Synth {
     }
     return Config.fadeOutTicks.length - 1;
   }
-  // public static lerp(t: number, a: number, b: number): number {
-  //     return a + (b - a) * t;
-  // }
-  // public static unlerp(x: number, a: number, b: number): number {
-  //     return (x - a) / (b - a);
-  // }
   static detuneToCents(detune) {
     return detune - Config.detuneCenter;
   }
@@ -17091,6 +17091,7 @@ var Song = class _Song {
       const pluginModule = await import(url);
       const pluginClass = pluginModule.default;
       const plugin = new pluginClass();
+      Synth.PluginClass = pluginClass;
       PluginConfig.pluginUIElements = plugin.elements || [];
       PluginConfig.pluginName = plugin.pluginName || "plugin";
       PluginConfig.pluginAbout = plugin.about;
@@ -17876,7 +17877,8 @@ var Song = class _Song {
             instrument.echoDelay = numberData;
             break;
           case 81 /* pluginValues */:
-            instrument.pluginValues[settingIndex] = numberData;
+            if (typeof data == "number") instrument.pluginValues[settingIndex] = numberData;
+            else instrument.pluginValues = data;
             break;
           case 82 /* algorithm */:
             instrument.algorithm = numberData;
@@ -18942,6 +18944,7 @@ var SynthMessenger = class {
     this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
     this.exportProcessor.renderingSong = this.renderingSong;
     this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
+    globalThis.sampleRate = this.samplesPerSecond;
   }
   synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
     this.initSynth();
@@ -19745,11 +19748,9 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
         if (event.data.songSetting == 24 /* pluginurl */) {
-          console.log("hello?");
           for (let channelIndex = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
             for (let instrumentIndex = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
               this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
-              console.log("reset", channelIndex, instrumentIndex);
             }
           }
         }

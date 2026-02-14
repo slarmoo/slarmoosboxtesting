@@ -13535,7 +13535,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.ringModMixFade = 1.0;
         }
         compute(synth, instrument, samplesPerTick, roundedSamplesPerTick, tone, channelIndex, instrumentIndex) {
-            var _a;
+            var _a, _b, _c;
             this.computed = true;
             this.type = instrument.type;
             this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
@@ -13997,6 +13997,9 @@ li.select2-results__option[role=group] > strong:hover {
                 if (usesGranular) {
                     this.computeGrains = false;
                 }
+                if (usesPlugin) {
+                    delayDuration += ((_b = this.plugin) === null || _b === void 0 ? void 0 : _b.delayLineLength) || 0;
+                }
                 const secondsInTick = samplesPerTick / samplesPerSecond;
                 const progressInTick = secondsInTick / delayDuration;
                 const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -14022,6 +14025,8 @@ li.select2-results__option[role=group] > strong:hover {
                     totalDelaySamples += Config.reverbDelayBufferSize;
                 if (usesGranular)
                     totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+                if (usesPlugin)
+                    totalDelaySamples += ((_c = this.plugin) === null || _c === void 0 ? void 0 : _c.delayLineLength) || 0;
                 this.flushedSamples += roundedSamplesPerTick;
                 if (this.flushedSamples >= totalDelaySamples) {
                     this.deactivateAfterThisTick = true;
@@ -18079,7 +18084,10 @@ li.select2-results__option[role=group] > strong:hover {
                 if (usesPlugin && instrumentState.plugin) {
                     if (typeof instrumentState.plugin.effectOrderIndex == "number") {
                         instrumentState.plugin.synthFunction;
-                        effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+                        if (instrumentState.plugin.effectOrderIndex > 5)
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                        else
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                         effectsSource += effectOrder.join("");
                     }
                     else {
@@ -25073,6 +25081,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const pluginModule = yield import(url);
                     const pluginClass = pluginModule.default;
                     const plugin = new pluginClass();
+                    Synth.PluginClass = pluginClass;
                     PluginConfig.pluginUIElements = plugin.elements || [];
                     PluginConfig.pluginName = plugin.pluginName || "plugin";
                     PluginConfig.pluginAbout = plugin.about;
@@ -25890,7 +25899,10 @@ li.select2-results__option[role=group] > strong:hover {
                             instrument.echoDelay = numberData;
                             break;
                         case InstrumentSettings.pluginValues:
-                            instrument.pluginValues[settingIndex] = numberData;
+                            if (typeof data == "number")
+                                instrument.pluginValues[settingIndex] = numberData;
+                            else
+                                instrument.pluginValues = data;
                             break;
                         case InstrumentSettings.algorithm:
                             instrument.algorithm = numberData;
@@ -26981,6 +26993,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
             this.exportProcessor.renderingSong = this.renderingSong;
             this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
+            globalThis.sampleRate = this.samplesPerSecond;
         }
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             this.initSynth();
@@ -30135,6 +30148,12 @@ li.select2-results__option[role=group] > strong:hover {
                 instrument.preset = instrument.type;
             if (toggleFlag == 3 && wasSelected)
                 instrument.aliases = false;
+            if (toggleFlag == 15 && !wasSelected) {
+                for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    instrument.pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                }
+                doc.synth.updateSong(instrument.pluginValues, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues);
+            }
             if (wasSelected)
                 instrument.clearInvalidEnvelopeTargets();
             doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.effects);
@@ -47935,7 +47954,7 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "plugin":
                     {
-                        message = div$5(h2$4("Plugins"), p$1(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `));
+                        message = div$5(h2$4("Plugins"), p$1(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `), h3(PluginConfig.pluginName), p$1(PluginConfig.pluginAbout));
                     }
                     break;
                 case "slideSpeedSlider":

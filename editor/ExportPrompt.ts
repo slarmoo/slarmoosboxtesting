@@ -294,15 +294,12 @@ export class ExportPrompt implements Prompt {
             this._outputProgressLabel.innerText = "Encoding...";
             if (this.thenExportTo == "wav") {
                 this._exportToWavFinish();
-            }
-            else if (this.thenExportTo == "mp3") {
+            } else if (this.thenExportTo == "mp3") {
                 this._exportToMp3Finish();
-            }
-            else {
+            } else {
                 throw new Error("Unrecognized file export type chosen!");
             }
-        }
-        else {
+        } else {
             // Continue batch export
             setTimeout(() => { this._synthesize(); });
         }
@@ -317,11 +314,9 @@ export class ExportPrompt implements Prompt {
         this.synth = new SynthMessenger(this._doc.song);
         if (type == "wav") {
             this.synth.samplesPerSecond = 48000; // Use professional video editing standard sample rate for .wav file export.
-        }
-        else if (type == "mp3") {
+        } else if (type == "mp3") {
             this.synth.samplesPerSecond = 44100; // Use consumer CD standard sample rate for .mp3 export.
-        }
-        else {
+        } else {
             throw new Error("Unrecognized file export type chosen!");
         }
 

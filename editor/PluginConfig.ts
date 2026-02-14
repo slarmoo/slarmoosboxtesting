@@ -6,7 +6,8 @@ export class PluginConfig {
 
 interface PluginElementRoot {
     type: string,
-    name: string
+    name: string,
+    initialValue: number
 }
 export type PluginElement = PluginSlider | PluginCheckbox | PluginDropdown | PluginElementRoot;
 

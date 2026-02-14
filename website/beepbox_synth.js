@@ -8662,6 +8662,7 @@ var beepbox = (function (exports) {
                     const pluginModule = yield import(url);
                     const pluginClass = pluginModule.default;
                     const plugin = new pluginClass();
+                    Synth.PluginClass = pluginClass;
                     PluginConfig.pluginUIElements = plugin.elements || [];
                     PluginConfig.pluginName = plugin.pluginName || "plugin";
                     PluginConfig.pluginAbout = plugin.about;
@@ -9479,7 +9480,10 @@ var beepbox = (function (exports) {
                             instrument.echoDelay = numberData;
                             break;
                         case InstrumentSettings.pluginValues:
-                            instrument.pluginValues[settingIndex] = numberData;
+                            if (typeof data == "number")
+                                instrument.pluginValues[settingIndex] = numberData;
+                            else
+                                instrument.pluginValues = data;
                             break;
                         case InstrumentSettings.algorithm:
                             instrument.algorithm = numberData;
@@ -10570,6 +10574,7 @@ var beepbox = (function (exports) {
             this.exportProcessor.samplesPerSecond = this.samplesPerSecond;
             this.exportProcessor.renderingSong = this.renderingSong;
             this.exportProcessor.loopRepeatCount = this.loopRepeatCount;
+            globalThis.sampleRate = this.samplesPerSecond;
         }
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             this.initSynth();
@@ -13069,7 +13074,7 @@ var beepbox = (function (exports) {
             this.ringModMixFade = 1.0;
         }
         compute(synth, instrument, samplesPerTick, roundedSamplesPerTick, tone, channelIndex, instrumentIndex) {
-            var _a;
+            var _a, _b, _c;
             this.computed = true;
             this.type = instrument.type;
             this.synthesizer = Synth.getInstrumentSynthFunction(instrument);
@@ -13531,6 +13536,9 @@ var beepbox = (function (exports) {
                 if (usesGranular) {
                     this.computeGrains = false;
                 }
+                if (usesPlugin) {
+                    delayDuration += ((_b = this.plugin) === null || _b === void 0 ? void 0 : _b.delayLineLength) || 0;
+                }
                 const secondsInTick = samplesPerTick / samplesPerSecond;
                 const progressInTick = secondsInTick / delayDuration;
                 const progressAtEndOfTick = this.attentuationProgress + progressInTick;
@@ -13556,6 +13564,8 @@ var beepbox = (function (exports) {
                     totalDelaySamples += Config.reverbDelayBufferSize;
                 if (usesGranular)
                     totalDelaySamples += this.granularMaximumDelayTimeInSeconds;
+                if (usesPlugin)
+                    totalDelaySamples += ((_c = this.plugin) === null || _c === void 0 ? void 0 : _c.delayLineLength) || 0;
                 this.flushedSamples += roundedSamplesPerTick;
                 if (this.flushedSamples >= totalDelaySamples) {
                     this.deactivateAfterThisTick = true;
@@ -17613,7 +17623,10 @@ var beepbox = (function (exports) {
                 if (usesPlugin && instrumentState.plugin) {
                     if (typeof instrumentState.plugin.effectOrderIndex == "number") {
                         instrumentState.plugin.synthFunction;
-                        effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
+                        if (instrumentState.plugin.effectOrderIndex > 5)
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                        else
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                         effectsSource += effectOrder.join("");
                     }
                     else {

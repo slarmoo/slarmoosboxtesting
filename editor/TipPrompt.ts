@@ -4,6 +4,7 @@ import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
 import { SongDocument } from "./SongDocument";
 import { Config } from "../synth/SynthConfig";
+import { PluginConfig } from "./PluginConfig";
 
 const { button, div, p, h2, h3 } = HTML;
 
@@ -699,6 +700,8 @@ export class TipPrompt implements Prompt {
 				message = div(
 					h2("Plugins"),
 					p(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `),
+					h3(PluginConfig.pluginName),
+					p(PluginConfig.pluginAbout)
 				);
 			} break;
 			case "slideSpeedSlider": {

@@ -167,11 +167,9 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 if (!this.synth.song) this.synth.song = new Song();
                 this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
                 if (event.data.songSetting == SongSettings.pluginurl) { //reset plugins
-                    console.log("hello?")
                     for (let channelIndex: number = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
                         for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
                             this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
-                            console.log("reset", channelIndex, instrumentIndex)
                         }
                     }
                 }

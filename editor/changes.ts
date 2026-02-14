@@ -1851,6 +1851,13 @@ export class ChangeToggleEffects extends Change {
         // Remove AA when distortion is turned off.
         if (toggleFlag == EffectType.distortion && wasSelected)
             instrument.aliases = false;
+        //reset plugin values to their "defaults"
+        if (toggleFlag == EffectType.plugin && !wasSelected) {
+            for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                instrument.pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+            }
+            doc.synth.updateSong(instrument.pluginValues, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues)
+        }
         if (wasSelected) instrument.clearInvalidEnvelopeTargets();
         doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.effects);
         doc.synth.updateSong(+instrument.aliases, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.aliases);
