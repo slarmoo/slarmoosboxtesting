@@ -13,7 +13,7 @@ export class TipPrompt implements Prompt {
 
 	public readonly container: HTMLDivElement;
 
-	constructor(private _doc: SongDocument, type: string) {
+	constructor(private _doc: SongDocument, type: string, extraSettings?: any) {
 		let message: HTMLDivElement;
 
 		switch (type) {
@@ -656,7 +656,6 @@ export class TipPrompt implements Prompt {
 				message = div(
 					h2("Ring Modulation (Hertz)"),
 					p(`This setting changes the Hertz of the multiplied frequency.`),
-					// p(`The offset allows you to increment the Hertz by 1.`),
 				);
 			} break;
 			case "ringModChipWave": {
@@ -697,11 +696,14 @@ export class TipPrompt implements Prompt {
 				)
 			} break;
 			case "plugin": {
+				const index: number = extraSettings as number;
 				message = div(
 					h2("Plugins"),
 					p(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `),
 					h3(PluginConfig.pluginName),
-					p(PluginConfig.pluginAbout)
+					p(PluginConfig.pluginAbout),
+					h3(PluginConfig.pluginUIElements[index].name),
+					p(PluginConfig.pluginUIElements[index].info)
 				);
 			} break;
 			case "slideSpeedSlider": {

@@ -47452,7 +47452,7 @@ You should be redirected to the song at:<br /><br />
 
     const { button: button$5, div: div$5, p: p$1, h2: h2$4, h3 } = HTML$1;
     class TipPrompt {
-        constructor(_doc, type) {
+        constructor(_doc, type, extraSettings) {
             this._doc = _doc;
             this._closeButton = button$5({ class: "cancelButton" });
             this._close = () => {
@@ -47954,7 +47954,8 @@ You should be redirected to the song at:<br /><br />
                     break;
                 case "plugin":
                     {
-                        message = div$5(h2$4("Plugins"), p$1(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `), h3(PluginConfig.pluginName), p$1(PluginConfig.pluginAbout));
+                        const index = extraSettings;
+                        message = div$5(h2$4("Plugins"), p$1(`Plugins are custom effects that you can import into your song like samples! They are constructed by the community. `), h3(PluginConfig.pluginName), p$1(PluginConfig.pluginAbout), h3(PluginConfig.pluginUIElements[index].name), p$1(PluginConfig.pluginUIElements[index].info));
                     }
                     break;
                 case "slideSpeedSlider":
@@ -51392,20 +51393,20 @@ You should be redirected to the song at:<br /><br />
                                 case "slider": {
                                     const value = Math.min(instrument.pluginValues[i], pluginElement.max);
                                     this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: pluginElement.max, value: value, step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, pluginElement.name + ":"), this._pluginElements[i].container);
+                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i].container);
                                     break;
                                 }
                                 case "checkbox": {
                                     this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
                                     this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +this._pluginElements[i].checked, instrument.pluginValues[i], i)));
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, pluginElement.name + ":"), this._pluginElements[i]);
+                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
                                     break;
                                 }
                                 case "dropdown": {
                                     const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
                                     this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
                                     this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin") }, pluginElement.name + ":"), this._pluginElements[i]);
+                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
                                     break;
                                 }
                             }
@@ -54268,7 +54269,7 @@ You should be redirected to the song at:<br /><br />
                         this.prompt = new SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
                         break;
                     default:
-                        this.prompt = new TipPrompt(this.doc, promptName);
+                        this.prompt = new TipPrompt(this.doc, promptName, extraSettings);
                         break;
                 }
                 if (this.prompt) {
