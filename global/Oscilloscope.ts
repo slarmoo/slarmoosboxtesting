@@ -1,5 +1,5 @@
 import { ColorConfig } from "../editor/ColorConfig";
-import { events } from "./Events";
+import { events, EventType } from "./Events";
 
 export class oscilloscopeCanvas {
     public _EventUpdateCanvas:Function;
@@ -30,7 +30,7 @@ export class oscilloscopeCanvas {
                 }
             }
         };
-        events.listen("oscilloscopeUpdate", this._EventUpdateCanvas);
+        events.listen(EventType.oscilloscope, this._EventUpdateCanvas);
     }
 
 

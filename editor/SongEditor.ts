@@ -60,7 +60,7 @@ import { AddSamplesPrompt } from "./AddSamplesPrompt";
 import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
 import { CustomChipCanvas } from "./CustomChipCanvas";
 import { CustomAlgorithmCanvas } from "./CustomAlgorithmCanvas";
-import { events } from "../global/Events";
+import { events, EventType } from "../global/Events";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -948,7 +948,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
-        events.listen("pluginLoaded", this.whenUpdated.bind(this));
+        events.listen(EventType.pluginLoaded, this.whenUpdated.bind(this));
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);

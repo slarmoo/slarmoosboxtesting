@@ -43,6 +43,13 @@ var beepbox = (function (exports) {
             this.listeners[eventType] = [];
         }
     }
+    var EventType;
+    (function (EventType) {
+        EventType[EventType["oscilloscope"] = 0] = "oscilloscope";
+        EventType[EventType["sampleLoading"] = 1] = "sampleLoading";
+        EventType[EventType["sampleLoaded"] = 2] = "sampleLoaded";
+        EventType[EventType["pluginLoaded"] = 3] = "pluginLoaded";
+    })(EventType || (EventType = {}));
     const events = new EventManager();
 
     /*!
@@ -130,7 +137,7 @@ var beepbox = (function (exports) {
                 return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
             }).then((audioBuffer) => {
                 const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-                events.raise("sampleLoaded", samples, chipWaveIndex);
+                events.raise(EventType.sampleLoaded, samples, chipWaveIndex);
                 const integratedSamples = performIntegral(samples);
                 chipWave.samples = integratedSamples;
                 rawChipWave.samples = samples;
@@ -358,7 +365,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -403,7 +410,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -462,7 +469,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -25089,7 +25096,7 @@ li.select2-results__option[role=group] > strong:hover {
                         flag: MessageFlag.pluginMessage,
                         name: plugin.pluginName
                     };
-                    events.raise("pluginLoaded", url, pluginMessage);
+                    events.raise(EventType.pluginLoaded, url, pluginMessage);
                 }
             });
         }
@@ -25317,7 +25324,7 @@ li.select2-results__option[role=group] > strong:hover {
                         sampleRate: customSampleRate,
                         index: chipWaveIndex
                     };
-                    events.raise("sampleLoading", sampleStartMessage);
+                    events.raise(EventType.sampleLoading, sampleStartMessage);
                 }
                 catch (_a) {
                 }
@@ -26776,9 +26783,9 @@ li.select2-results__option[role=group] > strong:hover {
             if (song != null)
                 this.setSong(song);
             this.activateAudio();
-            events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
-            events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
-            events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
+            events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
+            events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
+            events.listen(EventType.pluginLoaded, this.updateProcessorPlugin.bind(this));
         }
         sendMessage(message) {
             if (this.workletNode == null) {
@@ -26816,7 +26823,7 @@ li.select2-results__option[role=group] > strong:hover {
                         if (this.oscRefreshEventTimer <= 0) {
                             this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
                             this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
-                            events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
+                            events.raise(EventType.oscilloscope, this.leftData, this.rightData);
                             this.oscRefreshEventTimer = 4;
                         }
                         else {
@@ -48392,7 +48399,7 @@ You should be redirected to the song at:<br /><br />
                     }
                 }
             };
-            events.listen("oscilloscopeUpdate", this._EventUpdateCanvas);
+            events.listen(EventType.oscilloscope, this._EventUpdateCanvas);
         }
     }
 
@@ -53609,7 +53616,7 @@ You should be redirected to the song at:<br /><br />
                 this.doc.prefs.save();
             };
             this.doc.notifier.watch(this.whenUpdated);
-            events.listen("pluginLoaded", this.whenUpdated.bind(this));
+            events.listen(EventType.pluginLoaded, this.whenUpdated.bind(this));
             this.doc.modRecordingHandler = () => { this.handleModRecording(); };
             new MidiInputHandler(this.doc);
             window.addEventListener("resize", this.whenUpdated);

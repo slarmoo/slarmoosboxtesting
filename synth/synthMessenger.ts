@@ -7,7 +7,7 @@ import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
-import { events } from "../global/Events";
+import { events, EventType } from "../global/Events";
 import { EffectPlugin } from "./plugin";
 
 
@@ -6516,7 +6516,7 @@ export class Song {
                 flag: MessageFlag.pluginMessage,
                 name: plugin.pluginName
             }
-            events.raise("pluginLoaded", url, pluginMessage);
+            events.raise(EventType.pluginLoaded, url, pluginMessage);
         }
     }
 
@@ -6760,7 +6760,7 @@ export class Song {
                     sampleRate: customSampleRate,
                     index: chipWaveIndex
                 }
-                events.raise("sampleLoading", sampleStartMessage);
+                events.raise(EventType.sampleLoading, sampleStartMessage);
             } catch {
 
             }
@@ -8326,9 +8326,9 @@ export class SynthMessenger {
     constructor(song: Song | string | null = null) {
         if (song != null) this.setSong(song);
         this.activateAudio();
-        events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
-        events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
-        events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
+        events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
+        events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
+        events.listen(EventType.pluginLoaded, this.updateProcessorPlugin.bind(this));
     }
 
     private messageQueue: Message[] = [];
@@ -8373,7 +8373,7 @@ export class SynthMessenger {
                     if (this.oscRefreshEventTimer <= 0) {
                         this.analyserNodeLeft!.getFloatTimeDomainData(this.leftData);
                         this.analyserNodeRight!.getFloatTimeDomainData(this.rightData);
-                        events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
+                        events.raise(EventType.oscilloscope, this.leftData, this.rightData);
                         this.oscRefreshEventTimer = 4; //oscilloscope refresh rate
                     } else {
                         this.oscRefreshEventTimer--;

@@ -1,5 +1,5 @@
 //A simple events system for effectively direct links without actualy linking files or references
-type Event = [string, any, any]
+type Event = [EventType, any, any]
 
 class EventManager {
     private activeEvents: Event[] = [];
@@ -11,7 +11,7 @@ class EventManager {
     }
 
 
-    public raise(eventType: string, eventData: any, extraEventData?: any): void {
+    public raise(eventType: EventType, eventData: any, extraEventData?: any): void {
         this.activeEvents.push([eventType, eventData, extraEventData]);
         if (this.listeners[eventType] == undefined) {
             return;
@@ -25,14 +25,14 @@ class EventManager {
         }
     }
 
-    public listen(eventType: string, callback: Function): void {
+    public listen(eventType: EventType, callback: Function): void {
         if (this.listeners[eventType] == undefined) {
             this.listeners[eventType] = [];
         }
         this.listeners[eventType].push(callback);
     }
 
-    public unlisten(eventType: string, callback: Function): void {
+    public unlisten(eventType: EventType, callback: Function): void {
         if (this.listeners[eventType] == undefined) {
             return;
         }
@@ -41,12 +41,19 @@ class EventManager {
             this.listeners[eventType].splice(listen, 1);
         }
     }
-    public unlistenAll(eventType: string): void {
+    public unlistenAll(eventType: EventType): void {
         if (this.listeners[eventType] == undefined) {
             return;
         }
         this.listeners[eventType] = [];
     }
+}
+
+export enum EventType {
+    oscilloscope,
+    sampleLoading,
+    sampleLoaded,
+    pluginLoaded
 }
 
 export const events: EventManager = new EventManager()

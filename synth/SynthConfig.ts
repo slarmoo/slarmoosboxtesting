@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import { events } from "../global/Events";
+import { events, EventType } from "../global/Events";
 
 export interface Dictionary<T> {
     [K: string]: T;
@@ -394,7 +394,7 @@ export async function startLoadingSample(url: string, chipWaveIndex: number, pre
     }).then((audioBuffer) => {
 	// @TODO: Downmix.
 	const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-    events.raise("sampleLoaded", samples, chipWaveIndex);
+    events.raise(EventType.sampleLoaded, samples, chipWaveIndex);
 	const integratedSamples = performIntegral(samples);
 	chipWave.samples = integratedSamples;
 	rawChipWave.samples = samples;
@@ -736,7 +736,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,
@@ -792,7 +792,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,
@@ -861,7 +861,7 @@ export function loadBuiltInSamples(set: number): void {
 		Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
 		Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
 		sampleLoadingState.statusTable[chipWaveIndex] = SampleLoadingStatus.loaded;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
 		sampleLoadingState.samplesLoaded++;
 		sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
 		    sampleLoadingState.totalSamples,

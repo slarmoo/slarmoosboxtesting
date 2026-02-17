@@ -43,6 +43,13 @@ var beepbox = (function (exports) {
             this.listeners[eventType] = [];
         }
     }
+    var EventType;
+    (function (EventType) {
+        EventType[EventType["oscilloscope"] = 0] = "oscilloscope";
+        EventType[EventType["sampleLoading"] = 1] = "sampleLoading";
+        EventType[EventType["sampleLoaded"] = 2] = "sampleLoaded";
+        EventType[EventType["pluginLoaded"] = 3] = "pluginLoaded";
+    })(EventType || (EventType = {}));
     const events = new EventManager();
 
     /*!
@@ -123,7 +130,7 @@ var beepbox = (function (exports) {
                 return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
             }).then((audioBuffer) => {
                 const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-                events.raise("sampleLoaded", samples, chipWaveIndex);
+                events.raise(EventType.sampleLoaded, samples, chipWaveIndex);
                 const integratedSamples = performIntegral(samples);
                 chipWave.samples = integratedSamples;
                 rawChipWave.samples = samples;
@@ -344,7 +351,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -389,7 +396,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -448,7 +455,7 @@ var beepbox = (function (exports) {
                     Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
                     Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
                     sampleLoadingState.statusTable[chipWaveIndex] = 1;
-                    events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+                    events.raise(EventType.sampleLoaded, chipWaveSample, chipWaveIndex);
                     sampleLoadingState.samplesLoaded++;
                     sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(sampleLoadingState.totalSamples, sampleLoadingState.samplesLoaded));
                     chipWaveIndexOffset++;
@@ -23191,7 +23198,7 @@ var beepbox = (function (exports) {
                         flag: MessageFlag.pluginMessage,
                         name: plugin.pluginName
                     };
-                    events.raise("pluginLoaded", url, pluginMessage);
+                    events.raise(EventType.pluginLoaded, url, pluginMessage);
                 }
             });
         }
@@ -23419,7 +23426,7 @@ var beepbox = (function (exports) {
                         sampleRate: customSampleRate,
                         index: chipWaveIndex
                     };
-                    events.raise("sampleLoading", sampleStartMessage);
+                    events.raise(EventType.sampleLoading, sampleStartMessage);
                 }
                 catch (_a) {
                 }
@@ -24878,9 +24885,9 @@ var beepbox = (function (exports) {
             if (song != null)
                 this.setSong(song);
             this.activateAudio();
-            events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
-            events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
-            events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
+            events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
+            events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
+            events.listen(EventType.pluginLoaded, this.updateProcessorPlugin.bind(this));
         }
         sendMessage(message) {
             if (this.workletNode == null) {
@@ -24918,7 +24925,7 @@ var beepbox = (function (exports) {
                         if (this.oscRefreshEventTimer <= 0) {
                             this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
                             this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
-                            events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
+                            events.raise(EventType.oscilloscope, this.leftData, this.rightData);
                             this.oscRefreshEventTimer = 4;
                         }
                         else {
@@ -25827,7 +25834,7 @@ var beepbox = (function (exports) {
                     }
                 }
             };
-            events.listen("oscilloscopeUpdate", this._EventUpdateCanvas);
+            events.listen(EventType.oscilloscope, this._EventUpdateCanvas);
         }
     }
 
