@@ -680,7 +680,7 @@ export class Pattern {
                     note.continuesLastPattern = false;
                 }
 
-                if ((format != "ultrabox" && format != "slarmoosbox") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
+                if ((format != "ultrabox" && format != "slarmoosbox" && format != "auto") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
                     for (const pin of note.pins) {
                         const oldMin: number = 30;
                         const newMin: number = 1;
@@ -6497,7 +6497,7 @@ export class Song {
         }
     }
 
-    private async fetchPlugin(pluginurl: string) {
+    public async fetchPlugin(pluginurl: string) {
         if (pluginurl != null && document.URL) {
             const code = await fetch(pluginurl).then(r => r.text());
 
@@ -6975,12 +6975,6 @@ export class Song {
                 this.sequences[channelIndex!].values = data as number[];
                 break;
             case SongSettings.pluginurl:
-                //flush old plugin values
-                for (let channelIndex: number = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
-                    for (let instrumentIndex: number = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
-                        this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                    }
-                }
                 break;
             case SongSettings.channelOrder:
                 const selectionMin: number = data.selectionMin;
@@ -6991,9 +6985,6 @@ export class Song {
             case SongSettings.updateChannel:
                 const channel: Channel = this.channels[channelIndex!];
                 switch (instrumentSetting) {
-                    case ChannelSettings.fromJson:
-                        this.channels[channelIndex!] = data as Channel;
-                        break;
                     case ChannelSettings.allPatterns: {
                         const newPatterns = data as Pattern[];
                         for (let i: number = 0; i < newPatterns.length; i++) {
@@ -7015,7 +7006,7 @@ export class Song {
                             });
                         }
                         break;
-                case ChannelSettings.muted:
+                    case ChannelSettings.muted:
                         channel.muted = numberData == 1;
                         break;
                     case ChannelSettings.newInstrument: {
@@ -8500,6 +8491,9 @@ export class SynthMessenger {
                 song: this.song.toBase64String()
             }
             this.sendMessage(songMessage);
+            for (let channelIndex: number = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
+                this.updateSong(+this.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
+            }
         }
     }
 

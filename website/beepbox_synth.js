@@ -2385,13 +2385,12 @@ var beepbox = (function (exports) {
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
-        ChannelSettings[ChannelSettings["fromJson"] = 0] = "fromJson";
-        ChannelSettings[ChannelSettings["pattern"] = 1] = "pattern";
-        ChannelSettings[ChannelSettings["allPatterns"] = 2] = "allPatterns";
-        ChannelSettings[ChannelSettings["bars"] = 3] = "bars";
-        ChannelSettings[ChannelSettings["muted"] = 4] = "muted";
-        ChannelSettings[ChannelSettings["newInstrument"] = 5] = "newInstrument";
-        ChannelSettings[ChannelSettings["removeInstrunent"] = 6] = "removeInstrunent";
+        ChannelSettings[ChannelSettings["pattern"] = 0] = "pattern";
+        ChannelSettings[ChannelSettings["allPatterns"] = 1] = "allPatterns";
+        ChannelSettings[ChannelSettings["bars"] = 2] = "bars";
+        ChannelSettings[ChannelSettings["muted"] = 3] = "muted";
+        ChannelSettings[ChannelSettings["newInstrument"] = 4] = "newInstrument";
+        ChannelSettings[ChannelSettings["removeInstrunent"] = 5] = "removeInstrunent";
     })(ChannelSettings || (ChannelSettings = {}));
     var InstrumentSettings;
     (function (InstrumentSettings) {
@@ -3262,7 +3261,7 @@ var beepbox = (function (exports) {
                     else {
                         note.continuesLastPattern = false;
                     }
-                    if ((format != "ultrabox" && format != "slarmoosbox") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
+                    if ((format != "ultrabox" && format != "slarmoosbox" && format != "auto") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
                         for (const pin of note.pins) {
                             const oldMin = 30;
                             const newMin = 1;
@@ -9111,11 +9110,6 @@ var beepbox = (function (exports) {
                     this.sequences[channelIndex].values = data;
                     break;
                 case SongSettings.pluginurl:
-                    for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
-                        for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
-                            this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                        }
-                    }
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -9126,9 +9120,6 @@ var beepbox = (function (exports) {
                 case SongSettings.updateChannel:
                     const channel = this.channels[channelIndex];
                     switch (instrumentSetting) {
-                        case ChannelSettings.fromJson:
-                            this.channels[channelIndex] = data;
-                            break;
                         case ChannelSettings.allPatterns: {
                             const newPatterns = data;
                             for (let i = 0; i < newPatterns.length; i++) {
@@ -10534,6 +10525,9 @@ var beepbox = (function (exports) {
                     song: this.song.toBase64String()
                 };
                 this.sendMessage(songMessage);
+                for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
+                    this.updateSong(+this.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
+                }
             }
         }
         deactivateAudio() {

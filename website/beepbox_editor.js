@@ -11317,13 +11317,12 @@ li.select2-results__option[role=group] > strong:hover {
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
-        ChannelSettings[ChannelSettings["fromJson"] = 0] = "fromJson";
-        ChannelSettings[ChannelSettings["pattern"] = 1] = "pattern";
-        ChannelSettings[ChannelSettings["allPatterns"] = 2] = "allPatterns";
-        ChannelSettings[ChannelSettings["bars"] = 3] = "bars";
-        ChannelSettings[ChannelSettings["muted"] = 4] = "muted";
-        ChannelSettings[ChannelSettings["newInstrument"] = 5] = "newInstrument";
-        ChannelSettings[ChannelSettings["removeInstrunent"] = 6] = "removeInstrunent";
+        ChannelSettings[ChannelSettings["pattern"] = 0] = "pattern";
+        ChannelSettings[ChannelSettings["allPatterns"] = 1] = "allPatterns";
+        ChannelSettings[ChannelSettings["bars"] = 2] = "bars";
+        ChannelSettings[ChannelSettings["muted"] = 3] = "muted";
+        ChannelSettings[ChannelSettings["newInstrument"] = 4] = "newInstrument";
+        ChannelSettings[ChannelSettings["removeInstrunent"] = 5] = "removeInstrunent";
     })(ChannelSettings || (ChannelSettings = {}));
     var InstrumentSettings;
     (function (InstrumentSettings) {
@@ -19681,7 +19680,7 @@ li.select2-results__option[role=group] > strong:hover {
                     else {
                         note.continuesLastPattern = false;
                     }
-                    if ((format != "ultrabox" && format != "slarmoosbox") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
+                    if ((format != "ultrabox" && format != "slarmoosbox" && format != "auto") && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
                         for (const pin of note.pins) {
                             const oldMin = 30;
                             const newMin = 1;
@@ -25530,11 +25529,6 @@ li.select2-results__option[role=group] > strong:hover {
                     this.sequences[channelIndex].values = data;
                     break;
                 case SongSettings.pluginurl:
-                    for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
-                        for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
-                            this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                        }
-                    }
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -25545,9 +25539,6 @@ li.select2-results__option[role=group] > strong:hover {
                 case SongSettings.updateChannel:
                     const channel = this.channels[channelIndex];
                     switch (instrumentSetting) {
-                        case ChannelSettings.fromJson:
-                            this.channels[channelIndex] = data;
-                            break;
                         case ChannelSettings.allPatterns: {
                             const newPatterns = data;
                             for (let i = 0; i < newPatterns.length; i++) {
@@ -26953,6 +26944,9 @@ li.select2-results__option[role=group] > strong:hover {
                     song: this.song.toBase64String()
                 };
                 this.sendMessage(songMessage);
+                for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
+                    this.updateSong(+this.song.channels[channelIndex].muted, SongSettings.updateChannel, channelIndex, 0, ChannelSettings.muted);
+                }
             }
         }
         deactivateAudio() {
@@ -30403,12 +30397,8 @@ li.select2-results__option[role=group] > strong:hover {
                 doc.song.pitchChannelCount = newPitchChannelCount;
                 doc.song.noiseChannelCount = newNoiseChannelCount;
                 doc.song.modChannelCount = newModChannelCount;
-                doc.synth.updateSong(newPitchChannelCount, SongSettings.pitchChannelCount);
-                doc.synth.updateSong(newNoiseChannelCount, SongSettings.noiseChannelCount);
-                doc.synth.updateSong(newModChannelCount, SongSettings.modChannelCount);
                 for (let channelIndex = 0; channelIndex < doc.song.getChannelCount(); channelIndex++) {
                     doc.song.channels[channelIndex] = newChannels[channelIndex];
-                    doc.synth.updateSong(newChannels[channelIndex], SongSettings.updateChannel, channelIndex, 0, ChannelSettings.fromJson);
                 }
                 doc.song.channels.length = doc.song.getChannelCount();
                 doc.channel = Math.min(doc.channel, newPitchChannelCount + newNoiseChannelCount + newModChannelCount - 1);
@@ -30424,10 +30414,9 @@ li.select2-results__option[role=group] > strong:hover {
                                 instrument.modChannels[mod] += newPitchChannelCount - oldPitchCount;
                             }
                         }
-                        doc.synth.updateSong(instrument.modChannels, SongSettings.updateInstrument, channelIndex, instrumentIdx, InstrumentSettings.modChannels);
-                        doc.synth.updateSong(instrument.modulators, SongSettings.updateInstrument, channelIndex, instrumentIdx, InstrumentSettings.modulators);
                     }
                 }
+                doc.synth.updateWorkletSong();
                 doc.notifier.changed();
                 ColorConfig.resetColors();
                 this._didSomething();
@@ -30485,9 +30474,6 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 maxIndex--;
             }
-            doc.synth.updateSong(doc.song.pitchChannelCount, SongSettings.pitchChannelCount);
-            doc.synth.updateSong(doc.song.noiseChannelCount, SongSettings.noiseChannelCount);
-            doc.synth.updateSong(doc.song.modChannelCount, SongSettings.modChannelCount);
             if (doc.song.pitchChannelCount < Config.pitchChannelCountMin) {
                 this.append(new ChangeChannelCount(doc, Config.pitchChannelCountMin, doc.song.noiseChannelCount, doc.song.modChannelCount));
             }
@@ -31207,16 +31193,18 @@ li.select2-results__option[role=group] > strong:hover {
             const oldValue = doc.song.pluginurl;
             if (oldValue != value) {
                 doc.song.pluginurl = value;
-                PluginConfig.pluginName = "";
-                PluginConfig.pluginUIElements = [];
-                PluginConfig.pluginAbout = "";
-                for (let channelIndex = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
-                    for (let instrumentIndex = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                        doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                        doc.synth.updateSong(0, SongSettings.pluginurl);
+                doc.song.fetchPlugin(value).then(() => {
+                    for (let channelIndex = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
+                        for (let instrumentIndex = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                            doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                            for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                                doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                            }
+                        }
                     }
-                }
-                this._didSomething();
+                    doc.synth.updateSong(0, SongSettings.pluginurl);
+                    this._didSomething();
+                });
             }
             doc.notifier.changed();
         }
@@ -51392,37 +51380,6 @@ You should be redirected to the song at:<br /><br />
                         this._upperNoteLimitRow.style.display = "none";
                         this._lowerNoteLimitRow.style.display = "none";
                     }
-                    if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length != PluginConfig.pluginUIElements.length) {
-                        this._pluginurl = this.doc.song.pluginurl;
-                        for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                            const pluginElement = PluginConfig.pluginUIElements[i];
-                            switch (pluginElement.type) {
-                                case "slider": {
-                                    const value = Math.min(instrument.pluginValues[i], pluginElement.max);
-                                    this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: pluginElement.max, value: value, step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i].container);
-                                    break;
-                                }
-                                case "checkbox": {
-                                    this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
-                                    this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +this._pluginElements[i].checked, instrument.pluginValues[i], i)));
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
-                                    break;
-                                }
-                                case "dropdown": {
-                                    const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
-                                    this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
-                                    this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));
-                                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
-                                    break;
-                                }
-                            }
-                        }
-                        this._pluginContainerRow.innerHTML = "";
-                        for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                            this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                        }
-                    }
                     if (effectsIncludePlugin(instrument.effects)) {
                         this._pluginContainerRow.style.display = "";
                         for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
@@ -52158,6 +52115,55 @@ You should be redirected to the song at:<br /><br />
                     this._ringModWaveText.style.display = "";
                 }
                 this.handleModRecording();
+            };
+            this._updatePlugin = () => {
+                const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
+                this._pluginurl = this.doc.song.pluginurl;
+                for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    const pluginElement = PluginConfig.pluginUIElements[i];
+                    switch (pluginElement.type) {
+                        case "slider": {
+                            const value = Math.min(instrument.pluginValues[i], pluginElement.max);
+                            this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: pluginElement.max, value: value, step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i].container);
+                            break;
+                        }
+                        case "checkbox": {
+                            this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
+                            this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +this._pluginElements[i].checked, instrument.pluginValues[i], i)));
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
+                            break;
+                        }
+                        case "dropdown": {
+                            const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
+                            this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
+                            this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));
+                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
+                            break;
+                        }
+                    }
+                }
+                this._pluginContainerRow.innerHTML = "";
+                for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
+                }
+                if (effectsIncludePlugin(instrument.effects)) {
+                    this._pluginContainerRow.style.display = "";
+                    for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                        if (this._pluginElements[i] instanceof Slider) {
+                            this._pluginElements[i].updateValue(PluginConfig.pluginUIElements[i].initialValue);
+                        }
+                        else if (this._pluginElements[i] instanceof HTMLSelectElement) {
+                            this._pluginElements[i].value = PluginConfig.pluginUIElements[i].initialValue + "";
+                        }
+                        else if (this._pluginElements[i] instanceof HTMLInputElement) {
+                            this._pluginElements[i].checked = Boolean(PluginConfig.pluginUIElements[i].initialValue == 1);
+                        }
+                    }
+                }
+                else {
+                    this._pluginContainerRow.style.display = "none";
+                }
             };
             this.updatePlayButton = () => {
                 if (this._renderedIsPlaying != this.doc.synth.playing || this._renderedIsRecording != this.doc.synth.recording || this._renderedShowRecordButton != this.doc.prefs.showRecordButton || this._renderedCtrlHeld != this._ctrlHeld) {
@@ -53616,7 +53622,7 @@ You should be redirected to the song at:<br /><br />
                 this.doc.prefs.save();
             };
             this.doc.notifier.watch(this.whenUpdated);
-            events.listen(EventType.pluginLoaded, this.whenUpdated.bind(this));
+            events.listen(EventType.pluginLoaded, this._updatePlugin.bind(this));
             this.doc.modRecordingHandler = () => { this.handleModRecording(); };
             new MidiInputHandler(this.doc);
             window.addEventListener("resize", this.whenUpdated);

@@ -11,6 +11,9 @@ More information about fast fourier transforms can be found [here](https://en.wi
 # [filtering.ts](./filtering.ts)
 Much of the code for BeepBox's filtering system. BeepBox uses Dynamic Biquad Filters. John Nesky links a lot of helpful information in the comments of the file
 
+# [plugin.ts](./plugin.ts)
+The generic plugin structure that plugins will implement
+
 # [Set.ts](./Set.ts)
 A Set implementation made for handling Slarmoo's Box's live input tones. While sets, unlike deques, natively exist in javascript, this set has been specially optimized for Slarmoo's Box
 

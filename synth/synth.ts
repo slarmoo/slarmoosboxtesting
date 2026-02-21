@@ -2562,7 +2562,7 @@ export class Synth {
 
     private static readonly fmSynthFunctionCache: Dictionary<Function> = {};
     private static readonly fm6SynthFunctionCache: Dictionary<Function> = {};
-    private static readonly effectsFunctionCache: Function[] = Array(1 << 7).fill(undefined); // keep in sync with the number of post-process effects.
+    public static readonly effectsFunctionCache: Function[] = Array(1 << 7).fill(undefined); // keep in sync with the number of post-process effects.
     private static readonly pickedStringFunctionCache: Function[] = Array(3).fill(undefined); // keep in sync with the number of unison voices.
     private static readonly spectrumFunctionCache: Function[] = [];
     private static readonly noiseFunctionCache: Function[] = [];

@@ -108,7 +108,7 @@ async function startLoadingSample(url, chipWaveIndex, presetSettings, rawLoopOpt
     return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
   }).then((audioBuffer) => {
     const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-    events.raise("sampleLoaded", samples, chipWaveIndex);
+    events.raise(2 /* sampleLoaded */, samples, chipWaveIndex);
     const integratedSamples = performIntegral(samples);
     chipWave.samples = integratedSamples;
     rawChipWave.samples = samples;
@@ -328,7 +328,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(2 /* sampleLoaded */, chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -374,7 +374,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(2 /* sampleLoaded */, chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -434,7 +434,7 @@ function loadBuiltInSamples(set) {
         Config.rawRawChipWaves[chipWaveIndex].samples = chipWaveSample;
         Config.chipWaves[chipWaveIndex].samples = performIntegral(chipWaveSample);
         sampleLoadingState.statusTable[chipWaveIndex] = 1 /* loaded */;
-        events.raise("sampleLoaded", chipWaveSample, chipWaveIndex);
+        events.raise(2 /* sampleLoaded */, chipWaveSample, chipWaveIndex);
         sampleLoadingState.samplesLoaded++;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
           sampleLoadingState.totalSamples,
@@ -11965,7 +11965,7 @@ var Pattern2 = class {
         } else {
           note.continuesLastPattern = false;
         }
-        if (format != "ultrabox" && format != "slarmoosbox" && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
+        if (format != "ultrabox" && format != "slarmoosbox" && format != "auto" && instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) {
           for (const pin of note.pins) {
             const oldMin = 30;
             const newMin = 1;
@@ -17099,7 +17099,7 @@ var Song = class _Song {
         flag: 12 /* pluginMessage */,
         name: plugin.pluginName
       };
-      events.raise("pluginLoaded", url, pluginMessage);
+      events.raise(3 /* pluginLoaded */, url, pluginMessage);
     }
   }
   static _isProperUrl(string) {
@@ -17302,7 +17302,7 @@ var Song = class _Song {
           sampleRate: customSampleRate,
           index: chipWaveIndex
         };
-        events.raise("sampleLoading", sampleStartMessage);
+        events.raise(1 /* sampleLoading */, sampleStartMessage);
       } catch {
       }
       const customSamplePresetSettings = {
@@ -17507,11 +17507,6 @@ var Song = class _Song {
         this.sequences[channelIndex].values = data;
         break;
       case 24 /* pluginurl */:
-        for (let channelIndex2 = 0; channelIndex2 < this.pitchChannelCount + this.noiseChannelCount; channelIndex2++) {
-          for (let instrumentIndex2 = 0; instrumentIndex2 < this.channels[channelIndex2].instruments.length; instrumentIndex2++) {
-            this.channels[channelIndex2].instruments[instrumentIndex2].pluginValues.fill(0);
-          }
-        }
         break;
       case 25 /* channelOrder */:
         const selectionMin = data.selectionMin;
@@ -17522,22 +17517,19 @@ var Song = class _Song {
       case 26 /* updateChannel */:
         const channel = this.channels[channelIndex];
         switch (instrumentSetting) {
-          case 0 /* fromJson */:
-            this.channels[channelIndex] = data;
-            break;
-          case 2 /* allPatterns */: {
+          case 1 /* allPatterns */: {
             const newPatterns = data;
             for (let i = 0; i < newPatterns.length; i++) {
               channel.patterns[i].copyObject(newPatterns[i]);
             }
             break;
           }
-          case 1 /* pattern */: {
+          case 0 /* pattern */: {
             channel.patterns[instrumentIndex].copyObject(data);
             discardInvalidPatternInstruments(channel.patterns[instrumentIndex].instruments, this, channelIndex);
             break;
           }
-          case 3 /* bars */:
+          case 2 /* bars */:
             if (typeof data == "number") {
               channel.bars[instrumentIndex] = data;
             } else {
@@ -17547,10 +17539,10 @@ var Song = class _Song {
               });
             }
             break;
-          case 4 /* muted */:
+          case 3 /* muted */:
             channel.muted = numberData == 1;
             break;
-          case 5 /* newInstrument */: {
+          case 4 /* newInstrument */: {
             const isNoise = this.getChannelIsNoise(channelIndex);
             const isMod = this.getChannelIsMod(channelIndex);
             const ins = new Instrument(isNoise, isMod);
@@ -17558,7 +17550,7 @@ var Song = class _Song {
             channel.instruments.push(ins);
             break;
           }
-          case 6 /* removeInstrunent */: {
+          case 5 /* removeInstrunent */: {
             channel.instruments.splice(data, 1);
             break;
           }
@@ -18665,9 +18657,9 @@ var SynthMessenger = class {
     this.exportProcessor = null;
     if (song != null) this.setSong(song);
     this.activateAudio();
-    events.listen("sampleLoading", this.updateProcessorSamplesStart.bind(this));
-    events.listen("sampleLoaded", this.updateProcessorSamplesFinish.bind(this));
-    events.listen("pluginLoaded", this.updateProcessorPlugin.bind(this));
+    events.listen(1 /* sampleLoading */, this.updateProcessorSamplesStart.bind(this));
+    events.listen(2 /* sampleLoaded */, this.updateProcessorSamplesFinish.bind(this));
+    events.listen(3 /* pluginLoaded */, this.updateProcessorPlugin.bind(this));
   }
   static {
     __name(this, "SynthMessenger");
@@ -18776,7 +18768,7 @@ var SynthMessenger = class {
           if (this.oscRefreshEventTimer <= 0) {
             this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
             this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
-            events.raise("oscilloscopeUpdate", this.leftData, this.rightData);
+            events.raise(0 /* oscilloscope */, this.leftData, this.rightData);
             this.oscRefreshEventTimer = 4;
           } else {
             this.oscRefreshEventTimer--;
@@ -18895,6 +18887,9 @@ var SynthMessenger = class {
         song: this.song.toBase64String()
       };
       this.sendMessage(songMessage);
+      for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
+        this.updateSong(+this.song.channels[channelIndex].muted, 26 /* updateChannel */, channelIndex, 0, 3 /* muted */);
+      }
     }
   }
   deactivateAudio() {
@@ -19733,6 +19728,17 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       }
       case 12 /* pluginMessage */: {
         Synth.PluginClass = globalThis[event.data.name];
+        const plugin = new Synth.PluginClass();
+        for (let channelIndex = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
+          for (let instrumentIndex = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+            this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
+            this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+            for (let i = 0; i < plugin.elements.length; i++) {
+              this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = plugin.elements[i].initialValue;
+            }
+          }
+        }
+        Synth.effectsFunctionCache.fill(void 0);
         break;
       }
       case 13 /* loopRepeatCount */: {
@@ -19747,13 +19753,6 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       case 15 /* updateSong */: {
         if (!this.synth.song) this.synth.song = new Song();
         this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
-        if (event.data.songSetting == 24 /* pluginurl */) {
-          for (let channelIndex = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
-            for (let instrumentIndex = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-              this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
-            }
-          }
-        }
         break;
       }
     }

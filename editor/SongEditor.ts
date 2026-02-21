@@ -948,7 +948,7 @@ export class SongEditor {
     constructor(/*private _doc: SongDocument*/) {
 
         this.doc.notifier.watch(this.whenUpdated);
-        events.listen(EventType.pluginLoaded, this.whenUpdated.bind(this));
+        events.listen(EventType.pluginLoaded, this._updatePlugin.bind(this));
         this.doc.modRecordingHandler = () => { this.handleModRecording() };
         new MidiInputHandler(this.doc);
         window.addEventListener("resize", this.whenUpdated);
@@ -2418,39 +2418,6 @@ export class SongEditor {
                 this._upperNoteLimitRow.style.display = "none";
                 this._lowerNoteLimitRow.style.display = "none";
             }
-            
-            if (this._pluginurl != this.doc.song.pluginurl || this._pluginElements.length != PluginConfig.pluginUIElements.length) {
-                this._pluginurl = this.doc.song.pluginurl;
-                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                    const pluginElement: PluginElement = PluginConfig.pluginUIElements[i];
-                    
-                    switch (pluginElement.type) {
-                        case "slider": {
-                            const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginSlider).max);
-                            this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: (pluginElement as PluginSlider).max, value: value, step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
-                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginSlider).name + ":"), (this._pluginElements[i] as Slider).container);
-                            break;
-                        }
-                        case "checkbox": {
-                            this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
-                            (this._pluginElements[i] as HTMLInputElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +(this._pluginElements[i] as HTMLInputElement).checked, instrument.pluginValues[i], i)))
-                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
-                            break;
-                        }
-                        case "dropdown": {
-                            const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginDropdown).options.length - 1);
-                            this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
-                            (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
-                            this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
-                            break;
-                        }
-                    }
-                }
-                this._pluginContainerRow.innerHTML = ""
-                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                    this._pluginContainerRow.appendChild(this._pluginRows[i]);
-                }
-            }
 
             if (effectsIncludePlugin(instrument.effects)) {
                 this._pluginContainerRow.style.display = "";
@@ -3308,6 +3275,55 @@ export class SongEditor {
         // Writeback to mods if control key is held while moving a slider.
         this.handleModRecording();
 
+    }
+
+    private _updatePlugin = () => {
+        const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
+        this._pluginurl = this.doc.song.pluginurl;
+        for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+            const pluginElement: PluginElement = PluginConfig.pluginUIElements[i];
+
+            switch (pluginElement.type) {
+                case "slider": {
+                    const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginSlider).max);
+                    this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: (pluginElement as PluginSlider).max, value: value, step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
+                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginSlider).name + ":"), (this._pluginElements[i] as Slider).container);
+                    break;
+                }
+                case "checkbox": {
+                    this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
+                    (this._pluginElements[i] as HTMLInputElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +(this._pluginElements[i] as HTMLInputElement).checked, instrument.pluginValues[i], i)))
+                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
+                    break;
+                }
+                case "dropdown": {
+                    const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginDropdown).options.length - 1);
+                    this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
+                    (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
+                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
+                    break;
+                }
+            }
+        }
+        this._pluginContainerRow.innerHTML = ""
+        for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+            this._pluginContainerRow.appendChild(this._pluginRows[i]);
+        }
+        
+        if (effectsIncludePlugin(instrument.effects)) {
+            this._pluginContainerRow.style.display = "";
+            for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                if (this._pluginElements[i] instanceof Slider) {
+                    (this._pluginElements[i] as Slider).updateValue(PluginConfig.pluginUIElements[i].initialValue);
+                } else if (this._pluginElements[i] instanceof HTMLSelectElement) {
+                    (this._pluginElements[i] as HTMLSelectElement).value = PluginConfig.pluginUIElements[i].initialValue + "";
+                } else if (this._pluginElements[i] instanceof HTMLInputElement) {
+                    (this._pluginElements[i] as HTMLInputElement).checked = Boolean(PluginConfig.pluginUIElements[i].initialValue == 1);
+                }
+            }
+        } else {
+            this._pluginContainerRow.style.display = "none";
+        }
     }
 
     public handleModRecording(): void {

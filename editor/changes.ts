@@ -1856,7 +1856,7 @@ export class ChangeToggleEffects extends Change {
             for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
                 instrument.pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
             }
-            doc.synth.updateSong(instrument.pluginValues, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues)
+            doc.synth.updateSong(instrument.pluginValues, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.pluginValues);
         }
         if (wasSelected) instrument.clearInvalidEnvelopeTargets();
         doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.effects);
@@ -2138,13 +2138,9 @@ export class ChangeChannelCount extends Change {
             doc.song.pitchChannelCount = newPitchChannelCount;
             doc.song.noiseChannelCount = newNoiseChannelCount;
             doc.song.modChannelCount = newModChannelCount;
-            doc.synth.updateSong(newPitchChannelCount, SongSettings.pitchChannelCount);
-            doc.synth.updateSong(newNoiseChannelCount, SongSettings.noiseChannelCount);
-            doc.synth.updateSong(newModChannelCount, SongSettings.modChannelCount);
 
             for (let channelIndex: number = 0; channelIndex < doc.song.getChannelCount(); channelIndex++) {
                 doc.song.channels[channelIndex] = newChannels[channelIndex];
-                doc.synth.updateSong(newChannels[channelIndex], SongSettings.updateChannel, channelIndex, 0, ChannelSettings.fromJson)
             }
             doc.song.channels.length = doc.song.getChannelCount();
 
@@ -2168,11 +2164,9 @@ export class ChangeChannelCount extends Change {
                             instrument.modChannels[mod] += newPitchChannelCount - oldPitchCount;
                         }
                     }
-
-                    doc.synth.updateSong(instrument.modChannels, SongSettings.updateInstrument, channelIndex, instrumentIdx, InstrumentSettings.modChannels);
-                    doc.synth.updateSong(instrument.modulators, SongSettings.updateInstrument, channelIndex, instrumentIdx, InstrumentSettings.modulators);
                 }
             }
+            doc.synth.updateWorkletSong();
 
             doc.notifier.changed();
 
@@ -2240,9 +2234,6 @@ export class ChangeRemoveChannel extends ChangeGroup {
             }
             maxIndex--;
         }
-        doc.synth.updateSong(doc.song.pitchChannelCount, SongSettings.pitchChannelCount);
-        doc.synth.updateSong(doc.song.noiseChannelCount, SongSettings.noiseChannelCount);
-        doc.synth.updateSong(doc.song.modChannelCount, SongSettings.modChannelCount);
 
         if (doc.song.pitchChannelCount < Config.pitchChannelCountMin) {
             this.append(new ChangeChannelCount(doc, Config.pitchChannelCountMin, doc.song.noiseChannelCount, doc.song.modChannelCount));
@@ -3020,16 +3011,18 @@ export class ChangePluginurl extends Change {
         const oldValue = doc.song.pluginurl;
         if (oldValue != value) {
             doc.song.pluginurl = value;
-            PluginConfig.pluginName = "";
-            PluginConfig.pluginUIElements = [];
-            PluginConfig.pluginAbout = "";
-            for (let channelIndex: number = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
-                for (let instrumentIndex: number = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                    doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                    doc.synth.updateSong(0, SongSettings.pluginurl);
+            doc.song.fetchPlugin(value).then(() => {
+                for (let channelIndex: number = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
+                    for (let instrumentIndex: number = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                        for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                            doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                        }
+                    }
                 }
-            }
-            this._didSomething()
+                doc.synth.updateSong(0, SongSettings.pluginurl);
+                this._didSomething();
+            });
         }
         doc.notifier.changed();
     }

@@ -161,7 +161,6 @@ export enum SongSettings {
 }
 
 export enum ChannelSettings {
-    fromJson,
     pattern,
     allPatterns,
     bars,

@@ -5,6 +5,7 @@ import { Song } from "./synthMessenger";
 import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, SongSettings, UIRenderMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
+import { EffectPlugin } from "./plugin";
 
 export class SynthProcessor extends AudioWorkletProcessor {
 
@@ -152,6 +153,21 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
             case MessageFlag.pluginMessage: {
                 Synth.PluginClass = globalThis[event.data.name];
+                const plugin: EffectPlugin = new Synth.PluginClass();
+                
+                for (let channelIndex: number = 0; channelIndex < this.synth.song!.pitchChannelCount + this.synth.song!.noiseChannelCount; channelIndex++) {
+                    for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song!.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
+                        this.synth.song!.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                        for (let i: number = 0; i < plugin.elements.length; i++) {
+                            this.synth.song!.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = plugin.elements[i].initialValue;
+                        }
+                    }
+                }
+                //remove all previously cached effect functions, since they'll have used old effect orders
+                //@ts-ignore
+                Synth.effectsFunctionCache.fill(undefined);
+
                 break;
             }
             case MessageFlag.loopRepeatCount: {
@@ -166,13 +182,6 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.updateSong: {
                 if (!this.synth.song) this.synth.song = new Song();
                 this.synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
-                if (event.data.songSetting == SongSettings.pluginurl) { //reset plugins
-                    for (let channelIndex: number = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
-                        for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                            this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
-                        }
-                    }
-                }
                 break;
             }
         }
