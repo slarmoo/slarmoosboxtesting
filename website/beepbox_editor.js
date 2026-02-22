@@ -22978,8 +22978,8 @@ li.select2-results__option[role=group] > strong:hover {
                 if (!PluginConfig.pluginName) {
                     if (pluginurl && this.pluginurl != pluginurl)
                         this.fetchPlugin(pluginurl);
-                    this.pluginurl = pluginurl;
                 }
+                this.pluginurl = pluginurl;
             }
             if (beforeThree && fromBeepBox) {
                 for (const channel of this.channels) {
@@ -25078,9 +25078,10 @@ li.select2-results__option[role=group] > strong:hover {
                 setTimeout(() => { location.reload(); }, 50);
             }
         }
-        fetchPlugin(pluginurl) {
-            return __awaiter$1(this, void 0, void 0, function* () {
+        fetchPlugin(pluginurl_1) {
+            return __awaiter$1(this, arguments, void 0, function* (pluginurl, initializeValues = false) {
                 if (pluginurl != null && document.URL) {
+                    this.pluginurl = pluginurl;
                     const code = yield fetch(pluginurl).then(r => r.text());
                     const blob = new Blob([code], { type: 'text/javascript' });
                     const url = URL.createObjectURL(blob);
@@ -25093,8 +25094,19 @@ li.select2-results__option[role=group] > strong:hover {
                     PluginConfig.pluginAbout = plugin.about;
                     const pluginMessage = {
                         flag: MessageFlag.pluginMessage,
-                        name: plugin.pluginName
+                        name: plugin.pluginName,
+                        initializeValues: initializeValues
                     };
+                    if (initializeValues) {
+                        for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+                            for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+                                this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                                for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                                    this.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                                }
+                            }
+                        }
+                    }
                     events.raise(EventType.pluginLoaded, url, pluginMessage);
                 }
             });
@@ -25527,8 +25539,6 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 case SongSettings.sequenceValues:
                     this.sequences[channelIndex].values = data;
-                    break;
-                case SongSettings.pluginurl:
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -29134,6 +29144,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
             const isNoise = doc.song.getChannelIsNoise(doc.channel);
             const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+            const prevType = instrument.type;
             instrument.setTypeAndReset(0, isNoise, false);
             instrument.effects = 1 << 2;
             instrument.aliases = false;
@@ -29149,7 +29160,7 @@ li.select2-results__option[role=group] > strong:hover {
                 new PotentialFilterPoint(0.2, 2, 0, maxFreq, 500.0, 0),
             ]);
             if (isNoise) {
-                const type = usesCurrentInstrumentType ? instrument.type :
+                const type = usesCurrentInstrumentType ? prevType :
                     selectWeightedRandom([
                         { item: 2, weight: 3 },
                         { item: 3, weight: 3 },
@@ -29367,7 +29378,7 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             else {
-                const type = usesCurrentInstrumentType ? instrument.type :
+                const type = usesCurrentInstrumentType ? prevType :
                     selectWeightedRandom([
                         { item: 0, weight: 2 },
                         { item: 6, weight: 2 },
@@ -29382,7 +29393,7 @@ li.select2-results__option[role=group] > strong:hover {
                 instrument.preset = instrument.type = type;
                 instrument.fadeIn = (Math.random() < 0.5) ? 0 : selectCurvedDistribution(0, Config.fadeInRange - 1, 0, 2);
                 instrument.fadeOut = selectCurvedDistribution(0, Config.fadeOutTicks.length - 1, Config.fadeOutNeutral, 2);
-                if (type == 0 || type == 5 || type == 7 || type == 9 || type == 6 || type == 3) {
+                if (type != 10) {
                     instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
                         { item: "none", weight: 100 },
                         { item: "shimmer", weight: 10 },
@@ -29821,6 +29832,20 @@ li.select2-results__option[role=group] > strong:hover {
                         { item: "fall", weight: 3 },
                     ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 40, 20)], envelopeLowerBound, envelopeUpperBound, selectCurvedDistribution(2, 16, 2, 6), selectCurvedDistribution(1, 63, 32, 31), selectWeightedRandom([{ item: 0, weight: 8 }, { item: 1, weight: 2 }]));
                 }
+                if (PluginConfig.pluginUIElements.length > 0 && Math.random() < 0.07) {
+                    instrument.effects |= 1 << 15;
+                    for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                        if (PluginConfig.pluginUIElements[i].type == "checkbox") {
+                            instrument.pluginValues[i] = Math.round(Math.random());
+                        }
+                        else if (PluginConfig.pluginUIElements[i].type == "slider") {
+                            instrument.pluginValues[i] = selectCurvedDistribution(0, PluginConfig.pluginUIElements[i].max, 0, PluginConfig.pluginUIElements[i].max / 2);
+                        }
+                        else {
+                            instrument.pluginValues[i] = selectCurvedDistribution(0, PluginConfig.pluginUIElements[i].options.length, 0, PluginConfig.pluginUIElements[i].options.length / 2);
+                        }
+                    }
+                }
                 function normalize(harmonics) {
                     let max = 0;
                     for (const value of harmonics) {
@@ -29851,7 +29876,7 @@ li.select2-results__option[role=group] > strong:hover {
                                 instrument.supersawSpread = selectCurvedDistribution(0, Config.supersawSpreadMax, Math.ceil(Config.supersawSpreadMax / 3), 4);
                                 instrument.supersawShape = selectCurvedDistribution(0, Config.supersawShapeMax, 0, 4);
                             }
-                            instrument.pulseWidth = selectCurvedDistribution(0, Config.pulseWidthRange - 1, Config.pulseWidthRange - 1, 2);
+                            instrument.pulseWidth = selectCurvedDistribution(0, Config.pulseWidthRange - 1, Config.pulseWidthRange - 1, Config.pulseWidthRange / 2);
                             instrument.decimalOffset = 0;
                             if (Math.random() < 0.6) {
                                 instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["pulseWidth"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
@@ -29966,13 +29991,15 @@ li.select2-results__option[role=group] > strong:hover {
                                 instrument.operators[i].frequency = selectCurvedDistribution(0, Config.operatorFrequencies.length - 1, 0, 3);
                                 instrument.operators[i].amplitude = selectCurvedDistribution(0, Config.operatorAmplitudeMax, Config.operatorAmplitudeMax - 1, 2);
                                 instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
-                                    { item: "sine", weight: 10 },
-                                    { item: "triangle", weight: 6 },
-                                    { item: "pulse width", weight: 6 },
-                                    { item: "sawtooth", weight: 3 },
-                                    { item: "ramp", weight: 3 },
-                                    { item: "trapezoid", weight: 4 },
-                                    { item: "quasi-sine", weight: 2 },
+                                    { item: "sine", weight: 20 },
+                                    { item: "triangle", weight: 12 },
+                                    { item: "pulse width", weight: 12 },
+                                    { item: "sawtooth", weight: 6 },
+                                    { item: "ramp", weight: 6 },
+                                    { item: "trapezoid", weight: 8 },
+                                    { item: "quasi-sine", weight: 4 },
+                                    { item: "white noise", weight: 2 },
+                                    { item: "metallic noise", weight: 1 },
                                 ])].index;
                                 if (instrument.operators[i].waveform == 2) {
                                     instrument.operators[i].pulseWidth = selectWeightedRandom([
@@ -30036,13 +30063,15 @@ li.select2-results__option[role=group] > strong:hover {
                                     ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 30, 30)], envelopeLowerBound, envelopeUpperBound, 2, 2, selectWeightedRandom([{ item: 0, weight: 8 }, { item: 2, weight: 4 }, { item: 3, weight: 4 }, { item: 1, weight: 1 }]));
                                 }
                                 instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
-                                    { item: "sine", weight: 10 },
-                                    { item: "triangle", weight: 6 },
-                                    { item: "pulse width", weight: 6 },
-                                    { item: "sawtooth", weight: 3 },
-                                    { item: "ramp", weight: 3 },
-                                    { item: "trapezoid", weight: 4 },
-                                    { item: "quasi-sine", weight: 2 },
+                                    { item: "sine", weight: 20 },
+                                    { item: "triangle", weight: 12 },
+                                    { item: "pulse width", weight: 12 },
+                                    { item: "sawtooth", weight: 6 },
+                                    { item: "ramp", weight: 6 },
+                                    { item: "trapezoid", weight: 8 },
+                                    { item: "quasi-sine", weight: 4 },
+                                    { item: "white noise", weight: 2 },
+                                    { item: "metallic noise", weight: 1 },
                                 ])].index;
                                 if (instrument.operators[i].waveform == 2) {
                                     instrument.operators[i].pulseWidth = selectWeightedRandom([
@@ -31193,20 +31222,10 @@ li.select2-results__option[role=group] > strong:hover {
             const oldValue = doc.song.pluginurl;
             if (oldValue != value) {
                 doc.song.pluginurl = value;
-                doc.song.fetchPlugin(value).then(() => {
-                    for (let channelIndex = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
-                        for (let instrumentIndex = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                            doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                            for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                                doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
-                            }
-                        }
-                    }
-                    doc.synth.updateSong(0, SongSettings.pluginurl);
-                    this._didSomething();
-                });
+                doc.song.fetchPlugin(value, true);
+                this._didSomething();
+                doc.notifier.changed();
             }
-            doc.notifier.changed();
         }
     }
     class ChangeStringSustain extends ChangeInstrumentSlider {
@@ -32666,7 +32685,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
     }
     class ChangeSong extends ChangeGroup {
-        constructor(doc, newHash, jsonFormat = "auto") {
+        constructor(doc, newHash, jsonFormat = "auto", sendUpdate = true) {
             super();
             let pitchChannelCount = doc.song.pitchChannelCount;
             let noiseChannelCount = doc.song.noiseChannelCount;
@@ -32689,7 +32708,8 @@ li.select2-results__option[role=group] > strong:hover {
             else {
                 this.append(new ChangeValidateTrackSelection(doc));
             }
-            doc.synth.updateWorkletSong();
+            if (sendUpdate)
+                doc.synth.updateWorkletSong();
             doc.synth.computeLatestModValues();
             doc.notifier.changed();
             this._didSomething();
@@ -35781,7 +35801,7 @@ li.select2-results__option[role=group] > strong:hover {
                     this._resetSongRecoveryUid();
                     const state = { canUndo: true, sequenceNumber: this._sequenceNumber, bar: this.bar, channel: this.channel, instrument: this.viewedInstrument[this.channel], recoveryUid: this._recoveryUid, prompt: null, selection: this.selection.toJSON() };
                     try {
-                        new ChangeSong(this, this._getHash());
+                        new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
                     }
                     catch (error) {
                         errorAlert(error);
@@ -35810,7 +35830,7 @@ li.select2-results__option[role=group] > strong:hover {
                 this._sequenceNumber = state.sequenceNumber;
                 this.prompt = state.prompt;
                 try {
-                    new ChangeSong(this, this._getHash());
+                    new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
                 }
                 catch (error) {
                     errorAlert(error);
@@ -52151,13 +52171,13 @@ You should be redirected to the song at:<br /><br />
                     this._pluginContainerRow.style.display = "";
                     for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
                         if (this._pluginElements[i] instanceof Slider) {
-                            this._pluginElements[i].updateValue(PluginConfig.pluginUIElements[i].initialValue);
+                            this._pluginElements[i].updateValue(instrument.pluginValues[i]);
                         }
                         else if (this._pluginElements[i] instanceof HTMLSelectElement) {
-                            this._pluginElements[i].value = PluginConfig.pluginUIElements[i].initialValue + "";
+                            this._pluginElements[i].value = instrument.pluginValues[i] + "";
                         }
                         else if (this._pluginElements[i] instanceof HTMLInputElement) {
-                            this._pluginElements[i].checked = Boolean(PluginConfig.pluginUIElements[i].initialValue == 1);
+                            this._pluginElements[i].checked = instrument.pluginValues[i] == 1;
                         }
                     }
                 }

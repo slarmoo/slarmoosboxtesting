@@ -6559,8 +6559,8 @@ var beepbox = (function (exports) {
                 if (!PluginConfig.pluginName) {
                     if (pluginurl && this.pluginurl != pluginurl)
                         this.fetchPlugin(pluginurl);
-                    this.pluginurl = pluginurl;
                 }
+                this.pluginurl = pluginurl;
             }
             if (beforeThree && fromBeepBox) {
                 for (const channel of this.channels) {
@@ -8659,9 +8659,10 @@ var beepbox = (function (exports) {
                 setTimeout(() => { location.reload(); }, 50);
             }
         }
-        fetchPlugin(pluginurl) {
-            return __awaiter(this, void 0, void 0, function* () {
+        fetchPlugin(pluginurl_1) {
+            return __awaiter(this, arguments, void 0, function* (pluginurl, initializeValues = false) {
                 if (pluginurl != null && document.URL) {
+                    this.pluginurl = pluginurl;
                     const code = yield fetch(pluginurl).then(r => r.text());
                     const blob = new Blob([code], { type: 'text/javascript' });
                     const url = URL.createObjectURL(blob);
@@ -8674,8 +8675,19 @@ var beepbox = (function (exports) {
                     PluginConfig.pluginAbout = plugin.about;
                     const pluginMessage = {
                         flag: MessageFlag.pluginMessage,
-                        name: plugin.pluginName
+                        name: plugin.pluginName,
+                        initializeValues: initializeValues
                     };
+                    if (initializeValues) {
+                        for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+                            for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+                                this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                                for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                                    this.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                                }
+                            }
+                        }
+                    }
                     events.raise(EventType.pluginLoaded, url, pluginMessage);
                 }
             });
@@ -9108,8 +9120,6 @@ var beepbox = (function (exports) {
                 }
                 case SongSettings.sequenceValues:
                     this.sequences[channelIndex].values = data;
-                    break;
-                case SongSettings.pluginurl:
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;

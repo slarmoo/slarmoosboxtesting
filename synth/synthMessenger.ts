@@ -4349,8 +4349,8 @@ export class Song {
             //set the pluginurl
             if (!PluginConfig.pluginName) {                
                 if (pluginurl && this.pluginurl != pluginurl) this.fetchPlugin(pluginurl);
-                this.pluginurl = pluginurl;
             }
+            this.pluginurl = pluginurl;
         }
 
         if (beforeThree && fromBeepBox) {
@@ -6497,8 +6497,9 @@ export class Song {
         }
     }
 
-    public async fetchPlugin(pluginurl: string) {
+    public async fetchPlugin(pluginurl: string, initializeValues: boolean = false) {
         if (pluginurl != null && document.URL) {
+            this.pluginurl = pluginurl;
             const code = await fetch(pluginurl).then(r => r.text());
 
             const blob = new Blob([code], { type: 'text/javascript' });
@@ -6514,7 +6515,18 @@ export class Song {
 
             const pluginMessage: PluginMessage = {
                 flag: MessageFlag.pluginMessage,
-                name: plugin.pluginName
+                name: plugin.pluginName,
+                initializeValues: initializeValues
+            }
+            if (initializeValues) {
+                for (let channelIndex: number = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+                    for (let instrumentIndex: number = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+                        this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+                        for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                            this.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+                        }
+                    }
+                }
             }
             events.raise(EventType.pluginLoaded, url, pluginMessage);
         }
@@ -6973,8 +6985,6 @@ export class Song {
                 break;
             } case SongSettings.sequenceValues:
                 this.sequences[channelIndex!].values = data as number[];
-                break;
-            case SongSettings.pluginurl:
                 break;
             case SongSettings.channelOrder:
                 const selectionMin: number = data.selectionMin;

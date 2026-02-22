@@ -8,7 +8,7 @@ import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
 import { SongSettings, ChannelSettings, InstrumentSettings } from "../synth/synthMessages";
-import { PluginConfig } from "./PluginConfig";
+import { PluginConfig, PluginDropdown, PluginSlider } from "./PluginConfig";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
@@ -792,6 +792,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
 
         const isNoise: boolean = doc.song.getChannelIsNoise(doc.channel);
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        const prevType: InstrumentType = instrument.type;
         instrument.setTypeAndReset(InstrumentType.chip, isNoise, false); //default settings
         instrument.effects = 1 << EffectType.panning; // disable all existing effects except panning, which should always be on.
         instrument.aliases = false;
@@ -809,7 +810,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
         ]);
 
         if (isNoise) {
-            const type: InstrumentType = usesCurrentInstrumentType ? instrument.type :
+            const type: InstrumentType = usesCurrentInstrumentType ? prevType :
             selectWeightedRandom([
                 { item: InstrumentType.noise, weight: 3 },
                 { item: InstrumentType.spectrum, weight: 3 },
@@ -1023,7 +1024,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 default: throw new Error("Unhandled noise instrument type in random generator.");
             }
         } else {
-            const type: InstrumentType = usesCurrentInstrumentType ? instrument.type :
+            const type: InstrumentType = usesCurrentInstrumentType ? prevType :
             selectWeightedRandom([
                 { item: InstrumentType.chip, weight: 2 },
                 // { item: InstrumentType.noise, weight: 1 },
@@ -1040,7 +1041,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
 
             instrument.fadeIn = (Math.random() < 0.5) ? 0 : selectCurvedDistribution(0, Config.fadeInRange - 1, 0, 2);
             instrument.fadeOut = selectCurvedDistribution(0, Config.fadeOutTicks.length - 1, Config.fadeOutNeutral, 2);
-            if (type == InstrumentType.chip || type == InstrumentType.harmonics || type == InstrumentType.pickedString || type == InstrumentType.customChipWave || type == InstrumentType.pwm || type == InstrumentType.spectrum) { // TODO: add noise
+            if (type != InstrumentType.mod) {
                 instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
                     { item: "none", weight: 100 },
                     { item: "shimmer", weight: 10 },
@@ -1509,6 +1510,18 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 40, 20)], envelopeLowerBound, envelopeUpperBound, selectCurvedDistribution(2, 16, 2, 6), selectCurvedDistribution(1, 63, 32, 31),
                     selectWeightedRandom([{ item: RandomEnvelopeTypes.time, weight: 8 }, { item: RandomEnvelopeTypes.pitch, weight: 2 }]));
             }
+            if (PluginConfig.pluginUIElements.length > 0 && Math.random() < 0.07) {
+                instrument.effects |= 1 << EffectType.plugin;
+                for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
+                    if (PluginConfig.pluginUIElements[i].type == "checkbox") {
+                        instrument.pluginValues[i] = Math.round(Math.random());
+                    } else if (PluginConfig.pluginUIElements[i].type == "slider") {
+                        instrument.pluginValues[i] = selectCurvedDistribution(0, (PluginConfig.pluginUIElements[i] as PluginSlider).max, 0, (PluginConfig.pluginUIElements[i] as PluginSlider).max / 2);
+                    } else {
+                        instrument.pluginValues[i] = selectCurvedDistribution(0, (PluginConfig.pluginUIElements[i] as PluginDropdown).options.length, 0, (PluginConfig.pluginUIElements[i] as PluginDropdown).options.length / 2);
+                    }
+                }
+            }
             function normalize(harmonics: number[]): void {
                 let max: number = 0;
                 for (const value of harmonics) {
@@ -1534,8 +1547,9 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         instrument.supersawDynamism = selectCurvedDistribution(0, Config.supersawDynamismMax, Config.supersawDynamismMax, 2);
                         instrument.supersawSpread = selectCurvedDistribution(0, Config.supersawSpreadMax, Math.ceil(Config.supersawSpreadMax / 3), 4);
                         instrument.supersawShape = selectCurvedDistribution(0, Config.supersawShapeMax, 0, 4);
+                        //TODO: Supersaw envelopes?
                     }
-                    instrument.pulseWidth = selectCurvedDistribution(0, Config.pulseWidthRange - 1, Config.pulseWidthRange - 1, 2);
+                    instrument.pulseWidth = selectCurvedDistribution(0, Config.pulseWidthRange - 1, Config.pulseWidthRange - 1, Config.pulseWidthRange/2);
                     instrument.decimalOffset = 0;
 
                     if (Math.random() < 0.6) {
@@ -1646,13 +1660,15 @@ export class ChangeRandomGeneratedInstrument extends Change {
                         instrument.operators[i].frequency = selectCurvedDistribution(0, Config.operatorFrequencies.length - 1, 0, 3);
                         instrument.operators[i].amplitude = selectCurvedDistribution(0, Config.operatorAmplitudeMax, Config.operatorAmplitudeMax - 1, 2);
                         instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
-                            { item: "sine", weight: 10 },
-                            { item: "triangle", weight: 6 },
-                            { item: "pulse width", weight: 6 },
-                            { item: "sawtooth", weight: 3 },
-                            { item: "ramp", weight: 3 },
-                            { item: "trapezoid", weight: 4 },
-				            { item: "quasi-sine", weight: 2 },
+                            { item: "sine", weight: 20 },
+                            { item: "triangle", weight: 12 },
+                            { item: "pulse width", weight: 12 },
+                            { item: "sawtooth", weight: 6 },
+                            { item: "ramp", weight: 6 },
+                            { item: "trapezoid", weight: 8 },
+                            { item: "quasi-sine", weight: 4 },
+                            { item: "white noise", weight: 2 },
+                            { item: "metallic noise", weight: 1 },
                         ])].index;
                         if (instrument.operators[i].waveform == 2/*"pulse width"*/) {
                             instrument.operators[i].pulseWidth = selectWeightedRandom([
@@ -1718,13 +1734,15 @@ export class ChangeRandomGeneratedInstrument extends Change {
                                 selectWeightedRandom([{ item: LFOEnvelopeTypes.sine, weight: 8 }, { item: LFOEnvelopeTypes.triangle, weight: 4 }, { item: LFOEnvelopeTypes.sawtooth, weight: 4 }, { item: LFOEnvelopeTypes.square, weight: 1 }]));
                         }
                         instrument.operators[i].waveform = Config.operatorWaves.dictionary[selectWeightedRandom([
-                            { item: "sine", weight: 10 },
-                            { item: "triangle", weight: 6 },
-                            { item: "pulse width", weight: 6 },
-                            { item: "sawtooth", weight: 3 },
-                            { item: "ramp", weight: 3 },
-                            { item: "trapezoid", weight: 4 },
-				            { item: "quasi-sine", weight: 2 },
+                            { item: "sine", weight: 20 },
+                            { item: "triangle", weight: 12 },
+                            { item: "pulse width", weight: 12 },
+                            { item: "sawtooth", weight: 6 },
+                            { item: "ramp", weight: 6 },
+                            { item: "trapezoid", weight: 8 },
+                            { item: "quasi-sine", weight: 4 },
+                            { item: "white noise", weight: 2 },
+                            { item: "metallic noise", weight: 1 },
                         ])].index;
                         if (instrument.operators[i].waveform == 2) {
                             instrument.operators[i].pulseWidth = selectWeightedRandom([
@@ -3011,20 +3029,10 @@ export class ChangePluginurl extends Change {
         const oldValue = doc.song.pluginurl;
         if (oldValue != value) {
             doc.song.pluginurl = value;
-            doc.song.fetchPlugin(value).then(() => {
-                for (let channelIndex: number = 0; channelIndex < doc.song.pitchChannelCount + doc.song.noiseChannelCount; channelIndex++) {
-                    for (let instrumentIndex: number = 0; instrumentIndex < doc.song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                        doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-                        for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                            doc.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
-                        }
-                    }
-                }
-                doc.synth.updateSong(0, SongSettings.pluginurl);
-                this._didSomething();
-            });
+            doc.song.fetchPlugin(value, true);
+            this._didSomething();
+            doc.notifier.changed();
         }
-        doc.notifier.changed();
     }
 }
 
@@ -4682,7 +4690,7 @@ export function setDefaultInstruments(song: Song): void {
 }
 
 export class ChangeSong extends ChangeGroup {
-    constructor(doc: SongDocument, newHash: string, jsonFormat: string = "auto") {
+    constructor(doc: SongDocument, newHash: string, jsonFormat: string = "auto", sendUpdate: boolean = true) {
         super();
         let pitchChannelCount = doc.song.pitchChannelCount;
         let noiseChannelCount = doc.song.noiseChannelCount;
@@ -4705,7 +4713,7 @@ export class ChangeSong extends ChangeGroup {
         } else {
             this.append(new ChangeValidateTrackSelection(doc));
         }
-        doc.synth.updateWorkletSong();
+        if(sendUpdate) doc.synth.updateWorkletSong();
         doc.synth.computeLatestModValues();
         doc.notifier.changed();
         this._didSomething();

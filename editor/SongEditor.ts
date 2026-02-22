@@ -3314,11 +3314,11 @@ export class SongEditor {
             this._pluginContainerRow.style.display = "";
             for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
                 if (this._pluginElements[i] instanceof Slider) {
-                    (this._pluginElements[i] as Slider).updateValue(PluginConfig.pluginUIElements[i].initialValue);
+                    (this._pluginElements[i] as Slider).updateValue(instrument.pluginValues[i]);
                 } else if (this._pluginElements[i] instanceof HTMLSelectElement) {
-                    (this._pluginElements[i] as HTMLSelectElement).value = PluginConfig.pluginUIElements[i].initialValue + "";
+                    (this._pluginElements[i] as HTMLSelectElement).value = instrument.pluginValues[i] + "";
                 } else if (this._pluginElements[i] instanceof HTMLInputElement) {
-                    (this._pluginElements[i] as HTMLInputElement).checked = Boolean(PluginConfig.pluginUIElements[i].initialValue == 1);
+                    (this._pluginElements[i] as HTMLInputElement).checked = instrument.pluginValues[i] == 1;
                 }
             }
         } else {

@@ -104,7 +104,8 @@ export interface SampleFinishMessage extends Message {
 
 export interface PluginMessage extends Message {
     flag: MessageFlag.pluginMessage,
-    name: string
+    name: string,
+    initializeValues: boolean
 }
 
 export interface LoopRepeatCountMessage extends Message {

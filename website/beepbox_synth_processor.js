@@ -15130,8 +15130,8 @@ var Song = class _Song {
       }
       if (!PluginConfig.pluginName) {
         if (pluginurl && this.pluginurl != pluginurl) this.fetchPlugin(pluginurl);
-        this.pluginurl = pluginurl;
       }
+      this.pluginurl = pluginurl;
     }
     if (beforeThree && fromBeepBox) {
       for (const channel of this.channels) {
@@ -17083,8 +17083,9 @@ var Song = class _Song {
       }, 50);
     }
   }
-  async fetchPlugin(pluginurl) {
+  async fetchPlugin(pluginurl, initializeValues = false) {
     if (pluginurl != null && define_document_default.URL) {
+      this.pluginurl = pluginurl;
       const code = await fetch(pluginurl).then((r) => r.text());
       const blob = new Blob([code], { type: "text/javascript" });
       const url = URL.createObjectURL(blob);
@@ -17097,8 +17098,19 @@ var Song = class _Song {
       PluginConfig.pluginAbout = plugin.about;
       const pluginMessage = {
         flag: 12 /* pluginMessage */,
-        name: plugin.pluginName
+        name: plugin.pluginName,
+        initializeValues
       };
+      if (initializeValues) {
+        for (let channelIndex = 0; channelIndex < this.pitchChannelCount + this.noiseChannelCount; channelIndex++) {
+          for (let instrumentIndex = 0; instrumentIndex < this.channels[channelIndex].instruments.length; instrumentIndex++) {
+            this.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+            for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
+              this.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = PluginConfig.pluginUIElements[i].initialValue;
+            }
+          }
+        }
+      }
       events.raise(3 /* pluginLoaded */, url, pluginMessage);
     }
   }
@@ -17505,8 +17517,6 @@ var Song = class _Song {
       }
       case 23 /* sequenceValues */:
         this.sequences[channelIndex].values = data;
-        break;
-      case 24 /* pluginurl */:
         break;
       case 25 /* channelOrder */:
         const selectionMin = data.selectionMin;
@@ -19732,9 +19742,11 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         for (let channelIndex = 0; channelIndex < this.synth.song.pitchChannelCount + this.synth.song.noiseChannelCount; channelIndex++) {
           for (let instrumentIndex = 0; instrumentIndex < this.synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
             this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
-            this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
-            for (let i = 0; i < plugin.elements.length; i++) {
-              this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = plugin.elements[i].initialValue;
+            if (event.data.initializeValues) {
+              this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues.fill(0);
+              for (let i = 0; i < plugin.elements.length; i++) {
+                this.synth.song.channels[channelIndex].instruments[instrumentIndex].pluginValues[i] = plugin.elements[i].initialValue;
+              }
             }
           }
         }

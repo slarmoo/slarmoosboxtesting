@@ -61,7 +61,7 @@ export class SongDocument {
     private _lastSequenceNumber: number = 0;
     private _stateShouldBePushed: boolean = false;
     private _recordedNewSong: boolean = false;
-    public _waitingToUpdateState: boolean = false;
+    private _waitingToUpdateState: boolean = false;
 
     constructor() {
         this.notifier.watch(this._validateDocState);
@@ -230,7 +230,7 @@ export class SongDocument {
 			this._resetSongRecoveryUid();
 			const state: HistoryState = {canUndo: true, sequenceNumber: this._sequenceNumber, bar: this.bar, channel: this.channel, instrument: this.viewedInstrument[this.channel], recoveryUid: this._recoveryUid, prompt: null, selection: this.selection.toJSON()};
 			try {
-				new ChangeSong(this, this._getHash());
+                new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
 			} catch (error) {
 				errorAlert(error);
 			}
@@ -260,7 +260,7 @@ export class SongDocument {
 		this._sequenceNumber = state.sequenceNumber;
 		this.prompt = state.prompt;
 		try {
-			new ChangeSong(this, this._getHash());
+			new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
 		} catch (error) {
 			errorAlert(error);
 		}
