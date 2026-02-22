@@ -5715,7 +5715,7 @@ export class Synth {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
             }
@@ -5749,7 +5749,7 @@ export class Synth {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
             }
