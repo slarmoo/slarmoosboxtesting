@@ -1339,9 +1339,10 @@ export class Config {
         { name: "75×", mult: 75.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "100×", mult: 100.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         //50 and 100 are from dogebox
-        //128 and 256 from slarmoo's box
+        //128, 250, and 256 from slarmoo's box
         { name: "128×", mult: 128.0, hzOffset: 0.0, amplitudeSign: 1.0 },
-        { name: "256×", mult: 256.0, hzOffset: 0.0, amplitudeSign: 1.0},
+        { name: "250×", mult: 250.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "256×", mult: 256.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
 
     //still used for drumsets

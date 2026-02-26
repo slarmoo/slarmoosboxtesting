@@ -878,6 +878,7 @@ var beepbox = (function (exports) {
         { name: "75×", mult: 75.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "100×", mult: 100.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "128×", mult: 128.0, hzOffset: 0.0, amplitudeSign: 1.0 },
+        { name: "250×", mult: 250.0, hzOffset: 0.0, amplitudeSign: 1.0 },
         { name: "256×", mult: 256.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
     Config.envelopes = toNameMap([
@@ -1679,7 +1680,7 @@ var beepbox = (function (exports) {
             return (_a = EditorConfig.presetCategories[0].presets.dictionary) === null || _a === void 0 ? void 0 : _a[TypePresets === null || TypePresets === void 0 ? void 0 : TypePresets[instrument]];
         }
     }
-    EditorConfig.version = "1.4.10";
+    EditorConfig.version = "1.4.11";
     EditorConfig.versionDisplayName = "Slarmoo's Box " + EditorConfig.version;
     EditorConfig.releaseNotesURL = "./patch_notes.html";
     EditorConfig.isOnMac = /^Mac/i.test(navigator.platform) || /Mac OS X/i.test(navigator.userAgent) || /^(iPhone|iPad|iPod)/i.test(navigator.platform) || /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
