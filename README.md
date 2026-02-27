@@ -43,6 +43,20 @@ npm install @types/select2
 npm install @types/jquery
 ```
 
+## Testing
+
+To test, run
+
+```
+npm run live-editor-typeless
+```
+or
+```
+npm run let
+```
+
+
+
 ## Code
 
 The code is divided into several folders. This architecture is identical to BeepBox's.
