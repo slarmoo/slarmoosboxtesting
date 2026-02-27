@@ -4634,6 +4634,7 @@ export class Synth {
                 const pitch: number = tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : ((i < tone.pitchCount) ? i : ((associatedCarrierIndex < tone.pitchCount) ? associatedCarrierIndex : 0))];
                 const freqMult = Config.operatorFrequencies[instrument.operators[i].frequency].mult;
                 const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval; //make conditional
+                // const interval = arpeggioInterval;
                 const pitchStart: number = basePitch + (pitch + intervalStart) * intervalScale + interval;
                 const pitchEnd: number = basePitch + (pitch + intervalEnd) * intervalScale + interval;
                 const baseFreqStart: number = Instrument.frequencyFromPitch(pitchStart);
@@ -5839,8 +5840,7 @@ export class Synth {
                 sampleListAliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += `inputSample = ${sampleListAliased.join(" + ")}`;
-            chipSource += `
+            chipSource += `inputSample = ${sampleListAliased.join(" + ")}
             } else {
                 phase# += phaseDelta#;
                 const phase#Int = phase# | 0;
@@ -5857,8 +5857,7 @@ export class Synth {
                 sampleListUnaliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}`;
-            chipSource += `
+            chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}
             }
             const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
@@ -5936,10 +5935,7 @@ export class Synth {
                 sampleList.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            harmonicsSource += `inputSample = ${sampleList.join(" + ")}`;
-
-
-            harmonicsSource += `
+            harmonicsSource += `inputSample = ${sampleList.join(" + ")}
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -6969,9 +6965,7 @@ export class Synth {
                 sampleList.push("pulseWave" + voice + (voice != 0 ? " * unisonSign" : ""));
             }
 
-            pulseSource += "let inputSample = " + sampleList.join(" + ") + ";";
-
-            pulseSource += `
+            pulseSource += `let inputSample = ${sampleList.join(" + ")};
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -7195,10 +7189,11 @@ export class Synth {
 
         const operator#Wave = tone.operatorWaves[#].samples;
         const waveLength# = operator#Wave.length - 1;
-        const waveMask# = operator#Wave.length - 2;
+        const waveMask# = waveLength# - 1;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) + 1000) * waveLength#;
+        // With this safer bit operation we don't need to worry about modulus anymore - slarmoooo
+		let operator#Phase~       = +(+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) * waveLength#;
 		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];

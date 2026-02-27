@@ -82,6 +82,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
                     this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
                     this.synth.songPosition = event.data.songPosition;
                     this.synth.outVolumeCap = event.data.outVolumeCap;
+                    this.synth.resetEffects();
                 }
                 break;
             }

@@ -85,7 +85,7 @@ export class SongDocument {
             if (songString == "" || songString == undefined) {
                 setDefaultInstruments(this.song);
                 this.song.scale = this.prefs.defaultScale;
-                this.synth.updateWorkletSong();
+                this.synth.updateWorkletSong(songString);
             }
         } catch (error) {
             errorAlert(error);
@@ -229,7 +229,7 @@ export class SongDocument {
 			this._sequenceNumber++;
 			this._resetSongRecoveryUid();
 			const state: HistoryState = {canUndo: true, sequenceNumber: this._sequenceNumber, bar: this.bar, channel: this.channel, instrument: this.viewedInstrument[this.channel], recoveryUid: this._recoveryUid, prompt: null, selection: this.selection.toJSON()};
-			try {
+            try {
                 new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
 			} catch (error) {
 				errorAlert(error);
@@ -259,8 +259,8 @@ export class SongDocument {
 		this.viewedInstrument[this.channel] = state.instrument;
 		this._sequenceNumber = state.sequenceNumber;
 		this.prompt = state.prompt;
-		try {
-			new ChangeSong(this, this._getHash(), Config.jsonFormat, false);
+        try {
+			new ChangeSong(this, this._getHash(), Config.jsonFormat, true);
 		} catch (error) {
 			errorAlert(error);
 		}

@@ -4713,7 +4713,7 @@ export class ChangeSong extends ChangeGroup {
         } else {
             this.append(new ChangeValidateTrackSelection(doc));
         }
-        if(sendUpdate) doc.synth.updateWorkletSong();
+        if(sendUpdate) doc.synth.updateWorkletSong(newHash);
         doc.synth.computeLatestModValues();
         doc.notifier.changed();
         this._didSomething();

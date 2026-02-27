@@ -1242,9 +1242,10 @@ var Config = class _Config {
       { name: "75\xD7", mult: 75, hzOffset: 0, amplitudeSign: 1 },
       { name: "100\xD7", mult: 100, hzOffset: 0, amplitudeSign: 1 },
       //50 and 100 are from dogebox
-      //128 and 256 from slarmoo's box
+      //128, 250, and 256 from slarmoo's box
       { name: "128\xD7", mult: 128, hzOffset: 0, amplitudeSign: 1 },
-      { name: "256\xD7", mult: 250, hzOffset: 0, amplitudeSign: 1 }
+      { name: "250\xD7", mult: 250, hzOffset: 0, amplitudeSign: 1 },
+      { name: "256\xD7", mult: 256, hzOffset: 0, amplitudeSign: 1 }
     ]);
   }
   static {
@@ -9509,7 +9510,7 @@ var Synth = class _Synth {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
       }
@@ -9543,7 +9544,7 @@ var Synth = class _Synth {
                         if (chipWaveCompletion# > 0) {
                             inputSample += lastWave# * completionFade#;
                         } else {
-                            inputSample += wave#;
+                            inputSample += wave# * (# == 0 ? 1 : unisonSign);
                         }
                         `.replaceAll("#", i + "");
       }
@@ -9630,8 +9631,7 @@ var Synth = class _Synth {
       for (let voice = 0; voice < voiceCount; voice++) {
         sampleListAliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
       }
-      chipSource += `inputSample = ${sampleListAliased.join(" + ")}`;
-      chipSource += `
+      chipSource += `inputSample = ${sampleListAliased.join(" + ")}
             } else {
                 phase# += phaseDelta#;
                 const phase#Int = phase# | 0;
@@ -9647,8 +9647,7 @@ var Synth = class _Synth {
       for (let voice = 0; voice < voiceCount; voice++) {
         sampleListUnaliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
       }
-      chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}`;
-      chipSource += `
+      chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}
             }
             const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
@@ -9723,8 +9722,7 @@ var Synth = class _Synth {
       for (let voice = 0; voice < voiceCount; voice++) {
         sampleList.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
       }
-      harmonicsSource += `inputSample = ${sampleList.join(" + ")}`;
-      harmonicsSource += `
+      harmonicsSource += `inputSample = ${sampleList.join(" + ")}
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -10671,8 +10669,7 @@ var Synth = class _Synth {
       for (let voice = 0; voice < voiceCount; voice++) {
         sampleList.push("pulseWave" + voice + (voice != 0 ? " * unisonSign" : ""));
       }
-      pulseSource += "let inputSample = " + sampleList.join(" + ") + ";";
-      pulseSource += `
+      pulseSource += `let inputSample = ${sampleList.join(" + ")};
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -10887,10 +10884,11 @@ var Synth = class _Synth {
 
         const operator#Wave = tone.operatorWaves[#].samples;
         const waveLength# = operator#Wave.length - 1;
-        const waveMask# = operator#Wave.length - 2;
+        const waveMask# = waveLength# - 1;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) + 1000) * waveLength#;
+        // With this safer bit operation we don't need to worry about modulus anymore - slarmoooo
+		let operator#Phase~       = +(+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) * waveLength#;
 		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
@@ -18779,7 +18777,7 @@ var SynthMessenger = class {
             this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
             this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
             events.raise(0 /* oscilloscope */, this.leftData, this.rightData);
-            this.oscRefreshEventTimer = 4;
+            this.oscRefreshEventTimer = 18;
           } else {
             this.oscRefreshEventTimer--;
           }
@@ -18890,11 +18888,11 @@ var SynthMessenger = class {
     }
     this.audioContext.resume();
   }
-  updateWorkletSong() {
+  updateWorkletSong(song) {
     if (this.song) {
       const songMessage = {
         flag: 0 /* loadSong */,
-        song: this.song.toBase64String()
+        song: song || this.song.toBase64String()
       };
       this.sendMessage(songMessage);
       for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
@@ -19668,6 +19666,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
           this.synth.liveInputPitchesOnOffRequests = new RingBuffer(event.data.liveInputPitchesOnOffRequests, Uint16Array);
           this.synth.songPosition = event.data.songPosition;
           this.synth.outVolumeCap = event.data.outVolumeCap;
+          this.synth.resetEffects();
         }
         break;
       }

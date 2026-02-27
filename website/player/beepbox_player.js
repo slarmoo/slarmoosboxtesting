@@ -15359,8 +15359,7 @@ var beepbox = (function (exports) {
                 for (let voice = 0; voice < voiceCount; voice++) {
                     sampleListAliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
                 }
-                chipSource += `inputSample = ${sampleListAliased.join(" + ")}`;
-                chipSource += `
+                chipSource += `inputSample = ${sampleListAliased.join(" + ")}
             } else {
                 phase# += phaseDelta#;
                 const phase#Int = phase# | 0;
@@ -15376,8 +15375,7 @@ var beepbox = (function (exports) {
                 for (let voice = 0; voice < voiceCount; voice++) {
                     sampleListUnaliased.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
                 }
-                chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}`;
-                chipSource += `
+                chipSource += `inputSample = ${sampleListUnaliased.join(" + ")}
             }
             const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
@@ -15452,8 +15450,7 @@ var beepbox = (function (exports) {
                 for (let voice = 0; voice < voiceCount; voice++) {
                     sampleList.push("inputSample" + voice + (voice != 0 ? " * unisonSign" : ""));
                 }
-                harmonicsSource += `inputSample = ${sampleList.join(" + ")}`;
-                harmonicsSource += `
+                harmonicsSource += `inputSample = ${sampleList.join(" + ")}
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -16424,8 +16421,7 @@ var beepbox = (function (exports) {
                 for (let voice = 0; voice < voiceCount; voice++) {
                     sampleList.push("pulseWave" + voice + (voice != 0 ? " * unisonSign" : ""));
                 }
-                pulseSource += "let inputSample = " + sampleList.join(" + ") + ";";
-                pulseSource += `
+                pulseSource += `let inputSample = ${sampleList.join(" + ")};
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
@@ -17274,10 +17270,11 @@ var beepbox = (function (exports) {
 
         const operator#Wave = tone.operatorWaves[#].samples;
         const waveLength# = operator#Wave.length - 1;
-        const waveMask# = operator#Wave.length - 2;
+        const waveMask# = waveLength# - 1;
 			
 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
-		let operator#Phase~       = +((+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) + 1000) * waveLength#;
+        // With this safer bit operation we don't need to worry about modulus anymore - slarmoooo
+		let operator#Phase~       = +(+tone.phases[# * voiceCount + ~] -(+tone.phases[# * voiceCount + ~] | 0)) * waveLength#;
 		let operator#PhaseDelta~  = +tone.phaseDeltas[# * voiceCount + ~] * waveLength#;
 		let operator#PhaseDeltaScale~ = +tone.phaseDeltaScales[# * voiceCount + ~];
 		let operator#OutputMult  = +tone.operatorExpressions[#];
@@ -24928,7 +24925,7 @@ var beepbox = (function (exports) {
                             this.analyserNodeLeft.getFloatTimeDomainData(this.leftData);
                             this.analyserNodeRight.getFloatTimeDomainData(this.rightData);
                             events.raise(EventType.oscilloscope, this.leftData, this.rightData);
-                            this.oscRefreshEventTimer = 4;
+                            this.oscRefreshEventTimer = 18;
                         }
                         else {
                             this.oscRefreshEventTimer--;
@@ -25050,11 +25047,11 @@ var beepbox = (function (exports) {
                 this.audioContext.resume();
             });
         }
-        updateWorkletSong() {
+        updateWorkletSong(song) {
             if (this.song) {
                 const songMessage = {
                     flag: MessageFlag.loadSong,
-                    song: this.song.toBase64String()
+                    song: song || this.song.toBase64String()
                 };
                 this.sendMessage(songMessage);
                 for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {

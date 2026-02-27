@@ -8375,7 +8375,7 @@ export class SynthMessenger {
                         this.analyserNodeLeft!.getFloatTimeDomainData(this.leftData);
                         this.analyserNodeRight!.getFloatTimeDomainData(this.rightData);
                         events.raise(EventType.oscilloscope, this.leftData, this.rightData);
-                        this.oscRefreshEventTimer = 4; //oscilloscope refresh rate
+                        this.oscRefreshEventTimer = 18; //oscilloscope refresh rate
                     } else {
                         this.oscRefreshEventTimer--;
                     }
@@ -8494,11 +8494,11 @@ export class SynthMessenger {
         this.audioContext!.resume();
     }
 
-    public updateWorkletSong(): void {
+    public updateWorkletSong(song?: string): void {
         if (this.song) {
             const songMessage: LoadSongMessage = {
                 flag: MessageFlag.loadSong,
-                song: this.song.toBase64String()
+                song: song || this.song!.toBase64String()
             }
             this.sendMessage(songMessage);
             for (let channelIndex: number = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
