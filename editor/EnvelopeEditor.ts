@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { InstrumentType, Config, DropdownID, LFOEnvelopeTypes, RandomEnvelopeTypes, EnvelopeType } from "../synth/SynthConfig";
+import { InstrumentType, Config, DropdownID, LFOEnvelopeTypes, RandomEnvelopeTypes, EnvelopeType, EffectType } from "../synth/SynthConfig";
 import { Instrument } from "../synth/synthMessenger";
 import { SongDocument } from "./SongDocument";
 import { ChangeSetEnvelopeTarget, ChangeSetEnvelopeType, ChangeRemoveEnvelope, ChangeEnvelopePitchStart, ChangeEnvelopePitchEnd, ChangeEnvelopeInverse, ChangePerEnvelopeSpeed, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeRandomEnvelopeSteps, ChangeRandomEnvelopeSeed, PasteEnvelope, ChangeSetEnvelopeWaveform, ChangeDiscreteEnvelope, } from "./changes";
@@ -8,6 +8,7 @@ import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Change } from "./Change";
 import { prettyNumber } from "./EditorConfig";
 import { Slider } from "./HTMLWrapper";
+import { PluginConfig } from "./PluginConfig";
 
 export class EnvelopeEditor {
 	public readonly container: HTMLElement = HTML.div({ class: "envelopeEditor" });
@@ -195,7 +196,9 @@ export class EnvelopeEditor {
 	private _makeOption(target: number, index: number): HTMLOptionElement {
 		let displayName = Config.instrumentAutomationTargets[target].displayName;
 		if (Config.instrumentAutomationTargets[target].maxCount > 1) {
-			if (displayName.indexOf("#") != -1) {
+			if (Config.instrumentAutomationTargets[target].effect == EffectType.plugin && index < PluginConfig.pluginUIElements.length) {
+				displayName = PluginConfig.pluginUIElements[index].name;
+			} else if (displayName.indexOf("#") != -1) {
 				displayName = displayName.replace("#", String(index + 1));
 			} else {
 				displayName += " " + (index + 1);
@@ -211,6 +214,9 @@ export class EnvelopeEditor {
 			const target: number = combinedValue % Config.instrumentAutomationTargets.length;
 			const index: number = (combinedValue / Config.instrumentAutomationTargets.length) >>> 0;
 			option.hidden = !instrument.supportsEnvelopeTarget(target, index);
+			if (!option.hidden && Config.instrumentAutomationTargets[target].effect == EffectType.plugin && index < PluginConfig.pluginUIElements.length) {
+				option.text = PluginConfig.pluginUIElements[index].name
+			}
 		}
 	}
 
@@ -254,7 +260,10 @@ export class EnvelopeEditor {
 				if (this.extraLFODropdownGroups[i]) {
 					this.extraLFODropdownGroups[i].style.display = "none";
 				}
-			} else if (this.openExtraSettingsDropdowns[i]) {
+				return;
+			}
+			this._updateTargetOptionVisibility(this._targetSelects[i], instrument);
+			if (this.openExtraSettingsDropdowns[i]) {
 				this.extraSettingsDropdownGroups[i].style.display = "flex";
 				this.extraSettingsDropdowns[i].style.display = "inline";
 				this.extraSequenceSettingsGroups[i].style.display = "none";

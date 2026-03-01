@@ -1281,6 +1281,7 @@ var beepbox = (function (exports) {
         { name: "echoDelay", computeIndex: 55, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6, compatibleInstruments: null },
         { name: "vibratoSpeed", computeIndex: 56, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 9, compatibleInstruments: null },
         { name: "slideSpeed", computeIndex: 57, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10, compatibleInstruments: null },
+        { name: "plugin", computeIndex: 59, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15, compatibleInstruments: null },
     ]);
     Config.operatorWaves = toNameMap([
         { name: "sine", samples: _a$2.sineWave },
@@ -12547,7 +12548,7 @@ li.select2-results__option[role=group] > strong:hover {
             this._modifiedEnvelopeIndices = [];
             this._modifiedEnvelopeCount = 0;
             this.lowpassCutoffDecayVolumeCompensation = 1.0;
-            const length = 59;
+            const length = 60 + 63;
             for (let i = 0; i < length; i++) {
                 this.envelopeStarts[i] = 1.0;
                 this.envelopeEnds[i] = 1.0;
@@ -13383,6 +13384,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.reverbShelfPrevInput2 = 0.0;
             this.reverbShelfPrevInput3 = 0.0;
             this.plugin = null;
+            this.pluginStarts = [];
+            this.pluginEnds = [];
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
             this.drumsetSpectrumWaves = [];
@@ -13966,7 +13969,11 @@ li.select2-results__option[role=group] > strong:hover {
             if (usesPlugin && Synth.PluginClass) {
                 if (!this.plugin)
                     this.plugin = new Synth.PluginClass();
-                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(instrument);
+                for (let i = 0; i < this.plugin.elements.length; i++) {
+                    this.pluginStarts[i] = envelopeStarts[59 + i] * instrument.pluginValues[i];
+                    this.pluginEnds[i] = envelopeEnds[59 + i] * instrument.pluginValues[i];
+                }
+                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
             }
             if (this.tonesAddedInThisTick) {
                 this.attentuationProgress = 0.0;
@@ -18087,9 +18094,8 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 if (usesPlugin && instrumentState.plugin) {
                     if (typeof instrumentState.plugin.effectOrderIndex == "number") {
-                        instrumentState.plugin.synthFunction;
                         if (instrumentState.plugin.effectOrderIndex > 5)
-                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);");
                         else
                             effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                         effectsSource += effectOrder.join("");
@@ -21839,6 +21845,15 @@ li.select2-results__option[role=group] > strong:hover {
             }
             if (automationTarget.name == "arpeggioSpeed") {
                 return effectsIncludeChord(this.effects) && this.chord == Config.chords.dictionary["arpeggio"].index;
+            }
+            if (automationTarget.effect == 15) {
+                if (PluginConfig.pluginName == "")
+                    return true;
+                if (index >= PluginConfig.pluginUIElements.length)
+                    return false;
+                if (PluginConfig.pluginUIElements[index].type != 0)
+                    return false;
+                return PluginConfig.pluginUIElements[index].hasEnvelope;
             }
             if (automationTarget.isFilter) {
                 let useControlPointCount = this.noteFilter.controlPointCount;
@@ -29833,10 +29848,10 @@ li.select2-results__option[role=group] > strong:hover {
                 if (PluginConfig.pluginUIElements.length > 0 && Math.random() < 0.07) {
                     instrument.effects |= 1 << 15;
                     for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                        if (PluginConfig.pluginUIElements[i].type == "checkbox") {
+                        if (PluginConfig.pluginUIElements[i].type == 1) {
                             instrument.pluginValues[i] = Math.round(Math.random());
                         }
-                        else if (PluginConfig.pluginUIElements[i].type == "slider") {
+                        else if (PluginConfig.pluginUIElements[i].type == 0) {
                             instrument.pluginValues[i] = selectCurvedDistribution(0, PluginConfig.pluginUIElements[i].max, 0, PluginConfig.pluginUIElements[i].max / 2);
                         }
                         else {
@@ -41388,7 +41403,10 @@ You should be redirected to the song at:<br /><br />
         _makeOption(target, index) {
             let displayName = Config.instrumentAutomationTargets[target].displayName;
             if (Config.instrumentAutomationTargets[target].maxCount > 1) {
-                if (displayName.indexOf("#") != -1) {
+                if (Config.instrumentAutomationTargets[target].effect == 15 && index < PluginConfig.pluginUIElements.length) {
+                    displayName = PluginConfig.pluginUIElements[index].name;
+                }
+                else if (displayName.indexOf("#") != -1) {
                     displayName = displayName.replace("#", String(index + 1));
                 }
                 else {
@@ -41404,6 +41422,9 @@ You should be redirected to the song at:<br /><br />
                 const target = combinedValue % Config.instrumentAutomationTargets.length;
                 const index = (combinedValue / Config.instrumentAutomationTargets.length) >>> 0;
                 option.hidden = !instrument.supportsEnvelopeTarget(target, index);
+                if (!option.hidden && Config.instrumentAutomationTargets[target].effect == 15 && index < PluginConfig.pluginUIElements.length) {
+                    option.text = PluginConfig.pluginUIElements[index].name;
+                }
             }
         }
         _pitchToNote(value, isNoise) {
@@ -41447,8 +41468,10 @@ You should be redirected to the song at:<br /><br />
                     if (this.extraLFODropdownGroups[i]) {
                         this.extraLFODropdownGroups[i].style.display = "none";
                     }
+                    return;
                 }
-                else if (this.openExtraSettingsDropdowns[i]) {
+                this._updateTargetOptionVisibility(this._targetSelects[i], instrument);
+                if (this.openExtraSettingsDropdowns[i]) {
                     this.extraSettingsDropdownGroups[i].style.display = "flex";
                     this.extraSettingsDropdowns[i].style.display = "inline";
                     this.extraSequenceSettingsGroups[i].style.display = "none";
@@ -52140,19 +52163,19 @@ You should be redirected to the song at:<br /><br />
                 for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
                     const pluginElement = PluginConfig.pluginUIElements[i];
                     switch (pluginElement.type) {
-                        case "slider": {
+                        case 0: {
                             const value = Math.min(instrument.pluginValues[i], pluginElement.max);
                             this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: pluginElement.max, value: value, step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i].container);
                             break;
                         }
-                        case "checkbox": {
+                        case 1: {
                             this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
                             this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +this._pluginElements[i].checked, instrument.pluginValues[i], i)));
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
                             break;
                         }
-                        case "dropdown": {
+                        case 2: {
                             const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
                             this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
                             this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));
@@ -52182,6 +52205,7 @@ You should be redirected to the song at:<br /><br />
                 else {
                     this._pluginContainerRow.style.display = "none";
                 }
+                this.envelopeEditor.rerenderExtraSettings();
             };
             this.updatePlayButton = () => {
                 if (this._renderedIsPlaying != this.doc.synth.playing || this._renderedIsRecording != this.doc.synth.recording || this._renderedShowRecordButton != this.doc.prefs.showRecordButton || this._renderedCtrlHeld != this._ctrlHeld) {

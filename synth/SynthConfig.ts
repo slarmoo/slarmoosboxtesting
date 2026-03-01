@@ -161,6 +161,7 @@ export const enum EnvelopeComputeIndex {
     vibratoSpeed,
     slideSpeed,
     strumSpeed,
+    plugin,
     //Add more here
 
     length,
@@ -1783,6 +1784,7 @@ export class Config {
         { name: "vibratoSpeed", computeIndex: EnvelopeComputeIndex.vibratoSpeed, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: 1, effect: EffectType.vibrato, compatibleInstruments: null },
         { name: "slideSpeed", computeIndex: EnvelopeComputeIndex.slideSpeed, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.transition, compatibleInstruments: null },
         // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
+        { name: "plugin", computeIndex: EnvelopeComputeIndex.plugin, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: EffectType.plugin, compatibleInstruments: null},
         // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
         //{name: "noteFilterGain",         computeIndex:       EnvelopeComputeIndex.noteFilterGain0,        displayName: "n. filter # vol",  /*perNote:  true,*/ interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null},
         /*

@@ -5,7 +5,7 @@ export class PluginConfig {
 }
 
 interface PluginElementRoot {
-    type: string,
+    type: PluginElementType,
     name: string,
     initialValue: number,
     info: string,
@@ -13,16 +13,23 @@ interface PluginElementRoot {
 export type PluginElement = PluginSlider | PluginCheckbox | PluginDropdown | PluginElementRoot;
 
 export interface PluginSlider extends PluginElementRoot {
-    type: "slider",
+    type: PluginElementType.slider,
     max: number, //max 64
+    hasEnvelope: boolean,
     //mod interaction?
 }
 
 export interface PluginCheckbox extends PluginElementRoot {
-    type: "checkbox"
+    type: PluginElementType.checkbox
 }
 
 export interface PluginDropdown extends PluginElementRoot {
-    type: "dropdown",
+    type: PluginElementType.dropdown,
     options: string[] //max 64
+}
+
+export const enum PluginElementType {
+    slider,
+    checkbox,
+    dropdown
 }

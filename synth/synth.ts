@@ -484,7 +484,7 @@ class EnvelopeComputer {
 
     constructor(/*private _perNote: boolean*/) {
         //const length: number = this._perNote ? EnvelopeComputeIndex.length : InstrumentAutomationIndex.length;
-        const length: number = EnvelopeComputeIndex.length;
+        const length: number = EnvelopeComputeIndex.length + 63;
         for (let i: number = 0; i < length; i++) {
             this.envelopeStarts[i] = 1.0;
             this.envelopeEnds[i] = 1.0;
@@ -1353,6 +1353,9 @@ class InstrumentState {
     public reverbShelfPrevInput3: number = 0.0;
 
     public plugin: EffectPlugin | null = null;
+    //to avoid reallocations / garbage collection
+    private pluginStarts: number[] = [];
+    private pluginEnds: number[] = [];
 
     public readonly spectrumWave: SpectrumWaveState = new SpectrumWaveState();
     public readonly harmonicsWave: HarmonicsWaveState = new HarmonicsWaveState();
@@ -2067,7 +2070,11 @@ class InstrumentState {
         }
         if (usesPlugin && Synth.PluginClass) {
             if (!this.plugin) this.plugin = new Synth.PluginClass();
-            this.plugin?.instrumentStateFunction(instrument);
+            for (let i: number = 0; i < this.plugin!.elements.length; i++) {
+                this.pluginStarts[i] = envelopeStarts[EnvelopeComputeIndex.plugin + i] * instrument.pluginValues[i];
+                this.pluginEnds[i] = envelopeEnds[EnvelopeComputeIndex.plugin + i] * instrument.pluginValues[i];
+            }
+            this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -3713,11 +3720,9 @@ export class Synth {
                         if (prevNotes[pattern.notes[i].pitches[0]] == null || pattern.notes[i].end > (prevNotes[pattern.notes[i].pitches[0]] as Note).start) {
                             prevNotes[pattern.notes[i].pitches[0]] = pattern.notes[i];
                         }
-                    }
-                    else if (pattern.notes[i].start <= currentPart && pattern.notes[i].end > currentPart) {
+                    } else if (pattern.notes[i].start <= currentPart && pattern.notes[i].end > currentPart) {
                         notes[pattern.notes[i].pitches[0]] = pattern.notes[i];
-                    }
-                    else if (pattern.notes[i].start > currentPart) {
+                    } else if (pattern.notes[i].start > currentPart) {
                         // Actually need to check which note starts closer to the end of this note.
                         if (nextNotes[pattern.notes[i].pitches[0]] == null || pattern.notes[i].start < (nextNotes[pattern.notes[i].pitches[0]] as Note).start) {
                             nextNotes[pattern.notes[i].pitches[0]] = pattern.notes[i];
@@ -6715,9 +6720,8 @@ export class Synth {
 
             if (usesPlugin && instrumentState.plugin) {
                 if (typeof instrumentState.plugin.effectOrderIndex == "number") {
-                    instrumentState.plugin.synthFunction
                     //TODO: figure out sampleL and sampleR (will likely come when porting theepbox stereo samples)
-                    if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                    if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);");
                     else effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                     effectsSource += effectOrder.join("");
                 } else {

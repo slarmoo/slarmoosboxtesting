@@ -2,7 +2,7 @@
 
 import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
-import { PluginConfig } from "../editor/PluginConfig";
+import { PluginConfig, PluginElementType, PluginSlider } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
@@ -3034,6 +3034,12 @@ export class Instrument {
         }
         if (automationTarget.name == "arpeggioSpeed") {
             return effectsIncludeChord(this.effects) && this.chord == Config.chords.dictionary["arpeggio"].index;
+        }
+        if (automationTarget.effect == EffectType.plugin) {
+            if (PluginConfig.pluginName == "") return true; //not loaded yet; don't remove envelope
+            if (index >= PluginConfig.pluginUIElements.length) return false;
+            if (PluginConfig.pluginUIElements[index].type != PluginElementType.slider) return false;
+            return (PluginConfig.pluginUIElements[index] as PluginSlider).hasEnvelope;
         }
         if (automationTarget.isFilter) {
             //if (automationTarget.perNote) {

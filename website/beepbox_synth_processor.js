@@ -2121,8 +2121,9 @@ var Config = class _Config {
         effect: 9 /* vibrato */,
         compatibleInstruments: null
       },
-      { name: "slideSpeed", computeIndex: 57 /* slideSpeed */, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10 /* transition */, compatibleInstruments: null }
+      { name: "slideSpeed", computeIndex: 57 /* slideSpeed */, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10 /* transition */, compatibleInstruments: null },
       // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
+      { name: "plugin", computeIndex: 59 /* plugin */, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15 /* plugin */, compatibleInstruments: null }
       // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
       //{name: "noteFilterGain",         computeIndex:       EnvelopeComputeIndex.noteFilterGain0,        displayName: "n. filter # vol",  /*perNote:  true,*/ interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null},
       /*
@@ -5033,7 +5034,7 @@ var EnvelopeComputer = class _EnvelopeComputer {
     this._modifiedEnvelopeIndices = [];
     this._modifiedEnvelopeCount = 0;
     this.lowpassCutoffDecayVolumeCompensation = 1;
-    const length = 59 /* length */;
+    const length = 60 /* length */ + 63;
     for (let i = 0; i < length; i++) {
       this.envelopeStarts[i] = 1;
       this.envelopeEnds[i] = 1;
@@ -5856,6 +5857,9 @@ var InstrumentState = class _InstrumentState {
     this.reverbShelfPrevInput2 = 0;
     this.reverbShelfPrevInput3 = 0;
     this.plugin = null;
+    //to avoid reallocations / garbage collection
+    this.pluginStarts = [];
+    this.pluginEnds = [];
     this.spectrumWave = new SpectrumWaveState();
     this.harmonicsWave = new HarmonicsWaveState();
     this.drumsetSpectrumWaves = [];
@@ -6433,7 +6437,11 @@ var InstrumentState = class _InstrumentState {
     }
     if (usesPlugin && Synth.PluginClass) {
       if (!this.plugin) this.plugin = new Synth.PluginClass();
-      this.plugin?.instrumentStateFunction(instrument);
+      for (let i = 0; i < this.plugin.elements.length; i++) {
+        this.pluginStarts[i] = envelopeStarts[59 /* plugin */ + i] * instrument.pluginValues[i];
+        this.pluginEnds[i] = envelopeEnds[59 /* plugin */ + i] * instrument.pluginValues[i];
+      }
+      this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
     }
     if (this.tonesAddedInThisTick) {
       this.attentuationProgress = 0;
@@ -10441,8 +10449,7 @@ var Synth = class _Synth {
       }
       if (usesPlugin && instrumentState.plugin) {
         if (typeof instrumentState.plugin.effectOrderIndex == "number") {
-          instrumentState.plugin.synthFunction;
-          if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+          if (instrumentState.plugin.effectOrderIndex > 5) effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);");
           else effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
           effectsSource += effectOrder.join("");
         } else {
@@ -14023,6 +14030,12 @@ var Instrument = class {
     }
     if (automationTarget.name == "arpeggioSpeed") {
       return effectsIncludeChord(this.effects) && this.chord == Config.chords.dictionary["arpeggio"].index;
+    }
+    if (automationTarget.effect == 15 /* plugin */) {
+      if (PluginConfig.pluginName == "") return true;
+      if (index >= PluginConfig.pluginUIElements.length) return false;
+      if (PluginConfig.pluginUIElements[index].type != 0 /* slider */) return false;
+      return PluginConfig.pluginUIElements[index].hasEnvelope;
     }
     if (automationTarget.isFilter) {
       let useControlPointCount = this.noteFilter.controlPointCount;

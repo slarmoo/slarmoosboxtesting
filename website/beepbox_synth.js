@@ -1267,6 +1267,7 @@ var beepbox = (function (exports) {
         { name: "echoDelay", computeIndex: 55, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6, compatibleInstruments: null },
         { name: "vibratoSpeed", computeIndex: 56, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 9, compatibleInstruments: null },
         { name: "slideSpeed", computeIndex: 57, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10, compatibleInstruments: null },
+        { name: "plugin", computeIndex: 59, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15, compatibleInstruments: null },
     ]);
     Config.operatorWaves = toNameMap([
         { name: "sine", samples: _a.sineWave },
@@ -5423,6 +5424,15 @@ var beepbox = (function (exports) {
             }
             if (automationTarget.name == "arpeggioSpeed") {
                 return effectsIncludeChord(this.effects) && this.chord == Config.chords.dictionary["arpeggio"].index;
+            }
+            if (automationTarget.effect == 15) {
+                if (PluginConfig.pluginName == "")
+                    return true;
+                if (index >= PluginConfig.pluginUIElements.length)
+                    return false;
+                if (PluginConfig.pluginUIElements[index].type != 0)
+                    return false;
+                return PluginConfig.pluginUIElements[index].hasEnvelope;
             }
             if (automationTarget.isFilter) {
                 let useControlPointCount = this.noteFilter.controlPointCount;
@@ -12091,7 +12101,7 @@ var beepbox = (function (exports) {
             this._modifiedEnvelopeIndices = [];
             this._modifiedEnvelopeCount = 0;
             this.lowpassCutoffDecayVolumeCompensation = 1.0;
-            const length = 59;
+            const length = 60 + 63;
             for (let i = 0; i < length; i++) {
                 this.envelopeStarts[i] = 1.0;
                 this.envelopeEnds[i] = 1.0;
@@ -12927,6 +12937,8 @@ var beepbox = (function (exports) {
             this.reverbShelfPrevInput2 = 0.0;
             this.reverbShelfPrevInput3 = 0.0;
             this.plugin = null;
+            this.pluginStarts = [];
+            this.pluginEnds = [];
             this.spectrumWave = new SpectrumWaveState();
             this.harmonicsWave = new HarmonicsWaveState();
             this.drumsetSpectrumWaves = [];
@@ -13510,7 +13522,11 @@ var beepbox = (function (exports) {
             if (usesPlugin && Synth.PluginClass) {
                 if (!this.plugin)
                     this.plugin = new Synth.PluginClass();
-                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(instrument);
+                for (let i = 0; i < this.plugin.elements.length; i++) {
+                    this.pluginStarts[i] = envelopeStarts[59 + i] * instrument.pluginValues[i];
+                    this.pluginEnds[i] = envelopeEnds[59 + i] * instrument.pluginValues[i];
+                }
+                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
             }
             if (this.tonesAddedInThisTick) {
                 this.attentuationProgress = 0.0;
@@ -17631,9 +17647,8 @@ var beepbox = (function (exports) {
                 }
                 if (usesPlugin && instrumentState.plugin) {
                     if (typeof instrumentState.plugin.effectOrderIndex == "number") {
-                        instrumentState.plugin.synthFunction;
                         if (instrumentState.plugin.effectOrderIndex > 5)
-                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction(sampleL, sampleR, runLength);");
+                            effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);");
                         else
                             effectOrder.splice(instrumentState.plugin.effectOrderIndex, 0, "sample = plugin.synthFunction(sample, runLength);");
                         effectsSource += effectOrder.join("");

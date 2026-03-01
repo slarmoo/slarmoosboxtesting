@@ -8,7 +8,7 @@ import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
 import { SongSettings, ChannelSettings, InstrumentSettings } from "../synth/synthMessages";
-import { PluginConfig, PluginDropdown, PluginSlider } from "./PluginConfig";
+import { PluginElementType, PluginConfig, PluginDropdown, PluginSlider } from "./PluginConfig";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
@@ -1513,9 +1513,9 @@ export class ChangeRandomGeneratedInstrument extends Change {
             if (PluginConfig.pluginUIElements.length > 0 && Math.random() < 0.07) {
                 instrument.effects |= 1 << EffectType.plugin;
                 for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                    if (PluginConfig.pluginUIElements[i].type == "checkbox") {
+                    if (PluginConfig.pluginUIElements[i].type == PluginElementType.checkbox) {
                         instrument.pluginValues[i] = Math.round(Math.random());
-                    } else if (PluginConfig.pluginUIElements[i].type == "slider") {
+                    } else if (PluginConfig.pluginUIElements[i].type == PluginElementType.slider) {
                         instrument.pluginValues[i] = selectCurvedDistribution(0, (PluginConfig.pluginUIElements[i] as PluginSlider).max, 0, (PluginConfig.pluginUIElements[i] as PluginSlider).max / 2);
                     } else {
                         instrument.pluginValues[i] = selectCurvedDistribution(0, (PluginConfig.pluginUIElements[i] as PluginDropdown).options.length, 0, (PluginConfig.pluginUIElements[i] as PluginDropdown).options.length / 2);
