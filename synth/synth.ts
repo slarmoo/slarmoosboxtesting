@@ -4766,8 +4766,8 @@ export class Synth {
                     instrumentState.unisonInitialized = true;
                     tone.unisonHasUpdated = true;
                 } else if (!instrumentState.unisonInitialized && !instrument.unisonAntiPhased) {
-                    for (let j: number = 0; j < Config.unisonVoicesMax; j++) {
-                        tone.phases[i * unisonVoices + j] = 0;
+                    for (let j: number = 0; j < Config.unisonVoicesMax * (Config.operatorCount + 2); j++) {
+                        tone.phases[j] = 0;
                     }
                     instrumentState.unisonInitialized = true;
                 }
@@ -4791,8 +4791,8 @@ export class Synth {
                 const amplitudeMultStart: number = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                 const amplitudeMultEnd: number = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
 
-                let expressionStart: number = amplitudeMultStart * unisonExpression / 1.4;
-                let expressionEnd: number = amplitudeMultEnd * unisonExpression / 1.4;
+                let expressionStart: number = amplitudeMultStart;
+                let expressionEnd: number = amplitudeMultEnd;
 
 
                 if (i < carrierCount) {
@@ -4805,8 +4805,8 @@ export class Synth {
                     }
                     const pitchExpressionEnd: number = Math.pow(2.0, -(pitchEnd - expressionReferencePitch) / pitchDamping);
                     tone.prevPitchExpressions[i] = pitchExpressionEnd;
-                    expressionStart *= pitchExpressionStart;
-                    expressionEnd *= pitchExpressionEnd;
+                    expressionStart *= pitchExpressionStart * unisonExpression / 1.4;
+                    expressionEnd *= pitchExpressionEnd * unisonExpression / 1.4;
 
                     totalCarrierExpression += amplitudeCurveEnd;
                 } else {

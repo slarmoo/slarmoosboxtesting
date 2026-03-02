@@ -8732,8 +8732,8 @@ var Synth = class _Synth {
           instrumentState.unisonInitialized = true;
           tone.unisonHasUpdated = true;
         } else if (!instrumentState.unisonInitialized && !instrument.unisonAntiPhased) {
-          for (let j = 0; j < Config.unisonVoicesMax; j++) {
-            tone.phases[i * unisonVoices + j] = 0;
+          for (let j = 0; j < Config.unisonVoicesMax * (Config.operatorCount + 2); j++) {
+            tone.phases[j] = 0;
           }
           instrumentState.unisonInitialized = true;
         }
@@ -8754,8 +8754,8 @@ var Synth = class _Synth {
         const amplitudeCurveEnd = _Synth.operatorAmplitudeCurve(amplitudeEnd);
         const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
         const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-        let expressionStart2 = amplitudeMultStart * unisonExpression / 1.4;
-        let expressionEnd2 = amplitudeMultEnd * unisonExpression / 1.4;
+        let expressionStart2 = amplitudeMultStart;
+        let expressionEnd2 = amplitudeMultEnd;
         if (i < carrierCount) {
           let pitchExpressionStart;
           if (tone.prevPitchExpressions[i] != null) {
@@ -8765,8 +8765,8 @@ var Synth = class _Synth {
           }
           const pitchExpressionEnd = Math.pow(2, -(pitchEnd - expressionReferencePitch) / pitchDamping);
           tone.prevPitchExpressions[i] = pitchExpressionEnd;
-          expressionStart2 *= pitchExpressionStart;
-          expressionEnd2 *= pitchExpressionEnd;
+          expressionStart2 *= pitchExpressionStart * unisonExpression / 1.4;
+          expressionEnd2 *= pitchExpressionEnd * unisonExpression / 1.4;
           totalCarrierExpression += amplitudeCurveEnd;
         } else {
           expressionStart2 *= Config.sineWaveLength * 1.5;

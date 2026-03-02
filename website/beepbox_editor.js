@@ -16324,8 +16324,8 @@ li.select2-results__option[role=group] > strong:hover {
                         tone.unisonHasUpdated = true;
                     }
                     else if (!instrumentState.unisonInitialized && !instrument.unisonAntiPhased) {
-                        for (let j = 0; j < Config.unisonVoicesMax; j++) {
-                            tone.phases[i * unisonVoices + j] = 0;
+                        for (let j = 0; j < Config.unisonVoicesMax * (Config.operatorCount + 2); j++) {
+                            tone.phases[j] = 0;
                         }
                         instrumentState.unisonInitialized = true;
                     }
@@ -16347,8 +16347,8 @@ li.select2-results__option[role=group] > strong:hover {
                     const amplitudeCurveEnd = Synth.operatorAmplitudeCurve(amplitudeEnd);
                     const amplitudeMultStart = amplitudeCurveStart * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
                     const amplitudeMultEnd = amplitudeCurveEnd * Config.operatorFrequencies[instrument.operators[i].frequency].amplitudeSign;
-                    let expressionStart = amplitudeMultStart * unisonExpression / 1.4;
-                    let expressionEnd = amplitudeMultEnd * unisonExpression / 1.4;
+                    let expressionStart = amplitudeMultStart;
+                    let expressionEnd = amplitudeMultEnd;
                     if (i < carrierCount) {
                         let pitchExpressionStart;
                         if (tone.prevPitchExpressions[i] != null) {
@@ -16359,8 +16359,8 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                         const pitchExpressionEnd = Math.pow(2.0, -(pitchEnd - expressionReferencePitch) / pitchDamping);
                         tone.prevPitchExpressions[i] = pitchExpressionEnd;
-                        expressionStart *= pitchExpressionStart;
-                        expressionEnd *= pitchExpressionEnd;
+                        expressionStart *= pitchExpressionStart * unisonExpression / 1.4;
+                        expressionEnd *= pitchExpressionEnd * unisonExpression / 1.4;
                         totalCarrierExpression += amplitudeCurveEnd;
                     }
                     else {
