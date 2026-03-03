@@ -738,7 +738,6 @@ export class ChangePreset extends Change {
 export class ChangeRandomGeneratedInstrument extends Change {
     constructor(doc: SongDocument, usesCurrentInstrumentType: boolean) {
         super();
-
         interface ItemWeight<T> {
             readonly item: T;
             readonly weight: number;
@@ -792,8 +791,8 @@ export class ChangeRandomGeneratedInstrument extends Change {
 
         const isNoise: boolean = doc.song.getChannelIsNoise(doc.channel);
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
-        const prevType: InstrumentType = instrument.type;
-        instrument.setTypeAndReset(InstrumentType.chip, isNoise, false); //default settings
+        if (instrument.type == InstrumentType.mod) return;
+        instrument.setTypeAndReset(instrument.type, isNoise, false); //default settings
         instrument.effects = 1 << EffectType.panning; // disable all existing effects except panning, which should always be on.
         instrument.aliases = false;
         instrument.envelopeCount = 0;
@@ -810,7 +809,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
         ]);
 
         if (isNoise) {
-            const type: InstrumentType = usesCurrentInstrumentType ? prevType :
+            const type: InstrumentType = usesCurrentInstrumentType ? instrument.type :
             selectWeightedRandom([
                 { item: InstrumentType.noise, weight: 3 },
                 { item: InstrumentType.spectrum, weight: 3 },
@@ -910,48 +909,55 @@ export class ChangeRandomGeneratedInstrument extends Change {
             }
 
             // Configure this to whatever you'd like.
-            if (type == InstrumentType.noise || type == InstrumentType.spectrum) {
-                instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
-                    { item: "none", weight: 100 },
-                    { item: "shimmer", weight: 10 },
-                    { item: "hum", weight: 8 },
-                    { item: "honky tonk", weight: 6 },
-                    { item: "dissonant", weight: 2 },
-                    { item: "fifth", weight: 4 },
-                    { item: "octave", weight: 5 },
-                    { item: "bowed", weight: 4 },
-                    { item: "piano", weight: 10 },
-                    { item: "warbled", weight: 5 },
-                    { item: "hecking gosh", weight: 3 },
-                    { item: "spinner", weight: 6 },
-                    { item: "detune", weight: 4 },
-                    { item: "rising", weight: 2 },
-                    { item: "vibrate", weight: 3 },
-                    { item: "bass", weight: 2 },
-                    { item: "recurve", weight: 3 },
-                    { item: "inject", weight: 2 },
-                    { item: "FART", weight: 1 },
-                    { item: "augmented", weight: 1 },
-                    { item: "diminished", weight: 1 },
-                    { item: "chorus", weight: 2 },
-                    { item: "block", weight: 1 },
-                    { item: "bow", weight: 2 },
-                    // { item: "custom", weight: 10 },
-                ])].index;
+            instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
+                { item: "none", weight: 100 + 100 * +(instrument.type == InstrumentType.drumset) }, //much less likely for drumset to have a unison
+                { item: "shimmer", weight: 10 },
+                { item: "hum", weight: 8 },
+                { item: "honky tonk", weight: 6 },
+                { item: "dissonant", weight: 2 },
+                { item: "fifth", weight: 4 },
+                { item: "octave", weight: 5 },
+                { item: "bowed", weight: 4 },
+                { item: "piano", weight: 10 },
+                { item: "warbled", weight: 5 },
+                { item: "hecking gosh", weight: 3 },
+                { item: "spinner", weight: 6 },
+                { item: "detune", weight: 4 },
+                { item: "rising", weight: 2 },
+                { item: "vibrate", weight: 3 },
+                { item: "bass", weight: 2 },
+                { item: "recurve", weight: 3 },
+                { item: "inject", weight: 2 },
+                { item: "FART", weight: 1 },
+                { item: "augmented", weight: 1 },
+                { item: "diminished", weight: 1 },
+                { item: "chorus", weight: 2 },
+                { item: "block", weight: 4 },
+                { item: "bow", weight: 2 },
+                // { item: "custom", weight: 10 },
+            ])].index;
 
-                if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
-                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
-                        { item: "note size", weight: 2 },
-                        { item: "pitch", weight: 2 },
-                        { item: "twang", weight: 6 },
-                        { item: "swell", weight: 1 },
-                        { item: "decay", weight: 6 },
-                        { item: "wibble", weight: 4 },
-                        { item: "linear", weight: 6 },
-                        { item: "rise", weight: 2 },
-                        { item: "fall", weight: 2 },
-                    ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
-            }
+            instrument.unisonVoices = Config.unisons[instrument.unison].voices;
+            instrument.unisonSpread = Config.unisons[instrument.unison].spread;
+            instrument.unisonOffset = Config.unisons[instrument.unison].offset;
+            instrument.unisonExpression = Config.unisons[instrument.unison].expression;
+            instrument.unisonSign = Config.unisons[instrument.unison].sign;
+
+            instrument.unisonAntiPhased = instrument.unison != Config.unisons.dictionary["none"].index && Math.random() < 0.2;
+            if (instrument.type == InstrumentType.spectrum || instrument.type == InstrumentType.drumset) instrument.unisonAntiPhased = !instrument.unisonAntiPhased;
+
+            if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
+                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
+                    { item: "note size", weight: 2 },
+                    { item: "pitch", weight: 2 },
+                    { item: "twang", weight: 6 },
+                    { item: "swell", weight: 1 },
+                    { item: "decay", weight: 6 },
+                    { item: "wibble", weight: 4 },
+                    { item: "linear", weight: 6 },
+                    { item: "rise", weight: 2 },
+                    { item: "fall", weight: 2 },
+                ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
 
             function normalize(harmonics: number[]): void {
                 let max: number = 0;
@@ -1024,7 +1030,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 default: throw new Error("Unhandled noise instrument type in random generator.");
             }
         } else {
-            const type: InstrumentType = usesCurrentInstrumentType ? prevType :
+            const type: InstrumentType = usesCurrentInstrumentType ? instrument.type :
             selectWeightedRandom([
                 { item: InstrumentType.chip, weight: 2 },
                 // { item: InstrumentType.noise, weight: 1 },
@@ -1041,50 +1047,64 @@ export class ChangeRandomGeneratedInstrument extends Change {
 
             instrument.fadeIn = (Math.random() < 0.5) ? 0 : selectCurvedDistribution(0, Config.fadeInRange - 1, 0, 2);
             instrument.fadeOut = selectCurvedDistribution(0, Config.fadeOutTicks.length - 1, Config.fadeOutNeutral, 2);
-            if (type != InstrumentType.mod) {
-                instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
-                    { item: "none", weight: 100 },
-                    { item: "shimmer", weight: 10 },
-                    { item: "hum", weight: 8 },
-                    { item: "honky tonk", weight: 6 },
-                    { item: "dissonant", weight: 2 },
-                    { item: "fifth", weight: 4 },
-                    { item: "octave", weight: 5 },
-                    { item: "bowed", weight: 4 },
-                    { item: "piano", weight: 10 },
-                    { item: "warbled", weight: 5 },
-                    { item: "hecking gosh", weight: 3 },
-                    { item: "spinner", weight: 6 },
-                    { item: "detune", weight: 4 },
-                    { item: "rising", weight: 2 },
-                    { item: "vibrate", weight: 3 },
-                    { item: "bass", weight: 2 },
-                    { item: "recurve", weight: 3 },
-                    { item: "inject", weight: 2 },
-                    { item: "FART", weight: 1 },
-                    { item: "augmented", weight: 1 },
-                    { item: "diminished", weight: 1 },
-                    { item: "chorus", weight: 2 },
-                    { item: "block", weight: 1 },
-                    { item: "bow", weight: 2 },
-                    // { item: "custom", weight: 10 },
-                ])].index;
-                /* randomly generated unisons don't work correctly - instead of trying to fix them, just ignore it
+            instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
+                { item: "none", weight: 100 },
+                { item: "shimmer", weight: 10 },
+                { item: "hum", weight: 8 },
+                { item: "honky tonk", weight: 6 },
+                { item: "dissonant", weight: 2 },
+                { item: "fifth", weight: 4 },
+                { item: "octave", weight: 5 },
+                { item: "bowed", weight: 4 },
+                { item: "piano", weight: 10 },
+                { item: "warbled", weight: 5 },
+                { item: "hecking gosh", weight: 3 },
+                { item: "spinner", weight: 6 },
+                { item: "detune", weight: 4 },
+                { item: "rising", weight: 2 },
+                { item: "vibrate", weight: 3 },
+                { item: "bass", weight: 2 },
+                { item: "recurve", weight: 3 },
+                { item: "inject", weight: 2 },
+                { item: "FART", weight: 1 },
+                { item: "augmented", weight: 1 },
+                { item: "diminished", weight: 1 },
+                { item: "chorus", weight: 2 },
+                { item: "block", weight: 1 },
+                { item: "bow", weight: 2 },
+                // { item: "custom", weight: 10 },
+            ])].index;
+            /* randomly generated unisons don't work correctly - instead of trying to fix them, just ignore it
 
-                if (instrument.unison == Config.unisons.length) {
-                    instrument.unisonVoices = 2;
-                    instrument.unisonSpread = Math.floor(Math.random() * 12000 - 6000) / 1000;
-                    instrument.unisonOffset = Math.floor(Math.random() * 12000 - 6000) / 1000;
-                    instrument.unisonExpression = 1;
-                    instrument.unisonSign = Math.floor(Math.random() * 2000 - 1000) / 1000;
-                } else {  */
-                instrument.unisonVoices = Config.unisons[instrument.unison].voices;
-                instrument.unisonSpread = Config.unisons[instrument.unison].spread;
-                instrument.unisonOffset = Config.unisons[instrument.unison].offset;
-                instrument.unisonExpression = Config.unisons[instrument.unison].expression;
-                instrument.unisonSign = Config.unisons[instrument.unison].sign;
-                //  } 
-            }
+            if (instrument.unison == Config.unisons.length) {
+                instrument.unisonVoices = 2;
+                instrument.unisonSpread = Math.floor(Math.random() * 12000 - 6000) / 1000;
+                instrument.unisonOffset = Math.floor(Math.random() * 12000 - 6000) / 1000;
+                instrument.unisonExpression = 1;
+                instrument.unisonSign = Math.floor(Math.random() * 2000 - 1000) / 1000;
+            } else {  */
+            instrument.unisonVoices = Config.unisons[instrument.unison].voices;
+            instrument.unisonSpread = Config.unisons[instrument.unison].spread;
+            instrument.unisonOffset = Config.unisons[instrument.unison].offset;
+            instrument.unisonExpression = Config.unisons[instrument.unison].expression;
+            instrument.unisonSign = Config.unisons[instrument.unison].sign;
+            //  }
+
+            instrument.unisonAntiPhased = instrument.unison != Config.unisons.dictionary["none"].index && Math.random() < 0.2;
+            if (instrument.type == InstrumentType.spectrum) instrument.unisonAntiPhased = !instrument.unisonAntiPhased; 
+            
+            if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
+                instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
+                    { item: "note size", weight: 2 },
+                    { item: "pitch", weight: 2 },
+                    { item: "twang", weight: 6 },
+                    { item: "swell", weight: 1 },
+                    { item: "decay", weight: 6 },
+                    { item: "wibble", weight: 4 },
+                    { item: "linear", weight: 6 },
+                    { item: "rise", weight: 2 },
+                    { item: "fall", weight: 2 },
+                ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
 
             if (Math.random() < 0.1) {
                 instrument.effects |= 1 << EffectType.transition;

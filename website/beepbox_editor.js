@@ -26789,6 +26789,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
+            this.bufferL = new SharedArrayBuffer(128 * 32 * 4);
+            this.bufferR = new SharedArrayBuffer(128 * 32 * 4);
             this.loopRepeats = -1;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
@@ -26813,6 +26815,7 @@ li.select2-results__option[role=group] > strong:hover {
             this._loopBarEnd = -1;
             this.audioContext = null;
             this.workletNode = null;
+            this.synthNode = null;
             this.splitterNode = null;
             this.analyserNodeLeft = null;
             this.analyserNodeRight = null;
@@ -26829,15 +26832,15 @@ li.select2-results__option[role=group] > strong:hover {
             events.listen(EventType.pluginLoaded, this.updateProcessorPlugin.bind(this));
         }
         sendMessage(message) {
-            if (this.workletNode == null) {
+            if (this.synthNode == null) {
                 this.messageQueue.push(message);
             }
             else {
-                this.workletNode.port.postMessage(message);
+                this.synthNode.postMessage(message);
                 while (this.messageQueue.length > 0) {
                     let next = this.messageQueue.shift();
                     if (next) {
-                        this.workletNode.port.postMessage(next);
+                        this.synthNode.postMessage(next);
                     }
                 }
             }
@@ -26858,7 +26861,7 @@ li.select2-results__option[role=group] > strong:hover {
                     break;
                 }
                 case MessageFlag.uiRender: {
-                    if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime)
+                    if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime)
                         this.deactivateAudio();
                     if (this.oscEnabled) {
                         if (this.oscRefreshEventTimer <= 0) {
@@ -26941,19 +26944,11 @@ li.select2-results__option[role=group] > strong:hover {
                         this.deactivateAudio();
                     if (this.audioContext && this.audioContext.state == "suspended")
                         this.audioContext.resume();
-                    const sabMessage = {
-                        flag: MessageFlag.sharedArrayBuffers,
-                        liveInputValues: this.liveInputValues,
-                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                        songPosition: this.songPosition,
-                        outVolumeCap: this.outVolumeCap
-                    };
-                    this.sendMessage(sabMessage);
                     const latencyHint = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
                     if (!this.audioContext)
                         this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
                     this.samplesPerSecond = this.audioContext.sampleRate;
-                    yield this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+                    yield this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_processor.js" : "beepbox_processor.js");
                     this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
                         numberOfOutputs: 1,
                         outputChannelCount: [2],
@@ -26961,6 +26956,23 @@ li.select2-results__option[role=group] > strong:hover {
                         channelCountMode: "explicit",
                         numberOfInputs: 0
                     });
+                    const sabMessage = {
+                        flag: MessageFlag.sharedArrayBuffers,
+                        bufferL: this.bufferL,
+                        bufferR: this.bufferR,
+                        liveInputValues: this.liveInputValues,
+                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+                        songPosition: this.songPosition,
+                        outVolumeCap: this.outVolumeCap,
+                        sampleRate: this.audioContext.sampleRate
+                    };
+                    this.sendMessage(sabMessage);
+                    this.workletNode.port.postMessage({
+                        bufferL: this.bufferL,
+                        bufferR: this.bufferR
+                    });
+                    if (!this.synthNode)
+                        this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
                     if (!this.splitterNode)
                         this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
                     if (!this.analyserNodeLeft)
@@ -26981,6 +26993,7 @@ li.select2-results__option[role=group] > strong:hover {
                     this.workletNode.connect(this.splitterNode);
                     this.splitterNode.connect(this.analyserNodeLeft, 0);
                     this.splitterNode.connect(this.analyserNodeRight, 1);
+                    this.synthNode.onmessage = (event) => this.receiveMessage(event);
                     this.workletNode.port.onmessage = (event) => this.receiveMessage(event);
                     this.updateWorkletSong();
                 }
@@ -29184,8 +29197,9 @@ li.select2-results__option[role=group] > strong:hover {
             }
             const isNoise = doc.song.getChannelIsNoise(doc.channel);
             const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
-            const prevType = instrument.type;
-            instrument.setTypeAndReset(0, isNoise, false);
+            if (instrument.type == 10)
+                return;
+            instrument.setTypeAndReset(instrument.type, isNoise, false);
             instrument.effects = 1 << 2;
             instrument.aliases = false;
             instrument.envelopeCount = 0;
@@ -29200,7 +29214,7 @@ li.select2-results__option[role=group] > strong:hover {
                 new PotentialFilterPoint(0.2, 2, 0, maxFreq, 500.0, 0),
             ]);
             if (isNoise) {
-                const type = usesCurrentInstrumentType ? prevType :
+                const type = usesCurrentInstrumentType ? instrument.type :
                     selectWeightedRandom([
                         { item: 2, weight: 3 },
                         { item: 3, weight: 3 },
@@ -29296,46 +29310,52 @@ li.select2-results__option[role=group] > strong:hover {
                     instrument.effects |= 1 << 0;
                     instrument.reverb = selectCurvedDistribution(1, Config.reverbRange - 1, 1, 1);
                 }
-                if (type == 2 || type == 3) {
-                    instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
-                        { item: "none", weight: 100 },
-                        { item: "shimmer", weight: 10 },
-                        { item: "hum", weight: 8 },
-                        { item: "honky tonk", weight: 6 },
-                        { item: "dissonant", weight: 2 },
-                        { item: "fifth", weight: 4 },
-                        { item: "octave", weight: 5 },
-                        { item: "bowed", weight: 4 },
-                        { item: "piano", weight: 10 },
-                        { item: "warbled", weight: 5 },
-                        { item: "hecking gosh", weight: 3 },
-                        { item: "spinner", weight: 6 },
-                        { item: "detune", weight: 4 },
-                        { item: "rising", weight: 2 },
-                        { item: "vibrate", weight: 3 },
-                        { item: "bass", weight: 2 },
-                        { item: "recurve", weight: 3 },
-                        { item: "inject", weight: 2 },
-                        { item: "FART", weight: 1 },
-                        { item: "augmented", weight: 1 },
-                        { item: "diminished", weight: 1 },
-                        { item: "chorus", weight: 2 },
-                        { item: "block", weight: 1 },
-                        { item: "bow", weight: 2 },
-                    ])].index;
-                    if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
-                        instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
-                            { item: "note size", weight: 2 },
-                            { item: "pitch", weight: 2 },
-                            { item: "twang", weight: 6 },
-                            { item: "swell", weight: 1 },
-                            { item: "decay", weight: 6 },
-                            { item: "wibble", weight: 4 },
-                            { item: "linear", weight: 6 },
-                            { item: "rise", weight: 2 },
-                            { item: "fall", weight: 2 },
-                        ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
-                }
+                instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
+                    { item: "none", weight: 100 + 100 * +(instrument.type == 4) },
+                    { item: "shimmer", weight: 10 },
+                    { item: "hum", weight: 8 },
+                    { item: "honky tonk", weight: 6 },
+                    { item: "dissonant", weight: 2 },
+                    { item: "fifth", weight: 4 },
+                    { item: "octave", weight: 5 },
+                    { item: "bowed", weight: 4 },
+                    { item: "piano", weight: 10 },
+                    { item: "warbled", weight: 5 },
+                    { item: "hecking gosh", weight: 3 },
+                    { item: "spinner", weight: 6 },
+                    { item: "detune", weight: 4 },
+                    { item: "rising", weight: 2 },
+                    { item: "vibrate", weight: 3 },
+                    { item: "bass", weight: 2 },
+                    { item: "recurve", weight: 3 },
+                    { item: "inject", weight: 2 },
+                    { item: "FART", weight: 1 },
+                    { item: "augmented", weight: 1 },
+                    { item: "diminished", weight: 1 },
+                    { item: "chorus", weight: 2 },
+                    { item: "block", weight: 4 },
+                    { item: "bow", weight: 2 },
+                ])].index;
+                instrument.unisonVoices = Config.unisons[instrument.unison].voices;
+                instrument.unisonSpread = Config.unisons[instrument.unison].spread;
+                instrument.unisonOffset = Config.unisons[instrument.unison].offset;
+                instrument.unisonExpression = Config.unisons[instrument.unison].expression;
+                instrument.unisonSign = Config.unisons[instrument.unison].sign;
+                instrument.unisonAntiPhased = instrument.unison != Config.unisons.dictionary["none"].index && Math.random() < 0.2;
+                if (instrument.type == 3 || instrument.type == 4)
+                    instrument.unisonAntiPhased = !instrument.unisonAntiPhased;
+                if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
+                        { item: "note size", weight: 2 },
+                        { item: "pitch", weight: 2 },
+                        { item: "twang", weight: 6 },
+                        { item: "swell", weight: 1 },
+                        { item: "decay", weight: 6 },
+                        { item: "wibble", weight: 4 },
+                        { item: "linear", weight: 6 },
+                        { item: "rise", weight: 2 },
+                        { item: "fall", weight: 2 },
+                    ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
                 function normalize(harmonics) {
                     let max = 0;
                     for (const value of harmonics) {
@@ -29418,7 +29438,7 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             else {
-                const type = usesCurrentInstrumentType ? prevType :
+                const type = usesCurrentInstrumentType ? instrument.type :
                     selectWeightedRandom([
                         { item: 0, weight: 2 },
                         { item: 6, weight: 2 },
@@ -29433,39 +29453,52 @@ li.select2-results__option[role=group] > strong:hover {
                 instrument.preset = instrument.type = type;
                 instrument.fadeIn = (Math.random() < 0.5) ? 0 : selectCurvedDistribution(0, Config.fadeInRange - 1, 0, 2);
                 instrument.fadeOut = selectCurvedDistribution(0, Config.fadeOutTicks.length - 1, Config.fadeOutNeutral, 2);
-                if (type != 10) {
-                    instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
-                        { item: "none", weight: 100 },
-                        { item: "shimmer", weight: 10 },
-                        { item: "hum", weight: 8 },
-                        { item: "honky tonk", weight: 6 },
-                        { item: "dissonant", weight: 2 },
-                        { item: "fifth", weight: 4 },
-                        { item: "octave", weight: 5 },
-                        { item: "bowed", weight: 4 },
-                        { item: "piano", weight: 10 },
-                        { item: "warbled", weight: 5 },
-                        { item: "hecking gosh", weight: 3 },
-                        { item: "spinner", weight: 6 },
-                        { item: "detune", weight: 4 },
-                        { item: "rising", weight: 2 },
-                        { item: "vibrate", weight: 3 },
-                        { item: "bass", weight: 2 },
-                        { item: "recurve", weight: 3 },
-                        { item: "inject", weight: 2 },
-                        { item: "FART", weight: 1 },
-                        { item: "augmented", weight: 1 },
-                        { item: "diminished", weight: 1 },
-                        { item: "chorus", weight: 2 },
-                        { item: "block", weight: 1 },
-                        { item: "bow", weight: 2 },
-                    ])].index;
-                    instrument.unisonVoices = Config.unisons[instrument.unison].voices;
-                    instrument.unisonSpread = Config.unisons[instrument.unison].spread;
-                    instrument.unisonOffset = Config.unisons[instrument.unison].offset;
-                    instrument.unisonExpression = Config.unisons[instrument.unison].expression;
-                    instrument.unisonSign = Config.unisons[instrument.unison].sign;
-                }
+                instrument.unison = Config.unisons.dictionary[selectWeightedRandom([
+                    { item: "none", weight: 100 },
+                    { item: "shimmer", weight: 10 },
+                    { item: "hum", weight: 8 },
+                    { item: "honky tonk", weight: 6 },
+                    { item: "dissonant", weight: 2 },
+                    { item: "fifth", weight: 4 },
+                    { item: "octave", weight: 5 },
+                    { item: "bowed", weight: 4 },
+                    { item: "piano", weight: 10 },
+                    { item: "warbled", weight: 5 },
+                    { item: "hecking gosh", weight: 3 },
+                    { item: "spinner", weight: 6 },
+                    { item: "detune", weight: 4 },
+                    { item: "rising", weight: 2 },
+                    { item: "vibrate", weight: 3 },
+                    { item: "bass", weight: 2 },
+                    { item: "recurve", weight: 3 },
+                    { item: "inject", weight: 2 },
+                    { item: "FART", weight: 1 },
+                    { item: "augmented", weight: 1 },
+                    { item: "diminished", weight: 1 },
+                    { item: "chorus", weight: 2 },
+                    { item: "block", weight: 1 },
+                    { item: "bow", weight: 2 },
+                ])].index;
+                instrument.unisonVoices = Config.unisons[instrument.unison].voices;
+                instrument.unisonSpread = Config.unisons[instrument.unison].spread;
+                instrument.unisonOffset = Config.unisons[instrument.unison].offset;
+                instrument.unisonExpression = Config.unisons[instrument.unison].expression;
+                instrument.unisonSign = Config.unisons[instrument.unison].sign;
+                instrument.unisonAntiPhased = instrument.unison != Config.unisons.dictionary["none"].index && Math.random() < 0.2;
+                if (instrument.type == 3)
+                    instrument.unisonAntiPhased = !instrument.unisonAntiPhased;
+                if (instrument.unison != Config.unisons.dictionary["none"].index && Math.random() > 0.4)
+                    instrument.addEnvelope(Config.instrumentAutomationTargets.dictionary["unison"].index, 0, Config.envelopes.dictionary[selectWeightedRandom([
+                        { item: "note size", weight: 2 },
+                        { item: "pitch", weight: 2 },
+                        { item: "twang", weight: 6 },
+                        { item: "swell", weight: 1 },
+                        { item: "decay", weight: 6 },
+                        { item: "wibble", weight: 4 },
+                        { item: "linear", weight: 6 },
+                        { item: "rise", weight: 2 },
+                        { item: "fall", weight: 2 },
+                    ])].index, true, 0, -1, selectWeightedRandom([{ item: false, weight: 8 }, { item: true, weight: 1 }]), Config.perEnvelopeSpeedIndices[selectCurvedDistribution(1, 63, 57, 6)]);
                 if (Math.random() < 0.1) {
                     instrument.effects |= 1 << 10;
                     instrument.transition = Config.transitions.dictionary[selectWeightedRandom([

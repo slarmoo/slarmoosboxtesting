@@ -57,10 +57,13 @@ export interface ComputeModsMessage extends Message {
 
 export interface SendSharedArrayBuffers extends Message {
     flag: MessageFlag.sharedArrayBuffers,
+    bufferL: SharedArrayBuffer,
+    bufferR: SharedArrayBuffer,
     liveInputValues: Uint32Array,
     liveInputPitchesOnOffRequests: SharedArrayBuffer,
     songPosition: Uint16Array,
-    outVolumeCap: Float32Array
+    outVolumeCap: Float32Array,
+    sampleRate: number
 }
 
 export interface SetPrevBarMessage extends Message {
@@ -77,7 +80,6 @@ export interface IsRecordingMessage extends Message {
 
 export interface UIRenderMessage extends Message {
     flag: MessageFlag.uiRender,
-    maintainLiveInput: boolean
 }
 
 export interface SynthVolumeMessage extends Message {

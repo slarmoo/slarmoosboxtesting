@@ -10357,6 +10357,8 @@ var beepbox = (function (exports) {
             this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
+            this.bufferL = new SharedArrayBuffer(128 * 32 * 4);
+            this.bufferR = new SharedArrayBuffer(128 * 32 * 4);
             this.loopRepeats = -1;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
@@ -10381,6 +10383,7 @@ var beepbox = (function (exports) {
             this._loopBarEnd = -1;
             this.audioContext = null;
             this.workletNode = null;
+            this.synthNode = null;
             this.splitterNode = null;
             this.analyserNodeLeft = null;
             this.analyserNodeRight = null;
@@ -10397,15 +10400,15 @@ var beepbox = (function (exports) {
             events.listen(EventType.pluginLoaded, this.updateProcessorPlugin.bind(this));
         }
         sendMessage(message) {
-            if (this.workletNode == null) {
+            if (this.synthNode == null) {
                 this.messageQueue.push(message);
             }
             else {
-                this.workletNode.port.postMessage(message);
+                this.synthNode.postMessage(message);
                 while (this.messageQueue.length > 0) {
                     let next = this.messageQueue.shift();
                     if (next) {
-                        this.workletNode.port.postMessage(next);
+                        this.synthNode.postMessage(next);
                     }
                 }
             }
@@ -10426,7 +10429,7 @@ var beepbox = (function (exports) {
                     break;
                 }
                 case MessageFlag.uiRender: {
-                    if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime)
+                    if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime)
                         this.deactivateAudio();
                     if (this.oscEnabled) {
                         if (this.oscRefreshEventTimer <= 0) {
@@ -10509,19 +10512,11 @@ var beepbox = (function (exports) {
                         this.deactivateAudio();
                     if (this.audioContext && this.audioContext.state == "suspended")
                         this.audioContext.resume();
-                    const sabMessage = {
-                        flag: MessageFlag.sharedArrayBuffers,
-                        liveInputValues: this.liveInputValues,
-                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                        songPosition: this.songPosition,
-                        outVolumeCap: this.outVolumeCap
-                    };
-                    this.sendMessage(sabMessage);
                     const latencyHint = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
                     if (!this.audioContext)
                         this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
                     this.samplesPerSecond = this.audioContext.sampleRate;
-                    yield this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+                    yield this.audioContext.audioWorklet.addModule(ISPLAYER ? "../beepbox_processor.js" : "beepbox_processor.js");
                     this.workletNode = new AudioWorkletNode(this.audioContext, 'synth-processor', {
                         numberOfOutputs: 1,
                         outputChannelCount: [2],
@@ -10529,6 +10524,23 @@ var beepbox = (function (exports) {
                         channelCountMode: "explicit",
                         numberOfInputs: 0
                     });
+                    const sabMessage = {
+                        flag: MessageFlag.sharedArrayBuffers,
+                        bufferL: this.bufferL,
+                        bufferR: this.bufferR,
+                        liveInputValues: this.liveInputValues,
+                        liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+                        songPosition: this.songPosition,
+                        outVolumeCap: this.outVolumeCap,
+                        sampleRate: this.audioContext.sampleRate
+                    };
+                    this.sendMessage(sabMessage);
+                    this.workletNode.port.postMessage({
+                        bufferL: this.bufferL,
+                        bufferR: this.bufferR
+                    });
+                    if (!this.synthNode)
+                        this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
                     if (!this.splitterNode)
                         this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
                     if (!this.analyserNodeLeft)
@@ -10549,6 +10561,7 @@ var beepbox = (function (exports) {
                     this.workletNode.connect(this.splitterNode);
                     this.splitterNode.connect(this.analyserNodeLeft, 0);
                     this.splitterNode.connect(this.analyserNodeRight, 1);
+                    this.synthNode.onmessage = (event) => this.receiveMessage(event);
                     this.workletNode.port.onmessage = (event) => this.receiveMessage(event);
                     this.updateWorkletSong();
                 }

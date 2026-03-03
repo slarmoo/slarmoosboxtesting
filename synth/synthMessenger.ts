@@ -8221,6 +8221,9 @@ export class SynthMessenger {
     private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch);
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
 
+    private readonly bufferL: SharedArrayBuffer = new SharedArrayBuffer(128 * 32 * 4);
+    private readonly bufferR: SharedArrayBuffer = new SharedArrayBuffer(128 * 32 * 4);
+
     private loopRepeats: number = -1;
     public oscRefreshEventTimer: number = 0;
     public oscEnabled: boolean = true;
@@ -8256,6 +8259,7 @@ export class SynthMessenger {
 
     private audioContext: AudioContext | null = null;
     private workletNode: AudioWorkletNode | null = null;
+    private synthNode: Worker | null = null;
     private splitterNode: ChannelSplitterNode | null = null;
     private analyserNodeLeft: AnalyserNode | null = null;
     private analyserNodeRight: AnalyserNode | null = null;
@@ -8353,15 +8357,15 @@ export class SynthMessenger {
     private messageQueue: Message[] = [];
 
     public sendMessage(message: Message) { //reworked from Jummbus's prototype
-        if (this.workletNode == null) {
+        if (this.synthNode == null) {
             this.messageQueue.push(message);
         } else {
-            this.workletNode.port.postMessage(message);
+            this.synthNode.postMessage(message);
             // Handle sending any queued messages
             while (this.messageQueue.length > 0) {
                 let next: Message | undefined = this.messageQueue.shift();
                 if (next) {
-                    this.workletNode.port.postMessage(next);
+                    this.synthNode.postMessage(next);
                 }
             }
         }
@@ -8387,7 +8391,7 @@ export class SynthMessenger {
             }
                 
             case MessageFlag.uiRender: {
-                if (event.data.maintainLiveInput && !this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
+                if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
                 if (this.oscEnabled) {
                     if (this.oscRefreshEventTimer <= 0) {
                         this.analyserNodeLeft!.getFloatTimeDomainData(this.leftData);
@@ -8464,22 +8468,12 @@ export class SynthMessenger {
         if (this.audioContext == null || this.workletNode == null) {
             if (this.workletNode != null) this.deactivateAudio();
             if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
-            // make sure that the workletNode has access to the shared array buffers and the song
-            const sabMessage: SendSharedArrayBuffers = {
-                flag: MessageFlag.sharedArrayBuffers,
-                liveInputValues: this.liveInputValues,
-                liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
-                songPosition: this.songPosition,
-                outVolumeCap: this.outVolumeCap
-                //add more here if needed
-            }
-            this.sendMessage(sabMessage);
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
             if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: latencyHint });
             this.samplesPerSecond = this.audioContext!.sampleRate;
 
-            await this.audioContext!.audioWorklet.addModule(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+            await this.audioContext!.audioWorklet.addModule(ISPLAYER ? "../beepbox_processor.js" : "beepbox_processor.js");
             this.workletNode = new AudioWorkletNode(this.audioContext!, 'synth-processor', {
                 numberOfOutputs: 1,
                 outputChannelCount: [2],
@@ -8487,6 +8481,24 @@ export class SynthMessenger {
                 channelCountMode: "explicit",
                 numberOfInputs: 0
             });
+            // make sure that the workletNode has access to the shared array buffers and the song
+            const sabMessage: SendSharedArrayBuffers = {
+                flag: MessageFlag.sharedArrayBuffers,
+                bufferL: this.bufferL,
+                bufferR: this.bufferR,
+                liveInputValues: this.liveInputValues,
+                liveInputPitchesOnOffRequests: this.liveInputPitchesSAB,
+                songPosition: this.songPosition,
+                outVolumeCap: this.outVolumeCap,
+                sampleRate: this.audioContext!.sampleRate
+                //add more here if needed
+            }
+            this.sendMessage(sabMessage);
+            this.workletNode.port.postMessage({
+                bufferL: this.bufferL,
+                bufferR: this.bufferR
+            });
+            if (!this.synthNode) this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js")
             if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext!, { numberOfOutputs: 2 });
             if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext!, {
                 channelCount: 2,
@@ -8506,6 +8518,7 @@ export class SynthMessenger {
             this.workletNode.connect(this.splitterNode);
             this.splitterNode.connect(this.analyserNodeLeft, 0);
             this.splitterNode.connect(this.analyserNodeRight, 1);
+            this.synthNode.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.updateWorkletSong();
         }
@@ -8551,7 +8564,6 @@ export class SynthMessenger {
 
     public updateProcessorPlugin(blob: string, pluginMessage: PluginMessage): void {
         this.audioContext!.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));  
-        
     }
 
 
