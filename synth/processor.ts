@@ -2,7 +2,7 @@
 
 import { Config, performIntegral } from "./SynthConfig";
 import { Song } from "./synthMessenger";
-import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, SongSettings, UIRenderMessage } from "./synthMessages";
+import { DeactivateMessage, IsRecordingMessage, Message, MessageFlag, UIRenderMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { EffectPlugin } from "./plugin";
@@ -155,7 +155,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             case MessageFlag.pluginMessage: {
                 Synth.PluginClass = globalThis[event.data.name];
                 const plugin: EffectPlugin = new Synth.PluginClass();
-                
+
                 for (let channelIndex: number = 0; channelIndex < this.synth.song!.pitchChannelCount + this.synth.song!.noiseChannelCount; channelIndex++) {
                     for (let instrumentIndex: number = 0; instrumentIndex < this.synth.song!.channels[channelIndex].instruments.length; instrumentIndex++) {
                         this.synth.channels[channelIndex].instruments[instrumentIndex].plugin = null;
