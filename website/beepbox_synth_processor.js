@@ -8905,68 +8905,78 @@ var Synth = class _Synth {
             tone.phaseDeltaScales[i] = tone.phaseDeltaScales[0];
           }
         }
-        if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased && (instrument.type == 6 /* pwm */ || instrumentState.wave) && instrument.type != 7 /* pickedString */) {
-          let wavePoint = function(phase) {
-            if (instrument.type == 6 /* pwm */) {
-              const sawPhaseA = phase - (phase | 0);
-              const sawPhaseB = phase + tone.pulseWidth - (phase + tone.pulseWidth | 0);
-              return sawPhaseB - sawPhaseA;
+        if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased && (instrument.type == 6 /* pwm */ || instrument.type == 4 /* drumset */ || instrumentState.wave) && instrument.type != 7 /* pickedString */) {
+          if (instrument.type == 3 /* spectrum */) {
+            for (let i = 0; i < Config.unisonVoicesMax; i++) {
+              tone.phases[i] = _Synth.findRandomZeroCrossing(instrumentState.wave, Config.spectrumNoiseLength);
             }
-            const flooredPhase = (phase | 0) % instrumentState.wave.length;
-            const remainder = phase - flooredPhase;
-            const flooredPhase2 = flooredPhase + 1 >= instrumentState.wave.length ? flooredPhase + 1 - instrumentState.wave.length : flooredPhase + 1;
-            return instrumentState.wave[flooredPhase] * (1 - remainder) + instrumentState.wave[flooredPhase2] * remainder;
-          };
-          __name(wavePoint, "wavePoint");
-          const voiceCount = Config.unisonVoicesMax;
-          const unisonSign = instrument.unisonSign;
-          let accumulator = 0;
-          for (let i = 0; i < voiceCount; i++) {
-            tone.phases[i] = accumulator;
-            accumulator += -Math.log(Math.random());
-          }
-          let amplitudeOld = wavePoint(tone.phases[0]);
-          for (let i = 1; i < voiceCount; i++) {
-            amplitudeOld += wavePoint(tone.phases[i]) * unisonSign;
-          }
-          let phaseOld = 0;
-          let zeroCrossingPhase = 0;
-          const steps = 256;
-          for (let i = 1; i <= steps; i++) {
-            let phaseNew = i / steps * (instrument.type == 6 /* pwm */ ? 1 : instrumentState.wave.length);
-            let amplitudeNew = wavePoint(tone.phases[0] + phaseNew);
-            for (let j = 1; j < voiceCount; j++) {
-              amplitudeNew += wavePoint(tone.phases[j] + phaseNew) * unisonSign;
+          } else if (instrument.type == 4 /* drumset */) {
+            for (let i = 0; i < Config.unisonVoicesMax; i++) {
+              tone.phases[i] = _Synth.findRandomZeroCrossing(instrumentState.getDrumsetWave(tone.drumsetPitch), Config.spectrumNoiseLength);
             }
-            if (amplitudeOld * amplitudeNew <= 0) {
-              for (let _ = 0; _ < 10; _++) {
-                const phaseCenter = (phaseOld + phaseNew) / 2;
-                let amplitudeNewer = wavePoint(phaseCenter + tone.phases[0]);
-                for (let k = 1; k < voiceCount; k++) {
-                  amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
-                }
-                if (amplitudeOld * amplitudeNewer <= 0) {
-                  phaseNew = phaseCenter;
-                  amplitudeNew = amplitudeNewer;
-                } else {
-                  phaseOld = phaseCenter;
-                  amplitudeOld = amplitudeNewer;
-                }
+          } else {
+            let wavePoint = function(phase) {
+              if (instrument.type == 6 /* pwm */) {
+                const sawPhaseA = phase - (phase | 0);
+                const sawPhaseB = phase + tone.pulseWidth - (phase + tone.pulseWidth | 0);
+                return sawPhaseB - sawPhaseA;
               }
-              zeroCrossingPhase = (phaseOld + phaseNew) / 2;
-              break;
+              const flooredPhase = (phase | 0) % instrumentState.wave.length;
+              const remainder = phase - flooredPhase;
+              const flooredPhase2 = flooredPhase + 1 >= instrumentState.wave.length ? flooredPhase + 1 - instrumentState.wave.length : flooredPhase + 1;
+              return instrumentState.wave[flooredPhase] * (1 - remainder) + instrumentState.wave[flooredPhase2] * remainder;
+            };
+            __name(wavePoint, "wavePoint");
+            const voiceCount = Config.unisonVoicesMax;
+            const unisonSign = instrument.unisonSign;
+            let accumulator = 0;
+            for (let i = 0; i < voiceCount; i++) {
+              tone.phases[i] = accumulator;
+              accumulator += -Math.log(Math.random());
             }
-            phaseOld = phaseNew;
-            amplitudeOld = amplitudeNew;
-          }
-          for (let i = 0; i < voiceCount; i++) {
-            tone.phases[i] += zeroCrossingPhase;
-          }
-          for (let i = 1; i < voiceCount - 1; i++) {
-            const swappedIndex = i + Math.floor(Math.random() * (voiceCount - i));
-            const temp = tone.phases[i];
-            tone.phases[i] = tone.phases[swappedIndex];
-            tone.phases[swappedIndex] = temp;
+            let amplitudeOld = wavePoint(tone.phases[0]);
+            for (let i = 1; i < voiceCount; i++) {
+              amplitudeOld += wavePoint(tone.phases[i]) * unisonSign;
+            }
+            let phaseOld = 0;
+            let zeroCrossingPhase = 0;
+            const steps = 256;
+            for (let i = 1; i <= steps; i++) {
+              let phaseNew = i / steps * (instrument.type == 6 /* pwm */ ? 1 : instrumentState.wave.length);
+              let amplitudeNew = wavePoint(tone.phases[0] + phaseNew);
+              for (let j = 1; j < voiceCount; j++) {
+                amplitudeNew += wavePoint(tone.phases[j] + phaseNew) * unisonSign;
+              }
+              if (amplitudeOld * amplitudeNew <= 0) {
+                for (let _ = 0; _ < 10; _++) {
+                  const phaseCenter = (phaseOld + phaseNew) / 2;
+                  let amplitudeNewer = wavePoint(phaseCenter + tone.phases[0]);
+                  for (let k = 1; k < voiceCount; k++) {
+                    amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
+                  }
+                  if (amplitudeOld * amplitudeNewer <= 0) {
+                    phaseNew = phaseCenter;
+                    amplitudeNew = amplitudeNewer;
+                  } else {
+                    phaseOld = phaseCenter;
+                    amplitudeOld = amplitudeNewer;
+                  }
+                }
+                zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                break;
+              }
+              phaseOld = phaseNew;
+              amplitudeOld = amplitudeNew;
+            }
+            for (let i = 0; i < voiceCount; i++) {
+              tone.phases[i] += zeroCrossingPhase;
+            }
+            for (let i = 1; i < voiceCount - 1; i++) {
+              const swappedIndex = i + Math.floor(Math.random() * (voiceCount - i));
+              const temp = tone.phases[i];
+              tone.phases[i] = tone.phases[swappedIndex];
+              tone.phases[swappedIndex] = temp;
+            }
           }
           instrumentState.unisonInitialized = true;
           tone.unisonHasUpdated = true;
@@ -9795,7 +9805,6 @@ var Synth = class _Synth {
 				const expressionDelta = +tone.expressionDelta;
 				
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-                if (instrumentState.unisonVoices == 1 && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
 				
 				const filters = tone.noteFilters;
@@ -11083,7 +11092,7 @@ var Synth = class _Synth {
         }
         if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
             // Zero phase means the tone was reset, just give noise a random start phase instead.
-            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) if(instrumentState.unisonAntiPhased) {phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#} else if(# > 0) {phase# = phase0};
         }
         const stopIndex = bufferIndex + runLength;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
@@ -11163,7 +11172,7 @@ var Synth = class _Synth {
         }
         if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
             // Zero phase means the tone was reset, just give noise a random start phase instead.
-            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) if(instrumentState.unisonAntiPhased) {phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#} else if(# > 0) {phase# = phase0};
         }
         const phaseMask = Config.spectrumNoiseLength - 1;
 
@@ -12856,6 +12865,7 @@ var Instrument = class {
     this.vibrato = 0;
     this.unison = 0;
     this.unisonBuzzes = false;
+    this.unisonAntiPhased = type == 3 /* spectrum */ || type == 4 /* drumset */;
     this.stringSustain = 10;
     this.stringSustainType = Config.enableAcousticSustain ? 1 /* acoustic */ : 0 /* bright */;
     this.clicklessTransition = false;
@@ -13425,7 +13435,12 @@ var Instrument = class {
     this.unisonOffset = instrumentObject["unisonOffset"] == void 0 ? Config.unisons[this.unison].offset : instrumentObject["unisonOffset"];
     this.unisonExpression = instrumentObject["unisonExpression"] == void 0 ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
     this.unisonSign = instrumentObject["unisonSign"] == void 0 ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
-    this.unisonAntiPhased = instrumentObject["unisonAntiPhased"] == true;
+    if (instrumentObject["unisonAntiPhased"] == void 0) {
+      if (this.type == 3 /* spectrum */ || this.type == 4 /* drumset */) this.unisonAntiPhased = true;
+      else this.unisonAntiPhased = false;
+    } else {
+      this.unisonAntiPhased = instrumentObject["unisonAntiPhased"] == true;
+    }
     this.unisonBuzzes = instrumentObject["unisonBuzzes"] == void 0 ? false : instrumentObject["unisonBuzzes"];
     if (instrumentObject["chorus"] == "custom harmony") {
       this.unison = Config.unisons.dictionary["hum"].index;
@@ -15999,6 +16014,12 @@ var Song = class _Song {
                 instrument.unisonAntiPhased = (booleans & 1) == 1;
                 booleans >>= 1;
                 instrument.unisonBuzzes = (booleans & 1) == 1;
+              } else if (instrument.type == 3 /* spectrum */ || instrument.type == 4 /* drumset */) {
+                instrument.unisonAntiPhased = true;
+                instrument.unisonBuzzes = false;
+              } else {
+                instrument.unisonAntiPhased = false;
+                instrument.unisonBuzzes = false;
               }
               instrument.unisonSpread = unisonSpread / 1e3;
               if (unisonSpreadNegative == 0) instrument.unisonSpread *= -1;
@@ -19627,6 +19648,10 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       };
       this.sendMessage(DeactivateMessage2);
     }, "deactivate");
+    this.buffer = new Float32Array(128 * 8);
+    this.bufferIndex = 128 * 4;
+    //first 512 samples will be silent
+    this.renderedBufferIndex = 0;
     this.port.onmessage = (event) => this.receiveMessage(event);
     const endCountIn = /* @__PURE__ */ __name(() => {
       const metronomeMessage = {

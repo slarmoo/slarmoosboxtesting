@@ -1710,6 +1710,7 @@ export class Instrument {
         this.vibrato = 0;
         this.unison = 0;
         this.unisonBuzzes = false;
+        // this.unisonAntiPhased = (type == InstrumentType.spectrum || type == InstrumentType.drumset);
         this.stringSustain = 10;
         this.stringSustainType = Config.enableAcousticSustain ? SustainType.acoustic : SustainType.bright;
         this.clicklessTransition = false;
@@ -2343,7 +2344,12 @@ export class Instrument {
         this.unisonOffset = (instrumentObject["unisonOffset"] == undefined) ? Config.unisons[this.unison].offset : instrumentObject["unisonOffset"];
         this.unisonExpression = (instrumentObject["unisonExpression"] == undefined) ? Config.unisons[this.unison].expression : instrumentObject["unisonExpression"];
         this.unisonSign = (instrumentObject["unisonSign"] == undefined) ? Config.unisons[this.unison].sign : instrumentObject["unisonSign"];
-        this.unisonAntiPhased = (instrumentObject["unisonAntiPhased"] == true);
+        if (instrumentObject["unisonAntiPhased"] == undefined) { //pre 2.0, spectrum and drumset should be set to true
+            if (this.type == InstrumentType.spectrum || this.type == InstrumentType.drumset) this.unisonAntiPhased = true;
+            else this.unisonAntiPhased = false;
+        } else {
+            this.unisonAntiPhased = (instrumentObject["unisonAntiPhased"] == true);
+        }
         this.unisonBuzzes = (instrumentObject["unisonBuzzes"] == undefined) ? false : instrumentObject["unisonBuzzes"];
 
         if (instrumentObject["chorus"] == "custom harmony") {
@@ -5286,6 +5292,12 @@ export class Song {
                             instrument.unisonAntiPhased = (booleans & 1) == 1;
                             booleans >>= 1;
                             instrument.unisonBuzzes = (booleans & 1) == 1;
+                        } else if(instrument.type == InstrumentType.spectrum || instrument.type == InstrumentType.drumset) {
+                            instrument.unisonAntiPhased = true;
+                            instrument.unisonBuzzes = false;
+                        } else {
+                            instrument.unisonAntiPhased = false;
+                            instrument.unisonBuzzes = false;
                         }
 
 

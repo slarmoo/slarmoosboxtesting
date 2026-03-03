@@ -2255,6 +2255,8 @@ export class ChangeRemoveChannel extends ChangeGroup {
 
         if (doc.song.pitchChannelCount < Config.pitchChannelCountMin) {
             this.append(new ChangeChannelCount(doc, Config.pitchChannelCountMin, doc.song.noiseChannelCount, doc.song.modChannelCount));
+        } else {
+            doc.synth.updateWorkletSong();
         }
 
         ColorConfig.resetColors();

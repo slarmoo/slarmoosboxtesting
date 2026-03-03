@@ -4986,97 +4986,107 @@ export class Synth {
                     }
                 }
 
-                if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased && (instrument.type == InstrumentType.pwm || instrumentState.wave) && instrument.type != InstrumentType.pickedString) {
-                    function wavePoint(phase: number): number {
-                        if (instrument.type == InstrumentType.pwm) {
-                            //because there's no wave array to index into, we do a very quick calculation
-                            //of what that value would be, using a reduced version of the pulse width 
-                            //synth code
-                            const sawPhaseA = phase - (phase | 0);
-                            const sawPhaseB = (phase + tone.pulseWidth) - ((phase + tone.pulseWidth) | 0);
-                            return sawPhaseB - sawPhaseA;
-                        } 
-                        const flooredPhase: number = (phase | 0) % instrumentState.wave!.length;
-                        const remainder: number = phase - flooredPhase;
-                        const flooredPhase2: number = flooredPhase + 1 >= instrumentState.wave!.length ? flooredPhase + 1 - instrumentState.wave!.length : flooredPhase + 1;
-                        return instrumentState.wave![flooredPhase] * (1 - remainder) + instrumentState.wave![flooredPhase2] * remainder;
-                    }
-                    // Goal: generate phases such that the combined initial amplitude
-                    // cancel out to minimize pop. Algorithm: generate sorted phases, iterate over
-                    // the whole wave until we find a combined zero crossing, then offset the
-                    // phases so they start there.
-
-                    // Generate random phases in ascending order by adding positive randomly
-                    // sized gaps between adjacent phases. For a proper distribution of random
-                    // events, the gaps sizes should be an "exponential distribution", which is
-                    // just: -Math.log(Math.random()). At the end, normalize the phases to a 0-1
-                    // range by dividing by the final value of the accumulator.
-                    const voiceCount: number = Config.unisonVoicesMax;
-                    const unisonSign: number = instrument.unisonSign;
-
-                    //honestly between this and the randomizing, we don't really need to search for the zero crossing. 
-                    //But better quality is always nice. 
-                    let accumulator: number = 0.0;
-                    for (let i: number = 0; i < voiceCount; i++) {
-                        tone.phases[i] = accumulator;
-                        accumulator += -Math.log(Math.random());
-                    }
-
-                    let amplitudeOld: number = wavePoint(tone.phases[0]);
-                    for (let i: number = 1; i < voiceCount; i++) {
-                        amplitudeOld += wavePoint(tone.phases[i]) * unisonSign;
-                    }
-                    let phaseOld: number = 0.0;
-                    let zeroCrossingPhase: number = 0.0;
-
-                    //iterate over the wave at 256 different points (or until a good crossing is found). 
-                    const steps = 256;
-                    for (let i = 1; i <= steps; i++) {
-                        let phaseNew = i / steps * (instrument.type == InstrumentType.pwm ? 1 : instrumentState.wave!.length);
-                        let amplitudeNew: number = wavePoint(tone.phases[0] + phaseNew);
-                        for (let j: number = 1; j < voiceCount; j++) {
-                            amplitudeNew += wavePoint(tone.phases[j] + phaseNew) * unisonSign;
+                if ((!instrumentState.unisonInitialized || !tone.unisonHasUpdated) && instrument.unisonAntiPhased && (instrument.type == InstrumentType.pwm || instrument.type == InstrumentType.drumset || instrumentState.wave) && instrument.type != InstrumentType.pickedString) {
+                    if (instrument.type == InstrumentType.spectrum) {
+                        for (let i: number = 0; i < Config.unisonVoicesMax; i++) {
+                            tone.phases[i] = Synth.findRandomZeroCrossing(instrumentState.wave!, Config.spectrumNoiseLength);
                         }
-                        if (amplitudeOld * amplitudeNew <= 0) {
-                            // const m = (amplitudeNew - amplitudeOld) / (phaseNew - phaseOld);
-                            // if (m == 0) zeroCrossingPhase = (phaseOld + phaseNew) / 2;
-                            // else zeroCrossingPhase = (-1 * amplitudeOld / m + phaseOld);
-
-                            //here we basically do a binary search for the zero crossing with a depth of 10
-                            for (let _ = 0; _ < 10; _++) {
-                                const phaseCenter = (phaseOld + phaseNew) / 2;
-                                let amplitudeNewer: number = wavePoint(phaseCenter + tone.phases[0]);
-                                for (let k: number = 1; k < voiceCount; k++) {
-                                    amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
-                                }
-
-                                if (amplitudeOld * amplitudeNewer <= 0) {
-                                    phaseNew = phaseCenter;
-                                    amplitudeNew = amplitudeNewer;
-                                } else {
-                                    phaseOld = phaseCenter;
-                                    amplitudeOld = amplitudeNewer;
-                                }
+                    } else if (instrument.type == InstrumentType.drumset) {
+                        for (let i: number = 0; i < Config.unisonVoicesMax; i++) {
+                            tone.phases[i] = Synth.findRandomZeroCrossing(instrumentState.getDrumsetWave(tone.drumsetPitch!), Config.spectrumNoiseLength);
+                        }
+                    } else {
+                        function wavePoint(phase: number): number {
+                            if (instrument.type == InstrumentType.pwm) {
+                                //because there's no wave array to index into, we do a very quick calculation
+                                //of what that value would be, using a reduced version of the pulse width 
+                                //synth code
+                                const sawPhaseA = phase - (phase | 0);
+                                const sawPhaseB = (phase + tone.pulseWidth) - ((phase + tone.pulseWidth) | 0);
+                                return sawPhaseB - sawPhaseA;
                             }
-                            zeroCrossingPhase = (phaseOld + phaseNew) / 2;
-                            break;
+                            const flooredPhase: number = (phase | 0) % instrumentState.wave!.length;
+                            const remainder: number = phase - flooredPhase;
+                            const flooredPhase2: number = flooredPhase + 1 >= instrumentState.wave!.length ? flooredPhase + 1 - instrumentState.wave!.length : flooredPhase + 1;
+                            return instrumentState.wave![flooredPhase] * (1 - remainder) + instrumentState.wave![flooredPhase2] * remainder;
                         }
-                        phaseOld = phaseNew;
-                        amplitudeOld = amplitudeNew;
-                    }
+                        // Goal: generate phases such that the combined initial amplitude
+                        // cancel out to minimize pop. Algorithm: generate sorted phases, iterate over
+                        // the whole wave until we find a combined zero crossing, then offset the
+                        // phases so they start there.
 
-                    for (let i: number = 0; i < voiceCount; i++) {
-                        tone.phases[i] += zeroCrossingPhase;
-                    }
+                        // Generate random phases in ascending order by adding positive randomly
+                        // sized gaps between adjacent phases. For a proper distribution of random
+                        // events, the gaps sizes should be an "exponential distribution", which is
+                        // just: -Math.log(Math.random()). At the end, normalize the phases to a 0-1
+                        // range by dividing by the final value of the accumulator.
+                        const voiceCount: number = Config.unisonVoicesMax;
+                        const unisonSign: number = instrument.unisonSign;
 
-                    // Randomize the (initially sorted) order of the phases (aside from the
-                    // first one) so that they don't correlate to the detunes that are also
-                    // based on index.
-                    for (let i: number = 1; i < voiceCount - 1; i++) {
-                        const swappedIndex: number = i + Math.floor(Math.random() * (voiceCount - i));
-                        const temp: number = tone.phases[i];
-                        tone.phases[i] = tone.phases[swappedIndex];
-                        tone.phases[swappedIndex] = temp;
+                        //honestly between this and the randomizing, we don't really need to search for the zero crossing. 
+                        //But better quality is always nice. 
+                        let accumulator: number = 0.0;
+                        for (let i: number = 0; i < voiceCount; i++) {
+                            tone.phases[i] = accumulator;
+                            accumulator += -Math.log(Math.random());
+                        }
+
+                        let amplitudeOld: number = wavePoint(tone.phases[0]);
+                        for (let i: number = 1; i < voiceCount; i++) {
+                            amplitudeOld += wavePoint(tone.phases[i]) * unisonSign;
+                        }
+                        let phaseOld: number = 0.0;
+                        let zeroCrossingPhase: number = 0.0;
+
+                        //iterate over the wave at 256 different points (or until a good crossing is found). 
+                        const steps = 256;
+                        for (let i = 1; i <= steps; i++) {
+                            let phaseNew = i / steps * (instrument.type == InstrumentType.pwm ? 1 : instrumentState.wave!.length);
+                            let amplitudeNew: number = wavePoint(tone.phases[0] + phaseNew);
+                            for (let j: number = 1; j < voiceCount; j++) {
+                                amplitudeNew += wavePoint(tone.phases[j] + phaseNew) * unisonSign;
+                            }
+                            if (amplitudeOld * amplitudeNew <= 0) {
+                                // const m = (amplitudeNew - amplitudeOld) / (phaseNew - phaseOld);
+                                // if (m == 0) zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                                // else zeroCrossingPhase = (-1 * amplitudeOld / m + phaseOld);
+
+                                //here we basically do a binary search for the zero crossing with a depth of 10
+                                for (let _ = 0; _ < 10; _++) {
+                                    const phaseCenter = (phaseOld + phaseNew) / 2;
+                                    let amplitudeNewer: number = wavePoint(phaseCenter + tone.phases[0]);
+                                    for (let k: number = 1; k < voiceCount; k++) {
+                                        amplitudeNewer += wavePoint(phaseCenter + tone.phases[k]) * unisonSign;
+                                    }
+
+                                    if (amplitudeOld * amplitudeNewer <= 0) {
+                                        phaseNew = phaseCenter;
+                                        amplitudeNew = amplitudeNewer;
+                                    } else {
+                                        phaseOld = phaseCenter;
+                                        amplitudeOld = amplitudeNewer;
+                                    }
+                                }
+                                zeroCrossingPhase = (phaseOld + phaseNew) / 2;
+                                break;
+                            }
+                            phaseOld = phaseNew;
+                            amplitudeOld = amplitudeNew;
+                        }
+
+                        for (let i: number = 0; i < voiceCount; i++) {
+                            tone.phases[i] += zeroCrossingPhase;
+                        }
+
+                        // Randomize the (initially sorted) order of the phases (aside from the
+                        // first one) so that they don't correlate to the detunes that are also
+                        // based on index.
+                        for (let i: number = 1; i < voiceCount - 1; i++) {
+                            const swappedIndex: number = i + Math.floor(Math.random() * (voiceCount - i));
+                            const temp: number = tone.phases[i];
+                            tone.phases[i] = tone.phases[swappedIndex];
+                            tone.phases[swappedIndex] = temp;
+                        }
                     }
                     instrumentState.unisonInitialized = true;
                     tone.unisonHasUpdated = true;
@@ -6016,7 +6026,6 @@ export class Synth {
 				const expressionDelta = +tone.expressionDelta;
 				
 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
-                if (instrumentState.unisonVoices == 1 && (instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) && !instrumentState.chord.customInterval) tone.phases[1] = tone.phases[0];
 				const delayResetOffset# = pickedString#.delayResetOffset|0;
 				
 				const filters = tone.noteFilters;
@@ -7388,7 +7397,7 @@ export class Synth {
         }
         if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
             // Zero phase means the tone was reset, just give noise a random start phase instead.
-            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) if(instrumentState.unisonAntiPhased) {phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#} else if(# > 0) {phase# = phase0};
         }
         const stopIndex = bufferIndex + runLength;
         for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
@@ -7471,7 +7480,7 @@ export class Synth {
         }
         if(!(instrumentState.unisonSpread == 0 || instrumentState.unisonBuzzes) || instrumentState.chord.customInterval) {
             // Zero phase means the tone was reset, just give noise a random start phase instead.
-            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#;
+            if (tone.phases[#] == 0.0 && !instrumentState.unisonVoices <= #) if(instrumentState.unisonAntiPhased) {phase# = Synth.findRandomZeroCrossing(wave, Config.spectrumNoiseLength) + phaseDelta#} else if(# > 0) {phase# = phase0};
         }
         const phaseMask = Config.spectrumNoiseLength - 1;
 
