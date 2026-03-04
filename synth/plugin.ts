@@ -48,13 +48,13 @@ export abstract class EffectPlugin {
     /**
      * If delay lines are unused, leave as an empty function
      */
-    public abstract initializeDelayLines: (samplesPerTick: number) => void;
+    public abstract initializeDelayLines: (samplesPerTick: number, samplesPerSecond: number) => void;
 
     /**
      * Here you can grab the (envelope applied) instrument values, where index corresponds to the order of your ui elements. 
      * If you don't want to do per sample interpolation then you can ignore pluginEnds. 
      */
-    public abstract instrumentStateFunction: (pluginStarts: number[], pluginEnds: number[]) => void;
+    public abstract instrumentStateFunction: (pluginStarts: number[], pluginEnds: number[], samplesPerTick: number) => void;
     /** The per sample calculations.
     * Your inputs are the variable names above and a sample (or sampleL and sampleR if after panning)
     * Your outputs are sample (or sampleL and sampleR if after panning)

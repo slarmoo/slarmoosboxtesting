@@ -33,7 +33,7 @@ function deactivate() {
     postMessage(DeactivateMessage);
 }
 
-function receiveMessage(event: MessageEvent): void {
+async function receiveMessage(event: MessageEvent): Promise<void> {
     const flag: MessageFlag = event.data.flag;
 
     switch (flag) {
@@ -148,7 +148,8 @@ function receiveMessage(event: MessageEvent): void {
             break;
         }
         case MessageFlag.pluginMessage: {
-            Synth.PluginClass = globalThis[event.data.name];
+            const pluginModule = await import(event.data.url);
+            Synth.PluginClass = pluginModule.default;
             const plugin: EffectPlugin = new Synth.PluginClass();
 
             for (let channelIndex: number = 0; channelIndex < synth.song!.pitchChannelCount + synth.song!.noiseChannelCount; channelIndex++) {

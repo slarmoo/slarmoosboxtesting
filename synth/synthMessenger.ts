@@ -4212,7 +4212,7 @@ export class Song {
 
     public fromBase64String(compressed: string, jsonFormat: string = "auto"): void {
         if (compressed == null || compressed == "") {
-            Song._clearSamples();
+            if(document.URL) Song._clearSamples(); //only clear samples if this is on the main thread
 
             this.initToDefault(true);
             return;
@@ -4289,7 +4289,7 @@ export class Song {
             const pluginurl: string | null = compressed_array.length < 2 ? null : compressed_array[1];
             compressed_array = compressed_array[0].split("|");
             compressed = compressed_array.shift()!;
-            if (EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) {
+            if ((EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) && document.URL) {
 
                 Song._restoreChipWaveListToDefault();
 
@@ -6533,7 +6533,7 @@ export class Song {
 
             const pluginMessage: PluginMessage = {
                 flag: MessageFlag.pluginMessage,
-                name: plugin.pluginName,
+                url: url,
                 initializeValues: initializeValues
             }
             if (initializeValues) {
@@ -6546,7 +6546,7 @@ export class Song {
                     }
                 }
             }
-            events.raise(EventType.pluginLoaded, url, pluginMessage);
+            events.raise(EventType.pluginLoaded, pluginMessage);
         }
     }
 
@@ -8465,8 +8465,8 @@ export class SynthMessenger {
     }
 
     private async activateAudio(): Promise<void> {
-        if (this.audioContext == null || this.workletNode == null) {
-            if (this.workletNode != null) this.deactivateAudio();
+        if (this.audioContext == null || this.workletNode == null || this.synthNode == null) {
+            if (this.workletNode != null || this.synthNode != null) this.deactivateAudio();
             if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
 
             const latencyHint: string = this.anticipatePoorPerformance ? (this.preferLowerLatency ? "balanced" : "playback") : (this.preferLowerLatency ? "interactive" : "balanced");
@@ -8493,12 +8493,14 @@ export class SynthMessenger {
                 sampleRate: this.audioContext!.sampleRate
                 //add more here if needed
             }
-            this.sendMessage(sabMessage);
             this.workletNode.port.postMessage({
                 bufferL: this.bufferL,
                 bufferR: this.bufferR
             });
-            if (!this.synthNode) this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js")
+            if (!this.synthNode) {
+                this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+                this.sendMessage(sabMessage);
+            }
             if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext!, { numberOfOutputs: 2 });
             if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext!, {
                 channelCount: 2,
@@ -8562,8 +8564,8 @@ export class SynthMessenger {
         this.sendMessage(samplesMessage);
     }
 
-    public updateProcessorPlugin(blob: string, pluginMessage: PluginMessage): void {
-        this.audioContext!.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));  
+    public updateProcessorPlugin(pluginMessage: PluginMessage): void {
+        this.sendMessage(pluginMessage);  
     }
 
 

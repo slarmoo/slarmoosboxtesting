@@ -106,7 +106,7 @@ export interface SampleFinishMessage extends Message {
 
 export interface PluginMessage extends Message {
     flag: MessageFlag.pluginMessage,
-    name: string,
+    url: string,
     initializeValues: boolean
 }
 

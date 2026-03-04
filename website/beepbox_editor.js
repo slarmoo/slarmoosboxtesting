@@ -13400,7 +13400,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
             this.granularGrainsLength = 0;
         }
-        allocateNecessaryBuffers(synth, instrument, samplesPerTick) {
+        allocateNecessaryBuffers(synth, instrument, samplesPerTick, samplesPerSecond) {
             if (effectsIncludePanning(instrument.effects)) {
                 if (this.panningDelayLine == null || this.panningDelayLine.length < synth.panningDelayBufferSize) {
                     this.panningDelayLine = new Float32Array(synth.panningDelayBufferSize);
@@ -13442,7 +13442,7 @@ li.select2-results__option[role=group] > strong:hover {
                 }
             }
             if (effectsIncludePlugin(instrument.effects) && this.plugin) {
-                this.plugin.initializeDelayLines(samplesPerTick);
+                this.plugin.initializeDelayLines(samplesPerTick, samplesPerSecond);
             }
         }
         allocateEchoBuffers(samplesPerTick, echoDelay) {
@@ -13611,7 +13611,7 @@ li.select2-results__option[role=group] > strong:hover {
                 this.granularMaximumGrains = Math.floor(Math.pow(2, this.granularMaximumGrains * envelopeStarts[52]));
                 granularChance = granularChance * envelopeStarts[52];
             }
-            this.allocateNecessaryBuffers(synth, instrument, samplesPerTick);
+            this.allocateNecessaryBuffers(synth, instrument, samplesPerTick, samplesPerSecond);
             if (usesGranular) {
                 this.granularMix = instrument.granular / Config.granularRange;
                 this.computeGrains = true;
@@ -13973,7 +13973,7 @@ li.select2-results__option[role=group] > strong:hover {
                     this.pluginStarts[i] = envelopeStarts[59 + i] * instrument.pluginValues[i];
                     this.pluginEnds[i] = envelopeEnds[59 + i] * instrument.pluginValues[i];
                 }
-                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
+                (_a = this.plugin) === null || _a === void 0 ? void 0 : _a.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
             }
             if (this.tonesAddedInThisTick) {
                 this.attentuationProgress = 0.0;
@@ -14179,7 +14179,7 @@ li.select2-results__option[role=group] > strong:hover {
                             instrumentState.envelopeTime[envelopeIndex] = 0;
                         instrumentState.arpTime = 0;
                         instrumentState.updateWaves(instrument, this.samplesPerSecond);
-                        instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick);
+                        instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick, this.samplesPerSecond);
                     }
                 }
             }
@@ -22877,7 +22877,8 @@ li.select2-results__option[role=group] > strong:hover {
         }
         fromBase64String(compressed, jsonFormat = "auto") {
             if (compressed == null || compressed == "") {
-                Song._clearSamples();
+                if (document.URL)
+                    Song._clearSamples();
                 this.initToDefault(true);
                 return;
             }
@@ -22951,7 +22952,7 @@ li.select2-results__option[role=group] > strong:hover {
                 const pluginurl = compressed_array.length < 2 ? null : compressed_array[1];
                 compressed_array = compressed_array[0].split("|");
                 compressed = compressed_array.shift();
-                if (EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) {
+                if ((EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) && document.URL) {
                     Song._restoreChipWaveListToDefault();
                     let willLoadLegacySamples = false;
                     let willLoadNintariboxSamples = false;
@@ -25134,7 +25135,7 @@ li.select2-results__option[role=group] > strong:hover {
                     PluginConfig.pluginAbout = plugin.about;
                     const pluginMessage = {
                         flag: MessageFlag.pluginMessage,
-                        name: plugin.pluginName,
+                        url: url,
                         initializeValues: initializeValues
                     };
                     if (initializeValues) {
@@ -25147,7 +25148,7 @@ li.select2-results__option[role=group] > strong:hover {
                             }
                         }
                     }
-                    events.raise(EventType.pluginLoaded, url, pluginMessage);
+                    events.raise(EventType.pluginLoaded, pluginMessage);
                 }
             });
         }
@@ -26939,8 +26940,8 @@ li.select2-results__option[role=group] > strong:hover {
         }
         activateAudio() {
             return __awaiter$1(this, void 0, void 0, function* () {
-                if (this.audioContext == null || this.workletNode == null) {
-                    if (this.workletNode != null)
+                if (this.audioContext == null || this.workletNode == null || this.synthNode == null) {
+                    if (this.workletNode != null || this.synthNode != null)
                         this.deactivateAudio();
                     if (this.audioContext && this.audioContext.state == "suspended")
                         this.audioContext.resume();
@@ -26966,13 +26967,14 @@ li.select2-results__option[role=group] > strong:hover {
                         outVolumeCap: this.outVolumeCap,
                         sampleRate: this.audioContext.sampleRate
                     };
-                    this.sendMessage(sabMessage);
                     this.workletNode.port.postMessage({
                         bufferL: this.bufferL,
                         bufferR: this.bufferR
                     });
-                    if (!this.synthNode)
+                    if (!this.synthNode) {
                         this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+                        this.sendMessage(sabMessage);
+                    }
                     if (!this.splitterNode)
                         this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
                     if (!this.analyserNodeLeft)
@@ -27032,8 +27034,8 @@ li.select2-results__option[role=group] > strong:hover {
             };
             this.sendMessage(samplesMessage);
         }
-        updateProcessorPlugin(blob, pluginMessage) {
-            this.audioContext.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));
+        updateProcessorPlugin(pluginMessage) {
+            this.sendMessage(pluginMessage);
         }
         updatePlayhead(bar, beat, part) {
             this.songPosition[0] = bar;

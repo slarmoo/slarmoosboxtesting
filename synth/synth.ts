@@ -1377,7 +1377,7 @@ class InstrumentState {
 
     public readonly envelopeComputer: EnvelopeComputer = new EnvelopeComputer();
 
-    public allocateNecessaryBuffers(synth: Synth, instrument: Instrument, samplesPerTick: number): void {
+    public allocateNecessaryBuffers(synth: Synth, instrument: Instrument, samplesPerTick: number, samplesPerSecond: number): void {
         if (effectsIncludePanning(instrument.effects)) {
             if (this.panningDelayLine == null || this.panningDelayLine.length < synth.panningDelayBufferSize) {
                 this.panningDelayLine = new Float32Array(synth.panningDelayBufferSize);
@@ -1420,7 +1420,7 @@ class InstrumentState {
             }
         }
         if (effectsIncludePlugin(instrument.effects) && this.plugin) {
-            this.plugin.initializeDelayLines(samplesPerTick);
+            this.plugin.initializeDelayLines(samplesPerTick, samplesPerSecond);
         }
     }
 
@@ -1611,7 +1611,7 @@ class InstrumentState {
             granularChance = granularChance * envelopeStarts[EnvelopeComputeIndex.grainAmount];
         }
 
-        this.allocateNecessaryBuffers(synth, instrument, samplesPerTick);
+        this.allocateNecessaryBuffers(synth, instrument, samplesPerTick, samplesPerSecond);
 
 
         if (usesGranular) {
@@ -2074,7 +2074,7 @@ class InstrumentState {
                 this.pluginStarts[i] = envelopeStarts[EnvelopeComputeIndex.plugin + i] * instrument.pluginValues[i];
                 this.pluginEnds[i] = envelopeEnds[EnvelopeComputeIndex.plugin + i] * instrument.pluginValues[i];
             }
-            this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
+            this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
         }
 
         if (this.tonesAddedInThisTick) {
@@ -2292,7 +2292,7 @@ export class Synth {
                     for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) instrumentState.envelopeTime[envelopeIndex] = 0;
                     instrumentState.arpTime = 0;
                     instrumentState.updateWaves(instrument, this.samplesPerSecond);
-                    instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick);
+                    instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick, this.samplesPerSecond);
                     // instrumentState.effects = instrument.effects;
                     // Synth.effectsSynth(this, dummyArray, dummyArray, 0, 1, instrumentState);
                 }

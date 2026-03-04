@@ -5877,7 +5877,7 @@ var InstrumentState = class _InstrumentState {
   static {
     __name(this, "InstrumentState");
   }
-  allocateNecessaryBuffers(synth2, instrument, samplesPerTick) {
+  allocateNecessaryBuffers(synth2, instrument, samplesPerTick, samplesPerSecond) {
     if (effectsIncludePanning(instrument.effects)) {
       if (this.panningDelayLine == null || this.panningDelayLine.length < synth2.panningDelayBufferSize) {
         this.panningDelayLine = new Float32Array(synth2.panningDelayBufferSize);
@@ -5919,7 +5919,7 @@ var InstrumentState = class _InstrumentState {
       }
     }
     if (effectsIncludePlugin(instrument.effects) && this.plugin) {
-      this.plugin.initializeDelayLines(samplesPerTick);
+      this.plugin.initializeDelayLines(samplesPerTick, samplesPerSecond);
     }
   }
   allocateEchoBuffers(samplesPerTick, echoDelay) {
@@ -6075,7 +6075,7 @@ var InstrumentState = class _InstrumentState {
       this.granularMaximumGrains = Math.floor(Math.pow(2, this.granularMaximumGrains * envelopeStarts[52 /* grainAmount */]));
       granularChance = granularChance * envelopeStarts[52 /* grainAmount */];
     }
-    this.allocateNecessaryBuffers(synth2, instrument, samplesPerTick);
+    this.allocateNecessaryBuffers(synth2, instrument, samplesPerTick, samplesPerSecond);
     if (usesGranular) {
       this.granularMix = instrument.granular / Config.granularRange;
       this.computeGrains = true;
@@ -6441,7 +6441,7 @@ var InstrumentState = class _InstrumentState {
         this.pluginStarts[i] = envelopeStarts[59 /* plugin */ + i] * instrument.pluginValues[i];
         this.pluginEnds[i] = envelopeEnds[59 /* plugin */ + i] * instrument.pluginValues[i];
       }
-      this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds);
+      this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
     }
     if (this.tonesAddedInThisTick) {
       this.attentuationProgress = 0;
@@ -6726,7 +6726,7 @@ var Synth = class _Synth {
           for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) instrumentState.envelopeTime[envelopeIndex] = 0;
           instrumentState.arpTime = 0;
           instrumentState.updateWaves(instrument, this.samplesPerSecond);
-          instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick);
+          instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick, this.samplesPerSecond);
         }
       }
     }
@@ -15036,7 +15036,7 @@ var Song = class _Song {
   }
   fromBase64String(compressed, jsonFormat = "auto") {
     if (compressed == null || compressed == "") {
-      _Song._clearSamples();
+      if (define_document_default.URL) _Song._clearSamples();
       this.initToDefault(true);
       return;
     }
@@ -15097,7 +15097,7 @@ var Song = class _Song {
       const pluginurl = compressed_array.length < 2 ? null : compressed_array[1];
       compressed_array = compressed_array[0].split("|");
       compressed = compressed_array.shift();
-      if (EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) {
+      if ((EditorConfig.customSamples == null || EditorConfig.customSamples.join(", ") != compressed_array.join(", ")) && define_document_default.URL) {
         _Song._restoreChipWaveListToDefault();
         let willLoadLegacySamples = false;
         let willLoadNintariboxSamples = false;
@@ -17129,7 +17129,7 @@ var Song = class _Song {
       PluginConfig.pluginAbout = plugin.about;
       const pluginMessage = {
         flag: 12 /* pluginMessage */,
-        name: plugin.pluginName,
+        url,
         initializeValues
       };
       if (initializeValues) {
@@ -17142,7 +17142,7 @@ var Song = class _Song {
           }
         }
       }
-      events.raise(3 /* pluginLoaded */, url, pluginMessage);
+      events.raise(3 /* pluginLoaded */, pluginMessage);
     }
   }
   static _isProperUrl(string) {
@@ -18879,8 +18879,8 @@ var SynthMessenger = class {
     }
   }
   async activateAudio() {
-    if (this.audioContext == null || this.workletNode == null) {
-      if (this.workletNode != null) this.deactivateAudio();
+    if (this.audioContext == null || this.workletNode == null || this.synthNode == null) {
+      if (this.workletNode != null || this.synthNode != null) this.deactivateAudio();
       if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
       const latencyHint = this.anticipatePoorPerformance ? this.preferLowerLatency ? "balanced" : "playback" : this.preferLowerLatency ? "interactive" : "balanced";
       if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint });
@@ -18904,12 +18904,14 @@ var SynthMessenger = class {
         sampleRate: this.audioContext.sampleRate
         //add more here if needed
       };
-      this.sendMessage(sabMessage);
       this.workletNode.port.postMessage({
         bufferL: this.bufferL,
         bufferR: this.bufferR
       });
-      if (!this.synthNode) this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+      if (!this.synthNode) {
+        this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
+        this.sendMessage(sabMessage);
+      }
       if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext, { numberOfOutputs: 2 });
       if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext, {
         channelCount: 2,
@@ -18965,8 +18967,8 @@ var SynthMessenger = class {
     };
     this.sendMessage(samplesMessage);
   }
-  updateProcessorPlugin(blob, pluginMessage) {
-    this.audioContext.audioWorklet.addModule(blob).then(() => this.sendMessage(pluginMessage));
+  updateProcessorPlugin(pluginMessage) {
+    this.sendMessage(pluginMessage);
   }
   updatePlayhead(bar, beat, part) {
     this.songPosition[0] = bar;
@@ -19670,7 +19672,7 @@ function deactivate() {
   postMessage(DeactivateMessage2);
 }
 __name(deactivate, "deactivate");
-function receiveMessage(event) {
+async function receiveMessage(event) {
   const flag = event.data.flag;
   switch (flag) {
     case 1 /* togglePlay */:
@@ -19777,7 +19779,8 @@ function receiveMessage(event) {
       break;
     }
     case 12 /* pluginMessage */: {
-      Synth.PluginClass = globalThis[event.data.name];
+      const pluginModule = await import(event.data.url);
+      Synth.PluginClass = pluginModule.default;
       const plugin = new Synth.PluginClass();
       for (let channelIndex = 0; channelIndex < synth.song.pitchChannelCount + synth.song.noiseChannelCount; channelIndex++) {
         for (let instrumentIndex = 0; instrumentIndex < synth.song.channels[channelIndex].instruments.length; instrumentIndex++) {
