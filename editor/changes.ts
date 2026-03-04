@@ -792,10 +792,16 @@ export class ChangeRandomGeneratedInstrument extends Change {
         const isNoise: boolean = doc.song.getChannelIsNoise(doc.channel);
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         if (instrument.type == InstrumentType.mod) return;
+        const prepanning: number = instrument.pan;
+        const prepandelay: number = instrument.panDelay;
+        const prevolume: number = instrument.volume;
         instrument.setTypeAndReset(instrument.type, isNoise, false); //default settings
         instrument.effects = 1 << EffectType.panning; // disable all existing effects except panning, which should always be on.
         instrument.aliases = false;
         instrument.envelopeCount = 0;
+        instrument.pan = prepanning;
+        instrument.panDelay = prepandelay;
+        instrument.volume = prevolume;
 
         const midFreq: number = FilterControlPoint.getRoundedSettingValueFromHz(700.0);
         const maxFreq: number = Config.filterFreqRange - 1;

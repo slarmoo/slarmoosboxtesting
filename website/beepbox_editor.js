@@ -29199,10 +29199,16 @@ li.select2-results__option[role=group] > strong:hover {
             const instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
             if (instrument.type == 10)
                 return;
+            const prepanning = instrument.pan;
+            const prepandelay = instrument.panDelay;
+            const prevolume = instrument.volume;
             instrument.setTypeAndReset(instrument.type, isNoise, false);
             instrument.effects = 1 << 2;
             instrument.aliases = false;
             instrument.envelopeCount = 0;
+            instrument.pan = prepanning;
+            instrument.panDelay = prepandelay;
+            instrument.volume = prevolume;
             const midFreq = FilterControlPoint.getRoundedSettingValueFromHz(700.0);
             const maxFreq = Config.filterFreqRange - 1;
             applyFilterPoints(instrument.eqFilter, [
