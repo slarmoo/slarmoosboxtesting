@@ -7,6 +7,8 @@ export enum MessageFlag {
     resetEffects,
     computeMods,
     sharedArrayBuffers,
+    sabsProcessor,
+    growsabs,
     setPrevBar,
     isRecording,
     uiRender,
@@ -64,6 +66,11 @@ export interface SendSharedArrayBuffers extends Message {
     songPosition: Uint16Array,
     outVolumeCap: Float32Array,
     sampleRate: number
+}
+
+export interface GrowSABSMessage extends Message {
+    flag: MessageFlag.growsabs,
+    reset?: boolean
 }
 
 export interface SetPrevBarMessage extends Message {
@@ -280,3 +287,5 @@ export enum InstrumentSettings {
     modEnvelopeNumbers,
     invalidModulators,
 }
+
+export const defaultBlockSize: number = 512;

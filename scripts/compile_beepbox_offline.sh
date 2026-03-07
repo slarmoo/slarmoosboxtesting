@@ -35,7 +35,8 @@ npx rollup ./build/player/main.js \
 	--format iife \
 	--output.name beepbox \
 	--context exports \
-	--plugin @rollup/plugin-node-resolve
+	--plugin @rollup/plugin-node-resolve \
+	--plugin @rollup/plugin-commonjs
 
 # Minify to_deploy/player/beepbox_player.min.js into to_deploy/player/beepbox_player.min.js
 npx terser \

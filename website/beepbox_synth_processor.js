@@ -1,10 +1,81 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
 // <define:document>
-var define_document_default = {};
+var define_document_default;
+var init_define_document = __esm({
+  "<define:document>"() {
+    define_document_default = {};
+  }
+});
+
+// node_modules/beepboxplugin/dist/index.js
+var require_dist = __commonJS({
+  "node_modules/beepboxplugin/dist/index.js"(exports) {
+    "use strict";
+    init_define_document();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.PluginElementType = exports.BeepBoxEffectPlugin = void 0;
+    var BeepBoxEffectPlugin2 = class {
+      static {
+        __name(this, "BeepBoxEffectPlugin");
+      }
+      /**
+       * If your plugin uses delay lines and you would like your sound to sustain past the note, change this value to your sustain length
+       */
+      delayLineLength = 0;
+      /**
+       * For testing
+       */
+      ping() {
+        console.log("pong!");
+      }
+    };
+    exports.BeepBoxEffectPlugin = BeepBoxEffectPlugin2;
+    var PluginElementType2;
+    (function(PluginElementType3) {
+      PluginElementType3[PluginElementType3["slider"] = 0] = "slider";
+      PluginElementType3[PluginElementType3["checkbox"] = 1] = "checkbox";
+      PluginElementType3[PluginElementType3["dropdown"] = 2] = "dropdown";
+    })(PluginElementType2 || (exports.PluginElementType = PluginElementType2 = {}));
+  }
+});
+
+// synth/synthThread.ts
+init_define_document();
+
+// synth/SynthConfig.ts
+init_define_document();
 
 // global/Events.ts
+init_define_document();
 var EventManager = class {
   constructor() {
     this.activeEvents = [];
@@ -3222,7 +3293,11 @@ function rawChipToIntegrated(raw) {
 }
 __name(rawChipToIntegrated, "rawChipToIntegrated");
 
+// synth/synthMessenger.ts
+init_define_document();
+
 // editor/EditorConfig.ts
+init_define_document();
 var EditorConfig = class _EditorConfig {
   static {
     __name(this, "EditorConfig");
@@ -3671,6 +3746,7 @@ var EditorConfig = class _EditorConfig {
 };
 
 // editor/PluginConfig.ts
+init_define_document();
 var PluginConfig = class {
   static {
     __name(this, "PluginConfig");
@@ -3687,6 +3763,7 @@ var PluginConfig = class {
 };
 
 // synth/filtering.ts
+init_define_document();
 var FilterCoefficients = class {
   constructor() {
     this.a = [1];
@@ -3972,7 +4049,12 @@ function warpInfinityToNyquist(radians) {
 }
 __name(warpInfinityToNyquist, "warpInfinityToNyquist");
 
+// synth/synthMessages.ts
+init_define_document();
+var defaultBlockSize = 512;
+
 // node_modules/ringbuf.js/dist/index.mjs
+init_define_document();
 var RingBuffer = class {
   static {
     __name(this, "RingBuffer");
@@ -4292,7 +4374,11 @@ var RingBuffer = class {
   }
 };
 
+// synth/synth.ts
+init_define_document();
+
 // synth/FFT.ts
+init_define_document();
 function scaleElementsByFactor(array, factor) {
   for (let i = 0; i < array.length; i++) {
     array[i] *= factor;
@@ -4397,6 +4483,7 @@ function inverseRealFourierTransform(array, fullArrayLength) {
 __name(inverseRealFourierTransform, "inverseRealFourierTransform");
 
 // synth/Deque.ts
+init_define_document();
 var Deque = class {
   constructor() {
     this._capacity = 1;
@@ -4490,7 +4577,14 @@ var Deque = class {
   }
 };
 
+// node_modules/js-xxhash/index.mjs
+init_define_document();
+
+// node_modules/js-xxhash/dist/esm/index.js
+init_define_document();
+
 // node_modules/js-xxhash/dist/esm/xxHash32.js
+init_define_document();
 var PRIME32_1 = 2654435761;
 var PRIME32_2 = 2246822519;
 var PRIME32_3 = 3266489917;
@@ -4553,6 +4647,7 @@ function xxHash32(input, seed = 0) {
 __name(xxHash32, "xxHash32");
 
 // synth/Set.ts
+init_define_document();
 var BeepboxSet = class _BeepboxSet {
   /**
    * Creates a Set. Can optionally be initialized with data
@@ -7143,8 +7238,6 @@ var Synth = class _Synth {
   }
   synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
     if (this.song == null || this.liveInputPitchesOnOffRequests == void 0 && playSong) {
-      outputDataL.fill(0);
-      outputDataR.fill(0);
       this.deactivateAudio();
       return;
     }
@@ -7985,7 +8078,7 @@ var Synth = class _Synth {
         const instrumentState = channelState.instruments[instrumentIndex];
         const toneList = instrumentState.activeTones;
         let toneCount = 0;
-        if (note != null && (!song.patternInstruments || pattern.instruments.indexOf(instrumentIndex) != -1)) {
+        if (note != null && (!song.patternInstruments || pattern.instruments.indexOf(instrumentIndex) != -1) && pattern.notes.length > 0) {
           const instrument = channel.instruments[instrumentIndex];
           let prevNoteForThisInstrument = prevNote;
           let nextNoteForThisInstrument = nextNote;
@@ -11552,6 +11645,7 @@ var Synth = class _Synth {
 };
 
 // synth/synthMessenger.ts
+var import_beepboxplugin = __toESM(require_dist(), 1);
 function clamp2(min, max, val) {
   max = max - 1;
   if (val <= max) {
@@ -14048,7 +14142,7 @@ var Instrument = class {
     if (automationTarget.effect == 15 /* plugin */) {
       if (PluginConfig.pluginName == "") return true;
       if (index >= PluginConfig.pluginUIElements.length) return false;
-      if (PluginConfig.pluginUIElements[index].type != 0 /* slider */) return false;
+      if (PluginConfig.pluginUIElements[index].type != import_beepboxplugin.PluginElementType.slider) return false;
       return PluginConfig.pluginUIElements[index].hasEnvelope;
     }
     if (automationTarget.isFilter) {
@@ -17128,7 +17222,7 @@ var Song = class _Song {
       PluginConfig.pluginName = plugin.pluginName || "plugin";
       PluginConfig.pluginAbout = plugin.about;
       const pluginMessage = {
-        flag: 12 /* pluginMessage */,
+        flag: 14 /* pluginMessage */,
         url,
         initializeValues
       };
@@ -17336,7 +17430,7 @@ var Song = class _Song {
       };
       try {
         const sampleStartMessage = {
-          flag: 10 /* sampleStartMessage */,
+          flag: 12 /* sampleStartMessage */,
           name,
           expression,
           isCustomSampled: true,
@@ -18585,7 +18679,7 @@ var Song = class _Song {
     Array.prototype.push.apply(this.channels, newPitchChannels);
     Array.prototype.push.apply(this.channels, newNoiseChannels);
     Array.prototype.push.apply(this.channels, newModChannels);
-    if (Config.willReloadForCustomSamples) {
+    if (Config.willReloadForCustomSamples && define_document_default.URL) {
       window.location.hash = this.toBase64String();
       setTimeout(() => {
         location.reload();
@@ -18656,8 +18750,12 @@ var SynthMessenger = class {
     this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
     this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
     this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
-    this.bufferL = new SharedArrayBuffer(128 * 32 * 4);
-    this.bufferR = new SharedArrayBuffer(128 * 32 * 4);
+    this.defaultBufferLength = defaultBlockSize * 8 * 4 + 12;
+    this.maxBufferLength = defaultBlockSize * 2 ** 5 * 8 * 4 + 12;
+    this.bufferL = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+    this.bufferR = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+    this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+    this.readableBufferLength = 0;
     this.loopRepeats = -1;
     this.oscRefreshEventTimer = 0;
     this.oscEnabled = true;
@@ -18665,6 +18763,7 @@ var SynthMessenger = class {
     this.countInMetronome = false;
     this.renderingSong = false;
     this.heldMods = [];
+    this.currentTempo = 150;
     this.playheadInternal = 0;
     /**
      * beat [0]: number
@@ -18699,7 +18798,10 @@ var SynthMessenger = class {
     this.messageQueue = [];
     this.liveInputPushArray = new Uint16Array(Config.maxPitch);
     this.exportProcessor = null;
-    if (song != null) this.setSong(song);
+    if (song != null) {
+      this.setSong(song);
+      this.currentTempo = this.song.tempo;
+    }
     this.activateAudio();
     events.listen(1 /* sampleLoading */, this.updateProcessorSamplesStart.bind(this));
     events.listen(2 /* sampleLoaded */, this.updateProcessorSamplesFinish.bind(this));
@@ -18715,8 +18817,18 @@ var SynthMessenger = class {
     return this.isRecording;
   }
   get playhead() {
-    if (this.song) this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
-    return this.playheadInternal;
+    let offset = 0;
+    if (this.song && !this.countInMetronome) {
+      this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
+      offset = this.bufferL.byteLength / (4 * this.getSamplesPerTickSpecificBPM(this.currentTempo) * Config.ticksPerPart * Config.partsPerBeat * this.song.beatsPerBar);
+      if (!this.isPlayingSong || offset < 0.5) offset = 0;
+      if (this.readableBufferLength != this.readableBuffer.availableRead()) {
+        const ratio = this.readableBufferLength / this.bufferL.byteLength * 4 || 1;
+        this.readableBufferLength += (this.readableBuffer.availableRead() - this.readableBufferLength) / (this.bufferL.byteLength / defaultBlockSize * ratio);
+      }
+      offset *= this.readableBufferLength / this.bufferL.byteLength * 4;
+    }
+    return this.playheadInternal - offset;
   }
   set playhead(value) {
     if (this.song != null) {
@@ -18731,7 +18843,7 @@ var SynthMessenger = class {
       this.tick = Math.floor(remainder);
       this.isAtStartOfTick = true;
       const prevBar = {
-        flag: 6 /* setPrevBar */,
+        flag: 8 /* setPrevBar */,
         prevBar: null
       };
       this.sendMessage(prevBar);
@@ -18740,7 +18852,7 @@ var SynthMessenger = class {
   set loopRepeatCount(value) {
     this.loopRepeats = value;
     const loopRepeatCountMessage = {
-      flag: 13 /* loopRepeatCount */,
+      flag: 15 /* loopRepeatCount */,
       count: value
     };
     this.sendMessage(loopRepeatCountMessage);
@@ -18754,7 +18866,7 @@ var SynthMessenger = class {
   set loopBarStart(value) {
     this._loopBarStart = value;
     const loopBarMessage = {
-      flag: 14 /* loopBar */,
+      flag: 16 /* loopBar */,
       loopBarStart: this._loopBarStart,
       loopBarEnd: this._loopBarEnd
     };
@@ -18766,7 +18878,7 @@ var SynthMessenger = class {
   set loopBarEnd(value) {
     this._loopBarEnd = value;
     const loopBarMessage = {
-      flag: 14 /* loopBar */,
+      flag: 16 /* loopBar */,
       loopBarStart: this._loopBarStart,
       loopBarEnd: this._loopBarEnd
     };
@@ -18802,11 +18914,11 @@ var SynthMessenger = class {
         this.pause(false);
         break;
       }
-      case 7 /* isRecording */: {
+      case 9 /* isRecording */: {
         this.countInMetronome = event.data.countInMetronome;
         break;
       }
-      case 8 /* uiRender */: {
+      case 10 /* uiRender */: {
         if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
         if (this.oscEnabled) {
           if (this.oscRefreshEventTimer <= 0) {
@@ -18818,7 +18930,18 @@ var SynthMessenger = class {
             this.oscRefreshEventTimer--;
           }
         }
-        if (this.playing) this.computeMods();
+        if (this.playing && !ISPLAYER) this.computeMods();
+        break;
+      }
+      case 7 /* growsabs */: {
+        if (this.bufferL.growable && this.bufferL.maxByteLength >= (this.bufferL.byteLength - 12) * 2 + 12) {
+          this.bufferL.grow((this.bufferL.byteLength - 12) * 2 + 12);
+          this.bufferR.grow(this.bufferL.byteLength);
+          this.sendMessage(event.data);
+          this.workletNode?.port.postMessage(event.data);
+          this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+          this.readableBufferLength = this.readableBuffer.availableRead();
+        }
         break;
       }
     }
@@ -18847,7 +18970,7 @@ var SynthMessenger = class {
       }
     }
     const updateMessage = {
-      flag: 15 /* updateSong */,
+      flag: 17 /* updateSong */,
       songSetting,
       channelIndex,
       instrumentIndex,
@@ -18905,6 +19028,7 @@ var SynthMessenger = class {
         //add more here if needed
       };
       this.workletNode.port.postMessage({
+        flag: 6 /* sabsProcessor */,
         bufferL: this.bufferL,
         bufferR: this.bufferR
       });
@@ -18961,7 +19085,7 @@ var SynthMessenger = class {
   }
   updateProcessorSamplesFinish(samples, index) {
     let samplesMessage = {
-      flag: 11 /* sampleFinishMessage */,
+      flag: 13 /* sampleFinishMessage */,
       samples,
       index
     };
@@ -19012,27 +19136,27 @@ var SynthMessenger = class {
     };
     this.initModFilters(this.song);
     this.sendMessage(playMessage);
+    this.workletNode?.port.postMessage(playMessage);
   }
   pause(communicate = true) {
     if (!this.isPlayingSong) return;
     this.isPlayingSong = false;
     this.isRecording = false;
     this.preferLowerLatency = false;
-    if (communicate) {
-      const playMessage = {
-        flag: 1 /* togglePlay */,
-        play: this.isPlayingSong
-      };
-      this.sendMessage(playMessage);
-    }
+    const playMessage = {
+      flag: 1 /* togglePlay */,
+      play: this.isPlayingSong
+    };
+    if (communicate) this.sendMessage(playMessage);
+    this.workletNode?.port.postMessage(playMessage);
     this.tick = 0;
-    this.updatePlayhead(this.songPosition[0], 0, 0);
+    if (!ISPLAYER) this.updatePlayhead(this.songPosition[0], 0, 0);
   }
   startRecording() {
     this.preferLowerLatency = true;
     this.isRecording = true;
     const isRecordingMessage = {
-      flag: 7 /* isRecording */,
+      flag: 9 /* isRecording */,
       isRecording: this.isRecording,
       enableMetronome: this.enableMetronome,
       countInMetronome: this.countInMetronome
@@ -19076,7 +19200,7 @@ var SynthMessenger = class {
   goToNextBar() {
     if (!this.song) return;
     const prevBar = {
-      flag: 6 /* setPrevBar */,
+      flag: 8 /* setPrevBar */,
       prevBar: this.songPosition[0]
     };
     this.sendMessage(prevBar);
@@ -19093,7 +19217,7 @@ var SynthMessenger = class {
   goToPrevBar() {
     if (!this.song) return;
     const prevBar = {
-      flag: 6 /* setPrevBar */,
+      flag: 8 /* setPrevBar */,
       prevBar: null
     };
     this.sendMessage(prevBar);
@@ -19295,6 +19419,7 @@ var SynthMessenger = class {
     this.computeMods();
   }
   computeMods() {
+    if (this.song != null) this.currentTempo = this.song.tempo;
     if (this.song != null && this.song.modChannelCount > 0) {
       let latestModTimes = [];
       let latestModInsTimes = [];
@@ -19376,6 +19501,7 @@ var SynthMessenger = class {
                       }
                       this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], instrument.modInstruments[mod], instrument.modulators[mod]);
                       latestModTimes[instrument.modulators[mod]] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                      if (instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) this.currentTempo = latestPinValues[mod];
                     }
                   } else {
                     let usedInstruments = [];
@@ -19652,12 +19778,18 @@ var SynthMessenger = class {
 
 // synth/synthThread.ts
 var synth;
+var sabL;
+var sabR;
 var samplesL;
 var samplesR;
+var blockSize = defaultBlockSize;
+var bufferL = new Float32Array(blockSize).fill(0);
+var bufferR = new Float32Array(blockSize).fill(0);
+var drain = false;
 self.onmessage = (event) => receiveMessage(event);
 var endCountIn = /* @__PURE__ */ __name(() => {
   const metronomeMessage = {
-    flag: 7 /* isRecording */,
+    flag: 9 /* isRecording */,
     isRecording: true,
     enableMetronome: true,
     countInMetronome: false
@@ -19680,6 +19812,7 @@ async function receiveMessage(event) {
         synth.play();
       } else {
         synth.pause();
+        drain = true;
       }
       break;
     case 0 /* loadSong */:
@@ -19707,27 +19840,29 @@ async function receiveMessage(event) {
         synth.songPosition = event.data.songPosition;
         synth.outVolumeCap = event.data.outVolumeCap;
         synth.resetEffects();
-        samplesL = new RingBuffer(event.data.bufferL, Float32Array);
-        samplesR = new RingBuffer(event.data.bufferR, Float32Array);
+        sabL = event.data.bufferL;
+        sabR = event.data.bufferR;
+        samplesL = new RingBuffer(sabL, Float32Array);
+        samplesR = new RingBuffer(sabR, Float32Array);
         synth.samplesPerSecond = event.data.sampleRate;
       }
       break;
     }
-    case 6 /* setPrevBar */: {
+    case 8 /* setPrevBar */: {
       synth.prevBar = event.data.prevBar;
       break;
     }
-    case 7 /* isRecording */: {
+    case 9 /* isRecording */: {
       synth.isRecording = event.data.isRecording;
       synth.enableMetronome = event.data.enableMetronome;
       synth.countInMetronome = event.data.countInMetronome;
       break;
     }
-    case 9 /* synthVolume */: {
+    case 11 /* synthVolume */: {
       synth.volume = event.data.volume;
       break;
     }
-    case 10 /* sampleStartMessage */: {
+    case 12 /* sampleStartMessage */: {
       const name = event.data.string;
       const expression = event.data.expression;
       const isCustomSampled = event.data.isCustomSampled;
@@ -19770,7 +19905,7 @@ async function receiveMessage(event) {
       };
       break;
     }
-    case 11 /* sampleFinishMessage */: {
+    case 13 /* sampleFinishMessage */: {
       const integratedSamples = performIntegral(event.data.samples);
       const index = event.data.index;
       Config.chipWaves[index].samples = integratedSamples;
@@ -19778,7 +19913,7 @@ async function receiveMessage(event) {
       Config.rawRawChipWaves[index].samples = event.data.samples;
       break;
     }
-    case 12 /* pluginMessage */: {
+    case 14 /* pluginMessage */: {
       const pluginModule = await import(event.data.url);
       Synth.PluginClass = pluginModule.default;
       const plugin = new Synth.PluginClass();
@@ -19796,43 +19931,57 @@ async function receiveMessage(event) {
       Synth.effectsFunctionCache.fill(void 0);
       break;
     }
-    case 13 /* loopRepeatCount */: {
+    case 15 /* loopRepeatCount */: {
       synth.loopRepeatCount = event.data.count;
       break;
     }
-    case 14 /* loopBar */: {
+    case 16 /* loopBar */: {
       synth.loopBarStart = event.data.loopBarStart;
       synth.loopBarEnd = event.data.loopBarEnd;
       break;
     }
-    case 15 /* updateSong */: {
+    case 17 /* updateSong */: {
       if (!synth.song) synth.song = new Song();
       synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
+      break;
+    }
+    case 7 /* growsabs */: {
+      grow(blockSize * 2);
       break;
     }
   }
 }
 __name(receiveMessage, "receiveMessage");
-var blockSize = 512;
-var bufferL = new Float32Array(blockSize).fill(0);
-var bufferR = new Float32Array(blockSize).fill(0);
-function synthesize() {
-  while (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
-    try {
-      synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
-      samplesL.push(bufferL);
-      samplesR.push(bufferR);
-      for (let i = 0; i < blockSize; i++) {
-        bufferL[i] = 0;
-        bufferR[i] = 0;
+function grow(length) {
+  blockSize = length;
+  bufferL = new Float32Array(blockSize).fill(0);
+  bufferR = new Float32Array(blockSize).fill(0);
+  samplesL = new RingBuffer(sabL, Float32Array);
+  samplesR = new RingBuffer(sabR, Float32Array);
+  drain = true;
+  console.log("updating block size to " + blockSize);
+}
+__name(grow, "grow");
+var synthesize = /* @__PURE__ */ __name(() => {
+  if (drain) {
+    while (!samplesL.empty()) samplesL.pop(bufferL);
+    while (!samplesR.empty()) samplesR.pop(bufferR);
+    drain = false;
+  } else {
+    if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
+      try {
+        synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
+        samplesL.push(bufferL);
+        samplesR.push(bufferR);
+        bufferL.fill(0);
+        bufferR.fill(0);
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
     }
   }
   setTimeout(synthesize, 0);
-}
-__name(synthesize, "synthesize");
+}, "synthesize");
 setTimeout(synthesize, 0);
 /*!
 Copyright (c) 2012-2022 John Nesky and contributing authors

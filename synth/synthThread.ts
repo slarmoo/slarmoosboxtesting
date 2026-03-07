@@ -2,14 +2,22 @@
 
 import { Config, performIntegral } from "./SynthConfig";
 import { Song } from "./synthMessenger";
-import { DeactivateMessage, IsRecordingMessage, MessageFlag } from "./synthMessages";
+import { DeactivateMessage, defaultBlockSize, IsRecordingMessage, MessageFlag } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
-import { EffectPlugin } from "./plugin";
+import { BeepBoxEffectPlugin } from "beepboxplugin";
 
 let synth: Synth;
+let sabL: SharedArrayBuffer;
+let sabR: SharedArrayBuffer;
 let samplesL: RingBuffer;
 let samplesR: RingBuffer;
+
+let blockSize: number = defaultBlockSize;
+let bufferL: Float32Array = new Float32Array(blockSize).fill(0.0);
+let bufferR: Float32Array = new Float32Array(blockSize).fill(0.0);
+
+let drain: boolean = false;
 
 self.onmessage = (event: MessageEvent) => receiveMessage(event);
 
@@ -42,6 +50,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
                 synth.play();
             } else {
                 synth.pause();
+                drain = true;
             }
             break;
         case MessageFlag.loadSong:
@@ -75,8 +84,10 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
                 synth.songPosition = event.data.songPosition;
                 synth.outVolumeCap = event.data.outVolumeCap;
                 synth.resetEffects();
-                samplesL = new RingBuffer(event.data.bufferL, Float32Array);
-                samplesR = new RingBuffer(event.data.bufferR, Float32Array);
+                sabL = event.data.bufferL;
+                sabR = event.data.bufferR;
+                samplesL = new RingBuffer(sabL, Float32Array);
+                samplesR = new RingBuffer(sabR, Float32Array);
                 synth.samplesPerSecond = event.data.sampleRate;
             }
             break;
@@ -150,7 +161,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
         case MessageFlag.pluginMessage: {
             const pluginModule = await import(event.data.url);
             Synth.PluginClass = pluginModule.default;
-            const plugin: EffectPlugin = new Synth.PluginClass();
+            const plugin: BeepBoxEffectPlugin = new Synth.PluginClass();
 
             for (let channelIndex: number = 0; channelIndex < synth.song!.pitchChannelCount + synth.song!.noiseChannelCount; channelIndex++) {
                 for (let instrumentIndex: number = 0; instrumentIndex < synth.song!.channels[channelIndex].instruments.length; instrumentIndex++) {
@@ -183,26 +194,39 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
             synth.song.parseUpdateCommand(event.data.data, event.data.songSetting, event.data.channelIndex, event.data.instrumentIndex, event.data.instrumentSetting, event.data.settingIndex);
             break;
         }
+        case MessageFlag.growsabs: {
+            grow(blockSize * 2);
+            break;
+        }
     }
 }
 
-const blockSize: number = 512;
+function grow(length: number) {
+    blockSize = length;
+    bufferL = new Float32Array(blockSize).fill(0.0);
+    bufferR = new Float32Array(blockSize).fill(0.0);
+    samplesL = new RingBuffer(sabL, Float32Array);
+    samplesR = new RingBuffer(sabR, Float32Array);
+    drain = true;
+    console.log("updating block size to " + blockSize);
+}
 
-const bufferL: Float32Array = new Float32Array(blockSize).fill(0.0);
-const bufferR: Float32Array = new Float32Array(blockSize).fill(0.0);
-
-function synthesize() {
-    while (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
-        try {
-            synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
-            samplesL.push(bufferL);
-            samplesR.push(bufferR);
-            for (let i: number = 0; i < blockSize; i++) {
-                bufferL[i] = 0.0;
-                bufferR[i] = 0.0;
+const synthesize = () => {
+    if (drain) {
+        while (!samplesL.empty()) samplesL.pop(bufferL);
+        while (!samplesR.empty()) samplesR.pop(bufferR);
+        drain = false;
+    } else {
+        if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
+            try {
+                synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
+                samplesL.push(bufferL);
+                samplesR.push(bufferR);
+                bufferL.fill(0.0);
+                bufferR.fill(0.0);
+            } catch (e) {
+                console.log(e);
             }
-        } catch (e) {
-            console.log(e);
         }
     }
     setTimeout(synthesize, 0);

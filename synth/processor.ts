@@ -1,11 +1,16 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Message, MessageFlag, UIRenderMessage } from "./synthMessages";
+import { GrowSABSMessage, Message, MessageFlag, UIRenderMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 
 export class SynthProcessor extends AudioWorkletProcessor {
 
+    private isPlaying: boolean = false;
+    private outputFailures: number = 0;
+    private maxFailures: number = 1024;
     private browserAutomaticallyClearsAudioBuffer: boolean = true; // Assume true until proven otherwise. Older Chrome does not clear the buffer so it needs to be cleared manually.
+    private sabL: SharedArrayBuffer;
+    private sabR: SharedArrayBuffer;
     private samplesL: RingBuffer;
     private samplesR: RingBuffer;
 
@@ -18,9 +23,31 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.port.postMessage(message);
     }
 
+    private bufferClear: Float32Array = new Float32Array(128);
     private receiveMessage(event: MessageEvent): void {
-        this.samplesL = new RingBuffer(event.data.bufferL, Float32Array);
-        this.samplesR = new RingBuffer(event.data.bufferR, Float32Array);
+        switch (event.data.flag) {
+            case MessageFlag.sabsProcessor: {
+                this.sabL = event.data.bufferL;
+                this.sabR = event.data.bufferR;
+                this.samplesL = new RingBuffer(this.sabL, Float32Array);
+                this.samplesR = new RingBuffer(this.sabR, Float32Array);
+                break;
+            } case MessageFlag.togglePlay: {
+                if (!event.data.play) {
+                    //clear samples
+                    while (!this.samplesL.empty()) this.samplesL.pop(this.bufferClear);
+                    while (!this.samplesR.empty()) this.samplesR.pop(this.bufferClear);
+                    this.isPlaying = false;
+                } else {
+                    this.isPlaying = true;
+                }
+                break;
+            } case MessageFlag.growsabs: {
+                this.samplesL = new RingBuffer(this.sabL, Float32Array);
+                this.samplesR = new RingBuffer(this.sabR, Float32Array);
+            }
+        }
+        
     }
 
     process(_: Float32Array[][], outputs: Float32Array[][]) {
@@ -40,15 +67,26 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
         }
 
-        // AudioWorkletProcessor is not officially supported by typescript so for now we have lots of strange workarounds
-        if (this.samplesL && this.samplesR && this.samplesL.availableRead() >= 128 && this.samplesR.availableRead() >= 128) {
+        const length: number = outputDataL.length;
+        if (this.samplesL && this.samplesR && this.samplesL.availableRead() >= length && this.samplesR.availableRead() >= length) {
             this.samplesL.pop(outputDataL);
             this.samplesR.pop(outputDataR);
         } else {
-            const length: number = outputDataL.length;
             for (let i: number = 0; i < length; i++) {
                 outputDataL[i] = 0.0;
                 outputDataR[i] = 0.0;
+            }
+            if (this.samplesL && this.samplesR && this.isPlaying && this.maxFailures > 0) {
+                //failed an output block; count how many times this occurs and if we need to double our latency
+                this.outputFailures++;
+                if (this.outputFailures > this.maxFailures || this.outputFailures > 256) {
+                    this.outputFailures = -64; //account for some lag from resizing
+                    this.maxFailures = (this.maxFailures / 2) | 0;
+                    const growSABSMessage: GrowSABSMessage = {
+                        flag: MessageFlag.growsabs
+                    }
+                    this.sendMessage(growSABSMessage);
+                }
             }
         }
 

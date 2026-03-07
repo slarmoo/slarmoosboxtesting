@@ -13,7 +13,7 @@ import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
 import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
 import { isMobile, ctrlSymbol } from "./DeviceConfig";
 import { EditorConfig, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
-import { PluginConfig, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown, PluginElementType } from "./PluginConfig"
+import { PluginConfig } from "./PluginConfig"
 import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
 import { ExportPrompt } from "./ExportPrompt";
 import "./Layout"; // Imported here for the sake of ensuring this code is transpiled early.
@@ -61,6 +61,7 @@ import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
 import { CustomChipCanvas } from "./CustomChipCanvas";
 import { CustomAlgorithmCanvas } from "./CustomAlgorithmCanvas";
 import { events, EventType } from "../global/Events";
+import { PluginElementType, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "beepboxplugin";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -527,7 +528,7 @@ export class SongEditor {
     private readonly _twoNoteArpRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("twoNoteArpeggio") }, "‣ Fast Two-Note:"), this._twoNoteArpBox);
     private readonly _strumSpeedDisplay: HTMLSpanElement = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "0.04 beat(s)");
     private readonly _strumSpeedSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: Config.strumSpeedMax, value: "1", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
-    private readonly _strumSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay, this._strumSpeedSlider.container);
+    private readonly _strumSpeedRow: HTMLElement = div({ class: "selectRow dropFader" }, div({ style:"display: flex; flex-direction: column" }, span({ class: "tip", style: "margin-left:4px; font-size: smaller;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay), this._strumSpeedSlider.container);
 
     private readonly _chordDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._strumSpeedRow, this._arpeggioSpeedRow, this._twoNoteArpRow);
 

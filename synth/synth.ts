@@ -9,7 +9,7 @@ import { xxHash32 } from "js-xxhash";
 import { LiveInputValues } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { BeepboxSet } from "./Set";
-import { EffectPlugin } from "./plugin";
+import { BeepBoxEffectPlugin } from "beepboxplugin";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -1352,7 +1352,7 @@ class InstrumentState {
     public reverbShelfPrevInput2: number = 0.0;
     public reverbShelfPrevInput3: number = 0.0;
 
-    public plugin: EffectPlugin | null = null;
+    public plugin: BeepBoxEffectPlugin | null = null;
     //to avoid reallocations / garbage collection
     private pluginStarts: number[] = [];
     private pluginEnds: number[] = [];
@@ -2831,8 +2831,6 @@ export class Synth {
         if (this.song == null ||
             (this.liveInputPitchesOnOffRequests == undefined && playSong)
         ) {
-            outputDataL.fill(0.0);
-            outputDataR.fill(0.0);
             this.deactivateAudio();
             return;
         }
@@ -3372,8 +3370,6 @@ export class Synth {
         if (!Number.isFinite(limit) || Math.abs(limit) < epsilon) limit = 0.0;
         this.limit = limit;
 
-        // if (playSong && !this.countInMetronome) {
-        // }
     }
 
     private freeTone(tone: Tone): void {
@@ -3850,7 +3846,7 @@ export class Synth {
                 const instrumentState: InstrumentState = channelState.instruments[instrumentIndex];
                 const toneList: Deque<Tone> = instrumentState.activeTones;
                 let toneCount: number = 0;
-                if ((note != null) && (!song.patternInstruments || (pattern!.instruments.indexOf(instrumentIndex) != -1))) {
+                if ((note != null) && (!song.patternInstruments || (pattern!.instruments.indexOf(instrumentIndex) != -1)) && pattern!.notes.length > 0) {
                     const instrument: Instrument = channel.instruments[instrumentIndex];
                     let prevNoteForThisInstrument: Note | null = prevNote;
                     let nextNoteForThisInstrument: Note | null = nextNote;
@@ -4086,7 +4082,7 @@ export class Synth {
         const channelState: ChannelState = this.channels[channelIndex];
         const instrumentState: InstrumentState = channelState.instruments[tone.instrumentIndex];
 
-        if (instrumentState.synthesizer != null) instrumentState.synthesizer!(this, bufferIndex, runLength, tone, instrumentState);
+        if (instrumentState.synthesizer != null) instrumentState.synthesizer(this, bufferIndex, runLength, tone, instrumentState);
         tone.envelopeComputer.clearEnvelopes();
         instrumentState.envelopeComputer.clearEnvelopes();
     }

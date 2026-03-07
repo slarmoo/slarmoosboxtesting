@@ -11266,16 +11266,18 @@ li.select2-results__option[role=group] > strong:hover {
         MessageFlag[MessageFlag["resetEffects"] = 3] = "resetEffects";
         MessageFlag[MessageFlag["computeMods"] = 4] = "computeMods";
         MessageFlag[MessageFlag["sharedArrayBuffers"] = 5] = "sharedArrayBuffers";
-        MessageFlag[MessageFlag["setPrevBar"] = 6] = "setPrevBar";
-        MessageFlag[MessageFlag["isRecording"] = 7] = "isRecording";
-        MessageFlag[MessageFlag["uiRender"] = 8] = "uiRender";
-        MessageFlag[MessageFlag["synthVolume"] = 9] = "synthVolume";
-        MessageFlag[MessageFlag["sampleStartMessage"] = 10] = "sampleStartMessage";
-        MessageFlag[MessageFlag["sampleFinishMessage"] = 11] = "sampleFinishMessage";
-        MessageFlag[MessageFlag["pluginMessage"] = 12] = "pluginMessage";
-        MessageFlag[MessageFlag["loopRepeatCount"] = 13] = "loopRepeatCount";
-        MessageFlag[MessageFlag["loopBar"] = 14] = "loopBar";
-        MessageFlag[MessageFlag["updateSong"] = 15] = "updateSong";
+        MessageFlag[MessageFlag["sabsProcessor"] = 6] = "sabsProcessor";
+        MessageFlag[MessageFlag["growsabs"] = 7] = "growsabs";
+        MessageFlag[MessageFlag["setPrevBar"] = 8] = "setPrevBar";
+        MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
+        MessageFlag[MessageFlag["uiRender"] = 10] = "uiRender";
+        MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
+        MessageFlag[MessageFlag["sampleStartMessage"] = 12] = "sampleStartMessage";
+        MessageFlag[MessageFlag["sampleFinishMessage"] = 13] = "sampleFinishMessage";
+        MessageFlag[MessageFlag["pluginMessage"] = 14] = "pluginMessage";
+        MessageFlag[MessageFlag["loopRepeatCount"] = 15] = "loopRepeatCount";
+        MessageFlag[MessageFlag["loopBar"] = 16] = "loopBar";
+        MessageFlag[MessageFlag["updateSong"] = 17] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -11431,6 +11433,7 @@ li.select2-results__option[role=group] > strong:hover {
         InstrumentSettings[InstrumentSettings["modEnvelopeNumbers"] = 100] = "modEnvelopeNumbers";
         InstrumentSettings[InstrumentSettings["invalidModulators"] = 101] = "invalidModulators";
     })(InstrumentSettings || (InstrumentSettings = {}));
+    const defaultBlockSize = 512;
 
     class RingBuffer {
       /** Allocate the SharedArrayBuffer for a RingBuffer, based on the type and
@@ -14626,8 +14629,6 @@ li.select2-results__option[role=group] > strong:hover {
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             if (this.song == null ||
                 (this.liveInputPitchesOnOffRequests == undefined && playSong)) {
-                outputDataL.fill(0.0);
-                outputDataR.fill(0.0);
                 this.deactivateAudio();
                 return;
             }
@@ -15524,7 +15525,7 @@ li.select2-results__option[role=group] > strong:hover {
                     const instrumentState = channelState.instruments[instrumentIndex];
                     const toneList = instrumentState.activeTones;
                     let toneCount = 0;
-                    if ((note != null) && (!song.patternInstruments || (pattern.instruments.indexOf(instrumentIndex) != -1))) {
+                    if ((note != null) && (!song.patternInstruments || (pattern.instruments.indexOf(instrumentIndex) != -1)) && pattern.notes.length > 0) {
                         const instrument = channel.instruments[instrumentIndex];
                         let prevNoteForThisInstrument = prevNote;
                         let nextNoteForThisInstrument = nextNote;
@@ -19248,6 +19249,46 @@ li.select2-results__option[role=group] > strong:hover {
 				const operator#Scaled~   = operator#OutputMult * operator#Output~;
 		`).split("\n");
 
+    var dist = {};
+
+    var hasRequiredDist;
+
+    function requireDist () {
+    	if (hasRequiredDist) return dist;
+    	hasRequiredDist = 1;
+    	Object.defineProperty(dist, "__esModule", { value: true });
+    	dist.PluginElementType = dist.BeepBoxEffectPlugin = void 0;
+    	/**
+    	 * The structure of a beepbox effect plugin
+    	 */
+    	class BeepBoxEffectPlugin {
+    	    /**
+    	     * If your plugin uses delay lines and you would like your sound to sustain past the note, change this value to your sustain length
+    	     */
+    	    delayLineLength = 0;
+    	    /**
+    	     * For testing
+    	     */
+    	    ping() {
+    	        console.log("pong!");
+    	    }
+    	}
+    	dist.BeepBoxEffectPlugin = BeepBoxEffectPlugin;
+    	/**
+    	 * The type of elements available
+    	 */
+    	var PluginElementType;
+    	(function (PluginElementType) {
+    	    PluginElementType[PluginElementType["slider"] = 0] = "slider";
+    	    PluginElementType[PluginElementType["checkbox"] = 1] = "checkbox";
+    	    PluginElementType[PluginElementType["dropdown"] = 2] = "dropdown";
+    	})(PluginElementType || (dist.PluginElementType = PluginElementType = {}));
+    	
+    	return dist;
+    }
+
+    var distExports = requireDist();
+
     var __awaiter$1 = (exports && exports.__awaiter) || function (thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
         return new (P || (P = Promise))(function (resolve, reject) {
@@ -21870,7 +21911,7 @@ li.select2-results__option[role=group] > strong:hover {
                     return true;
                 if (index >= PluginConfig.pluginUIElements.length)
                     return false;
-                if (PluginConfig.pluginUIElements[index].type != 0)
+                if (PluginConfig.pluginUIElements[index].type != distExports.PluginElementType.slider)
                     return false;
                 return PluginConfig.pluginUIElements[index].hasEnvelope;
             }
@@ -26652,7 +26693,7 @@ li.select2-results__option[role=group] > strong:hover {
             Array.prototype.push.apply(this.channels, newPitchChannels);
             Array.prototype.push.apply(this.channels, newNoiseChannels);
             Array.prototype.push.apply(this.channels, newModChannels);
-            if (Config.willReloadForCustomSamples) {
+            if (Config.willReloadForCustomSamples && document.URL) {
                 window.location.hash = this.toBase64String();
                 setTimeout(() => { location.reload(); }, 50);
             }
@@ -26718,9 +26759,19 @@ li.select2-results__option[role=group] > strong:hover {
             return this.isRecording;
         }
         get playhead() {
-            if (this.song)
+            let offset = 0;
+            if (this.song && !this.countInMetronome) {
                 this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
-            return this.playheadInternal;
+                offset = this.bufferL.byteLength / (4 * this.getSamplesPerTickSpecificBPM(this.currentTempo) * Config.ticksPerPart * Config.partsPerBeat * this.song.beatsPerBar);
+                if (!this.isPlayingSong || offset < 0.5)
+                    offset = 0;
+                if (this.readableBufferLength != this.readableBuffer.availableRead()) {
+                    const ratio = (this.readableBufferLength / this.bufferL.byteLength * 4) || 1;
+                    this.readableBufferLength += (this.readableBuffer.availableRead() - this.readableBufferLength) / (this.bufferL.byteLength / defaultBlockSize * ratio);
+                }
+                offset *= this.readableBufferLength / this.bufferL.byteLength * 4;
+            }
+            return this.playheadInternal - offset;
         }
         set playhead(value) {
             if (this.song != null) {
@@ -26790,8 +26841,12 @@ li.select2-results__option[role=group] > strong:hover {
             this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
-            this.bufferL = new SharedArrayBuffer(128 * 32 * 4);
-            this.bufferR = new SharedArrayBuffer(128 * 32 * 4);
+            this.defaultBufferLength = defaultBlockSize * 8 * 4 + 12;
+            this.maxBufferLength = defaultBlockSize * (Math.pow(2, 5)) * 8 * 4 + 12;
+            this.bufferL = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+            this.bufferR = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+            this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+            this.readableBufferLength = 0;
             this.loopRepeats = -1;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
@@ -26799,6 +26854,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.countInMetronome = false;
             this.renderingSong = false;
             this.heldMods = [];
+            this.currentTempo = 150;
             this.playheadInternal = 0.0;
             this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
             this.outVolumeCap = new Float32Array(new SharedArrayBuffer(1 * 4));
@@ -26825,8 +26881,10 @@ li.select2-results__option[role=group] > strong:hover {
             this.messageQueue = [];
             this.liveInputPushArray = new Uint16Array(Config.maxPitch);
             this.exportProcessor = null;
-            if (song != null)
+            if (song != null) {
                 this.setSong(song);
+                this.currentTempo = this.song.tempo;
+            }
             this.activateAudio();
             events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
             events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
@@ -26847,6 +26905,7 @@ li.select2-results__option[role=group] > strong:hover {
             }
         }
         receiveMessage(event) {
+            var _a;
             const flag = event.data.flag;
             switch (flag) {
                 case MessageFlag.deactivate: {
@@ -26875,8 +26934,19 @@ li.select2-results__option[role=group] > strong:hover {
                             this.oscRefreshEventTimer--;
                         }
                     }
-                    if (this.playing)
+                    if (this.playing && !ISPLAYER)
                         this.computeMods();
+                    break;
+                }
+                case MessageFlag.growsabs: {
+                    if (this.bufferL.growable && this.bufferL.maxByteLength >= (this.bufferL.byteLength - 12) * 2 + 12) {
+                        this.bufferL.grow((this.bufferL.byteLength - 12) * 2 + 12);
+                        this.bufferR.grow(this.bufferL.byteLength);
+                        this.sendMessage(event.data);
+                        (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(event.data);
+                        this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+                        this.readableBufferLength = this.readableBuffer.availableRead();
+                    }
                     break;
                 }
             }
@@ -26968,6 +27038,7 @@ li.select2-results__option[role=group] > strong:hover {
                         sampleRate: this.audioContext.sampleRate
                     };
                     this.workletNode.port.postMessage({
+                        flag: MessageFlag.sabsProcessor,
                         bufferL: this.bufferL,
                         bufferR: this.bufferR
                     });
@@ -27068,6 +27139,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.exportProcessor.isPlayingSong = false;
         }
         play() {
+            var _a;
             if (this.isPlayingSong)
                 return;
             this.activateAudio();
@@ -27078,22 +27150,25 @@ li.select2-results__option[role=group] > strong:hover {
             };
             this.initModFilters(this.song);
             this.sendMessage(playMessage);
+            (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(playMessage);
         }
         pause(communicate = true) {
+            var _a;
             if (!this.isPlayingSong)
                 return;
             this.isPlayingSong = false;
             this.isRecording = false;
             this.preferLowerLatency = false;
-            if (communicate) {
-                const playMessage = {
-                    flag: MessageFlag.togglePlay,
-                    play: this.isPlayingSong,
-                };
+            const playMessage = {
+                flag: MessageFlag.togglePlay,
+                play: this.isPlayingSong,
+            };
+            if (communicate)
                 this.sendMessage(playMessage);
-            }
+            (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(playMessage);
             this.tick = 0;
-            this.updatePlayhead(this.songPosition[0], 0, 0);
+            if (!ISPLAYER)
+                this.updatePlayhead(this.songPosition[0], 0, 0);
         }
         startRecording() {
             this.preferLowerLatency = true;
@@ -27373,6 +27448,8 @@ li.select2-results__option[role=group] > strong:hover {
             this.computeMods();
         }
         computeMods() {
+            if (this.song != null)
+                this.currentTempo = this.song.tempo;
             if (this.song != null && this.song.modChannelCount > 0) {
                 let latestModTimes = [];
                 let latestModInsTimes = [];
@@ -27458,6 +27535,8 @@ li.select2-results__option[role=group] > strong:hover {
                                                 }
                                                 this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], instrument.modInstruments[mod], instrument.modulators[mod]);
                                                 latestModTimes[instrument.modulators[mod]] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                                                if (instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index)
+                                                    this.currentTempo = latestPinValues[mod];
                                             }
                                         }
                                         else {
@@ -29916,10 +29995,10 @@ li.select2-results__option[role=group] > strong:hover {
                 if (PluginConfig.pluginUIElements.length > 0 && Math.random() < 0.07) {
                     instrument.effects |= 1 << 15;
                     for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
-                        if (PluginConfig.pluginUIElements[i].type == 1) {
+                        if (PluginConfig.pluginUIElements[i].type == distExports.PluginElementType.checkbox) {
                             instrument.pluginValues[i] = Math.round(Math.random());
                         }
-                        else if (PluginConfig.pluginUIElements[i].type == 0) {
+                        else if (PluginConfig.pluginUIElements[i].type == distExports.PluginElementType.slider) {
                             instrument.pluginValues[i] = selectCurvedDistribution(0, PluginConfig.pluginUIElements[i].max, 0, PluginConfig.pluginUIElements[i].max / 2);
                         }
                         else {
@@ -41475,7 +41554,7 @@ You should be redirected to the song at:<br /><br />
             let displayName = Config.instrumentAutomationTargets[target].displayName;
             if (Config.instrumentAutomationTargets[target].maxCount > 1) {
                 if (Config.instrumentAutomationTargets[target].effect == 15 && index < PluginConfig.pluginUIElements.length) {
-                    displayName = PluginConfig.pluginUIElements[index].name;
+                    displayName = PluginConfig.pluginUIElements[index].name.toLowerCase();
                 }
                 else if (displayName.indexOf("#") != -1) {
                     displayName = displayName.replace("#", String(index + 1));
@@ -41494,7 +41573,7 @@ You should be redirected to the song at:<br /><br />
                 const index = (combinedValue / Config.instrumentAutomationTargets.length) >>> 0;
                 option.hidden = !instrument.supportsEnvelopeTarget(target, index);
                 if (!option.hidden && Config.instrumentAutomationTargets[target].effect == 15 && index < PluginConfig.pluginUIElements.length) {
-                    option.text = PluginConfig.pluginUIElements[index].name;
+                    option.text = PluginConfig.pluginUIElements[index].name.toLowerCase();
                 }
             }
         }
@@ -50741,7 +50820,7 @@ You should be redirected to the song at:<br /><br />
             this._twoNoteArpRow = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("twoNoteArpeggio") }, "‣ Fast Two-Note:"), this._twoNoteArpBox);
             this._strumSpeedDisplay = span({ style: `color: ${ColorConfig.secondaryText}; font-size: smaller; text-overflow: clip;` }, "0.04 beat(s)");
             this._strumSpeedSlider = new Slider(input({ style: "margin: 0;", type: "range", min: "1", max: Config.strumSpeedMax, value: "1", step: "1" }), this.doc, (oldValue, newValue) => new ChangeStrumSpeed(this.doc, oldValue, newValue), false);
-            this._strumSpeedRow = div({ class: "selectRow dropFader" }, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay, this._strumSpeedSlider.container);
+            this._strumSpeedRow = div({ class: "selectRow dropFader" }, div({ style: "display: flex; flex-direction: column" }, span({ class: "tip", style: "margin-left:4px; font-size: smaller;", onclick: () => this._openPrompt("strumSpeedSlider") }, "‣ Spd:"), this._strumSpeedDisplay), this._strumSpeedSlider.container);
             this._chordDropdownGroup = div({ class: "editor-controls", style: "display: none;" }, this._strumSpeedRow, this._arpeggioSpeedRow, this._twoNoteArpRow);
             this._vibratoSelect = buildOptions(select(), Config.vibratos.map(vibrato => vibrato.name));
             this._vibratoDropdown = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(0) }, "▼");
@@ -52234,19 +52313,19 @@ You should be redirected to the song at:<br /><br />
                 for (let i = 0; i < PluginConfig.pluginUIElements.length; i++) {
                     const pluginElement = PluginConfig.pluginUIElements[i];
                     switch (pluginElement.type) {
-                        case 0: {
+                        case distExports.PluginElementType.slider: {
                             const value = Math.min(instrument.pluginValues[i], pluginElement.max);
                             this._pluginElements[i] = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: pluginElement.max, value: value, step: "1" }), this.doc, (oldValue, newValue) => new ChangePluginSliderValue(this.doc, oldValue, newValue, i), false);
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i].container);
                             break;
                         }
-                        case 1: {
+                        case distExports.PluginElementType.checkbox: {
                             this._pluginElements[i] = input({ "checked": Boolean(instrument.pluginValues[i]), style: "margin: 0; width: 1em; padding: 0.5em", type: "checkbox" });
                             this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, +this._pluginElements[i].checked, instrument.pluginValues[i], i)));
                             this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
                             break;
                         }
-                        case 2: {
+                        case distExports.PluginElementType.dropdown: {
                             const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
                             this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
                             this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));

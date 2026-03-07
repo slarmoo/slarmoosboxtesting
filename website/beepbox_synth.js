@@ -2334,16 +2334,18 @@ var beepbox = (function (exports) {
         MessageFlag[MessageFlag["resetEffects"] = 3] = "resetEffects";
         MessageFlag[MessageFlag["computeMods"] = 4] = "computeMods";
         MessageFlag[MessageFlag["sharedArrayBuffers"] = 5] = "sharedArrayBuffers";
-        MessageFlag[MessageFlag["setPrevBar"] = 6] = "setPrevBar";
-        MessageFlag[MessageFlag["isRecording"] = 7] = "isRecording";
-        MessageFlag[MessageFlag["uiRender"] = 8] = "uiRender";
-        MessageFlag[MessageFlag["synthVolume"] = 9] = "synthVolume";
-        MessageFlag[MessageFlag["sampleStartMessage"] = 10] = "sampleStartMessage";
-        MessageFlag[MessageFlag["sampleFinishMessage"] = 11] = "sampleFinishMessage";
-        MessageFlag[MessageFlag["pluginMessage"] = 12] = "pluginMessage";
-        MessageFlag[MessageFlag["loopRepeatCount"] = 13] = "loopRepeatCount";
-        MessageFlag[MessageFlag["loopBar"] = 14] = "loopBar";
-        MessageFlag[MessageFlag["updateSong"] = 15] = "updateSong";
+        MessageFlag[MessageFlag["sabsProcessor"] = 6] = "sabsProcessor";
+        MessageFlag[MessageFlag["growsabs"] = 7] = "growsabs";
+        MessageFlag[MessageFlag["setPrevBar"] = 8] = "setPrevBar";
+        MessageFlag[MessageFlag["isRecording"] = 9] = "isRecording";
+        MessageFlag[MessageFlag["uiRender"] = 10] = "uiRender";
+        MessageFlag[MessageFlag["synthVolume"] = 11] = "synthVolume";
+        MessageFlag[MessageFlag["sampleStartMessage"] = 12] = "sampleStartMessage";
+        MessageFlag[MessageFlag["sampleFinishMessage"] = 13] = "sampleFinishMessage";
+        MessageFlag[MessageFlag["pluginMessage"] = 14] = "pluginMessage";
+        MessageFlag[MessageFlag["loopRepeatCount"] = 15] = "loopRepeatCount";
+        MessageFlag[MessageFlag["loopBar"] = 16] = "loopBar";
+        MessageFlag[MessageFlag["updateSong"] = 17] = "updateSong";
     })(MessageFlag || (MessageFlag = {}));
     var LiveInputValues;
     (function (LiveInputValues) {
@@ -2499,6 +2501,7 @@ var beepbox = (function (exports) {
         InstrumentSettings[InstrumentSettings["modEnvelopeNumbers"] = 100] = "modEnvelopeNumbers";
         InstrumentSettings[InstrumentSettings["invalidModulators"] = 101] = "invalidModulators";
     })(InstrumentSettings || (InstrumentSettings = {}));
+    const defaultBlockSize = 512;
 
     class RingBuffer {
       /** Allocate the SharedArrayBuffer for a RingBuffer, based on the type and
@@ -2815,6 +2818,46 @@ var beepbox = (function (exports) {
         }
       }
     }
+
+    var dist = {};
+
+    var hasRequiredDist;
+
+    function requireDist () {
+    	if (hasRequiredDist) return dist;
+    	hasRequiredDist = 1;
+    	Object.defineProperty(dist, "__esModule", { value: true });
+    	dist.PluginElementType = dist.BeepBoxEffectPlugin = void 0;
+    	/**
+    	 * The structure of a beepbox effect plugin
+    	 */
+    	class BeepBoxEffectPlugin {
+    	    /**
+    	     * If your plugin uses delay lines and you would like your sound to sustain past the note, change this value to your sustain length
+    	     */
+    	    delayLineLength = 0;
+    	    /**
+    	     * For testing
+    	     */
+    	    ping() {
+    	        console.log("pong!");
+    	    }
+    	}
+    	dist.BeepBoxEffectPlugin = BeepBoxEffectPlugin;
+    	/**
+    	 * The type of elements available
+    	 */
+    	var PluginElementType;
+    	(function (PluginElementType) {
+    	    PluginElementType[PluginElementType["slider"] = 0] = "slider";
+    	    PluginElementType[PluginElementType["checkbox"] = 1] = "checkbox";
+    	    PluginElementType[PluginElementType["dropdown"] = 2] = "dropdown";
+    	})(PluginElementType || (dist.PluginElementType = PluginElementType = {}));
+    	
+    	return dist;
+    }
+
+    var distExports = requireDist();
 
     var __awaiter = (exports && exports.__awaiter) || function (thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -5438,7 +5481,7 @@ var beepbox = (function (exports) {
                     return true;
                 if (index >= PluginConfig.pluginUIElements.length)
                     return false;
-                if (PluginConfig.pluginUIElements[index].type != 0)
+                if (PluginConfig.pluginUIElements[index].type != distExports.PluginElementType.slider)
                     return false;
                 return PluginConfig.pluginUIElements[index].hasEnvelope;
             }
@@ -10220,7 +10263,7 @@ var beepbox = (function (exports) {
             Array.prototype.push.apply(this.channels, newPitchChannels);
             Array.prototype.push.apply(this.channels, newNoiseChannels);
             Array.prototype.push.apply(this.channels, newModChannels);
-            if (Config.willReloadForCustomSamples) {
+            if (Config.willReloadForCustomSamples && document.URL) {
                 window.location.hash = this.toBase64String();
                 setTimeout(() => { location.reload(); }, 50);
             }
@@ -10286,9 +10329,19 @@ var beepbox = (function (exports) {
             return this.isRecording;
         }
         get playhead() {
-            if (this.song)
+            let offset = 0;
+            if (this.song && !this.countInMetronome) {
                 this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song.beatsPerBar;
-            return this.playheadInternal;
+                offset = this.bufferL.byteLength / (4 * this.getSamplesPerTickSpecificBPM(this.currentTempo) * Config.ticksPerPart * Config.partsPerBeat * this.song.beatsPerBar);
+                if (!this.isPlayingSong || offset < 0.5)
+                    offset = 0;
+                if (this.readableBufferLength != this.readableBuffer.availableRead()) {
+                    const ratio = (this.readableBufferLength / this.bufferL.byteLength * 4) || 1;
+                    this.readableBufferLength += (this.readableBuffer.availableRead() - this.readableBufferLength) / (this.bufferL.byteLength / defaultBlockSize * ratio);
+                }
+                offset *= this.readableBufferLength / this.bufferL.byteLength * 4;
+            }
+            return this.playheadInternal - offset;
         }
         set playhead(value) {
             if (this.song != null) {
@@ -10358,8 +10411,12 @@ var beepbox = (function (exports) {
             this.liveInputValues = new Uint32Array(new SharedArrayBuffer(6 * 4));
             this.liveInputPitchesSAB = new SharedArrayBuffer(Config.maxPitch);
             this.liveInputPitchesOnOffRequests = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
-            this.bufferL = new SharedArrayBuffer(128 * 32 * 4);
-            this.bufferR = new SharedArrayBuffer(128 * 32 * 4);
+            this.defaultBufferLength = defaultBlockSize * 8 * 4 + 12;
+            this.maxBufferLength = defaultBlockSize * (Math.pow(2, 5)) * 8 * 4 + 12;
+            this.bufferL = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+            this.bufferR = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+            this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+            this.readableBufferLength = 0;
             this.loopRepeats = -1;
             this.oscRefreshEventTimer = 0;
             this.oscEnabled = true;
@@ -10367,6 +10424,7 @@ var beepbox = (function (exports) {
             this.countInMetronome = false;
             this.renderingSong = false;
             this.heldMods = [];
+            this.currentTempo = 150;
             this.playheadInternal = 0.0;
             this.songPosition = new Uint16Array(new SharedArrayBuffer(3 * 2));
             this.outVolumeCap = new Float32Array(new SharedArrayBuffer(1 * 4));
@@ -10393,8 +10451,10 @@ var beepbox = (function (exports) {
             this.messageQueue = [];
             this.liveInputPushArray = new Uint16Array(Config.maxPitch);
             this.exportProcessor = null;
-            if (song != null)
+            if (song != null) {
                 this.setSong(song);
+                this.currentTempo = this.song.tempo;
+            }
             this.activateAudio();
             events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
             events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
@@ -10415,6 +10475,7 @@ var beepbox = (function (exports) {
             }
         }
         receiveMessage(event) {
+            var _a;
             const flag = event.data.flag;
             switch (flag) {
                 case MessageFlag.deactivate: {
@@ -10443,8 +10504,19 @@ var beepbox = (function (exports) {
                             this.oscRefreshEventTimer--;
                         }
                     }
-                    if (this.playing)
+                    if (this.playing && !ISPLAYER)
                         this.computeMods();
+                    break;
+                }
+                case MessageFlag.growsabs: {
+                    if (this.bufferL.growable && this.bufferL.maxByteLength >= (this.bufferL.byteLength - 12) * 2 + 12) {
+                        this.bufferL.grow((this.bufferL.byteLength - 12) * 2 + 12);
+                        this.bufferR.grow(this.bufferL.byteLength);
+                        this.sendMessage(event.data);
+                        (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(event.data);
+                        this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+                        this.readableBufferLength = this.readableBuffer.availableRead();
+                    }
                     break;
                 }
             }
@@ -10536,6 +10608,7 @@ var beepbox = (function (exports) {
                         sampleRate: this.audioContext.sampleRate
                     };
                     this.workletNode.port.postMessage({
+                        flag: MessageFlag.sabsProcessor,
                         bufferL: this.bufferL,
                         bufferR: this.bufferR
                     });
@@ -10636,6 +10709,7 @@ var beepbox = (function (exports) {
             this.exportProcessor.isPlayingSong = false;
         }
         play() {
+            var _a;
             if (this.isPlayingSong)
                 return;
             this.activateAudio();
@@ -10646,22 +10720,25 @@ var beepbox = (function (exports) {
             };
             this.initModFilters(this.song);
             this.sendMessage(playMessage);
+            (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(playMessage);
         }
         pause(communicate = true) {
+            var _a;
             if (!this.isPlayingSong)
                 return;
             this.isPlayingSong = false;
             this.isRecording = false;
             this.preferLowerLatency = false;
-            if (communicate) {
-                const playMessage = {
-                    flag: MessageFlag.togglePlay,
-                    play: this.isPlayingSong,
-                };
+            const playMessage = {
+                flag: MessageFlag.togglePlay,
+                play: this.isPlayingSong,
+            };
+            if (communicate)
                 this.sendMessage(playMessage);
-            }
+            (_a = this.workletNode) === null || _a === void 0 ? void 0 : _a.port.postMessage(playMessage);
             this.tick = 0;
-            this.updatePlayhead(this.songPosition[0], 0, 0);
+            if (!ISPLAYER)
+                this.updatePlayhead(this.songPosition[0], 0, 0);
         }
         startRecording() {
             this.preferLowerLatency = true;
@@ -10941,6 +11018,8 @@ var beepbox = (function (exports) {
             this.computeMods();
         }
         computeMods() {
+            if (this.song != null)
+                this.currentTempo = this.song.tempo;
             if (this.song != null && this.song.modChannelCount > 0) {
                 let latestModTimes = [];
                 let latestModInsTimes = [];
@@ -11026,6 +11105,8 @@ var beepbox = (function (exports) {
                                                 }
                                                 this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], instrument.modInstruments[mod], instrument.modulators[mod]);
                                                 latestModTimes[instrument.modulators[mod]] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                                                if (instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index)
+                                                    this.currentTempo = latestPinValues[mod];
                                             }
                                         }
                                         else {
@@ -14210,8 +14291,6 @@ var beepbox = (function (exports) {
         synthesize(outputDataL, outputDataR, outputBufferLength, playSong = true) {
             if (this.song == null ||
                 (this.liveInputPitchesOnOffRequests == undefined && playSong)) {
-                outputDataL.fill(0.0);
-                outputDataR.fill(0.0);
                 this.deactivateAudio();
                 return;
             }
@@ -15108,7 +15187,7 @@ var beepbox = (function (exports) {
                     const instrumentState = channelState.instruments[instrumentIndex];
                     const toneList = instrumentState.activeTones;
                     let toneCount = 0;
-                    if ((note != null) && (!song.patternInstruments || (pattern.instruments.indexOf(instrumentIndex) != -1))) {
+                    if ((note != null) && (!song.patternInstruments || (pattern.instruments.indexOf(instrumentIndex) != -1)) && pattern.notes.length > 0) {
                         const instrument = channel.instruments[instrumentIndex];
                         let prevNoteForThisInstrument = prevNote;
                         let nextNoteForThisInstrument = nextNote;

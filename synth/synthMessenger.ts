@@ -2,13 +2,13 @@
 
 import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
-import { PluginConfig, PluginElementType, PluginSlider } from "../editor/PluginConfig";
+import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage, defaultBlockSize } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events, EventType } from "../global/Events";
-import { EffectPlugin } from "./plugin";
+import { BeepBoxEffectPlugin, PluginElementType, PluginSlider } from "beepboxplugin";
 
 
 declare global {
@@ -6525,7 +6525,7 @@ export class Song {
 
             const pluginModule = await import(url);
             const pluginClass = pluginModule.default;
-            const plugin: EffectPlugin = new pluginClass();
+            const plugin: BeepBoxEffectPlugin = new pluginClass();
             Synth.PluginClass = pluginClass;
             PluginConfig.pluginUIElements = plugin.elements || [];
             PluginConfig.pluginName = plugin.pluginName || "plugin";
@@ -8147,7 +8147,7 @@ export class Song {
         Array.prototype.push.apply(this.channels, newNoiseChannels);
         Array.prototype.push.apply(this.channels, newModChannels);
 
-        if (Config.willReloadForCustomSamples) {
+        if (Config.willReloadForCustomSamples && document.URL) {
             window.location.hash = this.toBase64String();
             // The prompt seems to get stuck if reloading is done too quickly.
             setTimeout(() => { location.reload(); }, 50);
@@ -8221,8 +8221,12 @@ export class SynthMessenger {
     private readonly liveInputPitchesSAB: SharedArrayBuffer = new SharedArrayBuffer(Config.maxPitch);
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
 
-    private readonly bufferL: SharedArrayBuffer = new SharedArrayBuffer(128 * 32 * 4);
-    private readonly bufferR: SharedArrayBuffer = new SharedArrayBuffer(128 * 32 * 4);
+    private readonly defaultBufferLength: number = defaultBlockSize * 8 * 4 + 12;
+    private readonly maxBufferLength: number = defaultBlockSize * (2**5) * 8 * 4 + 12;
+    private readonly bufferL: SharedArrayBuffer = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+    private readonly bufferR: SharedArrayBuffer = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
+    private readableBuffer: RingBuffer = new RingBuffer(this.bufferL, Float32Array);
+    private readableBufferLength: number = 0;
 
     private loopRepeats: number = -1;
     public oscRefreshEventTimer: number = 0;
@@ -8231,6 +8235,7 @@ export class SynthMessenger {
     public countInMetronome: boolean = false;
     public renderingSong: boolean = false;
     public heldMods: HeldMod[] = []; 
+    private currentTempo: number = 150;
     private playheadInternal: number = 0.0;
     /**
      * beat [0]: number
@@ -8264,8 +8269,8 @@ export class SynthMessenger {
     private analyserNodeLeft: AnalyserNode | null = null;
     private analyserNodeRight: AnalyserNode | null = null;
 
-    private readonly leftData: Float32Array = new Float32Array(1024);
-    private readonly rightData: Float32Array = new Float32Array(1024);
+    private readonly leftData: Float32Array<ArrayBuffer> = new Float32Array(1024);
+    private readonly rightData: Float32Array<ArrayBuffer> = new Float32Array(1024);
 
     public get playing(): boolean {
         return this.isPlayingSong;
@@ -8276,8 +8281,18 @@ export class SynthMessenger {
     }
 
     public get playhead(): number {
-        if (this.song) this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song!.beatsPerBar
-        return this.playheadInternal;
+        let offset: number = 0;
+        if (this.song && !this.countInMetronome) {
+            this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song!.beatsPerBar
+            offset = this.bufferL.byteLength / (4 * this.getSamplesPerTickSpecificBPM(this.currentTempo) * Config.ticksPerPart * Config.partsPerBeat * this.song!.beatsPerBar); //account for delay due to buffer length
+            if (!this.isPlayingSong || offset < 0.5) offset = 0;
+            if (this.readableBufferLength != this.readableBuffer.availableRead()) {
+                const ratio: number = (this.readableBufferLength / this.bufferL.byteLength * 4) || 1;
+                this.readableBufferLength += (this.readableBuffer.availableRead() - this.readableBufferLength) / (this.bufferL.byteLength / defaultBlockSize * ratio);
+            }
+            offset *= this.readableBufferLength / this.bufferL.byteLength  * 4;
+        }
+        return this.playheadInternal - offset; 
     }
 
     public set playhead(value: number) {
@@ -8347,7 +8362,10 @@ export class SynthMessenger {
     }
 
     constructor(song: Song | string | null = null) {
-        if (song != null) this.setSong(song);
+        if (song != null) {
+            this.setSong(song);
+            this.currentTempo = this.song!.tempo;
+        }
         this.activateAudio();
         events.listen(EventType.sampleLoading, this.updateProcessorSamplesStart.bind(this));
         events.listen(EventType.sampleLoaded, this.updateProcessorSamplesFinish.bind(this));
@@ -8402,7 +8420,20 @@ export class SynthMessenger {
                         this.oscRefreshEventTimer--;
                     }
                 }
-                if (this.playing) this.computeMods();
+                if (this.playing && !ISPLAYER) this.computeMods();
+                break;
+            }
+                
+            case MessageFlag.growsabs: {
+                //need more latency
+                if (this.bufferL.growable && this.bufferL.maxByteLength >= (this.bufferL.byteLength - 12) * 2 + 12) {
+                    this.bufferL.grow((this.bufferL.byteLength - 12) * 2 + 12);
+                    this.bufferR.grow(this.bufferL.byteLength);
+                    this.sendMessage(event.data); //let the synth know that growth was successful
+                    this.workletNode?.port.postMessage(event.data); //let the worklet know that growth was successful
+                    this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);
+                    this.readableBufferLength = this.readableBuffer.availableRead();
+                }
                 break;
             }
         }
@@ -8494,6 +8525,7 @@ export class SynthMessenger {
                 //add more here if needed
             }
             this.workletNode.port.postMessage({
+                flag: MessageFlag.sabsProcessor,
                 bufferL: this.bufferL,
                 bufferR: this.bufferR
             });
@@ -8615,6 +8647,7 @@ export class SynthMessenger {
         }
         this.initModFilters(this.song);
         this.sendMessage(playMessage);
+        this.workletNode?.port.postMessage(playMessage);
     }
 
     public pause(communicate: boolean = true): void {
@@ -8624,15 +8657,15 @@ export class SynthMessenger {
         this.preferLowerLatency = false;
         //TODO: heldmods sab?
 
-        if (communicate) {
-            const playMessage: PlayMessage = {
-                flag: MessageFlag.togglePlay,
-                play: this.isPlayingSong,
-            }
-            this.sendMessage(playMessage);
+        const playMessage: PlayMessage = {
+            flag: MessageFlag.togglePlay,
+            play: this.isPlayingSong,
         }
+        if (communicate) this.sendMessage(playMessage);
+        this.workletNode?.port.postMessage(playMessage);
+
         this.tick = 0;
-        this.updatePlayhead(this.songPosition[0], 0, 0);
+        if(!ISPLAYER) this.updatePlayhead(this.songPosition[0], 0, 0);
     }
 
     public startRecording(): void {
@@ -8973,7 +9006,7 @@ export class SynthMessenger {
     }
 
     private computeMods(): void {
-
+        if (this.song != null) this.currentTempo = this.song.tempo;
         if (this.song != null && this.song.modChannelCount > 0) {
 
             // Clear all mod values, and set up temp variables for the time a mod would be set at.
@@ -9074,6 +9107,7 @@ export class SynthMessenger {
                                             }
                                             this.setModValue(latestPinValues[mod], latestPinValues[mod], instrument.modChannels[mod], instrument.modInstruments[mod], instrument.modulators[mod]);
                                             latestModTimes[instrument.modulators[mod]] = currentBar * Config.partsPerBeat * this.song.beatsPerBar + latestPinParts[mod];
+                                            if (instrument.modulators[mod] == Config.modulators.dictionary["tempo"].index) this.currentTempo = latestPinValues[mod];
                                         }
                                     } else {
                                         // Generate list of used instruments

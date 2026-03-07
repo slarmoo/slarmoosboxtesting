@@ -197,7 +197,7 @@ export class EnvelopeEditor {
 		let displayName = Config.instrumentAutomationTargets[target].displayName;
 		if (Config.instrumentAutomationTargets[target].maxCount > 1) {
 			if (Config.instrumentAutomationTargets[target].effect == EffectType.plugin && index < PluginConfig.pluginUIElements.length) {
-				displayName = PluginConfig.pluginUIElements[index].name;
+				displayName = PluginConfig.pluginUIElements[index].name.toLowerCase();
 			} else if (displayName.indexOf("#") != -1) {
 				displayName = displayName.replace("#", String(index + 1));
 			} else {
@@ -215,7 +215,7 @@ export class EnvelopeEditor {
 			const index: number = (combinedValue / Config.instrumentAutomationTargets.length) >>> 0;
 			option.hidden = !instrument.supportsEnvelopeTarget(target, index);
 			if (!option.hidden && Config.instrumentAutomationTargets[target].effect == EffectType.plugin && index < PluginConfig.pluginUIElements.length) {
-				option.text = PluginConfig.pluginUIElements[index].name
+				option.text = PluginConfig.pluginUIElements[index].name.toLowerCase();
 			}
 		}
 	}

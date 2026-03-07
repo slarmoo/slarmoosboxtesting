@@ -325,7 +325,11 @@ var RingBuffer = class {
 var SynthProcessor = class extends AudioWorkletProcessor {
   constructor() {
     super();
+    this.isPlaying = false;
+    this.outputFailures = 0;
+    this.maxFailures = 1024;
     this.browserAutomaticallyClearsAudioBuffer = true;
+    this.bufferClear = new Float32Array(128);
     this.port.onmessage = (event) => this.receiveMessage(event);
   }
   static {
@@ -335,8 +339,29 @@ var SynthProcessor = class extends AudioWorkletProcessor {
     this.port.postMessage(message);
   }
   receiveMessage(event) {
-    this.samplesL = new RingBuffer(event.data.bufferL, Float32Array);
-    this.samplesR = new RingBuffer(event.data.bufferR, Float32Array);
+    switch (event.data.flag) {
+      case 6 /* sabsProcessor */: {
+        this.sabL = event.data.bufferL;
+        this.sabR = event.data.bufferR;
+        this.samplesL = new RingBuffer(this.sabL, Float32Array);
+        this.samplesR = new RingBuffer(this.sabR, Float32Array);
+        break;
+      }
+      case 1 /* togglePlay */: {
+        if (!event.data.play) {
+          while (!this.samplesL.empty()) this.samplesL.pop(this.bufferClear);
+          while (!this.samplesR.empty()) this.samplesR.pop(this.bufferClear);
+          this.isPlaying = false;
+        } else {
+          this.isPlaying = true;
+        }
+        break;
+      }
+      case 7 /* growsabs */: {
+        this.samplesL = new RingBuffer(this.sabL, Float32Array);
+        this.samplesR = new RingBuffer(this.sabR, Float32Array);
+      }
+    }
   }
   process(_, outputs) {
     const outputDataL = outputs[0][0];
@@ -345,24 +370,35 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       this.browserAutomaticallyClearsAudioBuffer = false;
     }
     if (!this.browserAutomaticallyClearsAudioBuffer) {
-      const length = outputDataL.length;
-      for (let i = 0; i < length; i++) {
+      const length2 = outputDataL.length;
+      for (let i = 0; i < length2; i++) {
         outputDataL[i] = 0;
         outputDataR[i] = 0;
       }
     }
-    if (this.samplesL && this.samplesR && this.samplesL.availableRead() >= 128 && this.samplesR.availableRead() >= 128) {
+    const length = outputDataL.length;
+    if (this.samplesL && this.samplesR && this.samplesL.availableRead() >= length && this.samplesR.availableRead() >= length) {
       this.samplesL.pop(outputDataL);
       this.samplesR.pop(outputDataR);
     } else {
-      const length = outputDataL.length;
       for (let i = 0; i < length; i++) {
         outputDataL[i] = 0;
         outputDataR[i] = 0;
       }
+      if (this.samplesL && this.samplesR && this.isPlaying && this.maxFailures > 0) {
+        this.outputFailures++;
+        if (this.outputFailures > this.maxFailures || this.outputFailures > 256) {
+          this.outputFailures = -64;
+          this.maxFailures = this.maxFailures / 2 | 0;
+          const growSABSMessage = {
+            flag: 7 /* growsabs */
+          };
+          this.sendMessage(growSABSMessage);
+        }
+      }
     }
     const uiRenderMessage = {
-      flag: 8 /* uiRender */
+      flag: 10 /* uiRender */
     };
     this.sendMessage(uiRenderMessage);
     return true;

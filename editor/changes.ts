@@ -8,7 +8,8 @@ import { SongDocument } from "./SongDocument";
 import { ColorConfig } from "./ColorConfig";
 import { Slider } from "./HTMLWrapper";
 import { SongSettings, ChannelSettings, InstrumentSettings } from "../synth/synthMessages";
-import { PluginElementType, PluginConfig, PluginDropdown, PluginSlider } from "./PluginConfig";
+import { PluginConfig } from "./PluginConfig";
+import { PluginElementType, PluginSlider, PluginDropdown } from "beepboxplugin";
 
 export function patternsContainSameInstruments(pattern1Instruments: number[], pattern2Instruments: number[]): boolean {
     const pattern2Has1Instruments: boolean = pattern1Instruments.every(instrument => pattern2Instruments.indexOf(instrument) != -1);
