@@ -23,7 +23,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
         this.port.postMessage(message);
     }
 
-    private bufferClear: Float32Array = new Float32Array(128);
+    private bufferClear: Float32Array = new Float32Array(512);
     private receiveMessage(event: MessageEvent): void {
         switch (event.data.flag) {
             case MessageFlag.sabsProcessor: {
@@ -45,6 +45,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             } case MessageFlag.growsabs: {
                 this.samplesL = new RingBuffer(this.sabL, Float32Array);
                 this.samplesR = new RingBuffer(this.sabR, Float32Array);
+                break;
             }
         }
         
@@ -90,6 +91,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             }
         }
 
+        //TODO: Don't send message; use a per frame function on the main thread
         const uiRenderMessage: UIRenderMessage = {
             flag: MessageFlag.uiRender,
         }

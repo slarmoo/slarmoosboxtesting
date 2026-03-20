@@ -329,7 +329,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
     this.outputFailures = 0;
     this.maxFailures = 1024;
     this.browserAutomaticallyClearsAudioBuffer = true;
-    this.bufferClear = new Float32Array(128);
+    this.bufferClear = new Float32Array(512);
     this.port.onmessage = (event) => this.receiveMessage(event);
   }
   static {
@@ -360,6 +360,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
       case 7 /* growsabs */: {
         this.samplesL = new RingBuffer(this.sabL, Float32Array);
         this.samplesR = new RingBuffer(this.sabR, Float32Array);
+        break;
       }
     }
   }

@@ -1544,7 +1544,7 @@ export class Instrument {
     public unisonBuzzes: boolean = false;
     public effects: number = 0;
     public chord: number = 1;
-    public strumParts: number = 3;
+    public strumParts: number = 1;
     public volume: number = 0;
     public pan: number = Config.panCenter;
     public panDelay: number = 0;
@@ -1716,7 +1716,7 @@ export class Instrument {
         this.clicklessTransition = false;
         this.arpeggioSpeed = 12;
         this.monoChordTone = 1;
-        this.strumParts = 3;
+        this.strumParts = 1;
         this.envelopeSpeed = 12;
         this.legacyTieOver = false;
         this.aliases = false;
@@ -8222,7 +8222,8 @@ export class SynthMessenger {
     private readonly liveInputPitchesOnOffRequests: RingBuffer = new RingBuffer(this.liveInputPitchesSAB, Uint16Array);
 
     private readonly defaultBufferLength: number = defaultBlockSize * 8 * 4 + 12;
-    private readonly maxBufferLength: number = defaultBlockSize * (2**5) * 8 * 4 + 12;
+    public maxBufferLength: number = defaultBlockSize * (2 ** 5) * 8 * 4 + 12;
+    public isResizable: boolean = true;
     private readonly bufferL: SharedArrayBuffer = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
     private readonly bufferR: SharedArrayBuffer = new SharedArrayBuffer(this.defaultBufferLength, { maxByteLength: this.maxBufferLength });
     private readableBuffer: RingBuffer = new RingBuffer(this.bufferL, Float32Array);
@@ -8285,13 +8286,16 @@ export class SynthMessenger {
         if (this.song && !this.countInMetronome) {
             this.playheadInternal = this.songPosition[0] + (this.songPosition[1] + (this.songPosition[2] + this.tick / Config.ticksPerPart) / Config.partsPerBeat) / this.song!.beatsPerBar
             offset = this.bufferL.byteLength / (4 * this.getSamplesPerTickSpecificBPM(this.currentTempo) * Config.ticksPerPart * Config.partsPerBeat * this.song!.beatsPerBar); //account for delay due to buffer length
-            if (!this.isPlayingSong || offset < 0.5) offset = 0;
             if (this.readableBufferLength != this.readableBuffer.availableRead()) {
-                const ratio: number = (this.readableBufferLength / this.bufferL.byteLength * 4) || 1;
+                let ratio: number = (this.readableBufferLength / this.bufferL.byteLength * 4) || 1;
+                if (ratio > 1) ratio = 1;
+                if (this.readableBufferLength < 0) this.readableBufferLength = 0;
                 this.readableBufferLength += (this.readableBuffer.availableRead() - this.readableBufferLength) / (this.bufferL.byteLength / defaultBlockSize * ratio);
             }
-            offset *= this.readableBufferLength / this.bufferL.byteLength  * 4;
+            offset *= this.readableBufferLength / this.bufferL.byteLength * 4;
+            if (!this.isPlayingSong || offset < 0.1) offset = 0;
         }
+        if (this.playheadInternal - offset < 0) return 0;
         return this.playheadInternal - offset; 
     }
 
@@ -8426,9 +8430,10 @@ export class SynthMessenger {
                 
             case MessageFlag.growsabs: {
                 //need more latency
-                if (this.bufferL.growable && this.bufferL.maxByteLength >= (this.bufferL.byteLength - 12) * 2 + 12) {
-                    this.bufferL.grow((this.bufferL.byteLength - 12) * 2 + 12);
-                    this.bufferR.grow(this.bufferL.byteLength);
+                const newLength: number = (this.bufferL.byteLength - 12) * 2 + 12;
+                if (this.isResizable && this.bufferL.growable && this.bufferL.maxByteLength >= newLength && this.maxBufferLength >= newLength) {
+                    this.bufferL.grow(newLength);
+                    this.bufferR.grow(newLength);
                     this.sendMessage(event.data); //let the synth know that growth was successful
                     this.workletNode?.port.postMessage(event.data); //let the worklet know that growth was successful
                     this.readableBuffer = new RingBuffer(this.bufferL, Float32Array);

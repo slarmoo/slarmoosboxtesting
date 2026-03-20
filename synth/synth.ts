@@ -1240,6 +1240,7 @@ class InstrumentState {
     public nextVibratoTime: number = 0;
     public vibratoEnvelopeStart: number = 1;
     public envelopeTime: number[] = [];
+    private envelopeSpeeds: number[] = [];
 
     public eqFilterVolume: number = 1.0;
     public eqFilterVolumeDelta: number = 0.0;
@@ -1560,9 +1561,8 @@ class InstrumentState {
         */
 
         //handle instrumentState envelopeComputer
-        const envelopeSpeeds: number[] = [];
         for (let i: number = 0; i < Config.maxEnvelopeCount; i++) {
-            envelopeSpeeds[i] = 0;
+            this.envelopeSpeeds[i] = 0;
         }
         let useEnvelopeSpeed: number = Config.arpSpeedScale[instrument.envelopeSpeed];
         if (synth.isModActive(Config.modulators.dictionary["envelope speed"].index, channelIndex, instrumentIndex)) {
@@ -1579,9 +1579,9 @@ class InstrumentState {
             if (synth.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed!;
             }
-            envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed;
+            this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed;
         }
-        this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, envelopeSpeeds, this, synth, channelIndex, instrumentIndex, false);
+        this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, this.envelopeSpeeds, this, synth, channelIndex, instrumentIndex, false);
         const envelopeStarts: number[] = this.envelopeComputer.envelopeStarts;
         const envelopeEnds: number[] = this.envelopeComputer.envelopeEnds;
 
@@ -3130,7 +3130,6 @@ export class Synth {
                     sampleR *= eqFilterVolume;
                     outputDataR[i] = sampleR;
                     eqFilterVolume += eqFilterVolumeDelta;
-                    this.sanitizeFilters(filtersL);
                     // The filter input here is downstream from another filter so we
                     // better make sure it's safe too.
                     if (!(initialFilterInput1L < 100) || !(initialFilterInput2L < 100)) {
@@ -3141,7 +3140,6 @@ export class Synth {
                     if (Math.abs(initialFilterInput2L) < epsilon) initialFilterInput2L = 0.0;
                     this.initialSongEqFilterInput1L = initialFilterInput1L;
                     this.initialSongEqFilterInput2L = initialFilterInput2L;
-                    this.sanitizeFilters(filtersR);
                     if (!(initialFilterInput1R < 100) || !(initialFilterInput2R < 100)) {
                         initialFilterInput1R = 0.0;
                         initialFilterInput2R = 0.0;
@@ -3174,6 +3172,8 @@ export class Synth {
 
                 this.outVolumeCap[0] = (this.outVolumeCap[0] > abs * limitedVolume ? this.outVolumeCap[0] : abs * limitedVolume); // Analytics, spit out limited output volume
             }
+            this.sanitizeFilters(this.songEqFiltersL);
+            this.sanitizeFilters(this.songEqFiltersR);
 
             bufferIndex += runLength;
 
@@ -3206,10 +3206,6 @@ export class Synth {
                         let instrument: Instrument = this.song.channels[channel].instruments[instrumentIdx];
                         let instrumentState: InstrumentState = this.channels[channel].instruments[instrumentIdx];
 
-                        const envelopeSpeeds: number[] = [];
-                        for (let i: number = 0; i < Config.maxEnvelopeCount; i++) {
-                            envelopeSpeeds[i] = 0;
-                        }
                         for (let envelopeIndex: number = 0; envelopeIndex < instrument.envelopeCount; envelopeIndex++) {
                             let useEnvelopeSpeed: number = instrument.envelopeSpeed;
                             let perEnvelopeSpeed: number = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
@@ -3224,8 +3220,7 @@ export class Synth {
                                     // Linear interpolate envelope values
                                     instrumentState.envelopeTime[envelopeIndex] += ((1 - (useEnvelopeSpeed % 1)) * Config.arpSpeedScale[Math.floor(useEnvelopeSpeed)] + (useEnvelopeSpeed % 1) * Config.arpSpeedScale[Math.ceil(useEnvelopeSpeed)]) * perEnvelopeSpeed;
                                 }
-                            }
-                            else {
+                            } else {
                                 instrumentState.envelopeTime[envelopeIndex] += Config.arpSpeedScale[useEnvelopeSpeed] * perEnvelopeSpeed;
                             }
                         }
@@ -7768,7 +7763,7 @@ export class Synth {
         }
     }
 
-    public static findRandomZeroCrossing(wave: Float32Array, waveLength: number): number { //literally only public to let typescript compile
+    private static findRandomZeroCrossing(wave: Float32Array, waveLength: number): number {
         let phase: number = Math.random() * waveLength;
         const phaseMask: number = waveLength - 1;
 

@@ -228,6 +228,17 @@ const synthesize = () => {
                 console.log(e);
             }
         }
+        if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) { //go again if possible
+            try {
+                synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
+                samplesL.push(bufferL);
+                samplesR.push(bufferR);
+                bufferL.fill(0.0);
+                bufferR.fill(0.0);
+            } catch (e) {
+                console.log(e);
+            }
+        }
     }
     setTimeout(synthesize, 0);
 }

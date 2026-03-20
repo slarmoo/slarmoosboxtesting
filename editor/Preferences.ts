@@ -44,6 +44,9 @@ export class Preferences {
 	public showInstrumentScrollbars: boolean;
 	public closePromptByClickoff: boolean;
 	public frostedGlassBackground: boolean;
+	// public minBlockSize: number;
+	public maxBlockSize: number;
+	public onlyResizeInSongPlayer: boolean;
 	
 	constructor() {
 		this.reload();
@@ -86,6 +89,9 @@ export class Preferences {
 		this.customTheme = window.localStorage.getItem("customTheme");
         this.customTheme2 = window.localStorage.getItem("customTheme2");
 		this.visibleOctaves = ((<any>window.localStorage.getItem("visibleOctaves")) >>> 0) || Preferences.defaultVisibleOctaves;
+		// this.minBlockSize = parseInt(window.localStorage.getItem("minBlockSize") ?? "512");
+		this.maxBlockSize = parseInt(window.localStorage.getItem("maxBlockSize") ?? "2048");
+		this.onlyResizeInSongPlayer = window.localStorage.getItem("onlyResizeInSongPlayer") != "false";
 		
 		const defaultScale: Scale | undefined = Config.scales.dictionary[window.localStorage.getItem("defaultScale")!];
 		this.defaultScale = (defaultScale != undefined) ? defaultScale.index : 0;
@@ -140,6 +146,8 @@ export class Preferences {
 		window.localStorage.setItem("customTheme2", this.customTheme2!);
 		window.localStorage.setItem("volume", String(this.volume));
 		window.localStorage.setItem("visibleOctaves", String(this.visibleOctaves));
-		
+		// window.localStorage.setItem("minBlockSize", String(this.minBlockSize));
+		window.localStorage.setItem("maxBlockSize", String(this.maxBlockSize));
+		window.localStorage.setItem("onlyResizeInSongPlayer", this.onlyResizeInSongPlayer ? "true" : "false");
 	}
 }

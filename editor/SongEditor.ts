@@ -49,6 +49,7 @@ import { RecordingSetupPrompt } from "./RecordingSetupPrompt";
 import { SpectrumEditor, SpectrumEditorPrompt } from "./SpectrumEditor";
 import { CustomThemePrompt } from "./CustomThemePrompt";
 import { ThemePrompt } from "./ThemePrompt";
+import { MultithreadingSetupPrompt } from "./MultithreadingSetupPrompt";
 import { TipPrompt } from "./TipPrompt";
 import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorithmOrFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainFreqs, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
 
@@ -275,6 +276,7 @@ export class SongEditor {
             option({ value: "instrumentImportExport" }, "Enable Import/Export Buttons"),
             option({ value: "displayBrowserUrl" }, "Enable Song Data in URL"),
             option({ value: "closePromptByClickoff" }, "Close Prompts on Click Off"),
+            option({ value: "multithreadingSetup" }, "Multithreading..."),
             option({ value: "recordingSetup" }, "Note Recording..."),
         ),
         optgroup({ label: "Appearance" },
@@ -1712,6 +1714,9 @@ export class SongEditor {
                 case "recordingSetup":
                     this.prompt = new RecordingSetupPrompt(this.doc);
                     break;
+                case "multithreadingSetup":
+                    this.prompt = new MultithreadingSetupPrompt(this.doc);
+                    break;
                 case "exportInstrument":
                     this.prompt = new InstrumentExportPrompt(this.doc);//, this);
                     break;
@@ -1834,6 +1839,9 @@ export class SongEditor {
         this._volumeBarBox.style.display = this.doc.prefs.displayVolumeBar ? "" : "none";
         this._globalOscscopeContainer.style.display = this.doc.prefs.showOscilloscope ? "" : "none";
         this.doc.synth.oscEnabled = this.doc.prefs.showOscilloscope;
+        // this.doc.synth.defaultBufferLength = this.doc.prefs.minBlockSize * 8 * 4 + 12;
+        this.doc.synth.maxBufferLength = this.doc.prefs.maxBlockSize * 8 * 4 + 12;
+        this.doc.synth.isResizable = !this.doc.prefs.onlyResizeInSongPlayer || ISPLAYER;
         this._sampleLoadingStatusContainer.style.display = this.doc.prefs.showSampleLoadingStatus ? "" : "none";
         this._instrumentCopyGroup.style.display = this.doc.prefs.instrumentCopyPaste ? "" : "none";
         this._instrumentExportGroup.style.display = this.doc.prefs.instrumentImportExport ? "" : "none";
@@ -1902,6 +1910,7 @@ export class SongEditor {
             (prefs.instrumentImportExport ? textOnIcon : textOffIcon) + "Enable Import/Export Buttons",
             (prefs.displayBrowserUrl ? textOnIcon : textOffIcon) + "Enable Song Data in URL",
             (prefs.closePromptByClickoff ? textOnIcon : textOffIcon) + "Close Prompts on Click Off",
+            textSpacingIcon + "Multithreading...",
             textSpacingIcon + "Note Recording...",
             textSpacingIcon + "Appearance",
             (prefs.showFifth ? textOnIcon : textOffIcon) + 'Highlight "Fifth" Note',
@@ -5098,6 +5107,9 @@ export class SongEditor {
                 break;
             case "recordingSetup":
                 this._openPrompt("recordingSetup");
+                break;
+            case "multithreadingSetup":
+                this._openPrompt("multithreadingSetup");
                 break;
             case "showOscilloscope":
                 this.doc.prefs.showOscilloscope = !this.doc.prefs.showOscilloscope;
