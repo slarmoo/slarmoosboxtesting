@@ -458,26 +458,20 @@ export class SpectrumEditorPrompt implements Prompt {
     public whenKeyPressed = (event: KeyboardEvent): void => {
         if ((<Element>event.target).tagName != "BUTTON" && event.keyCode == 13) { // Enter key
             this._saveChanges();
-        }
-        else if (event.keyCode == 32) {
+        } else if (event.keyCode == 32) {
             this._togglePlay();
             event.preventDefault();
-        }
-        else if (event.keyCode == 90) { // z
+        } else if (event.keyCode == 90) { // z
             this.spectrumEditor.undo();
             event.stopPropagation();
-        }
-        else if (event.keyCode == 89) { // y
+        } else if (event.keyCode == 89) { // y
             this.spectrumEditor.redo();
             event.stopPropagation();
-        }
-        else if (event.keyCode == 219) { // [
+        } else if (event.keyCode == 219) { // [
             this._doc.synth.goToPrevBar();
-        }
-        else if (event.keyCode == 221) { // ]
+        } else if (event.keyCode == 221) { // ]
             this._doc.synth.goToNextBar();
-        }
-        else if (event.keyCode >= 49 && event.keyCode <= 57) { // 1-9
+        } else if (event.keyCode >= 49 && event.keyCode <= 57) { // 1-9
             if (event.shiftKey && this._isDrumset) {
                 this._setDrumSpectrum(event.keyCode - 49);
             }

@@ -2962,7 +2962,7 @@ export class ChangeAddNewSequence extends Change {
     constructor(doc: SongDocument, sequenceIndex: number) {
         super();
         const oldLength: number = doc.song.sequences.length;
-        while (oldLength < sequenceIndex) {
+        while (doc.song.sequences.length <= sequenceIndex) {
             doc.song.sequences.push(new SequenceSettings());
             doc.synth.updateSong(0, SongSettings.addSequence);
         }
@@ -3010,7 +3010,7 @@ export class ChangeSequenceHeight extends Change {
 }
 
 export class ChangeSequenceValues extends Change {
-    constructor(doc: SongDocument, sequenceIndex: number, values: number[]) {
+    constructor(doc: SongDocument, sequenceIndex: number, values: number[], ignoreCheck?: boolean) {
         super();
         const oldValues = doc.song.sequences[sequenceIndex].values;
         let sameCheck = true;
@@ -3019,9 +3019,24 @@ export class ChangeSequenceValues extends Change {
                 sameCheck = false; break;
             }
         }
-        if (!sameCheck) {
-            doc.song.sequences[sequenceIndex].values = values;
+        if (!sameCheck || ignoreCheck) {
+            doc.song.sequences[sequenceIndex].values = values.slice();
             doc.synth.updateSong(values, SongSettings.sequenceValues, sequenceIndex);
+            this._didSomething();
+        }
+        doc.notifier.changed();
+    }
+}
+
+export class ChangeSequenceBooleans extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number, interpolates: boolean, loops: boolean) {
+        super();
+        const oldInterpolated: boolean = doc.song.sequences[sequenceIndex].interpolated;
+        const oldLooped: boolean = doc.song.sequences[sequenceIndex].looped;
+        if (oldInterpolated != interpolates || oldLooped != loops) {
+            doc.song.sequences[sequenceIndex].interpolated = interpolates;
+            doc.song.sequences[sequenceIndex].looped = loops;
+            doc.synth.updateSong(+interpolates + 2 * +loops, SongSettings.sequenceBooleans, sequenceIndex);
             this._didSomething();
         }
         doc.notifier.changed();

@@ -502,7 +502,7 @@ export class EnvelopeEditor {
 			extraLFOSettingsGroup.style.display = "none";
 
 			//sequence settings
-			const sequenceSelect: HTMLSelectElement = HTML.select({ style: "width: 115px;" });
+			const sequenceSelect: HTMLSelectElement = HTML.select({ style: "width: 80px; font-size: smaller;" });
 			// sequenceSelect.appendChild(HTML.option({ value: 0 }, "no sequence"));
 			for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
 				sequenceSelect.appendChild(HTML.option({ value: sequence }, "sequence " + (sequence + 1)));
@@ -510,9 +510,9 @@ export class EnvelopeEditor {
 			if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
 				sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
 			}
+			const editSequenceButton: HTMLButtonElement = HTML.button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit");
 			const SequenceWrapper: HTMLDivElement = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
-			const editSequenceButton: HTMLButtonElement = HTML.button({ style: "margin-top: 3px; height: 26px;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit Sequence")
-			const extraSequenceSettingsGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
+			const extraSequenceSettingsGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
 
 			//speed settings
 			const perEnvelopeSpeedSlider: Slider = new Slider(HTML.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed: number, newSpeed: number) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);

@@ -2387,10 +2387,11 @@ var beepbox = (function (exports) {
         SongSettings[SongSettings["sequenceLength"] = 21] = "sequenceLength";
         SongSettings[SongSettings["sequenceHeight"] = 22] = "sequenceHeight";
         SongSettings[SongSettings["sequenceValues"] = 23] = "sequenceValues";
-        SongSettings[SongSettings["pluginurl"] = 24] = "pluginurl";
-        SongSettings[SongSettings["channelOrder"] = 25] = "channelOrder";
-        SongSettings[SongSettings["updateChannel"] = 26] = "updateChannel";
-        SongSettings[SongSettings["updateInstrument"] = 27] = "updateInstrument";
+        SongSettings[SongSettings["sequenceBooleans"] = 24] = "sequenceBooleans";
+        SongSettings[SongSettings["pluginurl"] = 25] = "pluginurl";
+        SongSettings[SongSettings["channelOrder"] = 26] = "channelOrder";
+        SongSettings[SongSettings["updateChannel"] = 27] = "updateChannel";
+        SongSettings[SongSettings["updateInstrument"] = 28] = "updateInstrument";
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
@@ -3774,18 +3775,24 @@ var beepbox = (function (exports) {
             this.height = 4;
             this.length = 4;
             this.values = [1, 4, 1, 2];
+            this.interpolated = false;
+            this.looped = true;
             this.reset();
         }
         reset() {
             this.height = 4;
             this.length = 4;
             this.values = [0, 3, 1, 2];
+            this.interpolated = false;
+            this.looped = true;
         }
         toJsonObject() {
             const sequenceObject = {
                 "height": this.height,
                 "length": this.length,
-                "values": this.values
+                "values": this.values,
+                "interpolated": this.interpolated,
+                "looped": this.looped
             };
             return sequenceObject;
         }
@@ -3800,12 +3807,20 @@ var beepbox = (function (exports) {
             if (sequenceObject["values"] != undefined) {
                 this.values = sequenceObject["values"];
             }
+            if (sequenceObject["interpolated"] != undefined) {
+                this.interpolated = sequenceObject["interpolated"];
+            }
+            if (sequenceObject["looped"] != undefined) {
+                this.looped = sequenceObject["looped"];
+            }
         }
         copy() {
             const copy = new SequenceSettings();
             copy.height = this.height;
             copy.length = this.length;
             copy.values = this.values.slice();
+            copy.interpolated = this.interpolated;
+            copy.looped = this.looped;
             return copy;
         }
         isSame(other) {
@@ -3887,6 +3902,9 @@ var beepbox = (function (exports) {
             else if (Config.envelopes[this.envelope].name == "lfo") {
                 envelopeObject["waveform"] = this.waveform;
                 envelopeObject["steps"] = this.steps;
+            }
+            else if (Config.envelopes[this.envelope].name == "sequence") {
+                envelopeObject["waveform"] = this.waveform;
             }
             return envelopeObject;
         }
@@ -5885,6 +5903,7 @@ var beepbox = (function (exports) {
                 for (let j = 0; j < sequence.length; j++) {
                     buffer.push(base64IntToCharCode[sequence.values[j]]);
                 }
+                buffer.push(base64IntToCharCode[+sequence.interpolated + 2 * +sequence.looped]);
             }
             buffer.push(85);
             for (let channel = 0; channel < this.getChannelCount(); channel++) {
@@ -6776,6 +6795,9 @@ var beepbox = (function (exports) {
                                     for (let j = 0; j < this.sequences[seq].length; j++) {
                                         this.sequences[seq].values[j] = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     }
+                                    const bools = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                    this.sequences[seq].interpolated = (bools & 1) == 1;
+                                    this.sequences[seq].looped = (bools & 2) == 2;
                                 }
                             }
                             else ;
@@ -9196,6 +9218,10 @@ var beepbox = (function (exports) {
                 }
                 case SongSettings.sequenceValues:
                     this.sequences[channelIndex].values = data;
+                    break;
+                case SongSettings.sequenceBooleans:
+                    this.sequences[channelIndex].interpolated = (numberData & 1) == 1;
+                    this.sequences[channelIndex].looped = (numberData & 2) == 2;
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -12701,7 +12727,20 @@ var beepbox = (function (exports) {
                 case 16: {
                     if (sequence == null)
                         return 0;
-                    const value = sequence.values[Math.floor(envelopeSpeed * beats) % sequence.length] / sequence.height;
+                    const beat = Math.floor(envelopeSpeed * beats);
+                    if (!sequence.looped && beat + 1 > sequence.length - 1) {
+                        const unloopVal = sequence.values[sequence.length - 1] / sequence.height;
+                        if (inverse) {
+                            return perEnvelopeUpperBound - boundAdjust * unloopVal;
+                        }
+                        else {
+                            return boundAdjust * unloopVal + perEnvelopeLowerBound;
+                        }
+                    }
+                    const preValue = sequence.values[beat % sequence.length] / sequence.height;
+                    const postValue = sequence.values[(beat + 1) % sequence.length] / sequence.height;
+                    const frac = envelopeSpeed * beats - beat;
+                    const value = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * value;
                     }

@@ -164,6 +164,7 @@ export enum SongSettings {
     sequenceLength,
     sequenceHeight,
     sequenceValues,
+    sequenceBooleans,
     pluginurl, 
     channelOrder,
     updateChannel,

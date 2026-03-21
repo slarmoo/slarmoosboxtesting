@@ -951,7 +951,19 @@ class EnvelopeComputer {
             }
             case EnvelopeType.sequence: {
                 if (sequence == null) return 0;
-                const value: number = sequence.values[Math.floor(envelopeSpeed * beats) % sequence.length] / sequence.height;
+                const beat: number = Math.floor(envelopeSpeed * beats);
+                if (!sequence.looped && beat + 1 > sequence.length - 1) {
+                    const unloopVal: number = sequence.values[sequence.length - 1] / sequence.height;
+                    if (inverse) {
+                        return perEnvelopeUpperBound - boundAdjust * unloopVal;
+                    } else {
+                        return boundAdjust * unloopVal + perEnvelopeLowerBound;
+                    }
+                }
+                const preValue: number = sequence.values[beat % sequence.length] / sequence.height;
+                const postValue: number = sequence.values[(beat + 1) % sequence.length] / sequence.height; 
+                const frac: number = envelopeSpeed * beats - beat;
+                const value: number = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
                 if (inverse) {
                     return perEnvelopeUpperBound - boundAdjust * value;
                 } else {

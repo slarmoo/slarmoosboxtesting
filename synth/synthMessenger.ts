@@ -1219,7 +1219,11 @@ export class SequenceSettings {
     public height: number = 4;
     public length: number = 4;
     //the value for each index of the sequence. If an index is blank interpret as a 0
-    public values: number[] = [1, 4, 1, 2]
+    public values: number[] = [1, 4, 1, 2];
+    //whether or not to interpolate between values (smooth curve vs stepped curve)
+    public interpolated: boolean = false;
+    //whether or not to loop the sequence
+    public looped: boolean = true;
 
     constructor() {
         this.reset();
@@ -1229,13 +1233,17 @@ export class SequenceSettings {
         this.height = 4;
         this.length = 4;
         this.values = [0, 3, 1, 2];
+        this.interpolated = false;
+        this.looped = true;
     }
 
     public toJsonObject(): Object {
         const sequenceObject: any = {
             "height": this.height,
             "length": this.length,
-            "values": this.values
+            "values": this.values,
+            "interpolated": this.interpolated,
+            "looped": this.looped
         };
         return sequenceObject;
     }
@@ -1244,15 +1252,23 @@ export class SequenceSettings {
         this.reset();
 
         if (sequenceObject["height"] != undefined) {
-            this.height = sequenceObject["height"]
+            this.height = sequenceObject["height"];
         }
 
         if (sequenceObject["length"] != undefined) {
-            this.length = sequenceObject["length"]
+            this.length = sequenceObject["length"];
         }
 
         if (sequenceObject["values"] != undefined) {
-            this.values = sequenceObject["values"]
+            this.values = sequenceObject["values"];
+        }
+
+        if (sequenceObject["interpolated"] != undefined) {
+            this.interpolated = sequenceObject["interpolated"];
+        }
+
+        if (sequenceObject["looped"] != undefined) {
+            this.looped = sequenceObject["looped"];
         }
     }
 
@@ -1261,6 +1277,8 @@ export class SequenceSettings {
         copy.height = this.height;
         copy.length = this.length;
         copy.values = this.values.slice();
+        copy.interpolated = this.interpolated;
+        copy.looped = this.looped;
         return copy;
     }
 
@@ -1350,6 +1368,8 @@ export class EnvelopeSettings {
         } else if (Config.envelopes[this.envelope].name == "lfo") {
             envelopeObject["waveform"] = this.waveform;
             envelopeObject["steps"] = this.steps;
+        } else if (Config.envelopes[this.envelope].name == "sequence") {
+            envelopeObject["waveform"] = this.waveform;
         }
         return envelopeObject;
     }
@@ -3533,10 +3553,11 @@ export class Song {
         buffer.push(SongTagCode.sequences, base64IntToCharCode[this.sequences.length]);
         for (let seq: number = 0; seq < this.sequences.length; seq++) {
             const sequence: SequenceSettings = this.sequences[seq];
-            buffer.push(base64IntToCharCode[sequence.height], base64IntToCharCode[sequence.length])
+            buffer.push(base64IntToCharCode[sequence.height], base64IntToCharCode[sequence.length]);
             for (let j: number = 0; j < sequence.length; j++) {
                 buffer.push(base64IntToCharCode[sequence.values[j]]);
             }
+            buffer.push(base64IntToCharCode[+sequence.interpolated + 2 * +sequence.looped]);
         }
 
         buffer.push(SongTagCode.channelNames);
@@ -4502,6 +4523,9 @@ export class Song {
                         for (let j: number = 0; j < this.sequences[seq].length; j++) {
                             this.sequences[seq].values[j] = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                         }
+                        const bools: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                        this.sequences[seq].interpolated = (bools & 1) == 1;
+                        this.sequences[seq].looped = (bools & 2) == 2;
                     }
                 } else {
                     // Do nothing, BeepBox v9+ do not support song-wide reverb - JummBox still does via modulator.
@@ -7003,6 +7027,10 @@ export class Song {
                 break;
             } case SongSettings.sequenceValues:
                 this.sequences[channelIndex!].values = data as number[];
+                break;
+            case SongSettings.sequenceBooleans:
+                this.sequences[channelIndex!].interpolated = (numberData & 1) == 1;
+                this.sequences[channelIndex!].looped = (numberData & 2) == 2;
                 break;
             case SongSettings.channelOrder:
                 const selectionMin: number = data.selectionMin;

@@ -5586,7 +5586,19 @@ var EnvelopeComputer = class _EnvelopeComputer {
       }
       case 16 /* sequence */: {
         if (sequence == null) return 0;
-        const value = sequence.values[Math.floor(envelopeSpeed * beats) % sequence.length] / sequence.height;
+        const beat = Math.floor(envelopeSpeed * beats);
+        if (!sequence.looped && beat + 1 > sequence.length - 1) {
+          const unloopVal = sequence.values[sequence.length - 1] / sequence.height;
+          if (inverse) {
+            return perEnvelopeUpperBound - boundAdjust * unloopVal;
+          } else {
+            return boundAdjust * unloopVal + perEnvelopeLowerBound;
+          }
+        }
+        const preValue = sequence.values[beat % sequence.length] / sequence.height;
+        const postValue = sequence.values[(beat + 1) % sequence.length] / sequence.height;
+        const frac = envelopeSpeed * beats - beat;
+        const value = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
         if (inverse) {
           return perEnvelopeUpperBound - boundAdjust * value;
         } else {
@@ -12550,6 +12562,10 @@ var SequenceSettings2 = class _SequenceSettings {
     this.length = 4;
     //the value for each index of the sequence. If an index is blank interpret as a 0
     this.values = [1, 4, 1, 2];
+    //whether or not to interpolate between values (smooth curve vs stepped curve)
+    this.interpolated = false;
+    //whether or not to loop the sequence
+    this.looped = true;
     this.reset();
   }
   static {
@@ -12559,12 +12575,16 @@ var SequenceSettings2 = class _SequenceSettings {
     this.height = 4;
     this.length = 4;
     this.values = [0, 3, 1, 2];
+    this.interpolated = false;
+    this.looped = true;
   }
   toJsonObject() {
     const sequenceObject = {
       "height": this.height,
       "length": this.length,
-      "values": this.values
+      "values": this.values,
+      "interpolated": this.interpolated,
+      "looped": this.looped
     };
     return sequenceObject;
   }
@@ -12579,12 +12599,20 @@ var SequenceSettings2 = class _SequenceSettings {
     if (sequenceObject["values"] != void 0) {
       this.values = sequenceObject["values"];
     }
+    if (sequenceObject["interpolated"] != void 0) {
+      this.interpolated = sequenceObject["interpolated"];
+    }
+    if (sequenceObject["looped"] != void 0) {
+      this.looped = sequenceObject["looped"];
+    }
   }
   copy() {
     const copy = new _SequenceSettings();
     copy.height = this.height;
     copy.length = this.length;
     copy.values = this.values.slice();
+    copy.interpolated = this.interpolated;
+    copy.looped = this.looped;
     return copy;
   }
   isSame(other) {
@@ -12670,6 +12698,8 @@ var EnvelopeSettings2 = class {
     } else if (Config.envelopes[this.envelope].name == "lfo") {
       envelopeObject["waveform"] = this.waveform;
       envelopeObject["steps"] = this.steps;
+    } else if (Config.envelopes[this.envelope].name == "sequence") {
+      envelopeObject["waveform"] = this.waveform;
     }
     return envelopeObject;
   }
@@ -14576,6 +14606,7 @@ var Song = class _Song {
       for (let j = 0; j < sequence.length; j++) {
         buffer.push(base64IntToCharCode[sequence.values[j]]);
       }
+      buffer.push(base64IntToCharCode[+sequence.interpolated + 2 * +sequence.looped]);
     }
     buffer.push(85 /* channelNames */);
     for (let channel = 0; channel < this.getChannelCount(); channel++) {
@@ -15386,6 +15417,9 @@ var Song = class _Song {
               for (let j = 0; j < this.sequences[seq].length; j++) {
                 this.sequences[seq].values[j] = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               }
+              const bools = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+              this.sequences[seq].interpolated = (bools & 1) == 1;
+              this.sequences[seq].looped = (bools & 2) == 2;
             }
           } else {
           }
@@ -17645,13 +17679,17 @@ var Song = class _Song {
       case 23 /* sequenceValues */:
         this.sequences[channelIndex].values = data;
         break;
-      case 25 /* channelOrder */:
+      case 24 /* sequenceBooleans */:
+        this.sequences[channelIndex].interpolated = (numberData & 1) == 1;
+        this.sequences[channelIndex].looped = (numberData & 2) == 2;
+        break;
+      case 26 /* channelOrder */:
         const selectionMin = data.selectionMin;
         const selectionMax = data.selectionMax;
         const offset = data.offset;
         this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
         break;
-      case 26 /* updateChannel */:
+      case 27 /* updateChannel */:
         const channel = this.channels[channelIndex];
         switch (instrumentSetting) {
           case 1 /* allPatterns */: {
@@ -17693,7 +17731,7 @@ var Song = class _Song {
           }
         }
         break;
-      case 27 /* updateInstrument */:
+      case 28 /* updateInstrument */:
         const instrument = this.channels[channelIndex].instruments[instrumentIndex];
         if (channelIndex === void 0 || instrumentSetting === void 0)
           return;
@@ -18971,7 +19009,7 @@ var SynthMessenger = class {
     }
   }
   updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
-    if (songSetting == 27 /* updateInstrument */ || songSetting == 26 /* updateChannel */) {
+    if (songSetting == 28 /* updateInstrument */ || songSetting == 27 /* updateChannel */) {
       if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
         throw new Error("missing index or setting number");
       }
@@ -19074,7 +19112,7 @@ var SynthMessenger = class {
       };
       this.sendMessage(songMessage);
       for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
-        this.updateSong(+this.song.channels[channelIndex].muted, 26 /* updateChannel */, channelIndex, 0, 3 /* muted */);
+        this.updateSong(+this.song.channels[channelIndex].muted, 27 /* updateChannel */, channelIndex, 0, 3 /* muted */);
       }
     }
   }

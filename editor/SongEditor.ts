@@ -1643,7 +1643,7 @@ export class SongEditor {
     }
 
     private _openPrompt(promptName: string, extraSettings: any = {}): void {
-        this.doc.openPrompt(promptName);
+        this.doc.openPrompt(promptName, extraSettings);
         this._setPrompt(promptName, extraSettings);
     }
 
@@ -1765,7 +1765,7 @@ export class SongEditor {
             }
 
             if (this.prompt) {
-                if (!(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt)) {
+                if (!(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt || this.prompt instanceof SequenceEditorPrompt )) {
                     this._wasPlaying = this.doc.synth.playing;
                     this.doc.performance.pause();
                 }
@@ -3252,7 +3252,7 @@ export class SongEditor {
             this.refocusStage();
         }
 
-        this._setPrompt(this.doc.prompt);
+        this._setPrompt(this.doc.prompt && this.doc.prompt.prompt, this.doc.prompt?.extraSettings);
 
         if (prefs.autoFollow && !this.doc.synth.playing) {
             this.doc.synth.goToBar(this.doc.bar);

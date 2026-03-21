@@ -10031,11 +10031,11 @@ html {
   width: -moz-available !important;
   width: -webkit-fill-available !important;
 }
-@media (min-width: 711px) {
-	.select2 {
-	  width: calc(var(--settings-area-width) * 0.625) !important;
-	}
-}
+// @media (min-width: 711px) {
+// 	.select2 {
+// 	  width: calc(var(--settings-area-width) * 0.625) !important;
+// 	}
+// }
 
 .select2-container--default .select2-selection--single{
   border-radius: 0px;
@@ -11319,10 +11319,11 @@ li.select2-results__option[role=group] > strong:hover {
         SongSettings[SongSettings["sequenceLength"] = 21] = "sequenceLength";
         SongSettings[SongSettings["sequenceHeight"] = 22] = "sequenceHeight";
         SongSettings[SongSettings["sequenceValues"] = 23] = "sequenceValues";
-        SongSettings[SongSettings["pluginurl"] = 24] = "pluginurl";
-        SongSettings[SongSettings["channelOrder"] = 25] = "channelOrder";
-        SongSettings[SongSettings["updateChannel"] = 26] = "updateChannel";
-        SongSettings[SongSettings["updateInstrument"] = 27] = "updateInstrument";
+        SongSettings[SongSettings["sequenceBooleans"] = 24] = "sequenceBooleans";
+        SongSettings[SongSettings["pluginurl"] = 25] = "pluginurl";
+        SongSettings[SongSettings["channelOrder"] = 26] = "channelOrder";
+        SongSettings[SongSettings["updateChannel"] = 27] = "updateChannel";
+        SongSettings[SongSettings["updateInstrument"] = 28] = "updateInstrument";
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
@@ -13031,7 +13032,20 @@ li.select2-results__option[role=group] > strong:hover {
                 case 16: {
                     if (sequence == null)
                         return 0;
-                    const value = sequence.values[Math.floor(envelopeSpeed * beats) % sequence.length] / sequence.height;
+                    const beat = Math.floor(envelopeSpeed * beats);
+                    if (!sequence.looped && beat + 1 > sequence.length - 1) {
+                        const unloopVal = sequence.values[sequence.length - 1] / sequence.height;
+                        if (inverse) {
+                            return perEnvelopeUpperBound - boundAdjust * unloopVal;
+                        }
+                        else {
+                            return boundAdjust * unloopVal + perEnvelopeLowerBound;
+                        }
+                    }
+                    const preValue = sequence.values[beat % sequence.length] / sequence.height;
+                    const postValue = sequence.values[(beat + 1) % sequence.length] / sequence.height;
+                    const frac = envelopeSpeed * beats - beat;
+                    const value = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * value;
                     }
@@ -20202,18 +20216,24 @@ li.select2-results__option[role=group] > strong:hover {
             this.height = 4;
             this.length = 4;
             this.values = [1, 4, 1, 2];
+            this.interpolated = false;
+            this.looped = true;
             this.reset();
         }
         reset() {
             this.height = 4;
             this.length = 4;
             this.values = [0, 3, 1, 2];
+            this.interpolated = false;
+            this.looped = true;
         }
         toJsonObject() {
             const sequenceObject = {
                 "height": this.height,
                 "length": this.length,
-                "values": this.values
+                "values": this.values,
+                "interpolated": this.interpolated,
+                "looped": this.looped
             };
             return sequenceObject;
         }
@@ -20228,12 +20248,20 @@ li.select2-results__option[role=group] > strong:hover {
             if (sequenceObject["values"] != undefined) {
                 this.values = sequenceObject["values"];
             }
+            if (sequenceObject["interpolated"] != undefined) {
+                this.interpolated = sequenceObject["interpolated"];
+            }
+            if (sequenceObject["looped"] != undefined) {
+                this.looped = sequenceObject["looped"];
+            }
         }
         copy() {
             const copy = new SequenceSettings();
             copy.height = this.height;
             copy.length = this.length;
             copy.values = this.values.slice();
+            copy.interpolated = this.interpolated;
+            copy.looped = this.looped;
             return copy;
         }
         isSame(other) {
@@ -20315,6 +20343,9 @@ li.select2-results__option[role=group] > strong:hover {
             else if (Config.envelopes[this.envelope].name == "lfo") {
                 envelopeObject["waveform"] = this.waveform;
                 envelopeObject["steps"] = this.steps;
+            }
+            else if (Config.envelopes[this.envelope].name == "sequence") {
+                envelopeObject["waveform"] = this.waveform;
             }
             return envelopeObject;
         }
@@ -22313,6 +22344,7 @@ li.select2-results__option[role=group] > strong:hover {
                 for (let j = 0; j < sequence.length; j++) {
                     buffer.push(base64IntToCharCode[sequence.values[j]]);
                 }
+                buffer.push(base64IntToCharCode[+sequence.interpolated + 2 * +sequence.looped]);
             }
             buffer.push(85);
             for (let channel = 0; channel < this.getChannelCount(); channel++) {
@@ -23204,6 +23236,9 @@ li.select2-results__option[role=group] > strong:hover {
                                     for (let j = 0; j < this.sequences[seq].length; j++) {
                                         this.sequences[seq].values[j] = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     }
+                                    const bools = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                    this.sequences[seq].interpolated = (bools & 1) == 1;
+                                    this.sequences[seq].looped = (bools & 2) == 2;
                                 }
                             }
                             else ;
@@ -25624,6 +25659,10 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 case SongSettings.sequenceValues:
                     this.sequences[channelIndex].values = data;
+                    break;
+                case SongSettings.sequenceBooleans:
+                    this.sequences[channelIndex].interpolated = (numberData & 1) == 1;
+                    this.sequences[channelIndex].looped = (numberData & 2) == 2;
                     break;
                 case SongSettings.channelOrder:
                     const selectionMin = data.selectionMin;
@@ -31304,7 +31343,7 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(doc, sequenceIndex) {
             super();
             const oldLength = doc.song.sequences.length;
-            while (oldLength < sequenceIndex) {
+            while (doc.song.sequences.length <= sequenceIndex) {
                 doc.song.sequences.push(new SequenceSettings());
                 doc.synth.updateSong(0, SongSettings.addSequence);
             }
@@ -31350,7 +31389,7 @@ li.select2-results__option[role=group] > strong:hover {
         }
     }
     class ChangeSequenceValues extends Change {
-        constructor(doc, sequenceIndex, values) {
+        constructor(doc, sequenceIndex, values, ignoreCheck) {
             super();
             const oldValues = doc.song.sequences[sequenceIndex].values;
             let sameCheck = true;
@@ -31360,9 +31399,23 @@ li.select2-results__option[role=group] > strong:hover {
                     break;
                 }
             }
-            if (!sameCheck) {
-                doc.song.sequences[sequenceIndex].values = values;
+            if (!sameCheck || ignoreCheck) {
+                doc.song.sequences[sequenceIndex].values = values.slice();
                 doc.synth.updateSong(values, SongSettings.sequenceValues, sequenceIndex);
+                this._didSomething();
+            }
+            doc.notifier.changed();
+        }
+    }
+    class ChangeSequenceBooleans extends Change {
+        constructor(doc, sequenceIndex, interpolates, loops) {
+            super();
+            const oldInterpolated = doc.song.sequences[sequenceIndex].interpolated;
+            const oldLooped = doc.song.sequences[sequenceIndex].looped;
+            if (oldInterpolated != interpolates || oldLooped != loops) {
+                doc.song.sequences[sequenceIndex].interpolated = interpolates;
+                doc.song.sequences[sequenceIndex].looped = loops;
+                doc.synth.updateSong(+interpolates + 2 * +loops, SongSettings.sequenceBooleans, sequenceIndex);
                 this._didSomething();
             }
             doc.notifier.changed();
@@ -36271,8 +36324,10 @@ li.select2-results__option[role=group] > strong:hover {
         _resetSongRecoveryUid() {
             this._recoveryUid = generateUid();
         }
-        openPrompt(prompt) {
-            this.prompt = prompt;
+        openPrompt(prompt, extraSettings) {
+            this.prompt = { prompt: prompt };
+            if (extraSettings != undefined)
+                this.prompt.extraSettings = extraSettings;
             const hash = this.song.toBase64String();
             this._sequenceNumber++;
             const state = { canUndo: true, sequenceNumber: this._sequenceNumber, bar: this.bar, channel: this.channel, instrument: this.viewedInstrument[this.channel], recoveryUid: this._recoveryUid, prompt: this.prompt, selection: this.selection.toJSON() };
@@ -36534,7 +36589,7 @@ li.select2-results__option[role=group] > strong:hover {
         return Math.pow(volumeMult, 0.25) * 127;
     }
 
-    const { button: button$p, div: div$q, h2: h2$p, input: input$j, select: select$d, option: option$d } = HTML$1;
+    const { button: button$q, div: div$r, h2: h2$q, input: input$k, select: select$d, option: option$d } = HTML$1;
     function lerp(low, high, t) {
         return low + t * (high - low);
     }
@@ -36562,21 +36617,21 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(_doc) {
             this._doc = _doc;
             this.outputStarted = false;
-            this._fileName = input$j({ type: "text", style: "width: 10em;", value: Config.jsonFormat + "-Song", maxlength: 250, "autofocus": "autofocus" });
-            this._computedSamplesLabel = div$q({ style: "width: 10em;" }, new Text("0:00"));
-            this._enableIntro = input$j({ type: "checkbox" });
-            this._loopDropDown = input$j({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
-            this._enableOutro = input$j({ type: "checkbox" });
+            this._fileName = input$k({ type: "text", style: "width: 10em;", value: Config.jsonFormat + "-Song", maxlength: 250, "autofocus": "autofocus" });
+            this._computedSamplesLabel = div$r({ style: "width: 10em;" }, new Text("0:00"));
+            this._enableIntro = input$k({ type: "checkbox" });
+            this._loopDropDown = input$k({ style: "width: 2em;", type: "number", min: "1", max: "4", step: "1" });
+            this._enableOutro = input$k({ type: "checkbox" });
             this._formatSelect = select$d({ style: "width: 100%;" }, option$d({ value: "wav" }, "Export to .wav file."), option$d({ value: "mp3" }, "Export to .mp3 file."), option$d({ value: "midi" }, "Export to .mid file."), option$d({ value: "json" }, "Export to .json file."), option$d({ value: "html" }, "Export to .html file."));
-            this._removeWhitespace = input$j({ type: "checkbox" });
-            this._removeWhitespaceDiv = div$q({ style: "vertical-align: middle; align-items: center; justify-content: space-between; margin-bottom: 14px;" }, "Remove Whitespace: ", this._removeWhitespace);
-            this._cancelButton = button$p({ class: "cancelButton" });
-            this._exportButton = button$p({ class: "exportButton", style: "width:45%;" }, "Export");
-            this._outputProgressBar = div$q({ style: `width: 0%; background: ${ColorConfig.loopAccent}; height: 100%; position: absolute; z-index: 2;` });
-            this._outputProgressLabel = div$q({ style: `position: relative; top: -1px; z-index: 3;` }, "0%");
-            this._outputProgressContainer = div$q({ style: `height: 12px; background: ${ColorConfig.uiWidgetBackground}; display: block; position: relative; z-index: 1;` }, this._outputProgressBar, this._outputProgressLabel);
+            this._removeWhitespace = input$k({ type: "checkbox" });
+            this._removeWhitespaceDiv = div$r({ style: "vertical-align: middle; align-items: center; justify-content: space-between; margin-bottom: 14px;" }, "Remove Whitespace: ", this._removeWhitespace);
+            this._cancelButton = button$q({ class: "cancelButton" });
+            this._exportButton = button$q({ class: "exportButton", style: "width:45%;" }, "Export");
+            this._outputProgressBar = div$r({ style: `width: 0%; background: ${ColorConfig.loopAccent}; height: 100%; position: absolute; z-index: 2;` });
+            this._outputProgressLabel = div$r({ style: `position: relative; top: -1px; z-index: 3;` }, "0%");
+            this._outputProgressContainer = div$r({ style: `height: 12px; background: ${ColorConfig.uiWidgetBackground}; display: block; position: relative; z-index: 1;` }, this._outputProgressBar, this._outputProgressLabel);
             this._chunkSize = 5;
-            this.container = div$q({ class: "prompt noSelection", style: "width: 200px;" }, h2$p("Export Options"), div$q({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), div$q({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$q({ style: "display: table; width: 100%;" }, div$q({ style: "display: table-row;" }, div$q({ style: "display: table-cell;" }, "Intro:"), div$q({ style: "display: table-cell;" }, "Loop Count:"), div$q({ style: "display: table-cell;" }, "Outro:")), div$q({ style: "display: table-row;" }, div$q({ style: "display: table-cell; vertical-align: middle;" }, this._enableIntro), div$q({ style: "display: table-cell; vertical-align: middle;" }, this._loopDropDown), div$q({ style: "display: table-cell; vertical-align: middle;" }, this._enableOutro))), div$q({ class: "selectContainer", style: "width: 100%;" }, this._formatSelect), this._removeWhitespaceDiv, div$q({ style: "text-align: left;" }, "Exporting can be slow. Reloading the page or clicking the X will cancel it. Please be patient."), this._outputProgressContainer, div$q({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
+            this.container = div$r({ class: "prompt noSelection", style: "width: 200px;" }, h2$q("Export Options"), div$r({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), div$r({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$r({ style: "display: table; width: 100%;" }, div$r({ style: "display: table-row;" }, div$r({ style: "display: table-cell;" }, "Intro:"), div$r({ style: "display: table-cell;" }, "Loop Count:"), div$r({ style: "display: table-cell;" }, "Outro:")), div$r({ style: "display: table-row;" }, div$r({ style: "display: table-cell; vertical-align: middle;" }, this._enableIntro), div$r({ style: "display: table-cell; vertical-align: middle;" }, this._loopDropDown), div$r({ style: "display: table-cell; vertical-align: middle;" }, this._enableOutro))), div$r({ class: "selectContainer", style: "width: 100%;" }, this._formatSelect), this._removeWhitespaceDiv, div$r({ style: "text-align: left;" }, "Exporting can be slow. Reloading the page or clicking the X will cancel it. Please be patient."), this._outputProgressContainer, div$r({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
             this._close = () => {
                 if (this.synth != null)
                     this.synth.renderingSong = false;
@@ -37291,16 +37346,16 @@ You should be redirected to the song at:<br /><br />
         0x51,
     ];
 
-    const { button: button$o, div: div$p, span: span$6, h2: h2$o, input: input$i, br: br$4, select: select$c, option: option$c } = HTML$1;
+    const { button: button$p, div: div$q, span: span$7, h2: h2$p, input: input$j, br: br$4, select: select$c, option: option$c } = HTML$1;
     class BeatsPerBarPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._computedSamplesLabel = div$p({ style: "width: 10em;" }, new Text("0:00"));
-            this._beatsStepper = input$i({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._computedSamplesLabel = div$q({ style: "width: 10em;" }, new Text("0:00"));
+            this._beatsStepper = input$j({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
             this._conversionStrategySelect = select$c({ style: "width: 100%;" }, option$c({ value: "splice" }, "Splice beats at end of bars."), option$c({ value: "stretch" }, "Stretch notes to fit in bars."), option$c({ value: "overflow" }, "Overflow notes across bars."));
-            this._cancelButton = button$o({ class: "cancelButton" });
-            this._okayButton = button$o({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$p({ class: "prompt noSelection", style: "width: 250px;" }, h2$o("Beats Per Bar"), div$p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$p({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$p({ style: "text-align: right;" }, "Beats per bar:", br$4(), span$6({ style: "font-size: smaller; color: ${ColorConfig.secondaryText};" }, "(Multiples of 3 or 4 are recommended)")), this._beatsStepper), div$p({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$p({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$p({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._cancelButton = button$p({ class: "cancelButton" });
+            this._okayButton = button$p({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.container = div$q({ class: "prompt noSelection", style: "width: 250px;" }, h2$p("Beats Per Bar"), div$q({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "Length:", this._computedSamplesLabel), div$q({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$q({ style: "text-align: right;" }, "Beats per bar:", br$4(), span$7({ style: "font-size: smaller; color: ${ColorConfig.secondaryText};" }, "(Multiples of 3 or 4 are recommended)")), this._beatsStepper), div$q({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$q({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$q({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -37363,19 +37418,19 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$n, div: div$o, label: label$4, br: br$3, h2: h2$n, input: input$h } = HTML$1;
+    const { button: button$o, div: div$p, label: label$4, br: br$3, h2: h2$o, input: input$i } = HTML$1;
     class ChannelSettingsPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._patternsStepper = input$h({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._pitchChannelStepper = input$h({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._drumChannelStepper = input$h({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._modChannelStepper = input$h({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
-            this._layeredInstrumentsBox = input$h({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
-            this._patternInstrumentsBox = input$h({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
-            this._cancelButton = button$n({ class: "cancelButton" });
-            this._okayButton = button$n({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$o({ class: "prompt noSelection", style: "width: 250px; text-align: right;" }, h2$n("Channel Settings"), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Pitch channels:", this._pitchChannelStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Drum channels:", this._drumChannelStepper), div$o({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Mod channels:", this._modChannelStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Available patterns per channel:", this._patternsStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Simultaneous instruments", br$3(), "per channel:", this._layeredInstrumentsBox), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Different instruments", br$3(), "per pattern:", this._patternInstrumentsBox), div$o({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._patternsStepper = input$i({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._pitchChannelStepper = input$i({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._drumChannelStepper = input$i({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._modChannelStepper = input$i({ style: "width: 3em; margin-left: 1em;", type: "number", step: "1" });
+            this._layeredInstrumentsBox = input$i({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._patternInstrumentsBox = input$i({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._cancelButton = button$o({ class: "cancelButton" });
+            this._okayButton = button$o({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.container = div$p({ class: "prompt noSelection", style: "width: 250px; text-align: right;" }, h2$o("Channel Settings"), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Pitch channels:", this._pitchChannelStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Drum channels:", this._drumChannelStepper), div$p({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Mod channels:", this._modChannelStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Available patterns per channel:", this._patternsStepper), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Simultaneous instruments", br$3(), "per channel:", this._layeredInstrumentsBox), label$4({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Different instruments", br$3(), "per pattern:", this._patternInstrumentsBox), div$p({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -37450,7 +37505,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$m, div: div$n, h2: h2$m } = HTML$1;
+    const { button: button$n, div: div$o, h2: h2$n } = HTML$1;
     class CustomChipPromptCanvas {
         constructor(doc) {
             this._mouseX = 0;
@@ -37643,24 +37698,24 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._songEditor = _songEditor;
             this.customChipCanvas = new CustomChipPromptCanvas(this._doc);
-            this._playButton = button$m({ style: "width: 55%;", type: "button" });
-            this._cancelButton = button$m({ class: "cancelButton" });
-            this._okayButton = button$m({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.copyButton = button$m({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+            this._playButton = button$n({ style: "width: 55%;", type: "button" });
+            this._cancelButton = button$n({ class: "cancelButton" });
+            this._okayButton = button$n({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.copyButton = button$n({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
                     SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
-            this.pasteButton = button$m({ style: "width:86px;", class: "pasteButton" }, [
+            this.pasteButton = button$n({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
                     SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
                     SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this.copyPasteContainer = div$n({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = div$n({ class: "prompt noSelection", style: "width: 600px;" }, h2$m("Edit Custom Chip Instrument"), div$n({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$n({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.customChipCanvas.container), div$n({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this.copyPasteContainer = div$o({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = div$o({ class: "prompt noSelection", style: "width: 600px;" }, h2$n("Edit Custom Chip Instrument"), div$o({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$o({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.customChipCanvas.container), div$o({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
             this._togglePlay = () => {
                 this._songEditor.togglePlay();
                 this.updatePlayButton();
@@ -38461,7 +38516,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$l, div: div$m, h2: h2$l, p: p$a } = HTML$1;
+    const { button: button$m, div: div$n, h2: h2$m, p: p$a } = HTML$1;
     class CustomFilterPrompt {
         constructor(_doc, _songEditor, _useNoteFilter, forSong = false) {
             this._doc = _doc;
@@ -38471,29 +38526,29 @@ You should be redirected to the song at:<br /><br />
             this.filterData = new FilterSettings;
             this.startingFilterData = new FilterSettings;
             this._subfilterIndex = 0;
-            this._playButton = button$l({ style: "width: 55%;", type: "button" });
+            this._playButton = button$m({ style: "width: 55%;", type: "button" });
             this._filterButtons = [];
-            this._filterButtonContainer = div$m({ class: "instrument-bar", style: "justify-content: center;" });
-            this._cancelButton = button$l({ class: "cancelButton" });
-            this._okayButton = button$l({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._filterContainer = div$m({ style: "width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center;" });
-            this._editorTitle = div$m({}, h2$l("Edit Filter"));
-            this._filterCopyButton = button$l({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+            this._filterButtonContainer = div$n({ class: "instrument-bar", style: "justify-content: center;" });
+            this._cancelButton = button$m({ class: "cancelButton" });
+            this._okayButton = button$m({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._filterContainer = div$n({ style: "width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center;" });
+            this._editorTitle = div$n({}, h2$m("Edit Filter"));
+            this._filterCopyButton = button$m({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
                     SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
-            this._filterPasteButton = button$l({ style: "width:86px;", class: "pasteButton" }, [
+            this._filterPasteButton = button$m({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
                     SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
                     SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this._filterCopyPasteContainer = div$m({ style: "width: 185px;" }, this._filterCopyButton, this._filterPasteButton);
-            this._filterCoordinateText = div$m({ style: "text-align: left; margin-bottom: 0px; font-size: x-small; height: 1.3em; color: " + ColorConfig.secondaryText + ";" }, p$a(""));
-            this.container = div$m({ class: "prompt noSelection", style: "width: 600px;" }, this._editorTitle, div$m({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._filterButtonContainer, this._filterContainer, div$m({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._filterCopyPasteContainer), this._cancelButton);
+            this._filterCopyPasteContainer = div$n({ style: "width: 185px;" }, this._filterCopyButton, this._filterPasteButton);
+            this._filterCoordinateText = div$n({ style: "text-align: left; margin-bottom: 0px; font-size: x-small; height: 1.3em; color: " + ColorConfig.secondaryText + ";" }, p$a(""));
+            this.container = div$n({ class: "prompt noSelection", style: "width: 600px;" }, this._editorTitle, div$n({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), this._filterButtonContainer, this._filterContainer, div$n({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._filterCopyPasteContainer), this._cancelButton);
             this._setSubfilter = (index, useHistory = true, doSwap = true) => {
                 this._filterButtons[this._subfilterIndex].classList.remove("selected-instrument");
                 if (doSwap)
@@ -38597,12 +38652,12 @@ You should be redirected to the song at:<br /><br />
             this.filterEditor.container.insertBefore(this._filterCoordinateText, this.filterEditor.container.firstChild);
             this.filterEditor.coordText = this._filterCoordinateText;
             this._editorTitle.children[0].innerHTML = forSong ? "Edit Song EQ Filter" : (_useNoteFilter) ? "Edit Note Filter" : "Edit EQ Filter";
-            let newButton = button$l({ class: "no-underline", style: "max-width: 5em;" }, "Main");
+            let newButton = button$m({ class: "no-underline", style: "max-width: 5em;" }, "Main");
             this._filterButtonContainer.appendChild(newButton);
             this._filterButtons.push(newButton);
             newButton.addEventListener("click", () => { this._setSubfilter(0); });
             for (let i = 1; i < Config.filterMorphCount; i++) {
-                let newSubButton = button$l({ class: "no-underline", style: "max-width: 2em;" }, "" + i);
+                let newSubButton = button$m({ class: "no-underline", style: "max-width: 2em;" }, "" + i);
                 this._filterButtons.push(newSubButton);
                 this._filterButtonContainer.appendChild(newSubButton);
                 newSubButton.addEventListener("click", () => { this._setSubfilter(i); });
@@ -38635,16 +38690,16 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$k, div: div$l, h2: h2$k, input: input$g, label: label$3, br: br$2 } = HTML$1;
+    const { button: button$l, div: div$m, h2: h2$l, input: input$h, label: label$3, br: br$2 } = HTML$1;
     class InstrumentExportPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._cancelButton = button$k({ class: "cancelButton" });
-            this._exportButton = button$k({ class: "exportButton", style: "width:45%;" }, "Export");
-            this._exportMultipleBox = input$g({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
+            this._cancelButton = button$l({ class: "cancelButton" });
+            this._exportButton = button$l({ class: "exportButton", style: "width:45%;" }, "Export");
+            this._exportMultipleBox = input$h({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
             this._channelName = this._doc.song.channels[this._doc.channel].name == "" ? Config.jsonFormat + "-Instrument" : this._doc.song.channels[this._doc.channel].name;
-            this._fileName = input$g({ type: "text", style: "width: 10em;", value: this._channelName, maxlength: 250, "autofocus": "autofocus" });
-            this.container = div$l({ class: "prompt noSelection", style: "width: 200px;" }, h2$k("Export Instruments Options"), div$l({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Export all instruments", br$2(), "in channel:", this._exportMultipleBox), div$l({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
+            this._fileName = input$h({ type: "text", style: "width: 10em;", value: this._channelName, maxlength: 250, "autofocus": "autofocus" });
+            this.container = div$m({ class: "prompt noSelection", style: "width: 200px;" }, h2$l("Export Instruments Options"), div$m({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, "File name:", this._fileName), label$3({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, "Export all instruments", br$2(), "in channel:", this._exportMultipleBox), div$m({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._exportButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -38711,15 +38766,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$j, div: div$k, h2: h2$j, input: input$f, select: select$b, option: option$b, code: code$1 } = HTML$1;
+    const { button: button$k, div: div$l, h2: h2$k, input: input$g, select: select$b, option: option$b, code: code$1 } = HTML$1;
     class InstrumentImportPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._cancelButton = button$j({ class: "cancelButton" });
+            this._cancelButton = button$k({ class: "cancelButton" });
             this._importStrategySelect = select$b({ style: "width: 100%;" }, option$b({ value: "append" }, "Append instruments to the end of the list."), option$b({ value: "replace" }, "Replace only the selected instrument."), option$b({ value: "all" }, "Replace all instruments in the channel."));
-            this._fileInput = input$f({ type: "file", accept: ".json,application/json" });
-            this._strategyInfoText = div$k({ style: "text-align: left;" }, "You must enable either ", code$1("Simultaneous instruments per channel"), " or ", code$1("Different instruments per pattern"), " to change the import strategy.");
-            this.container = div$k({ class: "prompt noSelection", style: "width: 300px;" }, h2$j("Import Instrument(s)"), this._strategyInfoText, div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$k({ class: "selectContainer", style: "width: 100%;" }, this._importStrategySelect)), this._fileInput, this._cancelButton);
+            this._fileInput = input$g({ type: "file", accept: ".json,application/json" });
+            this._strategyInfoText = div$l({ style: "text-align: left;" }, "You must enable either ", code$1("Simultaneous instruments per channel"), " or ", code$1("Different instruments per pattern"), " to change the import strategy.");
+            this.container = div$l({ class: "prompt noSelection", style: "width: 300px;" }, h2$k("Import Instrument(s)"), this._strategyInfoText, div$l({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$l({ class: "selectContainer", style: "width: 100%;" }, this._importStrategySelect)), this._fileInput, this._cancelButton);
             this._whenFileSelected = () => {
                 const file = this._fileInput.files[0];
                 if (!file)
@@ -38860,7 +38915,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$i, div: div$j, h2: h2$i, input: input$e } = HTML$1;
+    const { button: button$j, div: div$k, h2: h2$j, input: input$f } = HTML$1;
     function gcd(x, y) {
         while (y !== 0) {
             const z = x % y;
@@ -38966,32 +39021,32 @@ You should be redirected to the song at:<br /><br />
             this._clockPadding = this._clockWidth / this._maxSteps;
             this._clockRadius = this._clockWidth / 2 - this._clockPointMaxRadius - this._clockPadding;
             this._sequenceButtons = [];
-            this._sequenceRemoveButton = button$i({ class: "no-underline", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -7.07 -5.66 L -5.66 -7.07 L 0 -1.4 L 5.66 -7.07 L 7.07 -5.66 L 1.4 0 L 7.07 5.66 L 5.66 7.07 L 0 1.4 L -5.66 7.07 L -7.07 5.66 L -1.4 0 z", fill: ColorConfig.primaryText })));
-            this._sequenceAddButton = button$i({ class: "no-underline last-button", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -8 -1 L -1 -1 L -1 -8 L 1 -8 L 1 -1 L 8 -1 L 8 1 L 1 1 L 1 8 L -1 8 L -1 1 L -8 1 z", fill: ColorConfig.primaryText })));
-            this._sequenceButtonContainer = div$j({ class: "instrument-bar", style: "justify-content: center; width: 100%;" }, this._sequenceRemoveButton, this._sequenceAddButton);
+            this._sequenceRemoveButton = button$j({ class: "no-underline", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -7.07 -5.66 L -5.66 -7.07 L 0 -1.4 L 5.66 -7.07 L 7.07 -5.66 L 1.4 0 L 7.07 5.66 L 5.66 7.07 L 0 1.4 L -5.66 7.07 L -7.07 5.66 L -1.4 0 z", fill: ColorConfig.primaryText })));
+            this._sequenceAddButton = button$j({ class: "no-underline last-button", style: "flex-grow: 0; flex-basis: 30px;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -13 26 26", "pointer-events": "none" }, SVG$1.path({ d: "M -8 -1 L -1 -1 L -1 -8 L 1 -8 L 1 -1 L 8 -1 L 8 1 L 1 1 L 1 8 L -1 8 L -1 1 L -8 1 z", fill: ColorConfig.primaryText })));
+            this._sequenceButtonContainer = div$k({ class: "instrument-bar", style: "justify-content: center; width: 100%;" }, this._sequenceRemoveButton, this._sequenceAddButton);
             this._barPreviewBackground = SVG$1.svg({ "pointer-events": "none" });
             this._barPreviewSteps = SVG$1.svg({ "pointer-events": "none" });
-            this._barPreviewLabel = div$j({ style: `flex-grow: 1; color: ${ColorConfig.secondaryText}` });
-            this._barPreviewGoToFirstButton = button$i({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "-6", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoBackButton = button$i({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-10 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoForwardButton = button$i({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-14 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
-            this._barPreviewGoToLastButton = button$i({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewLabel = div$k({ style: `flex-grow: 1; color: ${ColorConfig.secondaryText}` });
+            this._barPreviewGoToFirstButton = button$j({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "-6", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoBackButton = button$j({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-10 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M 6 -6 L 6 6 L -3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoForwardButton = button$j({ style: "height: auto; min-height: var(--button-size);" }, SVG$1.svg({ width: "24", height: "26", viewBox: "-14 -14 24 26", "pointer-events": "none" }, SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
+            this._barPreviewGoToLastButton = button$j({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, SVG$1.svg({ width: "26", height: "26", viewBox: "-13 -14 26 26", "pointer-events": "none" }, SVG$1.rect({ x: "4", y: "-6", width: "2", height: "12", fill: ColorConfig.primaryText }), SVG$1.path({ d: "M -6 -6 L -6 6 L 3 0 z", fill: ColorConfig.primaryText })));
             this._clockWire = SVG$1.circle({ cx: this._clockWidth / 2, cy: this._clockHeight / 2, r: this._clockRadius, stroke: ColorConfig.primaryText, "stroke-width": "0.5", fill: "none" });
             this._clockPoints = SVG$1.svg({ "pointer-events": "none" });
-            this._stepsStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: this._minSteps, max: this._maxSteps, value: "8", step: "1" });
-            this._pulsesStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: "8", value: "5", step: "1" });
-            this._rotationStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: this._maxSteps, value: "0", step: "1" });
-            this._stepSizeNumeratorStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "1", step: "1" });
-            this._stepSizeDenominatorStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "4", step: "1" });
-            this._channelStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: this._maxChannel + 1, value: "1", step: "1" });
-            this._pitchStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: Config.maxPitch, value: "0", step: "1" });
-            this._barAmountStepper = input$e({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.barCountMax, value: "1", step: "1" });
-            this._extendUntilLoopButton = button$i({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, "Extend until loop");
-            this._generateFadingNotesBox = input$e({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
-            this._invertBox = input$e({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
-            this._okayButton = button$i({ class: "okayButton", style: "width: 45%;" }, "Okay");
-            this._cancelButton = button$i({ class: "cancelButton" });
-            this.container = div$j({ class: "prompt noSelection", style: "width: 600px;" }, h2$i("Generate Euclidean Rhythm"), div$j({ style: "display: flex; flex-direction: row; align-items: center;" }, this._sequenceButtonContainer), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, div$j({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoToFirstButton, this._barPreviewGoBackButton), this._barPreviewLabel, div$j({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoForwardButton, this._barPreviewGoToLastButton)), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, SVG$1.svg({ "pointer-events": "none", style: "touch-action: none; overflow: hidden;", width: "100%", height: "20px", viewBox: `0 0 ${this._barPreviewWidth} ${this._barPreviewHeight}`, preserveAspectRatio: "none" }, this._barPreviewBackground, this._barPreviewSteps)), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-evenly;" }, div$j({ style: "max-width: 150px; height: 100%;" }, SVG$1.svg({ "pointer-events": "none", width: "100%", height: "100%", style: "touch-action: none; overflow: hidden; margin-right: 1.5em; max-width: 150px; height: 100%;", viewBox: `0 0 ${this._clockWidth} ${this._clockHeight}`, preserveAspectRatio: "none" }, this._clockWire, this._clockPoints)), div$j({ style: "display: flex; height: 100%;" }, div$j({ style: "flex-grow: 1; " }, div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Steps"), this._stepsStepper), div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pulses"), this._pulsesStepper), div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Rotation"), this._rotationStepper)), div$j({ style: "flex-grow: 1; margin-left: 1em;" }, div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-bottom: 1em;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Size"), div$j({ style: "display: flex; flex-direction: column;" }, this._stepSizeNumeratorStepper, this._stepSizeDenominatorStepper)), div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Channel"), this._channelStepper), div$j({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$j({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pitch"), this._pitchStepper)))), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$j({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Generate fading notes"), this._generateFadingNotesBox, div$j({ style: `text-align: right; color: ${ColorConfig.primaryText}; margin-left: 1em;` }, "Invert"), this._invertBox), div$j({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$j({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Length (in bars)"), this._barAmountStepper, this._extendUntilLoopButton), div$j({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._stepsStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: this._minSteps, max: this._maxSteps, value: "8", step: "1" });
+            this._pulsesStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: "8", value: "5", step: "1" });
+            this._rotationStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: this._maxSteps, value: "0", step: "1" });
+            this._stepSizeNumeratorStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "1", step: "1" });
+            this._stepSizeDenominatorStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.partsPerBeat, value: "4", step: "1" });
+            this._channelStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: this._maxChannel + 1, value: "1", step: "1" });
+            this._pitchStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "0", max: Config.maxPitch, value: "0", step: "1" });
+            this._barAmountStepper = input$f({ style: "width: 3em; margin-left: 1em;", type: "number", min: "1", max: Config.barCountMax, value: "1", step: "1" });
+            this._extendUntilLoopButton = button$j({ style: "height: auto; min-height: var(--button-size); margin-left: 1em;" }, "Extend until loop");
+            this._generateFadingNotesBox = input$f({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
+            this._invertBox = input$f({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: 1em;" });
+            this._okayButton = button$j({ class: "okayButton", style: "width: 45%;" }, "Okay");
+            this._cancelButton = button$j({ class: "cancelButton" });
+            this.container = div$k({ class: "prompt noSelection", style: "width: 600px;" }, h2$j("Generate Euclidean Rhythm"), div$k({ style: "display: flex; flex-direction: row; align-items: center;" }, this._sequenceButtonContainer), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" }, div$k({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoToFirstButton, this._barPreviewGoBackButton), this._barPreviewLabel, div$k({ style: "flex-grow: 0; flex-shrink: 0;" }, this._barPreviewGoForwardButton, this._barPreviewGoToLastButton)), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, SVG$1.svg({ "pointer-events": "none", style: "touch-action: none; overflow: hidden;", width: "100%", height: "20px", viewBox: `0 0 ${this._barPreviewWidth} ${this._barPreviewHeight}`, preserveAspectRatio: "none" }, this._barPreviewBackground, this._barPreviewSteps)), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-evenly;" }, div$k({ style: "max-width: 150px; height: 100%;" }, SVG$1.svg({ "pointer-events": "none", width: "100%", height: "100%", style: "touch-action: none; overflow: hidden; margin-right: 1.5em; max-width: 150px; height: 100%;", viewBox: `0 0 ${this._clockWidth} ${this._clockHeight}`, preserveAspectRatio: "none" }, this._clockWire, this._clockPoints)), div$k({ style: "display: flex; height: 100%;" }, div$k({ style: "flex-grow: 1; " }, div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Steps"), this._stepsStepper), div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pulses"), this._pulsesStepper), div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Rotation"), this._rotationStepper)), div$k({ style: "flex-grow: 1; margin-left: 1em;" }, div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-bottom: 1em;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Size"), div$k({ style: "display: flex; flex-direction: column;" }, this._stepSizeNumeratorStepper, this._stepSizeDenominatorStepper)), div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Channel"), this._channelStepper), div$k({ style: "display: flex; flex-direction: row; align-items: center; height: 3em; justify-content: flex-end; margin-top: 0.5em;" }, div$k({ style: `text-align: right; flex-grow: 1; color: ${ColorConfig.primaryText};` }, "Pitch"), this._pitchStepper)))), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$k({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Generate fading notes"), this._generateFadingNotesBox, div$k({ style: `text-align: right; color: ${ColorConfig.primaryText}; margin-left: 1em;` }, "Invert"), this._invertBox), div$k({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, div$k({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Length (in bars)"), this._barAmountStepper, this._extendUntilLoopButton), div$k({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this.cleanUp = () => {
                 this._okayButton.removeEventListener("click", this._saveChanges);
                 this._cancelButton.removeEventListener("click", this._close);
@@ -39578,7 +39633,7 @@ You should be redirected to the song at:<br /><br />
             this._renderSequenceButtons = () => {
                 const container = this._sequenceButtonContainer;
                 while (this._sequenceButtons.length < this._sequences.length) {
-                    const sequenceButton = button$i({ class: "no-underline" }, (this._sequenceButtons.length + 1) + "");
+                    const sequenceButton = button$j({ class: "no-underline" }, (this._sequenceButtons.length + 1) + "");
                     this._sequenceButtons.push(sequenceButton);
                     container.insertBefore(sequenceButton, this._sequenceRemoveButton);
                 }
@@ -40221,7 +40276,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { span: span$5 } = HTML$1;
+    const { span: span$6 } = HTML$1;
     class InputBox {
         constructor(input, _doc, _getChange) {
             this.input = input;
@@ -40272,7 +40327,7 @@ You should be redirected to the song at:<br /><br />
                     this._change = null;
                 }
             };
-            this.container = (midTick) ? span$5({ class: "midTick", style: "position: sticky; width: 61.5%;" }, input) : span$5({ style: "position: sticky;" }, input);
+            this.container = (midTick) ? span$6({ class: "midTick", style: "position: sticky; width: 61.5%;" }, input) : span$6({ style: "position: sticky;" }, input);
             input.addEventListener("input", this._whenInput);
             input.addEventListener("change", this._whenChange);
         }
@@ -40364,14 +40419,14 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$h, p: p$9, div: div$i, h2: h2$h, input: input$d, select: select$a, option: option$a } = HTML$1;
+    const { button: button$i, p: p$9, div: div$j, h2: h2$i, input: input$e, select: select$a, option: option$a } = HTML$1;
     class ImportPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._fileInput = input$d({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
-            this._cancelButton = button$h({ class: "cancelButton" });
+            this._fileInput = input$e({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
+            this._cancelButton = button$i({ class: "cancelButton" });
             this._modeImportSelect = select$a({ style: "width: 100%;" }, option$a({ value: "auto" }, "Auto-detect mode (for json)"), option$a({ value: "BeepBox" }, "BeepBox"), option$a({ value: "ModBox" }, "ModBox"), option$a({ value: "JummBox" }, "JummBox"), option$a({ value: "SynthBox" }, "SynthBox"), option$a({ value: "GoldBox" }, "GoldBox"), option$a({ value: "PaandorasBox" }, "PaandorasBox"), option$a({ value: "UltraBox" }, "UltraBox"), option$a({ value: "slarmoosbox" }, "Slarmoo's Box"));
-            this.container = div$i({ class: "prompt noSelection", style: "width: 300px;" }, h2$h("Import"), p$9({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox songs can be exported and re-imported as .json files. You could also use other means to make .json files for BeepBox as long as they follow the same structure."), p$9({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox can also (crudely) import .mid files. There are many tools available for creating .mid files. Shorter and simpler songs are more likely to work well."), this._modeImportSelect, this._fileInput, this._cancelButton);
+            this.container = div$j({ class: "prompt noSelection", style: "width: 300px;" }, h2$i("Import"), p$9({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox songs can be exported and re-imported as .json files. You could also use other means to make .json files for BeepBox as long as they follow the same structure."), p$9({ style: "text-align: left; margin: 0.5em 0;" }, "BeepBox can also (crudely) import .mid files. There are many tools available for creating .mid files. Shorter and simpler songs are more likely to work well."), this._modeImportSelect, this._fileInput, this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -41293,21 +41348,21 @@ You should be redirected to the song at:<br /><br />
     }
     ChannelRow.patternHeight = 28;
 
-    const { button: button$g, label: label$2, div: div$h, form, h2: h2$g, input: input$c } = HTML$1;
+    const { button: button$h, label: label$2, div: div$i, form, h2: h2$h, input: input$d } = HTML$1;
     class LayoutPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._fileInput = input$c({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
-            this._okayButton = button$g({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._cancelButton = button$g({ class: "cancelButton" });
-            this._form = form({ style: "display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;" }, label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "small" }), SVG$1(`\
+            this._fileInput = input$d({ type: "file", accept: ".json,application/json,.mid,.midi,audio/midi,audio/x-midi" });
+            this._okayButton = button$h({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._cancelButton = button$h({ class: "cancelButton" });
+            this._form = form({ style: "display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;" }, label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "small" }), SVG$1(`\
 					<svg viewBox="-4 -1 28 22">
 						<rect x="0" y="0" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="11" height="10" fill="currentColor"/>
 						<rect x="14" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="11" height="5" fill="currentColor"/>
 					</svg>
-				`), div$h("Small")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "long" }), SVG$1(`\
+				`), div$i("Small")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="12" height="10" fill="currentColor"/>
@@ -41315,14 +41370,14 @@ You should be redirected to the song at:<br /><br />
 						<rect x="20" y="2" width="4" height="10" fill="currentColor"/>
 						<rect x="2" y="13" width="22" height="5" fill="currentColor"/>
 					</svg>
-				`), div$h("Long")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "tall" }), SVG$1(`\
+				`), div$i("Long")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "tall" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="11" y="2" width="8" height="16" fill="currentColor"/>
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="2" width="8" height="16" fill="currentColor"/>
 					</svg>
-				`), div$h("Tall")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "wide" }), SVG$1(`\
+				`), div$i("Tall")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "wide" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="4" height="16" fill="currentColor"/>
@@ -41330,7 +41385,7 @@ You should be redirected to the song at:<br /><br />
 						<rect x="21.5" y="2" width="2.5" height="16" fill="currentColor"/>
 						<rect x="7" y="2" width="10" height="16" fill="currentColor"/>
 					</svg>
-				`), div$h("Wide (JB)")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "wide long" }), SVG$1(`\
+				`), div$i("Wide (JB)")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "wide long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="12" height="10" fill="currentColor"/>
@@ -41338,7 +41393,7 @@ You should be redirected to the song at:<br /><br />
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="12" height="5" fill="currentColor"/>
 					</svg>
-				`), div$h("Wide Long (AB)")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "flipped long" }), SVG$1(`\
+				`), div$i("Wide Long (AB)")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "flipped long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="22" height="2" fill="currentColor"/>
@@ -41346,15 +41401,15 @@ You should be redirected to the song at:<br /><br />
 						<rect x="7" y="5" width="17" height="8" fill="currentColor"/>
 						<rect x="2" y="14" width="22" height="4" fill="currentColor"/>
 					</svg>
-				`), div$h("Flipped Long (AB)")), label$2({ class: "layout-option" }, input$c({ type: "radio", name: "layout", value: "focused long" }), SVG$1(`\
+				`), div$i("Flipped Long (AB)")), label$2({ class: "layout-option" }, input$d({ type: "radio", name: "layout", value: "focused long" }), SVG$1(`\
 					<svg viewBox="-1 -1 28 22">
 						<rect x="0" y="0" width="26" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
 						<rect x="2" y="2" width="17" height="10" fill="currentColor"/>
 						<rect x="20" y="2" width="4" height="16" fill="currentColor"/>
 						<rect x="2" y="13" width="17" height="5" fill="currentColor"/>
 					</svg>
-				`), div$h("Focused long (AB)")));
-            this.container = div$h({ class: "prompt noSelection", style: "width: 300px;" }, h2$g("Layout"), this._form, div$h({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+				`), div$i("Focused long (AB)")));
+            this.container = div$i({ class: "prompt noSelection", style: "width: 300px;" }, h2$h("Layout"), this._form, div$i({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -41819,16 +41874,16 @@ You should be redirected to the song at:<br /><br />
                 const waveformWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("lfoEnvelopeWaveform") }, "Waveform: "), waveformSelect);
                 const extraLFOSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, waveformWrapper, LFOStepsWrapper);
                 extraLFOSettingsGroup.style.display = "none";
-                const sequenceSelect = HTML$1.select({ style: "width: 115px;" });
+                const sequenceSelect = HTML$1.select({ style: "width: 80px; font-size: smaller;" });
                 for (let sequence = 0; sequence < this._doc.song.sequences.length; sequence++) {
                     sequenceSelect.appendChild(HTML$1.option({ value: sequence }, "sequence " + (sequence + 1)));
                 }
                 if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
                     sequenceSelect.appendChild(HTML$1.option({ value: this._doc.song.sequences.length }, "new sequence"));
                 }
+                const editSequenceButton = HTML$1.button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit");
                 const SequenceWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
-                const editSequenceButton = HTML$1.button({ style: "margin-top: 3px; height: 26px;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit Sequence");
-                const extraSequenceSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
+                const extraSequenceSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
                 const perEnvelopeSpeedSlider = new Slider(HTML$1.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed, newSpeed) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);
                 const perEnvelopeSpeedDisplay = HTML$1.span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(EnvelopeEditor.convertIndexSpeed(perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
                 const perEnvelopeSpeedWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, perEnvelopeSpeedDisplay, perEnvelopeSpeedSlider.container);
@@ -42111,7 +42166,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$f, div: div$g, h2: h2$f, input: input$b } = HTML$1;
+    const { button: button$g, div: div$h, h2: h2$g, input: input$c } = HTML$1;
     class LimiterCanvas {
         constructor(lim) {
             this._editorWidth = 200;
@@ -42234,22 +42289,22 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._songEditor = _songEditor;
             this.limiterCanvas = new LimiterCanvas(this);
-            this._playButton = button$f({ style: "width: 55%;", type: "button" });
-            this.limitDecaySlider = input$b({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
-            this.limitRiseSlider = input$b({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
-            this.compressionThresholdSlider = input$b({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
-            this.limitThresholdSlider = input$b({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
-            this.compressionRatioSlider = input$b({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.limitRatioSlider = input$b({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.masterGainSlider = input$b({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
+            this._playButton = button$g({ style: "width: 55%;", type: "button" });
+            this.limitDecaySlider = input$c({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
+            this.limitRiseSlider = input$c({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
+            this.compressionThresholdSlider = input$c({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
+            this.limitThresholdSlider = input$c({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
+            this.compressionRatioSlider = input$c({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.limitRatioSlider = input$c({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.masterGainSlider = input$c({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
             this.inVolumeHistoricTimer = 0.0;
             this.inVolumeHistoricCap = 0.0;
             this.outVolumeHistoricTimer = 0.0;
             this.outVolumeHistoricCap = 0.0;
-            this._cancelButton = button$f({ class: "cancelButton" });
-            this._okayButton = button$f({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._resetButton = button$f({ style: "width:45%;" }, "Reset");
-            this.container = div$g({ class: "prompt noSelection", style: "width: 250px;" }, h2$f("Limiter Options"), div$g({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$g({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$g({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$g({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$g({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$g({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$g({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$g({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$g({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
+            this._cancelButton = button$g({ class: "cancelButton" });
+            this._okayButton = button$g({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._resetButton = button$g({ style: "width:45%;" }, "Reset");
+            this.container = div$h({ class: "prompt noSelection", style: "width: 250px;" }, h2$g("Limiter Options"), div$h({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$h({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$h({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$h({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$h({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$h({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$h({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$h({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
             this._volumeUpdate = () => {
                 this.inVolumeHistoricTimer--;
                 if (this.inVolumeHistoricTimer <= 0) {
@@ -42392,15 +42447,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$e, div: div$f, h2: h2$e, input: input$a, p: p$8 } = HTML$1;
+    const { button: button$f, div: div$g, h2: h2$f, input: input$b, p: p$8 } = HTML$1;
     class CustomScalePrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._flags = [];
             this._scaleFlags = [];
             this._scaleRows = [];
-            this._cancelButton = button$e({ class: "cancelButton" });
-            this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._cancelButton = button$f({ class: "cancelButton" });
+            this._okayButton = button$f({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._close = () => {
                 this._doc.undo();
             };
@@ -42422,15 +42477,15 @@ You should be redirected to the song at:<br /><br />
                 this._doc.record(new ChangeCustomScale(this._doc, this._flags));
             };
             this._flags = _doc.song.scaleCustom.slice();
-            let scaleHolder = div$f({});
+            let scaleHolder = div$g({});
             for (var i = 1; i < Config.pitchesPerOctave; i++) {
-                this._scaleFlags[i] = input$a({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
-                this._scaleRows[i] = div$f({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
+                this._scaleFlags[i] = input$b({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
+                this._scaleRows[i] = div$g({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
                 scaleHolder.appendChild(this._scaleRows[i]);
             }
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
-            this.container = div$f({ class: "prompt noSelection", style: "width: 250px;" }, h2$e("Custom Scale"), p$8("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$f({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$g({ class: "prompt noSelection", style: "width: 250px;" }, h2$f("Custom Scale"), p$8("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$g({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$g({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this.container.addEventListener("keydown", this.whenKeyPressed);
         }
     }
@@ -42742,15 +42797,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$d, div: div$e, span: span$4, h2: h2$d, input: input$9, br: br$1, select: select$9, option: option$9 } = HTML$1;
+    const { button: button$e, div: div$f, span: span$5, h2: h2$e, input: input$a, br: br$1, select: select$9, option: option$9 } = HTML$1;
     class MoveNotesSidewaysPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._beatsStepper = input$9({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
+            this._beatsStepper = input$a({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
             this._conversionStrategySelect = select$9({ style: "width: 100%;" }, option$9({ value: "overflow" }, "Overflow notes across bars."), option$9({ value: "wrapAround" }, "Wrap notes around within bars."));
-            this._cancelButton = button$d({ class: "cancelButton" });
-            this._okayButton = button$d({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$e({ class: "prompt noSelection", style: "width: 250px;" }, h2$d("Move Notes Sideways"), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: "text-align: right;" }, "Beats to move:", br$1(), span$4({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._cancelButton = button$e({ class: "cancelButton" });
+            this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.container = div$f({ class: "prompt noSelection", style: "width: 250px;" }, h2$e("Move Notes Sideways"), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: "text-align: right;" }, "Beats to move:", br$1(), span$5({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -46473,13 +46528,13 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { div: div$d, input: input$8, h2: h2$c, p: p$7, a: a$3 } = HTML;
+    const { div: div$e, input: input$9, h2: h2$d, p: p$7, a: a$3 } = HTML;
     class PluginPrompt {
         constructor(_doc) {
-            this.urlInput = input$8({ style: "margin-left: 1em; margin-right: 1em; " });
+            this.urlInput = input$9({ style: "margin-left: 1em; margin-right: 1em; " });
             this._cancelButton = HTML.button({ class: "cancelButton" });
             this._okayButton = HTML.button({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$d({ class: "prompt noSelection", style: "width: 400px;" }, h2$c("Import Custom Effect Plugin"), p$7("Plugins are custom effects that you can import into your song like samples! They are constructed by the community."), p$7("Just paste the url to the plugin in the box below. "), p$7("You can find a guide on how to create a custom plugin, along with some basic plugin examples at ", a$3({ href: "https://slarmoo.github.io/beepboxplugins/", target: "_blank" }, "https://slarmoo.github.io/beepboxplugins/"), "."), this.urlInput, div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$e({ class: "prompt noSelection", style: "width: 400px;" }, h2$d("Import Custom Effect Plugin"), p$7("Plugins are custom effects that you can import into your song like samples! They are constructed by the community."), p$7("Just paste the url to the plugin in the box below. "), p$7("You can find a guide on how to create a custom plugin, along with some basic plugin examples at ", a$3({ href: "https://slarmoo.github.io/beepboxplugins/", target: "_blank" }, "https://slarmoo.github.io/beepboxplugins/"), "."), this.urlInput, div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._saveChanges = () => {
                 this._doc.prompt = null;
                 this._doc.record(new ChangePluginurl(this._doc, this.urlInput.value), true);
@@ -46502,6 +46557,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
+    const { div: div$d, input: input$8, button: button$d, span: span$4, h2: h2$c, canvas: canvas$2 } = HTML$1;
     class SequenceEditor {
         constructor(_doc, sequenceIndex) {
             this._doc = _doc;
@@ -46511,9 +46567,9 @@ You should be redirected to the song at:<br /><br />
             this._mouseX = 0;
             this._mouseY = 0;
             this._mouseDown = false;
-            this.canvasHeight = 104;
-            this.canvasWidth = 256;
-            this.canvas = HTML$1.canvas({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" });
+            this.canvasHeight = 156;
+            this.canvasWidth = 384;
+            this.canvas = canvas$2({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" });
             this.renderedColor = "";
             this.storeChange = () => {
                 var sameCheck = true;
@@ -46548,6 +46604,7 @@ You should be redirected to the song at:<br /><br />
                     if (this._mouseY > this.canvasHeight - 2)
                         this._mouseY = this.canvasHeight;
                     this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
+                    new ChangeSequenceValues(this._doc, this.sequenceIndex, this.sequence.values);
                     this.redrawCanvas();
                 }
             };
@@ -46584,11 +46641,12 @@ You should be redirected to the song at:<br /><br />
                 this.sequenceIndex = 0;
             if (this.sequenceIndex >= this._doc.song.sequences.length) {
                 this.sequence = new SequenceSettings();
-                this._doc.song.sequences[this.sequenceIndex] = this.sequence.copy();
+                new ChangeAddNewSequence(this._doc, sequenceIndex);
             }
             else {
                 this.sequence = this._doc.song.sequences[this.sequenceIndex].copy();
             }
+            this.originalSequence = this.sequence.copy();
             this.canvas.addEventListener("mousemove", this._onMouseMove);
             this.canvas.addEventListener("mousedown", this._onMouseDown);
             this.canvas.addEventListener("mouseup", this._whenCursorReleased);
@@ -46615,14 +46673,34 @@ You should be redirected to the song at:<br /><br />
             var ctx = this.canvas.getContext("2d");
             ctx.fillStyle = ColorConfig.getComputed("--editor-background");
             ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+            ctx.fillStyle = renderColor;
+            if (this.sequence.interpolated) {
+                for (let i = 0; i < this.sequence.length; i++) {
+                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
+                    const h2 = i + 1 == this.sequence.length ? !this.sequence.looped ? h : this.sequence.values[0] / this.sequence.height * this.canvasHeight : this.sequence.values[i + 1] / this.sequence.height * this.canvasHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight);
+                    ctx.lineTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h);
+                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight - h2);
+                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            else {
+                for (let i = 0; i < this.sequence.length; i++) {
+                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
+                    ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h, this.canvasWidth / this.sequence.length, h);
+                }
+            }
+            ctx.fillStyle = ColorConfig.getComputed("--editor-background");
+            for (let i = 0; i < this.sequence.height; i++) {
+                const h = i / this.sequence.height * this.canvasHeight;
+                ctx.fillRect(0, h, this.canvasWidth, 1);
+            }
             ctx.fillStyle = ColorConfig.getComputed("--ui-widget-background");
             for (let i = 0; i < this.sequence.length; i++) {
                 ctx.fillRect(i * this.canvasWidth / this.sequence.length, 0, 1, this.canvasHeight);
-            }
-            ctx.fillStyle = renderColor;
-            for (let i = 0; i < this.sequence.length; i++) {
-                const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
-                ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h, this.canvasWidth / this.sequence.length, h);
             }
         }
     }
@@ -46633,25 +46711,28 @@ You should be redirected to the song at:<br /><br />
             this.sequenceIndex = sequenceIndex;
             this.forEnvelope = forEnvelope;
             this._sequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex);
-            this._sequenceHeight = HTML$1.input({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
-            this._sequenceLength = HTML$1.input({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
-            this._cancelButton = HTML$1.button({ class: "cancelButton" });
-            this._okayButton = HTML$1.button({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.copyButton = HTML$1.button({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+            this._sequenceHeight = input$8({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
+            this._sequenceLength = input$8({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
+            this._sequenceInterpolates = input$8({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceInterpolatesCheckbox" });
+            this._sequenceLoops = input$8({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceLoopsCheckbox" });
+            this._cancelButton = button$d({ class: "cancelButton" });
+            this._okayButton = button$d({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._playButton = button$d({ style: "width: 55%;", type: "button" });
+            this.copyButton = button$d({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
                 "Copy",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
                     SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
                 ]),
             ]);
-            this.pasteButton = HTML$1.button({ style: "width:86px;", class: "pasteButton" }, [
+            this.pasteButton = button$d({ style: "width:86px;", class: "pasteButton" }, [
                 "Paste",
                 SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
                     SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
                     SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
                 ]),
             ]);
-            this.copyPasteContainer = HTML$1.div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = HTML$1.div({ class: "prompt noSelection", style: "width: 500px;" }, HTML$1.h2("Edit Sequence Instrument"), HTML$1.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 200px" }, this._sequenceEditor.canvas), HTML$1.div({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, HTML$1.div({ style: "display: flex; flex-direction: row; justify-content: center;" }, HTML$1.span("Height: "), this._sequenceHeight), HTML$1.div({ style: "display: flex; flex-direction: row; justify-content: center;" }, HTML$1.span("Length: "), this._sequenceLength)), HTML$1.div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this.copyPasteContainer = div$d({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = div$d({ class: "prompt noSelection", style: "width: 500px;" }, h2$c("Edit Sequence Instrument"), div$d({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$d({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 200px" }, this._sequenceEditor.canvas), div$d({ style: "display: flex; flex-direction: row; justify-content: center;" }, div$d({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Height: "), this._sequenceHeight), div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Length: "), this._sequenceLength)), div$d({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Interpolates: "), this._sequenceInterpolates), div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Loops: "), this._sequenceLoops))), div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
             this._updateHeight = () => {
                 new ChangeSequenceHeight(this._doc, this.sequenceIndex, parseInt(this._sequenceHeight.value));
                 this._sequenceEditor.sequence.height = parseInt(this._sequenceHeight.value);
@@ -46662,17 +46743,33 @@ You should be redirected to the song at:<br /><br />
                 this._sequenceEditor.sequence.length = parseInt(this._sequenceLength.value);
                 this._sequenceEditor.redrawCanvas();
             };
+            this._updateBooleans = () => {
+                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
+                this._sequenceEditor.sequence.interpolated = this._sequenceInterpolates.checked;
+                this._sequenceEditor.sequence.looped = this._sequenceLoops.checked;
+                this._sequenceEditor.redrawCanvas();
+            };
+            this._togglePlay = () => {
+                this._editor.togglePlay();
+                this.updatePlayButton();
+            };
             this._close = () => {
                 this._doc.prompt = null;
                 this._doc.undo();
-                const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-                if (!this.forEnvelope == undefined)
-                    instrument.envelopes[this.forEnvelope].waveform = 0;
+                new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
+                this._sequenceEditor.sequence = this._sequenceEditor.originalSequence;
+                new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
+                new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
+                new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
+                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.interpolated, this._sequenceEditor.sequence.looped);
             };
             this.cleanUp = () => {
                 this._okayButton.removeEventListener("click", this._saveChanges);
                 this._cancelButton.removeEventListener("click", this._close);
                 this.container.removeEventListener("keydown", this.whenKeyPressed);
+                this._playButton.removeEventListener("click", this._togglePlay);
+                this._sequenceInterpolates.removeEventListener("change", this._updateBooleans);
+                this._sequenceLoops.removeEventListener("change", this._updateBooleans);
             };
             this._copySettings = () => {
                 window.localStorage.setItem("sequenceCopy", JSON.stringify(this._sequenceEditor.sequence.toJsonObject()));
@@ -46680,11 +46777,21 @@ You should be redirected to the song at:<br /><br />
             this._pasteSettings = () => {
                 const storedSequenceWave = JSON.parse(String(window.localStorage.getItem("sequenceCopy")));
                 this._sequenceEditor.sequence.fromJsonObject(storedSequenceWave, Config.jsonFormat);
+                this._sequenceHeight.value = this._sequenceEditor.sequence.height + "";
+                this._sequenceLength.value = this._sequenceEditor.sequence.length + "";
+                new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
+                new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
+                new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
+                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
                 this._sequenceEditor.redrawCanvas();
             };
             this.whenKeyPressed = (event) => {
                 if (event.target.tagName != "BUTTON" && event.keyCode == 13) {
                     this._saveChanges();
+                }
+                else if (event.keyCode == 32) {
+                    this._togglePlay();
+                    event.preventDefault();
                 }
                 else if (event.keyCode == 90) {
                     this._sequenceEditor.undo();
@@ -46694,13 +46801,20 @@ You should be redirected to the song at:<br /><br />
                     this._sequenceEditor.redo();
                     event.stopPropagation();
                 }
+                else if (event.keyCode == 219) {
+                    this._doc.synth.goToPrevBar();
+                }
+                else if (event.keyCode == 221) {
+                    this._doc.synth.goToNextBar();
+                }
             };
             this._saveChanges = () => {
                 const group = new ChangeGroup();
                 group.append(new ChangeAddNewSequence(this._doc, this.sequenceIndex));
                 group.append(new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height));
                 group.append(new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length));
-                group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values));
+                group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values, true));
+                group.append(new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked));
                 if (this.forEnvelope !== undefined)
                     group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
                 this._doc.record(group, true);
@@ -46709,13 +46823,37 @@ You should be redirected to the song at:<br /><br />
             };
             if (!this.sequenceIndex)
                 this.sequenceIndex = 0;
+            const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+            this._oldWaveform = instrument.envelopes[this.forEnvelope].waveform;
+            new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
+            this._sequenceInterpolates.checked = this._sequenceEditor.sequence.interpolated;
+            this._sequenceLoops.checked = this._sequenceEditor.sequence.looped;
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
             this.container.addEventListener("keydown", this.whenKeyPressed);
             this.copyButton.addEventListener("click", this._copySettings);
             this.pasteButton.addEventListener("click", this._pasteSettings);
+            this._playButton.addEventListener("click", this._togglePlay);
             this._sequenceHeight.addEventListener("change", this._updateHeight);
             this._sequenceLength.addEventListener("change", this._updateLength);
+            this._sequenceInterpolates.addEventListener("change", this._updateBooleans);
+            this._sequenceLoops.addEventListener("change", this._updateBooleans);
+            this.updatePlayButton();
+            setTimeout(() => this._playButton.focus());
+        }
+        updatePlayButton() {
+            if (this._doc.synth.playing) {
+                this._playButton.classList.remove("playButton");
+                this._playButton.classList.add("pauseButton");
+                this._playButton.title = "Pause (Space)";
+                this._playButton.innerText = "Pause";
+            }
+            else {
+                this._playButton.classList.remove("pauseButton");
+                this._playButton.classList.add("playButton");
+                this._playButton.title = "Play (Space)";
+                this._playButton.innerText = "Play";
+            }
         }
     }
 
@@ -51044,6 +51182,7 @@ You should be redirected to the song at:<br /><br />
                     this.mainLayer.focus({ preventScroll: true });
             };
             this.whenUpdated = () => {
+                var _a;
                 const prefs = this.doc.prefs;
                 this._muteEditor.container.style.display = prefs.enableChannelMuting ? "" : "none";
                 const trackBounds = this._trackVisibleArea.getBoundingClientRect();
@@ -52337,7 +52476,7 @@ You should be redirected to the song at:<br /><br />
                 if (wasActive && activeElement != null && activeElement.clientWidth == 0) {
                     this.refocusStage();
                 }
-                this._setPrompt(this.doc.prompt);
+                this._setPrompt(this.doc.prompt && this.doc.prompt.prompt, (_a = this.doc.prompt) === null || _a === void 0 ? void 0 : _a.extraSettings);
                 if (prefs.autoFollow && !this.doc.synth.playing) {
                     this.doc.synth.goToBar(this.doc.bar);
                 }
@@ -54422,7 +54561,7 @@ You should be redirected to the song at:<br /><br />
             }
         }
         _openPrompt(promptName, extraSettings = {}) {
-            this.doc.openPrompt(promptName);
+            this.doc.openPrompt(promptName, extraSettings);
             this._setPrompt(promptName, extraSettings);
         }
         _setPrompt(promptName, extraSettings = {}) {
@@ -54541,7 +54680,7 @@ You should be redirected to the song at:<br /><br />
                         break;
                 }
                 if (this.prompt) {
-                    if (!(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt)) {
+                    if (!(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt || this.prompt instanceof SequenceEditorPrompt)) {
                         this._wasPlaying = this.doc.synth.playing;
                         this.doc.performance.pause();
                     }
