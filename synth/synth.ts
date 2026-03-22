@@ -951,7 +951,9 @@ class EnvelopeComputer {
             }
             case EnvelopeType.sequence: {
                 if (sequence == null) return 0;
-                const beat: number = Math.floor(envelopeSpeed * beats);
+                const t: number = sequence.looped ? beats : time;
+                const beat: number = Math.floor(envelopeSpeed * t);
+                const frac: number = envelopeSpeed * t - beat;
                 if (!sequence.looped && beat + 1 > sequence.length - 1) {
                     const unloopVal: number = sequence.values[sequence.length - 1] / sequence.height;
                     if (inverse) {
@@ -962,7 +964,6 @@ class EnvelopeComputer {
                 }
                 const preValue: number = sequence.values[beat % sequence.length] / sequence.height;
                 const postValue: number = sequence.values[(beat + 1) % sequence.length] / sequence.height; 
-                const frac: number = envelopeSpeed * beats - beat;
                 const value: number = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
                 if (inverse) {
                     return perEnvelopeUpperBound - boundAdjust * value;

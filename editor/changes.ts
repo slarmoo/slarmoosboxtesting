@@ -617,7 +617,7 @@ export class ChangeCustomWave extends Change {
 
             instrument.customChipWaveIntegral[64] = 0.0;
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+            doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -718,7 +718,7 @@ export class ChangePreset extends Change {
                     const tempPan: number = instrument.pan;
                     const tempPanDelay = instrument.panDelay;
                     //const usesPanning: boolean = effectsIncludePanning(instrument.effects);
-                    instrument.fromJsonObject(preset.settings, doc.song.getChannelIsNoise(doc.channel), doc.song.getChannelIsMod(doc.channel), doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2);
+                    instrument.fromJsonObject(preset.settings, doc.song.getChannelIsNoise(doc.channel), doc.song.getChannelIsMod(doc.channel), doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2, doc.song.sequences);
                     instrument.volume = tempVolume;
                     instrument.pan = tempPan;
                     instrument.panDelay = tempPanDelay;
@@ -729,7 +729,7 @@ export class ChangePreset extends Change {
                 }
             }
             instrument.preset = newValue;
-            doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+            doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -1860,7 +1860,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
             }
         }
 
-        doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+        doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
         doc.notifier.changed();
         this._didSomething();
     }
@@ -2157,7 +2157,7 @@ export class ChangeChannelCount extends Change {
                             if (!isMod) {
                                 const presetValue: number = pickRandomPresetValue(isNoise);
                                 const preset: Preset = EditorConfig.valueToPreset(presetValue)!;
-                                instrument.fromJsonObject(preset.settings, isNoise, isMod, doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2);
+                                instrument.fromJsonObject(preset.settings, isNoise, isMod, doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2, doc.song.sequences);
                                 instrument.preset = presetValue;
                                 instrument.effects |= 1 << EffectType.panning;
                             } else {
@@ -3043,6 +3043,19 @@ export class ChangeSequenceBooleans extends Change {
     }
 }
 
+export class ChangeUpdateSequence extends ChangeGroup {
+    constructor(doc: SongDocument, sequenceIndex: number, sequence: SequenceSettings) {
+        super();
+        this.append(new ChangeSequenceHeight(doc, sequenceIndex, sequence.height));
+        this.append(new ChangeSequenceLength(doc, sequenceIndex, sequence.length));
+        this.append(new ChangeSequenceValues(doc, sequenceIndex, sequence.values, true));
+        this.append(new ChangeSequenceBooleans(doc, sequenceIndex, sequence.interpolated, sequence.looped));
+
+        this._didSomething();
+        doc.notifier.changed();
+    }
+}
+
 export class ChangePluginSliderValue extends ChangeInstrumentSlider {
     constructor(doc: SongDocument, oldValue: number, newValue: number, index: number) {
         super(doc);
@@ -3724,12 +3737,12 @@ export class ChangeAddChannelInstrument extends Change {
         const presetValue: number = pickRandomPresetValue(isNoise);
         const preset: Preset = EditorConfig.valueToPreset(presetValue)!;
         const instrument: Instrument = new Instrument(isNoise, isMod);
-        instrument.fromJsonObject(preset.settings, isNoise, isMod, false, false, 1);
+        instrument.fromJsonObject(preset.settings, isNoise, isMod, false, false, doc.song.sequences, 1);
         instrument.preset = presetValue;
         instrument.effects |= 1 << EffectType.panning;
         instrument.volume = 0;
         channel.instruments.push(instrument);
-        doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateChannel, doc.channel, 0, ChannelSettings.newInstrument);
+        doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateChannel, doc.channel, 0, ChannelSettings.newInstrument);
         
         if (!isMod) { // Mod channels lose information when changing set instrument
             doc.viewedInstrument[doc.channel] = channel.instruments.length - 1;
@@ -4009,7 +4022,7 @@ export class ChangePaste extends ChangeGroup {
 export class ChangePasteInstrument extends ChangeGroup {
     constructor(doc: SongDocument, instrument: Instrument, instrumentCopy: any) {
         super();
-        instrument.fromJsonObject(instrumentCopy, instrumentCopy["isDrum"], instrumentCopy["isMod"], false, false);
+        instrument.fromJsonObject(instrumentCopy, instrumentCopy["isDrum"], instrumentCopy["isMod"], false, false, doc.song.sequences);
         doc.synth.updateSong(instrumentCopy, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
         doc.notifier.changed();
         this._didSomething();
@@ -4020,7 +4033,7 @@ export class ChangeAppendInstrument extends ChangeGroup {
     constructor(doc: SongDocument, channel: Channel, instrument: any) {
         super();
         let newInstrument: Instrument = new Instrument(instrument["isDrum"], instrument["isMod"])
-        newInstrument.fromJsonObject(instrument, instrument["isDrum"], instrument["isMod"], false, false);
+        newInstrument.fromJsonObject(instrument, instrument["isDrum"], instrument["isMod"], false, false, doc.song.sequences);
         channel.instruments.push(newInstrument);
         doc.synth.updateSong(instrument, SongSettings.updateInstrument, doc.channel, doc.song.channels[doc.channel].instruments.length, InstrumentSettings.fromJson);
         this._didSomething();
@@ -4726,7 +4739,7 @@ export function setDefaultInstruments(song: Song): void {
             const isMod: boolean = song.getChannelIsMod(channelIndex);
             const presetValue: number = (channelIndex == song.pitchChannelCount) ? EditorConfig.nameToPresetValue(Math.random() > 0.5 ? "chip noise" : "standard drumset")! : pickRandomPresetValue(isNoise);
             const preset: Preset = EditorConfig.valueToPreset(presetValue)!;
-            instrument.fromJsonObject(preset.settings, isNoise, isMod, song.rhythm == 0 || song.rhythm == 2, song.rhythm >= 2, 1);
+            instrument.fromJsonObject(preset.settings, isNoise, isMod, song.rhythm == 0 || song.rhythm == 2, song.rhythm >= 2, song.sequences, 1);
             instrument.preset = presetValue;
             instrument.effects |= 1 << EffectType.panning;
         }

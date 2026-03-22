@@ -4,13 +4,13 @@ import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { SongDocument } from "./SongDocument"
 import { ChangeGroup } from "./Change";
 import { SequenceSettings } from "../synth/synthMessenger";
-import { ChangeAddNewSequence, ChangeSequenceBooleans, ChangeSequenceHeight, ChangeSequenceLength, ChangeSequenceValues, ChangeSetEnvelopeWaveform } from "./changes";
+import { ChangeAddNewSequence, ChangeSequenceBooleans, ChangeSequenceHeight, ChangeSequenceLength, ChangeSequenceValues, ChangeSetEnvelopeWaveform, ChangeUpdateSequence } from "./changes";
 import { ColorConfig } from "./ColorConfig";
 import { SongEditor } from "./SongEditor";
 
 const { div, input, button, span, h2, canvas } = HTML;
 
-class SequenceEditor {
+export class SequenceEditor {
     public sequence: SequenceSettings;
     public originalSequence: SequenceSettings;
 
@@ -24,12 +24,15 @@ class SequenceEditor {
     private canvasHeight: number = 156;
     private canvasWidth: number = 384;
 
-    public canvas: HTMLCanvasElement = canvas({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" });
+    public canvas: HTMLCanvasElement;
     private renderedColor: string = "";
 
     
 
-    constructor(private _doc: SongDocument, private sequenceIndex: number) {
+    constructor(private _doc: SongDocument, private sequenceIndex: number, interactable: boolean, scale: number = 3) {
+        this.canvasHeight = 52 * scale;
+        this.canvasWidth = 128 * scale;
+        this.canvas = canvas({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customSequenceDrawCanvas" });
         if (!this.sequenceIndex) this.sequenceIndex = 0;
         if (this.sequenceIndex >= this._doc.song.sequences.length) {
             this.sequence = new SequenceSettings();
@@ -39,15 +42,17 @@ class SequenceEditor {
         }
         this.originalSequence = this.sequence.copy();
 
-        this.canvas.addEventListener("mousemove", this._onMouseMove);
-        this.canvas.addEventListener("mousedown", this._onMouseDown);
-        this.canvas.addEventListener("mouseup", this._whenCursorReleased);
-        // this.canvas.addEventListener("mouseleave", this._whenCursorReleased);
+        if (interactable) {
+            this.canvas.addEventListener("mousemove", this._onMouseMove);
+            this.canvas.addEventListener("mousedown", this._onMouseDown);
+            this.canvas.addEventListener("mouseup", this._whenCursorReleased);
+            // this.canvas.addEventListener("mouseleave", this._whenCursorReleased);
 
-        this.canvas.addEventListener("touchstart", this._whenTouchPressed);
-        this.canvas.addEventListener("touchmove", this._whenTouchMoved);
-        this.canvas.addEventListener("touchend", this._whenCursorReleased);
-        this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
+            this.canvas.addEventListener("touchstart", this._whenTouchPressed);
+            this.canvas.addEventListener("touchmove", this._whenTouchMoved);
+            this.canvas.addEventListener("touchend", this._whenCursorReleased);
+            this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
+        }
 
         this.redrawCanvas();
     }
@@ -201,7 +206,7 @@ class SequenceEditor {
 }
 
 export class SequenceEditorPrompt implements Prompt {
-    private readonly _sequenceEditor: SequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex);
+    private readonly _sequenceEditor: SequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex, true);
 
     private readonly _sequenceHeight: HTMLInputElement = input({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
     private readonly _sequenceLength: HTMLInputElement = input({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
@@ -319,10 +324,7 @@ export class SequenceEditorPrompt implements Prompt {
         this._doc.undo();
         new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
         this._sequenceEditor.sequence = this._sequenceEditor.originalSequence;
-        new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
-        new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
-        new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
-        new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.interpolated, this._sequenceEditor.sequence.looped);
+        new ChangeUpdateSequence(this._doc, this.sequenceIndex, this._sequenceEditor.sequence);
     }
 
     public cleanUp = (): void => {
@@ -343,10 +345,7 @@ export class SequenceEditorPrompt implements Prompt {
         this._sequenceEditor.sequence.fromJsonObject(storedSequenceWave, Config.jsonFormat);
         this._sequenceHeight.value = this._sequenceEditor.sequence.height + "";
         this._sequenceLength.value = this._sequenceEditor.sequence.length + "";
-        new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
-        new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
-        new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
-        new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
+        new ChangeUpdateSequence(this._doc, this.sequenceIndex, this._sequenceEditor.sequence);
         this._sequenceEditor.redrawCanvas();
     }
 
@@ -359,7 +358,7 @@ export class SequenceEditorPrompt implements Prompt {
         } else if (event.keyCode == 90) { // z
             this._sequenceEditor.undo();
             event.stopPropagation();
-        } else if (event.keyCode == 89) { // this._mouseY
+        } else if (event.keyCode == 89) { // y
             this._sequenceEditor.redo();
             event.stopPropagation();
         } else if (event.keyCode == 219) { // [

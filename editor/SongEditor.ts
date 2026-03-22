@@ -4181,7 +4181,7 @@ export class SongEditor {
                 if (needControlForShortcuts == (event.ctrlKey || event.metaKey) && event.shiftKey) {
                     // Copy the current instrument as a preset to the clipboard.
                     const instrument: Instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
-                    const instrumentObject: any = instrument.toJsonObject();
+                    const instrumentObject: any = instrument.toJsonObject(this.doc.song.sequences);
                     delete instrumentObject["preset"];
                     // Volume and the panning effect are not included in presets.
                     delete instrumentObject["volume"];
@@ -4567,7 +4567,7 @@ export class SongEditor {
     private _copyInstrument = (): void => {
         const channel: Channel = this.doc.song.channels[this.doc.channel];
         const instrument: Instrument = channel.instruments[this.doc.getCurrentInstrument()];
-        const instrumentCopy: any = instrument.toJsonObject();
+        const instrumentCopy: any = instrument.toJsonObject(this.doc.song.sequences);
         instrumentCopy["isDrum"] = this.doc.song.getChannelIsNoise(this.doc.channel);
         instrumentCopy["isMod"] = this.doc.song.getChannelIsMod(this.doc.channel);
         window.localStorage.setItem("instrumentCopy", JSON.stringify(instrumentCopy));

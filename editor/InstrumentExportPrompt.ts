@@ -55,7 +55,7 @@ export class InstrumentExportPrompt implements Prompt {
     public _export_multiple = (): void => {
         const channel: Channel = this._doc.song.channels[this._doc.channel];
         const instruments: Instrument[] = channel.instruments.map((instrument) => {
-            const instrumentCopy: any = instrument.toJsonObject();
+            const instrumentCopy: any = instrument.toJsonObject(this._doc.song.sequences);
             instrumentCopy["isDrum"] = this._doc.song.getChannelIsNoise(this._doc.channel);
             return instrumentCopy;
         });
@@ -74,7 +74,7 @@ export class InstrumentExportPrompt implements Prompt {
     public _export_single = (): void => {
         const channel: Channel = this._doc.song.channels[this._doc.channel];
         const instrument: Instrument = channel.instruments[this._doc.getCurrentInstrument()];
-        const instrumentCopy: any = instrument.toJsonObject();
+        const instrumentCopy: any = instrument.toJsonObject(this._doc.song.sequences);
         instrumentCopy["isDrum"] = this._doc.song.getChannelIsNoise(this._doc.channel);
 
         const jsonBlob = new Blob([JSON.stringify(instrumentCopy)], { type: 'application/json' });

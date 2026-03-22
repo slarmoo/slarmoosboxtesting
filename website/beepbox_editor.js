@@ -2113,6 +2113,8 @@ var beepbox = (function (exports) {
                 { name: "discovery square", midiProgram: 80, settings: { "type": "chip", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.3536 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 8000, "linearGain": 0.3536 }], "effects": ["bitcrusher"], "bitcrusherOctave": 5.5, "bitcrusherQuantization": 57, "fadeInSeconds": 0, "fadeOutTicks": -3, "wave": "square", "unison": "octave", "isUsingAdvancedLoopControls": false, "chipWaveLoopStart": 0, "chipWaveLoopEnd": 2, "chipWaveLoopMode": 0, "chipWavePlayBackwards": false, "chipWaveStartOffset": 0, "envelopes": [], "isDrum": false } },
                 { name: "VRC6 Sawtooth alt", midiProgram: 81, settings: { "type": "custom chip", "volume": 0, "eqFilter": [{ "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.5 }], "effects": ["transition type", "chord type", "pitch shift", "detune", "vibrato", "distortion"], "transition": "interrupt", "clicklessTransition": false, "chord": "arpeggio", "fastTwoNoteArp": true, "arpeggioSpeed": 12, "pitchShiftSemitones": 12, "detuneCents": 0, "vibrato": "none", "vibratoDepth": 0, "vibratoDelay": 0, "vibratoSpeed": 10, "vibratoType": 0, "distortion": 0, "aliases": false, "fadeInSeconds": 0, "fadeOutTicks": -1, "wave": "square", "unison": "none", "customChipWave": { "0": -1, "1": -1, "2": -1, "3": -1, "4": -1, "5": -1, "6": -1, "7": -1, "8": -1, "9": -5, "10": -5, "11": -5, "12": -4, "13": -4, "14": -4, "15": -3, "16": -3, "17": -3, "18": -7, "19": -7, "20": -6, "21": -6, "22": -5, "23": -5, "24": -4, "25": -4, "26": -4, "27": -7, "28": -7, "29": -6, "30": -6, "31": -5, "32": -5, "33": -4, "34": -4, "35": -4, "36": -8, "37": -8, "38": -7, "39": -7, "40": -6, "41": -6, "42": -5, "43": -5, "44": -4, "45": -4, "46": 21, "47": 20, "48": 18, "49": 17, "50": 16, "51": 14, "52": 13, "53": 12, "54": 11, "55": 7, "56": 6, "57": 6, "58": 5, "59": 5, "60": 5, "61": 4, "62": 4, "63": 4 }, "customChipWaveIntegral": { "0": 0, "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 0, "10": 0, "11": 0, "12": 0, "13": 0, "14": 0, "15": 0, "16": 0, "17": 0, "18": 0, "19": 0, "20": 0, "21": 0, "22": 0, "23": 0, "24": 0, "25": 0, "26": 0, "27": 0, "28": 0, "29": 0, "30": 0, "31": 0, "32": 0, "33": 0, "34": 0, "35": 0, "36": 0, "37": 0, "38": 0, "39": 0, "40": 0, "41": 0, "42": 0, "43": 0, "44": 0, "45": 0, "46": 0, "47": 0, "48": 0, "49": 0, "50": 0, "51": 0, "52": 0, "53": 0, "54": 0, "55": 0, "56": 0, "57": 0, "58": 0, "59": 0, "60": 0, "61": 0, "62": 0, "63": 0, "64": 0 }, "envelopes": [], "isDrum": false } },
                 { name: "pulse arps", midiProgram: 80, settings: { "type": "PWM", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.125 }, { "type": "high-pass", "cutoffHz": 840.9, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 7, "discreteEnvelope": false, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 16000, "linearGain": 0.125 }, { "type": "high-pass", "cutoffHz": 840.9, "linearGain": 2 }], "effects": ["transition type", "chord type", "detune", "chorus", "echo"], "transition": "interrupt", "clicklessTransition": false, "chord": "arpeggio", "fastTwoNoteArp": true, "arpeggioSpeed": 8, "detuneCents": 64, "chorus": 43, "echoSustain": 71, "echoDelayBeats": 0.333, "fadeInSeconds": 0, "fadeOutTicks": -1, "pulseWidth": 50, "decimalOffset": 0, "unison": "none", "envelopes": [{ "target": "detune", "envelope": "pitch", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96 }, { "target": "pulseWidth", "envelope": "pitch", "inverse": true, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "pitchEnvelopeStart": 24, "pitchEnvelopeEnd": 83 }, { "target": "panning", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "waveform": 0, "steps": 2 }, { "target": "noteVolume", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }, { "target": "chorus", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1 }], "isDrum": false } },
+                { name: "duty cycle", midiProgram: 80, settings: { "type": "PWM", "eqFilter": [{ "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 62.5, "linearGain": 0.5 }], "effects": ["transition type", "chord type"], "transition": "interrupt", "clicklessTransition": false, "chord": "arpeggio", "fastTwoNoteArp": true, "arpeggioSpeed": 12, "monoChordTone": 1, "panDelay": 0, "fadeInSeconds": 0, "fadeOutTicks": -1, "unison": "none", "pulseWidth": 50, "decimalOffset": 0, "envelopes": [{ "target": "pulseWidth", "envelope": "sequence", "inverse": false, "perEnvelopeSpeed": 4, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": true, "waveform": 0, "sequenceSettings": { "height": 8, "length": 4, "values": [8, 4, 2, 1], "interpolated": false, "looped": true } }] } },
+                { name: "smooth triangle", midiProgram: 80, settings: { "type": "FM", "eqFilter": [], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [], "effects": ["transition type", "chord type", "detune"], "transition": "interrupt", "clicklessTransition": false, "chord": "arpeggio", "fastTwoNoteArp": true, "arpeggioSpeed": 8, "monoChordTone": 1, "detuneCents": 24, "panDelay": 0, "fadeInSeconds": 0, "fadeOutTicks": -1, "unison": "none", "algorithm": "1 2 3 4", "feedbackType": "1⟲", "feedbackAmplitude": 0, "operators": [{ "frequency": "1×", "amplitude": 15, "waveform": "triangle", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "sine", "pulseWidth": 5 }], "envelopes": [{ "target": "detune", "envelope": "pitch", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "pitchEnvelopeStart": 0, "pitchEnvelopeEnd": 96 }] } },
             ])
         },
         {
@@ -13032,7 +13034,9 @@ li.select2-results__option[role=group] > strong:hover {
                 case 16: {
                     if (sequence == null)
                         return 0;
-                    const beat = Math.floor(envelopeSpeed * beats);
+                    const t = sequence.looped ? beats : time;
+                    const beat = Math.floor(envelopeSpeed * t);
+                    const frac = envelopeSpeed * t - beat;
                     if (!sequence.looped && beat + 1 > sequence.length - 1) {
                         const unloopVal = sequence.values[sequence.length - 1] / sequence.height;
                         if (inverse) {
@@ -13044,7 +13048,6 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                     const preValue = sequence.values[beat % sequence.length] / sequence.height;
                     const postValue = sequence.values[(beat + 1) % sequence.length] / sequence.height;
-                    const frac = envelopeSpeed * beats - beat;
                     const value = sequence.interpolated ? preValue * (1 - frac) + postValue * frac : preValue;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * value;
@@ -20265,20 +20268,22 @@ li.select2-results__option[role=group] > strong:hover {
             return copy;
         }
         isSame(other) {
-            let sameCheck = true;
             if (this.height != other.height)
-                sameCheck = false;
+                return false;
             else if (this.length != other.length)
-                sameCheck = false;
+                return false;
+            else if (this.interpolated != other.interpolated)
+                return false;
+            else if (this.looped != other.looped)
+                return false;
             else {
                 for (var i = 0; i < this.length; i++) {
                     if (other.values[i] != this.values[i]) {
-                        sameCheck = false;
-                        break;
+                        return false;
                     }
                 }
             }
-            return sameCheck;
+            return true;
         }
     }
     class EnvelopeSettings {
@@ -20318,7 +20323,7 @@ li.select2-results__option[role=group] > strong:hover {
             this.waveform = 0;
             this.discrete = false;
         }
-        toJsonObject() {
+        toJsonObject(sequenceSettings) {
             const envelopeObject = {
                 "target": Config.instrumentAutomationTargets[this.target].name,
                 "envelope": Config.envelopes[this.envelope].name,
@@ -20346,6 +20351,8 @@ li.select2-results__option[role=group] > strong:hover {
             }
             else if (Config.envelopes[this.envelope].name == "sequence") {
                 envelopeObject["waveform"] = this.waveform;
+                if (sequenceSettings)
+                    envelopeObject["sequenceSettings"] = sequenceSettings.toJsonObject();
             }
             return envelopeObject;
         }
@@ -20875,7 +20882,7 @@ li.select2-results__option[role=group] > strong:hover {
                 this.addEnvelope(Config.instrumentAutomationTargets.dictionary["feedbackAmplitude"].index, 0, legacyFeedbackEnv.index, false);
             }
         }
-        toJsonObject() {
+        toJsonObject(songSequences) {
             const instrumentObject = {
                 "type": Config.instrumentTypeNames[this.type],
                 "volume": this.volume,
@@ -21130,12 +21137,12 @@ li.select2-results__option[role=group] > strong:hover {
             }
             const envelopes = [];
             for (let i = 0; i < this.envelopeCount; i++) {
-                envelopes.push(this.envelopes[i].toJsonObject());
+                envelopes.push(this.envelopes[i].toJsonObject(Config.envelopes[this.envelopes[i].envelope].type == 16 ? songSequences[this.envelopes[i].waveform] : undefined));
             }
             instrumentObject["envelopes"] = envelopes;
             return instrumentObject;
         }
-        fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, legacyGlobalReverb = 0, jsonFormat = Config.jsonFormat) {
+        fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, songSequences, legacyGlobalReverb = 0, jsonFormat = Config.jsonFormat) {
             if (instrumentObject == undefined)
                 instrumentObject = {};
             const format = jsonFormat.toLowerCase();
@@ -21847,6 +21854,27 @@ li.select2-results__option[role=group] > strong:hover {
                         }
                         else {
                             discreteEnvelope = tempEnvelope.discrete;
+                        }
+                        if (Config.envelopes[tempEnvelope.envelope].type == 16) {
+                            const potentialSequence = new SequenceSettings();
+                            potentialSequence.fromJsonObject(envelopeArray[i]["sequenceSettings"], Config.jsonFormat);
+                            let found = -1;
+                            for (let seq = 0; seq < songSequences.length; seq++) {
+                                const sequence = songSequences[seq];
+                                if (sequence.isSame(potentialSequence)) {
+                                    found = seq;
+                                    break;
+                                }
+                            }
+                            if (found > -1) {
+                                tempEnvelope.waveform = found;
+                            }
+                            else {
+                                if (songSequences.length < Config.maxEnvelopeSequenceCount) {
+                                    tempEnvelope.waveform = songSequences.length;
+                                    songSequences.push(potentialSequence);
+                                }
+                            }
                         }
                         this.addEnvelope(tempEnvelope.target, tempEnvelope.index, tempEnvelope.envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, tempEnvelope.perEnvelopeSpeed, tempEnvelope.perEnvelopeLowerBound, tempEnvelope.perEnvelopeUpperBound, tempEnvelope.steps, tempEnvelope.seed, tempEnvelope.waveform, discreteEnvelope);
                     }
@@ -25703,7 +25731,7 @@ li.select2-results__option[role=group] > strong:hover {
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
                             const ins = new Instrument(isNoise, isMod);
-                            ins.fromJsonObject(data, isNoise, isMod, false, false);
+                            ins.fromJsonObject(data, isNoise, isMod, false, false, this.sequences);
                             channel.instruments.push(ins);
                             break;
                         }
@@ -25722,7 +25750,7 @@ li.select2-results__option[role=group] > strong:hover {
                             const isNoise = this.getChannelIsNoise(channelIndex);
                             const isMod = this.getChannelIsMod(channelIndex);
                             instrument.setTypeAndReset(0, isNoise, isMod);
-                            instrument.fromJsonObject(data, isNoise, isMod, false, false);
+                            instrument.fromJsonObject(data, isNoise, isMod, false, false, this.sequences);
                             break;
                         case InstrumentSettings.type:
                             instrument.type = numberData;
@@ -26118,7 +26146,7 @@ li.select2-results__option[role=group] > strong:hover {
                 const isNoiseChannel = this.getChannelIsNoise(channelIndex);
                 const isModChannel = this.getChannelIsMod(channelIndex);
                 for (const instrument of channel.instruments) {
-                    instrumentArray.push(instrument.toJsonObject());
+                    instrumentArray.push(instrument.toJsonObject(this.sequences));
                 }
                 const patternArray = [];
                 for (const pattern of channel.patterns) {
@@ -26702,7 +26730,7 @@ li.select2-results__option[role=group] > strong:hover {
                                 break;
                             const instrument = new Instrument(isNoiseChannel, isModChannel);
                             channel.instruments[i] = instrument;
-                            instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, legacyGlobalReverb, format);
+                            instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format);
                         }
                     }
                     for (let i = 0; i < this.patternsPerChannel; i++) {
@@ -29165,7 +29193,7 @@ li.select2-results__option[role=group] > strong:hover {
                 }
                 instrument.customChipWaveIntegral[64] = 0.0;
                 instrument.preset = instrument.type;
-                doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+                doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
                 doc.notifier.changed();
                 this._didSomething();
             }
@@ -29259,7 +29287,7 @@ li.select2-results__option[role=group] > strong:hover {
                         const tempVolume = instrument.volume;
                         const tempPan = instrument.pan;
                         const tempPanDelay = instrument.panDelay;
-                        instrument.fromJsonObject(preset.settings, doc.song.getChannelIsNoise(doc.channel), doc.song.getChannelIsMod(doc.channel), doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2);
+                        instrument.fromJsonObject(preset.settings, doc.song.getChannelIsNoise(doc.channel), doc.song.getChannelIsMod(doc.channel), doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2, doc.song.sequences);
                         instrument.volume = tempVolume;
                         instrument.pan = tempPan;
                         instrument.panDelay = tempPanDelay;
@@ -29267,7 +29295,7 @@ li.select2-results__option[role=group] > strong:hover {
                     }
                 }
                 instrument.preset = newValue;
-                doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+                doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
                 doc.notifier.changed();
                 this._didSomething();
             }
@@ -30355,7 +30383,7 @@ li.select2-results__option[role=group] > strong:hover {
                     default: throw new Error("Unhandled pitched instrument type in random generator.");
                 }
             }
-            doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
+            doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -30611,7 +30639,7 @@ li.select2-results__option[role=group] > strong:hover {
                                 if (!isMod) {
                                     const presetValue = pickRandomPresetValue(isNoise);
                                     const preset = EditorConfig.valueToPreset(presetValue);
-                                    instrument.fromJsonObject(preset.settings, isNoise, isMod, doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2);
+                                    instrument.fromJsonObject(preset.settings, isNoise, isMod, doc.song.rhythm == 0 || doc.song.rhythm == 2, doc.song.rhythm >= 2, doc.song.sequences);
                                     instrument.preset = presetValue;
                                     instrument.effects |= 1 << 2;
                                 }
@@ -31421,6 +31449,17 @@ li.select2-results__option[role=group] > strong:hover {
             doc.notifier.changed();
         }
     }
+    class ChangeUpdateSequence extends ChangeGroup {
+        constructor(doc, sequenceIndex, sequence) {
+            super();
+            this.append(new ChangeSequenceHeight(doc, sequenceIndex, sequence.height));
+            this.append(new ChangeSequenceLength(doc, sequenceIndex, sequence.length));
+            this.append(new ChangeSequenceValues(doc, sequenceIndex, sequence.values, true));
+            this.append(new ChangeSequenceBooleans(doc, sequenceIndex, sequence.interpolated, sequence.looped));
+            this._didSomething();
+            doc.notifier.changed();
+        }
+    }
     class ChangePluginSliderValue extends ChangeInstrumentSlider {
         constructor(doc, oldValue, newValue, index) {
             super(doc);
@@ -31994,12 +32033,12 @@ li.select2-results__option[role=group] > strong:hover {
             const presetValue = pickRandomPresetValue(isNoise);
             const preset = EditorConfig.valueToPreset(presetValue);
             const instrument = new Instrument(isNoise, isMod);
-            instrument.fromJsonObject(preset.settings, isNoise, isMod, false, false, 1);
+            instrument.fromJsonObject(preset.settings, isNoise, isMod, false, false, doc.song.sequences, 1);
             instrument.preset = presetValue;
             instrument.effects |= 1 << 2;
             instrument.volume = 0;
             channel.instruments.push(instrument);
-            doc.synth.updateSong(instrument.toJsonObject(), SongSettings.updateChannel, doc.channel, 0, ChannelSettings.newInstrument);
+            doc.synth.updateSong(instrument.toJsonObject(doc.song.sequences), SongSettings.updateChannel, doc.channel, 0, ChannelSettings.newInstrument);
             if (!isMod) {
                 doc.viewedInstrument[doc.channel] = channel.instruments.length - 1;
             }
@@ -32243,7 +32282,7 @@ li.select2-results__option[role=group] > strong:hover {
     class ChangePasteInstrument extends ChangeGroup {
         constructor(doc, instrument, instrumentCopy) {
             super();
-            instrument.fromJsonObject(instrumentCopy, instrumentCopy["isDrum"], instrumentCopy["isMod"], false, false);
+            instrument.fromJsonObject(instrumentCopy, instrumentCopy["isDrum"], instrumentCopy["isMod"], false, false, doc.song.sequences);
             doc.synth.updateSong(instrumentCopy, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.fromJson);
             doc.notifier.changed();
             this._didSomething();
@@ -32253,7 +32292,7 @@ li.select2-results__option[role=group] > strong:hover {
         constructor(doc, channel, instrument) {
             super();
             let newInstrument = new Instrument(instrument["isDrum"], instrument["isMod"]);
-            newInstrument.fromJsonObject(instrument, instrument["isDrum"], instrument["isMod"], false, false);
+            newInstrument.fromJsonObject(instrument, instrument["isDrum"], instrument["isMod"], false, false, doc.song.sequences);
             channel.instruments.push(newInstrument);
             doc.synth.updateSong(instrument, SongSettings.updateInstrument, doc.channel, doc.song.channels[doc.channel].instruments.length, InstrumentSettings.fromJson);
             this._didSomething();
@@ -32905,7 +32944,7 @@ li.select2-results__option[role=group] > strong:hover {
                 const isMod = song.getChannelIsMod(channelIndex);
                 const presetValue = (channelIndex == song.pitchChannelCount) ? EditorConfig.nameToPresetValue(Math.random() > 0.5 ? "chip noise" : "standard drumset") : pickRandomPresetValue(isNoise);
                 const preset = EditorConfig.valueToPreset(presetValue);
-                instrument.fromJsonObject(preset.settings, isNoise, isMod, song.rhythm == 0 || song.rhythm == 2, song.rhythm >= 2, 1);
+                instrument.fromJsonObject(preset.settings, isNoise, isMod, song.rhythm == 0 || song.rhythm == 2, song.rhythm >= 2, song.sequences, 1);
                 instrument.preset = presetValue;
                 instrument.effects |= 1 << 2;
             }
@@ -38714,7 +38753,7 @@ You should be redirected to the song at:<br /><br />
             this._export_multiple = () => {
                 const channel = this._doc.song.channels[this._doc.channel];
                 const instruments = channel.instruments.map((instrument) => {
-                    const instrumentCopy = instrument.toJsonObject();
+                    const instrumentCopy = instrument.toJsonObject(this._doc.song.sequences);
                     instrumentCopy["isDrum"] = this._doc.song.getChannelIsNoise(this._doc.channel);
                     return instrumentCopy;
                 });
@@ -38730,7 +38769,7 @@ You should be redirected to the song at:<br /><br />
             this._export_single = () => {
                 const channel = this._doc.song.channels[this._doc.channel];
                 const instrument = channel.instruments[this._doc.getCurrentInstrument()];
-                const instrumentCopy = instrument.toJsonObject();
+                const instrumentCopy = instrument.toJsonObject(this._doc.song.sequences);
                 instrumentCopy["isDrum"] = this._doc.song.getChannelIsNoise(this._doc.channel);
                 const jsonBlob = new Blob([JSON.stringify(instrumentCopy)], { type: 'application/json' });
                 const downloadLink = document.createElement('a');
@@ -40797,7 +40836,7 @@ You should be redirected to the song at:<br /><br />
                     const presetValue = EditorConfig.nameToPresetValue("standard drumset");
                     const preset = EditorConfig.valueToPreset(presetValue);
                     const instrument = new Instrument(false, false);
-                    instrument.fromJsonObject(preset.settings, false, false, false, false, 1);
+                    instrument.fromJsonObject(preset.settings, false, false, false, false, this._doc.song.sequences, 1);
                     instrument.preset = presetValue;
                     channel.instruments.push(instrument);
                     for (let noteEventIndex = 0; noteEventIndex <= noteEvents[midiChannel].length; noteEventIndex++) {
@@ -40917,7 +40956,7 @@ You should be redirected to the song at:<br /><br />
                                             const instrument = new Instrument(isNoiseChannel, isModChannel);
                                             instrumentByProgram[currentProgram] = instrument;
                                             if (presetValue != null && preset != null && (preset.isNoise == true) == isNoiseChannel) {
-                                                instrument.fromJsonObject(preset.settings, isNoiseChannel, isModChannel, false, false, 1);
+                                                instrument.fromJsonObject(preset.settings, isNoiseChannel, isModChannel, false, false, this._doc.song.sequences, 1);
                                                 instrument.preset = presetValue;
                                             }
                                             else {
@@ -41438,6 +41477,304 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
+    const { div: div$h, input: input$c, button: button$g, span: span$5, h2: h2$g, canvas: canvas$2 } = HTML$1;
+    class SequenceEditor {
+        constructor(_doc, sequenceIndex, interactable, scale = 3) {
+            this._doc = _doc;
+            this.sequenceIndex = sequenceIndex;
+            this._undoHistoryState = 0;
+            this._changeQueue = [];
+            this._mouseX = 0;
+            this._mouseY = 0;
+            this._mouseDown = false;
+            this.canvasHeight = 156;
+            this.canvasWidth = 384;
+            this.renderedColor = "";
+            this.storeChange = () => {
+                var sameCheck = true;
+                if (this._changeQueue.length > 0) {
+                    sameCheck = this.sequence.isSame(this._changeQueue[this._undoHistoryState]);
+                }
+                if (sameCheck == false || this._changeQueue.length == 0) {
+                    this._changeQueue.splice(0, this._undoHistoryState);
+                    this._undoHistoryState = 0;
+                    this._changeQueue.unshift(this.sequence.copy());
+                    if (this._changeQueue.length > 32) {
+                        this._changeQueue.pop();
+                    }
+                }
+            };
+            this.undo = () => {
+                if (this._undoHistoryState < this._changeQueue.length - 1) {
+                    this._undoHistoryState++;
+                    this.sequence = this._changeQueue[this._undoHistoryState];
+                }
+            };
+            this.redo = () => {
+                if (this._undoHistoryState > 0) {
+                    this._undoHistoryState--;
+                    this.sequence = this._changeQueue[this._undoHistoryState];
+                }
+            };
+            this._onCursorMove = () => {
+                if (this._mouseDown) {
+                    if (this._mouseY < 2)
+                        this._mouseY = 2;
+                    if (this._mouseY > this.canvasHeight - 2)
+                        this._mouseY = this.canvasHeight;
+                    this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
+                    new ChangeSequenceValues(this._doc, this.sequenceIndex, this.sequence.values);
+                    this.redrawCanvas();
+                }
+            };
+            this._onMouseDown = (event) => {
+                this._mouseDown = true;
+                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._whenTouchPressed = (event) => {
+                event.preventDefault();
+                this._mouseDown = true;
+                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._onMouseMove = (event) => {
+                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._whenTouchMoved = (event) => {
+                if (!this._mouseDown)
+                    return;
+                event.preventDefault();
+                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
+                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
+                this._onCursorMove();
+            };
+            this._whenCursorReleased = () => {
+                this._mouseDown = false;
+            };
+            this.canvasHeight = 52 * scale;
+            this.canvasWidth = 128 * scale;
+            this.canvas = canvas$2({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customSequenceDrawCanvas" });
+            if (!this.sequenceIndex)
+                this.sequenceIndex = 0;
+            if (this.sequenceIndex >= this._doc.song.sequences.length) {
+                this.sequence = new SequenceSettings();
+                new ChangeAddNewSequence(this._doc, sequenceIndex);
+            }
+            else {
+                this.sequence = this._doc.song.sequences[this.sequenceIndex].copy();
+            }
+            this.originalSequence = this.sequence.copy();
+            if (interactable) {
+                this.canvas.addEventListener("mousemove", this._onMouseMove);
+                this.canvas.addEventListener("mousedown", this._onMouseDown);
+                this.canvas.addEventListener("mouseup", this._whenCursorReleased);
+                this.canvas.addEventListener("touchstart", this._whenTouchPressed);
+                this.canvas.addEventListener("touchmove", this._whenTouchMoved);
+                this.canvas.addEventListener("touchend", this._whenCursorReleased);
+                this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
+            }
+            this.redrawCanvas();
+        }
+        redrawCanvas() {
+            const sequenceData = this._changeQueue[this._undoHistoryState];
+            const renderColor = ColorConfig.getComputedChannelColor(this._doc.song, this._doc.channel).primaryNote;
+            let needsRedraw = false;
+            if (renderColor != this.renderedColor) {
+                needsRedraw = true;
+            }
+            else {
+                needsRedraw = this.sequence.isSame(sequenceData);
+            }
+            if (!needsRedraw) {
+                return;
+            }
+            this.storeChange();
+            var ctx = this.canvas.getContext("2d");
+            ctx.fillStyle = ColorConfig.getComputed("--editor-background");
+            ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+            ctx.fillStyle = renderColor;
+            if (this.sequence.interpolated) {
+                for (let i = 0; i < this.sequence.length; i++) {
+                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
+                    const h2 = i + 1 == this.sequence.length ? !this.sequence.looped ? h : this.sequence.values[0] / this.sequence.height * this.canvasHeight : this.sequence.values[i + 1] / this.sequence.height * this.canvasHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight);
+                    ctx.lineTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h);
+                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight - h2);
+                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            else {
+                for (let i = 0; i < this.sequence.length; i++) {
+                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
+                    ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h, this.canvasWidth / this.sequence.length, h);
+                }
+            }
+            ctx.fillStyle = ColorConfig.getComputed("--editor-background");
+            for (let i = 0; i < this.sequence.height; i++) {
+                const h = i / this.sequence.height * this.canvasHeight;
+                ctx.fillRect(0, h, this.canvasWidth, 1);
+            }
+            ctx.fillStyle = ColorConfig.getComputed("--ui-widget-background");
+            for (let i = 0; i < this.sequence.length; i++) {
+                ctx.fillRect(i * this.canvasWidth / this.sequence.length, 0, 1, this.canvasHeight);
+            }
+        }
+    }
+    class SequenceEditorPrompt {
+        constructor(_doc, _editor, sequenceIndex, forEnvelope) {
+            this._doc = _doc;
+            this._editor = _editor;
+            this.sequenceIndex = sequenceIndex;
+            this.forEnvelope = forEnvelope;
+            this._sequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex, true);
+            this._sequenceHeight = input$c({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
+            this._sequenceLength = input$c({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
+            this._sequenceInterpolates = input$c({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceInterpolatesCheckbox" });
+            this._sequenceLoops = input$c({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceLoopsCheckbox" });
+            this._cancelButton = button$g({ class: "cancelButton" });
+            this._okayButton = button$g({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._playButton = button$g({ style: "width: 55%;", type: "button" });
+            this.copyButton = button$g({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
+                "Copy",
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
+                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
+                ]),
+            ]);
+            this.pasteButton = button$g({ style: "width:86px;", class: "pasteButton" }, [
+                "Paste",
+                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
+                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
+                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
+                ]),
+            ]);
+            this.copyPasteContainer = div$h({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
+            this.container = div$h({ class: "prompt noSelection", style: "width: 500px;" }, h2$g("Edit Sequence Instrument"), div$h({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 200px" }, this._sequenceEditor.canvas), div$h({ style: "display: flex; flex-direction: row; justify-content: center;" }, div$h({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$h({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$5("Height: "), this._sequenceHeight), div$h({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$5("Length: "), this._sequenceLength)), div$h({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$h({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$5("Interpolates: "), this._sequenceInterpolates), div$h({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$5("Loops: "), this._sequenceLoops))), div$h({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
+            this._updateHeight = () => {
+                new ChangeSequenceHeight(this._doc, this.sequenceIndex, parseInt(this._sequenceHeight.value));
+                this._sequenceEditor.sequence.height = parseInt(this._sequenceHeight.value);
+                this._sequenceEditor.redrawCanvas();
+            };
+            this._updateLength = () => {
+                new ChangeSequenceLength(this._doc, this.sequenceIndex, parseInt(this._sequenceLength.value));
+                this._sequenceEditor.sequence.length = parseInt(this._sequenceLength.value);
+                this._sequenceEditor.redrawCanvas();
+            };
+            this._updateBooleans = () => {
+                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
+                this._sequenceEditor.sequence.interpolated = this._sequenceInterpolates.checked;
+                this._sequenceEditor.sequence.looped = this._sequenceLoops.checked;
+                this._sequenceEditor.redrawCanvas();
+            };
+            this._togglePlay = () => {
+                this._editor.togglePlay();
+                this.updatePlayButton();
+            };
+            this._close = () => {
+                this._doc.prompt = null;
+                this._doc.undo();
+                new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
+                this._sequenceEditor.sequence = this._sequenceEditor.originalSequence;
+                new ChangeUpdateSequence(this._doc, this.sequenceIndex, this._sequenceEditor.sequence);
+            };
+            this.cleanUp = () => {
+                this._okayButton.removeEventListener("click", this._saveChanges);
+                this._cancelButton.removeEventListener("click", this._close);
+                this.container.removeEventListener("keydown", this.whenKeyPressed);
+                this._playButton.removeEventListener("click", this._togglePlay);
+                this._sequenceInterpolates.removeEventListener("change", this._updateBooleans);
+                this._sequenceLoops.removeEventListener("change", this._updateBooleans);
+            };
+            this._copySettings = () => {
+                window.localStorage.setItem("sequenceCopy", JSON.stringify(this._sequenceEditor.sequence.toJsonObject()));
+            };
+            this._pasteSettings = () => {
+                const storedSequenceWave = JSON.parse(String(window.localStorage.getItem("sequenceCopy")));
+                this._sequenceEditor.sequence.fromJsonObject(storedSequenceWave, Config.jsonFormat);
+                this._sequenceHeight.value = this._sequenceEditor.sequence.height + "";
+                this._sequenceLength.value = this._sequenceEditor.sequence.length + "";
+                new ChangeUpdateSequence(this._doc, this.sequenceIndex, this._sequenceEditor.sequence);
+                this._sequenceEditor.redrawCanvas();
+            };
+            this.whenKeyPressed = (event) => {
+                if (event.target.tagName != "BUTTON" && event.keyCode == 13) {
+                    this._saveChanges();
+                }
+                else if (event.keyCode == 32) {
+                    this._togglePlay();
+                    event.preventDefault();
+                }
+                else if (event.keyCode == 90) {
+                    this._sequenceEditor.undo();
+                    event.stopPropagation();
+                }
+                else if (event.keyCode == 89) {
+                    this._sequenceEditor.redo();
+                    event.stopPropagation();
+                }
+                else if (event.keyCode == 219) {
+                    this._doc.synth.goToPrevBar();
+                }
+                else if (event.keyCode == 221) {
+                    this._doc.synth.goToNextBar();
+                }
+            };
+            this._saveChanges = () => {
+                const group = new ChangeGroup();
+                group.append(new ChangeAddNewSequence(this._doc, this.sequenceIndex));
+                group.append(new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height));
+                group.append(new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length));
+                group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values, true));
+                group.append(new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked));
+                if (this.forEnvelope !== undefined)
+                    group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+                this._doc.record(group, true);
+                this._editor.envelopeEditor.rerenderExtraSettings();
+                this._doc.prompt = null;
+            };
+            if (!this.sequenceIndex)
+                this.sequenceIndex = 0;
+            const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+            this._oldWaveform = instrument.envelopes[this.forEnvelope].waveform;
+            new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
+            this._sequenceInterpolates.checked = this._sequenceEditor.sequence.interpolated;
+            this._sequenceLoops.checked = this._sequenceEditor.sequence.looped;
+            this._okayButton.addEventListener("click", this._saveChanges);
+            this._cancelButton.addEventListener("click", this._close);
+            this.container.addEventListener("keydown", this.whenKeyPressed);
+            this.copyButton.addEventListener("click", this._copySettings);
+            this.pasteButton.addEventListener("click", this._pasteSettings);
+            this._playButton.addEventListener("click", this._togglePlay);
+            this._sequenceHeight.addEventListener("change", this._updateHeight);
+            this._sequenceLength.addEventListener("change", this._updateLength);
+            this._sequenceInterpolates.addEventListener("change", this._updateBooleans);
+            this._sequenceLoops.addEventListener("change", this._updateBooleans);
+            this.updatePlayButton();
+            setTimeout(() => this._playButton.focus());
+        }
+        updatePlayButton() {
+            if (this._doc.synth.playing) {
+                this._playButton.classList.remove("playButton");
+                this._playButton.classList.add("pauseButton");
+                this._playButton.title = "Pause (Space)";
+                this._playButton.innerText = "Pause";
+            }
+            else {
+                this._playButton.classList.remove("pauseButton");
+                this._playButton.classList.add("playButton");
+                this._playButton.title = "Play (Space)";
+                this._playButton.innerText = "Play";
+            }
+        }
+    }
+
     class EnvelopeEditor {
         constructor(_doc, _extraSettingsDropdown, _openPrompt) {
             this._doc = _doc;
@@ -41483,6 +41820,7 @@ You should be redirected to the song at:<br /><br />
             this._LFOStepsSliders = [];
             this._LFOStepsWrappers = [];
             this._sequenceSelects = [];
+            this._sequenceViews = [];
             this._renderedEnvelopeCount = 0;
             this._renderedEqFilterCount = -1;
             this._renderedNoteFilterCount = -1;
@@ -41559,11 +41897,37 @@ You should be redirected to the song at:<br /><br />
                 }
                 else if (envelopeCopyButtonIndex != -1) {
                     const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-                    window.localStorage.setItem("envelopeCopy", JSON.stringify(instrument.envelopes[envelopeCopyButtonIndex].toJsonObject()));
+                    const envelope = instrument.envelopes[envelopeCopyButtonIndex];
+                    window.localStorage.setItem("envelopeCopy", JSON.stringify(envelope.toJsonObject(Config.envelopes[envelope.envelope].type == 16 ? this._doc.song.sequences[envelope.waveform] : undefined)));
                 }
                 else if (envelopePasteButtonIndex != -1) {
                     const envelopeCopy = window.localStorage.getItem("envelopeCopy");
-                    this._doc.record(new PasteEnvelope(this._doc, JSON.parse(String(envelopeCopy)), envelopePasteButtonIndex));
+                    const envelopeObject = JSON.parse(String(envelopeCopy));
+                    this._doc.record(new PasteEnvelope(this._doc, envelopeObject, envelopePasteButtonIndex));
+                    const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+                    const envelope = instrument.envelopes[envelopePasteButtonIndex];
+                    if (Config.envelopes[envelope.envelope].type == 16) {
+                        const potentialSequence = new SequenceSettings();
+                        potentialSequence.fromJsonObject(envelopeObject["sequenceSettings"], Config.jsonFormat);
+                        let found = -1;
+                        for (let seq = 0; seq < this._doc.song.sequences.length; seq++) {
+                            const sequence = this._doc.song.sequences[seq];
+                            if (sequence.isSame(potentialSequence)) {
+                                found = seq;
+                                break;
+                            }
+                        }
+                        if (found > -1) {
+                            new ChangeSetEnvelopeWaveform(this._doc, found, envelopePasteButtonIndex);
+                        }
+                        else {
+                            if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+                                new ChangeAddNewSequence(this._doc, this._doc.song.sequences.length);
+                                new ChangeUpdateSequence(this._doc, this._doc.song.sequences.length - 1, potentialSequence);
+                                new ChangeSetEnvelopeWaveform(this._doc, this._doc.song.sequences.length - 1, envelopePasteButtonIndex);
+                            }
+                        }
+                    }
                 }
             };
             this._onInput = (event) => {
@@ -41637,6 +42001,8 @@ You should be redirected to the song at:<br /><br />
             return HTML$1.option({ value: target + index * Config.instrumentAutomationTargets.length }, displayName);
         }
         _updateTargetOptionVisibility(menu, instrument) {
+            if (!menu)
+                return;
             for (let optionIndex = 0; optionIndex < menu.childElementCount; optionIndex++) {
                 const option = menu.children[optionIndex];
                 const combinedValue = parseInt(option.value);
@@ -41674,20 +42040,26 @@ You should be redirected to the song at:<br /><br />
             const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             for (let i = index; i < Config.maxEnvelopeCount; i++) {
                 if (i >= instrument.envelopeCount) {
-                    if (this.extraSettingsDropdowns[i]) {
-                        this.extraSettingsDropdowns[i].style.display = "none";
-                    }
-                    if (this.extraSettingsDropdownGroups[i]) {
-                        this.extraSettingsDropdownGroups[i].style.display = "none";
-                    }
-                    if (this.extraPitchSettingsGroups[i]) {
-                        this.extraPitchSettingsGroups[i].style.display = "none";
-                    }
-                    if (this.extraPitchSettingsGroups[i]) {
-                        this.perEnvelopeSpeedGroups[i].style.display = "none";
-                    }
-                    if (this.extraLFODropdownGroups[i]) {
-                        this.extraLFODropdownGroups[i].style.display = "none";
+                    while (i < Config.maxEnvelopeCount) {
+                        if (this.extraSettingsDropdowns[i]) {
+                            this.extraSettingsDropdowns[i].style.display = "none";
+                        }
+                        if (this.extraSettingsDropdownGroups[i]) {
+                            this.extraSettingsDropdownGroups[i].style.display = "none";
+                        }
+                        if (this.extraPitchSettingsGroups[i]) {
+                            this.extraPitchSettingsGroups[i].style.display = "none";
+                        }
+                        if (this.extraPitchSettingsGroups[i]) {
+                            this.perEnvelopeSpeedGroups[i].style.display = "none";
+                        }
+                        if (this.extraLFODropdownGroups[i]) {
+                            this.extraLFODropdownGroups[i].style.display = "none";
+                        }
+                        if (this.extraSequenceSettingsGroups[i]) {
+                            this.extraSequenceSettingsGroups[i].style.display = "none";
+                        }
+                        i++;
                     }
                     return;
                 }
@@ -41756,6 +42128,10 @@ You should be redirected to the song at:<br /><br />
                         this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
                         this.perEnvelopeSpeedGroups[i].style.display = "flex";
                         this.extraSequenceSettingsGroups[i].style.display = "";
+                        if (this._sequenceViews[i]) {
+                            this._sequenceViews[i].sequence = this._doc.song.sequences[instrument.envelopes[i].waveform];
+                            this._sequenceViews[i].redrawCanvas();
+                        }
                     }
                     else {
                         this.extraRandomSettingsGroups[i].style.display = "none";
@@ -41796,6 +42172,9 @@ You should be redirected to the song at:<br /><br />
                     if (this.extraLFODropdownGroups[i]) {
                         this.extraLFODropdownGroups[i].style.display = "none";
                     }
+                    if (this.extraSequenceSettingsGroups[i]) {
+                        this.extraSequenceSettingsGroups[i].style.display = "none";
+                    }
                     if (this.extraRandomSettingsGroups[i]) {
                         this.extraRandomSettingsGroups[i].style.display = "none";
                     }
@@ -41803,11 +42182,12 @@ You should be redirected to the song at:<br /><br />
             }
         }
         static convertIndexSpeed(value, convertTo) {
+            var _a, _b;
             switch (convertTo) {
                 case "index":
-                    return Config.perEnvelopeSpeedToIndices[value] != null ? Config.perEnvelopeSpeedToIndices[value] : 23;
+                    return (_a = Config.perEnvelopeSpeedToIndices[value]) !== null && _a !== void 0 ? _a : 23;
                 case "speed":
-                    return Config.perEnvelopeSpeedIndices[value] != null ? Config.perEnvelopeSpeedIndices[value] : 1;
+                    return (_b = Config.perEnvelopeSpeedIndices[value]) !== null && _b !== void 0 ? _b : 1;
             }
             return 0;
         }
@@ -41883,7 +42263,10 @@ You should be redirected to the song at:<br /><br />
                 }
                 const editSequenceButton = HTML$1.button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit");
                 const SequenceWrapper = HTML$1.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML$1.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
-                const extraSequenceSettingsGroup = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
+                const SequenceRow = HTML$1.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);
+                const sequenceView = new SequenceEditor(this._doc, instrument.envelopes[envelopeIndex].waveform, false, 1);
+                const extraSequenceSettingsGroup = HTML$1.div({ class: "editor-controls", id: "extraSequenceSettingsGroup", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:center;" }, HTML$1.div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 60px" }, sequenceView.canvas), SequenceRow);
+                extraSequenceSettingsGroup.style.display = "none";
                 const perEnvelopeSpeedSlider = new Slider(HTML$1.input({ oninput: () => this.updateSpeedDisplay(envelopeIndex), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, value: EnvelopeEditor.convertIndexSpeed(instrument.envelopes[envelopeIndex].perEnvelopeSpeed, "index"), step: "1" }), this._doc, (oldSpeed, newSpeed) => new ChangePerEnvelopeSpeed(this._doc, EnvelopeEditor.convertIndexSpeed(oldSpeed, "speed"), EnvelopeEditor.convertIndexSpeed(newSpeed, "speed"), envelopeIndex), false);
                 const perEnvelopeSpeedDisplay = HTML$1.span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(EnvelopeEditor.convertIndexSpeed(perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
                 const perEnvelopeSpeedWrapper = HTML$1.div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, perEnvelopeSpeedDisplay, perEnvelopeSpeedSlider.container);
@@ -41956,6 +42339,7 @@ You should be redirected to the song at:<br /><br />
                 this._LFOStepsWrappers[envelopeIndex] = LFOStepsWrapper;
                 this.extraSequenceSettingsGroups[envelopeIndex] = extraSequenceSettingsGroup;
                 this._sequenceSelects[envelopeIndex] = sequenceSelect;
+                this._sequenceViews[envelopeIndex] = sequenceView;
                 this._envelopeCopyButtons[envelopeIndex] = envelopeCopyButton;
                 this._envelopePasteButtons[envelopeIndex] = envelopePasteButton;
             }
@@ -41999,6 +42383,7 @@ You should be redirected to the song at:<br /><br />
                 this.LFOStepsBoxes[envelopeIndex].value = String(instrument.envelopes[envelopeIndex].steps);
                 this._LFOStepsSliders[envelopeIndex].value = String(instrument.envelopes[envelopeIndex].steps);
                 this.openExtraSettingsDropdowns[envelopeIndex] = this.openExtraSettingsDropdowns[envelopeIndex] ? true : false;
+                this._sequenceViews[envelopeIndex].redrawCanvas();
             }
             this._renderedEnvelopeCount = instrument.envelopeCount;
             this._renderedEqFilterCount = instrument.eqFilter.controlPointCount;
@@ -42166,7 +42551,7 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$g, div: div$h, h2: h2$g, input: input$c } = HTML$1;
+    const { button: button$f, div: div$g, h2: h2$f, input: input$b } = HTML$1;
     class LimiterCanvas {
         constructor(lim) {
             this._editorWidth = 200;
@@ -42289,22 +42674,22 @@ You should be redirected to the song at:<br /><br />
             this._doc = _doc;
             this._songEditor = _songEditor;
             this.limiterCanvas = new LimiterCanvas(this);
-            this._playButton = button$g({ style: "width: 55%;", type: "button" });
-            this.limitDecaySlider = input$c({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
-            this.limitRiseSlider = input$c({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
-            this.compressionThresholdSlider = input$c({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
-            this.limitThresholdSlider = input$c({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
-            this.compressionRatioSlider = input$c({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.limitRatioSlider = input$c({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
-            this.masterGainSlider = input$c({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
+            this._playButton = button$f({ style: "width: 55%;", type: "button" });
+            this.limitDecaySlider = input$b({ title: "limit decay", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "1", max: "30", value: "4", step: "1" });
+            this.limitRiseSlider = input$b({ title: "limit rise", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "2000", max: "10000", value: "4000", step: "250" });
+            this.compressionThresholdSlider = input$b({ title: "compressor threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "1.1", value: "1", step: "0.05" });
+            this.limitThresholdSlider = input$b({ title: "limiter threshold", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "2", value: "1", step: "0.05" });
+            this.compressionRatioSlider = input$b({ title: "compressor ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.limitRatioSlider = input$b({ title: "limiter ratio", style: `width: 100%; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "20", value: "10", step: "1" });
+            this.masterGainSlider = input$b({ title: "master gain", style: `width: 5em; flex-grow: 1; margin: 0;`, type: "range", min: "0", max: "5", value: "1", step: "0.02" });
             this.inVolumeHistoricTimer = 0.0;
             this.inVolumeHistoricCap = 0.0;
             this.outVolumeHistoricTimer = 0.0;
             this.outVolumeHistoricCap = 0.0;
-            this._cancelButton = button$g({ class: "cancelButton" });
-            this._okayButton = button$g({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._resetButton = button$g({ style: "width:45%;" }, "Reset");
-            this.container = div$h({ class: "prompt noSelection", style: "width: 250px;" }, h2$g("Limiter Options"), div$h({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$h({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$h({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$h({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$h({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$h({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$h({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$h({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$h({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$h({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$h({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
+            this._cancelButton = button$f({ class: "cancelButton" });
+            this._okayButton = button$f({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._resetButton = button$f({ style: "width:45%;" }, "Reset");
+            this.container = div$g({ class: "prompt noSelection", style: "width: 250px;" }, h2$f("Limiter Options"), div$g({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$g({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, this.limiterCanvas.container), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 1.5em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, ""), div$g({ style: `text-align: center; width: 33%; margin-right: 4.5%; color: ${ColorConfig.textSelection};` }, "Boost"), div$g({ style: `text-align: center; width: 33%; margin-right: 0%; color: ${ColorConfig.linkAccent};` }, "Cutoff")), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; margin-top: 0.5em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Threshold:"), div$g({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionThresholdSlider), div$g({ style: `width: 33%; margin-right: 0%;` }, this.limitThresholdSlider)), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 25%; margin-right: 4.5%; color: ${ColorConfig.primaryText};` }, "Ratio:"), div$g({ style: `width: 33%; margin-right: 4.5%;` }, this.compressionRatioSlider), div$g({ style: `width: 33%; margin-right: 0%;` }, this.limitRatioSlider)), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Decay:"), this.limitDecaySlider), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Limit Rise:"), this.limitRiseSlider), div$g({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$g({ style: `text-align: right; width: 8.5em; margin-right: 1em; color: ${ColorConfig.primaryText};` }, "Master Gain:"), this.masterGainSlider), div$g({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this._resetButton), this._cancelButton);
             this._volumeUpdate = () => {
                 this.inVolumeHistoricTimer--;
                 if (this.inVolumeHistoricTimer <= 0) {
@@ -42447,15 +42832,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$f, div: div$g, h2: h2$f, input: input$b, p: p$8 } = HTML$1;
+    const { button: button$e, div: div$f, h2: h2$e, input: input$a, p: p$8 } = HTML$1;
     class CustomScalePrompt {
         constructor(_doc) {
             this._doc = _doc;
             this._flags = [];
             this._scaleFlags = [];
             this._scaleRows = [];
-            this._cancelButton = button$f({ class: "cancelButton" });
-            this._okayButton = button$f({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this._cancelButton = button$e({ class: "cancelButton" });
+            this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
             this._close = () => {
                 this._doc.undo();
             };
@@ -42477,15 +42862,15 @@ You should be redirected to the song at:<br /><br />
                 this._doc.record(new ChangeCustomScale(this._doc, this._flags));
             };
             this._flags = _doc.song.scaleCustom.slice();
-            let scaleHolder = div$g({});
+            let scaleHolder = div$f({});
             for (var i = 1; i < Config.pitchesPerOctave; i++) {
-                this._scaleFlags[i] = input$b({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
-                this._scaleRows[i] = div$g({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
+                this._scaleFlags[i] = input$a({ type: "checkbox", style: "width: 1em; padding: 0; margin-right: 4em;", "checked": this._flags[i], "value": i });
+                this._scaleRows[i] = div$f({ style: "text-align: right; height: 2em;" }, "Note " + i + ":", this._scaleFlags[i]);
                 scaleHolder.appendChild(this._scaleRows[i]);
             }
             this._okayButton.addEventListener("click", this._saveChanges);
             this._cancelButton.addEventListener("click", this._close);
-            this.container = div$g({ class: "prompt noSelection", style: "width: 250px;" }, h2$f("Custom Scale"), p$8("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$g({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$g({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$f({ class: "prompt noSelection", style: "width: 250px;" }, h2$e("Custom Scale"), p$8("Here, you can make your own scale to use in your song. Press the checkboxes below to toggle which notes of an octave are in the scale. For this to work, you'll need to have the \"Custom\" scale selected."), div$f({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end;" }, scaleHolder), div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this.container.addEventListener("keydown", this.whenKeyPressed);
         }
     }
@@ -42797,15 +43182,15 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { button: button$e, div: div$f, span: span$5, h2: h2$e, input: input$a, br: br$1, select: select$9, option: option$9 } = HTML$1;
+    const { button: button$d, div: div$e, span: span$4, h2: h2$d, input: input$9, br: br$1, select: select$9, option: option$9 } = HTML$1;
     class MoveNotesSidewaysPrompt {
         constructor(_doc) {
             this._doc = _doc;
-            this._beatsStepper = input$a({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
+            this._beatsStepper = input$9({ style: "width: 3em; margin-left: 1em;", type: "number", step: "0.01", value: "0" });
             this._conversionStrategySelect = select$9({ style: "width: 100%;" }, option$9({ value: "overflow" }, "Overflow notes across bars."), option$9({ value: "wrapAround" }, "Wrap notes around within bars."));
-            this._cancelButton = button$e({ class: "cancelButton" });
-            this._okayButton = button$e({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$f({ class: "prompt noSelection", style: "width: 250px;" }, h2$e("Move Notes Sideways"), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ style: "text-align: right;" }, "Beats to move:", br$1(), span$5({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$f({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$f({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$f({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this._cancelButton = button$d({ class: "cancelButton" });
+            this._okayButton = button$d({ class: "okayButton", style: "width:45%;" }, "Okay");
+            this.container = div$e({ class: "prompt noSelection", style: "width: 250px;" }, h2$d("Move Notes Sideways"), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ style: "text-align: right;" }, "Beats to move:", br$1(), span$4({ style: `font-size: smaller; color: ${ColorConfig.secondaryText};` }, "(Negative is left, positive is right)")), this._beatsStepper), div$e({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" }, div$e({ class: "selectContainer", style: "width: 100%;" }, this._conversionStrategySelect)), div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._close = () => {
                 this._doc.undo();
             };
@@ -46528,13 +46913,13 @@ You should be redirected to the song at:<br /><br />
         }
     }
 
-    const { div: div$e, input: input$9, h2: h2$d, p: p$7, a: a$3 } = HTML;
+    const { div: div$d, input: input$8, h2: h2$c, p: p$7, a: a$3 } = HTML;
     class PluginPrompt {
         constructor(_doc) {
-            this.urlInput = input$9({ style: "margin-left: 1em; margin-right: 1em; " });
+            this.urlInput = input$8({ style: "margin-left: 1em; margin-right: 1em; " });
             this._cancelButton = HTML.button({ class: "cancelButton" });
             this._okayButton = HTML.button({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this.container = div$e({ class: "prompt noSelection", style: "width: 400px;" }, h2$d("Import Custom Effect Plugin"), p$7("Plugins are custom effects that you can import into your song like samples! They are constructed by the community."), p$7("Just paste the url to the plugin in the box below. "), p$7("You can find a guide on how to create a custom plugin, along with some basic plugin examples at ", a$3({ href: "https://slarmoo.github.io/beepboxplugins/", target: "_blank" }, "https://slarmoo.github.io/beepboxplugins/"), "."), this.urlInput, div$e({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
+            this.container = div$d({ class: "prompt noSelection", style: "width: 400px;" }, h2$c("Import Custom Effect Plugin"), p$7("Plugins are custom effects that you can import into your song like samples! They are constructed by the community."), p$7("Just paste the url to the plugin in the box below. "), p$7("You can find a guide on how to create a custom plugin, along with some basic plugin examples at ", a$3({ href: "https://slarmoo.github.io/beepboxplugins/", target: "_blank" }, "https://slarmoo.github.io/beepboxplugins/"), "."), this.urlInput, div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton), this._cancelButton);
             this._saveChanges = () => {
                 this._doc.prompt = null;
                 this._doc.record(new ChangePluginurl(this._doc, this.urlInput.value), true);
@@ -46554,306 +46939,6 @@ You should be redirected to the song at:<br /><br />
         _close() {
             this._doc.prompt = null;
             this._doc.undo();
-        }
-    }
-
-    const { div: div$d, input: input$8, button: button$d, span: span$4, h2: h2$c, canvas: canvas$2 } = HTML$1;
-    class SequenceEditor {
-        constructor(_doc, sequenceIndex) {
-            this._doc = _doc;
-            this.sequenceIndex = sequenceIndex;
-            this._undoHistoryState = 0;
-            this._changeQueue = [];
-            this._mouseX = 0;
-            this._mouseY = 0;
-            this._mouseDown = false;
-            this.canvasHeight = 156;
-            this.canvasWidth = 384;
-            this.canvas = canvas$2({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customWaveDrawCanvas" });
-            this.renderedColor = "";
-            this.storeChange = () => {
-                var sameCheck = true;
-                if (this._changeQueue.length > 0) {
-                    sameCheck = this.sequence.isSame(this._changeQueue[this._undoHistoryState]);
-                }
-                if (sameCheck == false || this._changeQueue.length == 0) {
-                    this._changeQueue.splice(0, this._undoHistoryState);
-                    this._undoHistoryState = 0;
-                    this._changeQueue.unshift(this.sequence.copy());
-                    if (this._changeQueue.length > 32) {
-                        this._changeQueue.pop();
-                    }
-                }
-            };
-            this.undo = () => {
-                if (this._undoHistoryState < this._changeQueue.length - 1) {
-                    this._undoHistoryState++;
-                    this.sequence = this._changeQueue[this._undoHistoryState];
-                }
-            };
-            this.redo = () => {
-                if (this._undoHistoryState > 0) {
-                    this._undoHistoryState--;
-                    this.sequence = this._changeQueue[this._undoHistoryState];
-                }
-            };
-            this._onCursorMove = () => {
-                if (this._mouseDown) {
-                    if (this._mouseY < 2)
-                        this._mouseY = 2;
-                    if (this._mouseY > this.canvasHeight - 2)
-                        this._mouseY = this.canvasHeight;
-                    this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
-                    new ChangeSequenceValues(this._doc, this.sequenceIndex, this.sequence.values);
-                    this.redrawCanvas();
-                }
-            };
-            this._onMouseDown = (event) => {
-                this._mouseDown = true;
-                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
-                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
-                this._onCursorMove();
-            };
-            this._whenTouchPressed = (event) => {
-                event.preventDefault();
-                this._mouseDown = true;
-                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
-                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
-                this._onCursorMove();
-            };
-            this._onMouseMove = (event) => {
-                this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
-                this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);
-                this._onCursorMove();
-            };
-            this._whenTouchMoved = (event) => {
-                if (!this._mouseDown)
-                    return;
-                event.preventDefault();
-                this._mouseX = event.touches[0].clientX - this.canvas.getBoundingClientRect().left;
-                this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
-                this._onCursorMove();
-            };
-            this._whenCursorReleased = () => {
-                this._mouseDown = false;
-            };
-            if (!this.sequenceIndex)
-                this.sequenceIndex = 0;
-            if (this.sequenceIndex >= this._doc.song.sequences.length) {
-                this.sequence = new SequenceSettings();
-                new ChangeAddNewSequence(this._doc, sequenceIndex);
-            }
-            else {
-                this.sequence = this._doc.song.sequences[this.sequenceIndex].copy();
-            }
-            this.originalSequence = this.sequence.copy();
-            this.canvas.addEventListener("mousemove", this._onMouseMove);
-            this.canvas.addEventListener("mousedown", this._onMouseDown);
-            this.canvas.addEventListener("mouseup", this._whenCursorReleased);
-            this.canvas.addEventListener("touchstart", this._whenTouchPressed);
-            this.canvas.addEventListener("touchmove", this._whenTouchMoved);
-            this.canvas.addEventListener("touchend", this._whenCursorReleased);
-            this.canvas.addEventListener("touchcancel", this._whenCursorReleased);
-            this.redrawCanvas();
-        }
-        redrawCanvas() {
-            const sequenceData = this._changeQueue[this._undoHistoryState];
-            const renderColor = ColorConfig.getComputedChannelColor(this._doc.song, this._doc.channel).primaryNote;
-            let needsRedraw = false;
-            if (renderColor != this.renderedColor) {
-                needsRedraw = true;
-            }
-            else {
-                needsRedraw = this.sequence.isSame(sequenceData);
-            }
-            if (!needsRedraw) {
-                return;
-            }
-            this.storeChange();
-            var ctx = this.canvas.getContext("2d");
-            ctx.fillStyle = ColorConfig.getComputed("--editor-background");
-            ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
-            ctx.fillStyle = renderColor;
-            if (this.sequence.interpolated) {
-                for (let i = 0; i < this.sequence.length; i++) {
-                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
-                    const h2 = i + 1 == this.sequence.length ? !this.sequence.looped ? h : this.sequence.values[0] / this.sequence.height * this.canvasHeight : this.sequence.values[i + 1] / this.sequence.height * this.canvasHeight;
-                    ctx.beginPath();
-                    ctx.moveTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight);
-                    ctx.lineTo(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h);
-                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight - h2);
-                    ctx.lineTo((i + 1) * this.canvasWidth / this.sequence.length, this.canvasHeight);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-            }
-            else {
-                for (let i = 0; i < this.sequence.length; i++) {
-                    const h = this.sequence.values[i] / this.sequence.height * this.canvasHeight;
-                    ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h, this.canvasWidth / this.sequence.length, h);
-                }
-            }
-            ctx.fillStyle = ColorConfig.getComputed("--editor-background");
-            for (let i = 0; i < this.sequence.height; i++) {
-                const h = i / this.sequence.height * this.canvasHeight;
-                ctx.fillRect(0, h, this.canvasWidth, 1);
-            }
-            ctx.fillStyle = ColorConfig.getComputed("--ui-widget-background");
-            for (let i = 0; i < this.sequence.length; i++) {
-                ctx.fillRect(i * this.canvasWidth / this.sequence.length, 0, 1, this.canvasHeight);
-            }
-        }
-    }
-    class SequenceEditorPrompt {
-        constructor(_doc, _editor, sequenceIndex, forEnvelope) {
-            this._doc = _doc;
-            this._editor = _editor;
-            this.sequenceIndex = sequenceIndex;
-            this.forEnvelope = forEnvelope;
-            this._sequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex);
-            this._sequenceHeight = input$8({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
-            this._sequenceLength = input$8({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
-            this._sequenceInterpolates = input$8({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceInterpolatesCheckbox" });
-            this._sequenceLoops = input$8({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceLoopsCheckbox" });
-            this._cancelButton = button$d({ class: "cancelButton" });
-            this._okayButton = button$d({ class: "okayButton", style: "width:45%;" }, "Okay");
-            this._playButton = button$d({ style: "width: 55%;", type: "button" });
-            this.copyButton = button$d({ style: "width:86px; margin-right: 5px;", class: "copyButton" }, [
-                "Copy",
-                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "-5 -21 26 26" }, [
-                    SVG$1.path({ d: "M 0 -15 L 1 -15 L 1 0 L 13 0 L 13 1 L 0 1 L 0 -15 z M 2 -1 L 2 -17 L 10 -17 L 14 -13 L 14 -1 z M 3 -2 L 13 -2 L 13 -12 L 9 -12 L 9 -16 L 3 -16 z", fill: "currentColor" }),
-                ]),
-            ]);
-            this.pasteButton = button$d({ style: "width:86px;", class: "pasteButton" }, [
-                "Paste",
-                SVG$1.svg({ style: "flex-shrink: 0; position: absolute; left: 0; top: 50%; margin-top: -1em; pointer-events: none;", width: "2em", height: "2em", viewBox: "0 0 26 26" }, [
-                    SVG$1.path({ d: "M 8 18 L 6 18 L 6 5 L 17 5 L 17 7 M 9 8 L 16 8 L 20 12 L 20 22 L 9 22 z", stroke: "currentColor", fill: "none" }),
-                    SVG$1.path({ d: "M 9 3 L 14 3 L 14 6 L 9 6 L 9 3 z M 16 8 L 20 12 L 16 12 L 16 8 z", fill: "currentColor", }),
-                ]),
-            ]);
-            this.copyPasteContainer = div$d({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
-            this.container = div$d({ class: "prompt noSelection", style: "width: 500px;" }, h2$c("Edit Sequence Instrument"), div$d({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" }, this._playButton), div$d({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 200px" }, this._sequenceEditor.canvas), div$d({ style: "display: flex; flex-direction: row; justify-content: center;" }, div$d({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Height: "), this._sequenceHeight), div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Length: "), this._sequenceLength)), div$d({ style: "display: flex; flex-direction: column; justify-content: space-between;" }, div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Interpolates: "), this._sequenceInterpolates), div$d({ style: "display: flex; flex-direction: row; justify-content: right;" }, span$4("Loops: "), this._sequenceLoops))), div$d({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" }, this._okayButton, this.copyPasteContainer), this._cancelButton);
-            this._updateHeight = () => {
-                new ChangeSequenceHeight(this._doc, this.sequenceIndex, parseInt(this._sequenceHeight.value));
-                this._sequenceEditor.sequence.height = parseInt(this._sequenceHeight.value);
-                this._sequenceEditor.redrawCanvas();
-            };
-            this._updateLength = () => {
-                new ChangeSequenceLength(this._doc, this.sequenceIndex, parseInt(this._sequenceLength.value));
-                this._sequenceEditor.sequence.length = parseInt(this._sequenceLength.value);
-                this._sequenceEditor.redrawCanvas();
-            };
-            this._updateBooleans = () => {
-                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
-                this._sequenceEditor.sequence.interpolated = this._sequenceInterpolates.checked;
-                this._sequenceEditor.sequence.looped = this._sequenceLoops.checked;
-                this._sequenceEditor.redrawCanvas();
-            };
-            this._togglePlay = () => {
-                this._editor.togglePlay();
-                this.updatePlayButton();
-            };
-            this._close = () => {
-                this._doc.prompt = null;
-                this._doc.undo();
-                new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
-                this._sequenceEditor.sequence = this._sequenceEditor.originalSequence;
-                new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
-                new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
-                new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
-                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.interpolated, this._sequenceEditor.sequence.looped);
-            };
-            this.cleanUp = () => {
-                this._okayButton.removeEventListener("click", this._saveChanges);
-                this._cancelButton.removeEventListener("click", this._close);
-                this.container.removeEventListener("keydown", this.whenKeyPressed);
-                this._playButton.removeEventListener("click", this._togglePlay);
-                this._sequenceInterpolates.removeEventListener("change", this._updateBooleans);
-                this._sequenceLoops.removeEventListener("change", this._updateBooleans);
-            };
-            this._copySettings = () => {
-                window.localStorage.setItem("sequenceCopy", JSON.stringify(this._sequenceEditor.sequence.toJsonObject()));
-            };
-            this._pasteSettings = () => {
-                const storedSequenceWave = JSON.parse(String(window.localStorage.getItem("sequenceCopy")));
-                this._sequenceEditor.sequence.fromJsonObject(storedSequenceWave, Config.jsonFormat);
-                this._sequenceHeight.value = this._sequenceEditor.sequence.height + "";
-                this._sequenceLength.value = this._sequenceEditor.sequence.length + "";
-                new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height);
-                new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length);
-                new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values);
-                new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked);
-                this._sequenceEditor.redrawCanvas();
-            };
-            this.whenKeyPressed = (event) => {
-                if (event.target.tagName != "BUTTON" && event.keyCode == 13) {
-                    this._saveChanges();
-                }
-                else if (event.keyCode == 32) {
-                    this._togglePlay();
-                    event.preventDefault();
-                }
-                else if (event.keyCode == 90) {
-                    this._sequenceEditor.undo();
-                    event.stopPropagation();
-                }
-                else if (event.keyCode == 89) {
-                    this._sequenceEditor.redo();
-                    event.stopPropagation();
-                }
-                else if (event.keyCode == 219) {
-                    this._doc.synth.goToPrevBar();
-                }
-                else if (event.keyCode == 221) {
-                    this._doc.synth.goToNextBar();
-                }
-            };
-            this._saveChanges = () => {
-                const group = new ChangeGroup();
-                group.append(new ChangeAddNewSequence(this._doc, this.sequenceIndex));
-                group.append(new ChangeSequenceHeight(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.height));
-                group.append(new ChangeSequenceLength(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.length));
-                group.append(new ChangeSequenceValues(this._doc, this.sequenceIndex, this._sequenceEditor.sequence.values, true));
-                group.append(new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked));
-                if (this.forEnvelope !== undefined)
-                    group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
-                this._doc.record(group, true);
-                this._editor.envelopeEditor.rerenderExtraSettings();
-                this._doc.prompt = null;
-            };
-            if (!this.sequenceIndex)
-                this.sequenceIndex = 0;
-            const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-            this._oldWaveform = instrument.envelopes[this.forEnvelope].waveform;
-            new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
-            this._sequenceInterpolates.checked = this._sequenceEditor.sequence.interpolated;
-            this._sequenceLoops.checked = this._sequenceEditor.sequence.looped;
-            this._okayButton.addEventListener("click", this._saveChanges);
-            this._cancelButton.addEventListener("click", this._close);
-            this.container.addEventListener("keydown", this.whenKeyPressed);
-            this.copyButton.addEventListener("click", this._copySettings);
-            this.pasteButton.addEventListener("click", this._pasteSettings);
-            this._playButton.addEventListener("click", this._togglePlay);
-            this._sequenceHeight.addEventListener("change", this._updateHeight);
-            this._sequenceLength.addEventListener("change", this._updateLength);
-            this._sequenceInterpolates.addEventListener("change", this._updateBooleans);
-            this._sequenceLoops.addEventListener("change", this._updateBooleans);
-            this.updatePlayButton();
-            setTimeout(() => this._playButton.focus());
-        }
-        updatePlayButton() {
-            if (this._doc.synth.playing) {
-                this._playButton.classList.remove("playButton");
-                this._playButton.classList.add("pauseButton");
-                this._playButton.title = "Pause (Space)";
-                this._playButton.innerText = "Pause";
-            }
-            else {
-                this._playButton.classList.remove("pauseButton");
-                this._playButton.classList.add("playButton");
-                this._playButton.title = "Play (Space)";
-                this._playButton.innerText = "Play";
-            }
         }
     }
 
@@ -53183,7 +53268,7 @@ You should be redirected to the song at:<br /><br />
                             break;
                         if (needControlForShortcuts == (event.ctrlKey || event.metaKey) && event.shiftKey) {
                             const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
-                            const instrumentObject = instrument.toJsonObject();
+                            const instrumentObject = instrument.toJsonObject(this.doc.song.sequences);
                             delete instrumentObject["preset"];
                             delete instrumentObject["volume"];
                             delete instrumentObject["pan"];
@@ -53514,7 +53599,7 @@ You should be redirected to the song at:<br /><br />
             this._copyInstrument = () => {
                 const channel = this.doc.song.channels[this.doc.channel];
                 const instrument = channel.instruments[this.doc.getCurrentInstrument()];
-                const instrumentCopy = instrument.toJsonObject();
+                const instrumentCopy = instrument.toJsonObject(this.doc.song.sequences);
                 instrumentCopy["isDrum"] = this.doc.song.getChannelIsNoise(this.doc.channel);
                 instrumentCopy["isMod"] = this.doc.song.getChannelIsMod(this.doc.channel);
                 window.localStorage.setItem("instrumentCopy", JSON.stringify(instrumentCopy));

@@ -1283,17 +1283,18 @@ export class SequenceSettings {
     }
 
     public isSame(other: SequenceSettings): boolean {
-        let sameCheck = true;
-        if (this.height != other.height) sameCheck = false;
-        else if (this.length != other.length) sameCheck = false;
+        if (this.height != other.height) return false;
+        else if (this.length != other.length) return false;
+        else if (this.interpolated != other.interpolated) return false;
+        else if (this.looped != other.looped) return false;
         else {
             for (var i = 0; i < this.length; i++) {
                 if (other.values[i] != this.values[i]) {
-                    sameCheck = false; break;
+                    return false;
                 }
             }
         }
-        return sameCheck;
+        return true;
     }
 }
 
@@ -1345,7 +1346,7 @@ export class EnvelopeSettings {
         this.discrete = false;
     }
 
-    public toJsonObject(): Object {
+    public toJsonObject(sequenceSettings?: SequenceSettings): Object {
         const envelopeObject: any = {
             "target": Config.instrumentAutomationTargets[this.target].name,
             "envelope": Config.envelopes[this.envelope].name,
@@ -1370,6 +1371,7 @@ export class EnvelopeSettings {
             envelopeObject["steps"] = this.steps;
         } else if (Config.envelopes[this.envelope].name == "sequence") {
             envelopeObject["waveform"] = this.waveform;
+            if (sequenceSettings) envelopeObject["sequenceSettings"] = sequenceSettings.toJsonObject();
         }
         return envelopeObject;
     }
@@ -1969,7 +1971,7 @@ export class Instrument {
         }
     }
 
-    public toJsonObject(): Object {
+    public toJsonObject(songSequences: SequenceSettings[]): Object {
         const instrumentObject: any = {
             "type": Config.instrumentTypeNames[this.type],
             "volume": this.volume,
@@ -2224,7 +2226,7 @@ export class Instrument {
 
         const envelopes: any[] = [];
         for (let i = 0; i < this.envelopeCount; i++) {
-            envelopes.push(this.envelopes[i].toJsonObject());
+            envelopes.push(this.envelopes[i].toJsonObject(Config.envelopes[this.envelopes[i].envelope].type == EnvelopeType.sequence ? songSequences[this.envelopes[i].waveform] : undefined));
         }
         instrumentObject["envelopes"] = envelopes;
 
@@ -2232,7 +2234,7 @@ export class Instrument {
     }
 
 
-    public fromJsonObject(instrumentObject: any, isNoiseChannel: boolean, isModChannel: boolean, useSlowerRhythm: boolean, useFastTwoNoteArp: boolean, legacyGlobalReverb: number = 0, jsonFormat: string = Config.jsonFormat): void {
+    public fromJsonObject(instrumentObject: any, isNoiseChannel: boolean, isModChannel: boolean, useSlowerRhythm: boolean, useFastTwoNoteArp: boolean, songSequences: SequenceSettings[], legacyGlobalReverb: number = 0, jsonFormat: string = Config.jsonFormat): void {
         if (instrumentObject == undefined) instrumentObject = {};
 
         const format: string = jsonFormat.toLowerCase();
@@ -2968,6 +2970,28 @@ export class Instrument {
                         discreteEnvelope = instrumentObject["discreteEnvelope"];
                     } else {
                         discreteEnvelope = tempEnvelope.discrete;
+                    }
+                    if (Config.envelopes[tempEnvelope.envelope].type == EnvelopeType.sequence) { //also find the sequence
+                        const potentialSequence: SequenceSettings = new SequenceSettings();
+                        potentialSequence.fromJsonObject(envelopeArray[i]["sequenceSettings"], Config.jsonFormat);
+                        //does the sequence already exist?
+                        let found: number = -1;
+                        for (let seq: number = 0; seq < songSequences.length; seq++) {
+                            const sequence: SequenceSettings = songSequences[seq];
+                            if (sequence.isSame(potentialSequence)) {
+                                found = seq;
+                                break;
+                            }
+                        }
+                        if (found > -1) {
+                            tempEnvelope.waveform = found;
+                        } else {
+                            //do we have room to add a sequence? If not, we can't add it
+                            if (songSequences.length < Config.maxEnvelopeSequenceCount) {
+                                tempEnvelope.waveform = songSequences.length;
+                                songSequences.push(potentialSequence);
+                            }
+                        }
                     }
                     this.addEnvelope(tempEnvelope.target, tempEnvelope.index, tempEnvelope.envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, tempEnvelope.perEnvelopeSpeed, tempEnvelope.perEnvelopeLowerBound, tempEnvelope.perEnvelopeUpperBound, tempEnvelope.steps, tempEnvelope.seed, tempEnvelope.waveform, discreteEnvelope);
                 }
@@ -7069,7 +7093,7 @@ export class Song {
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
                         const ins = new Instrument(isNoise, isMod)
-                        ins.fromJsonObject(data as string, isNoise, isMod, false, false);
+                        ins.fromJsonObject(data as string, isNoise, isMod, false, false, this.sequences);
                         channel.instruments.push(ins);
                         break;
                     }
@@ -7088,7 +7112,7 @@ export class Song {
                         const isNoise: boolean = this.getChannelIsNoise(channelIndex!);
                         const isMod: boolean = this.getChannelIsMod(channelIndex!);
                         instrument.setTypeAndReset(InstrumentType.chip, isNoise, isMod); //default settings
-                        instrument.fromJsonObject(data as string, isNoise, isMod, false, false);
+                        instrument.fromJsonObject(data as string, isNoise, isMod, false, false, this.sequences);
                         break;
                     case InstrumentSettings.type:
                         instrument.type = numberData;
@@ -7504,7 +7528,7 @@ export class Song {
             const isNoiseChannel: boolean = this.getChannelIsNoise(channelIndex);
             const isModChannel: boolean = this.getChannelIsMod(channelIndex);
             for (const instrument of channel.instruments) {
-                instrumentArray.push(instrument.toJsonObject());
+                instrumentArray.push(instrument.toJsonObject(this.sequences));
             }
 
             const patternArray: Object[] = [];
@@ -8117,8 +8141,7 @@ export class Song {
                     newNoiseChannels.push(channel);
                 } else if (isModChannel) {
                     newModChannels.push(channel);
-                }
-                else {
+                } else {
                     newPitchChannels.push(channel);
                 }
 
@@ -8129,8 +8152,7 @@ export class Song {
 
                 if (channelObject["name"] != undefined) {
                     channel.name = channelObject["name"];
-                }
-                else {
+                } else {
                     channel.name = "";
                 }
 
@@ -8140,9 +8162,8 @@ export class Song {
                         if (i >= this.getMaxInstrumentsPerChannel()) break;
                         const instrument: Instrument = new Instrument(isNoiseChannel, isModChannel);
                         channel.instruments[i] = instrument;
-                        instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, legacyGlobalReverb, format);
+                        instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format);
                     }
-
                 }
 
                 for (let i: number = 0; i < this.patternsPerChannel; i++) {

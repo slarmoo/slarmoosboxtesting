@@ -462,7 +462,7 @@ export class ImportPrompt implements Prompt {
                 const presetValue: number = EditorConfig.nameToPresetValue("standard drumset")!;
                 const preset: Preset = EditorConfig.valueToPreset(presetValue)!;
                 const instrument: Instrument = new Instrument(false, false);
-                instrument.fromJsonObject(preset.settings, false, false, false, false, 1);
+                instrument.fromJsonObject(preset.settings, false, false, false, false, this._doc.song.sequences, 1);
 
                 instrument.preset = presetValue;
                 channel.instruments.push(instrument);
@@ -614,7 +614,7 @@ export class ImportPrompt implements Prompt {
                                         instrumentByProgram[currentProgram] = instrument;
 
                                         if (presetValue != null && preset != null && (preset.isNoise == true) == isNoiseChannel) {
-                                            instrument.fromJsonObject(preset.settings, isNoiseChannel, isModChannel, false, false, 1);
+                                            instrument.fromJsonObject(preset.settings, isNoiseChannel, isModChannel, false, false, this._doc.song.sequences, 1);
                                             instrument.preset = presetValue;
                                         } else {
                                             instrument.setTypeAndReset(isModChannel ? InstrumentType.mod : (isNoiseChannel ? InstrumentType.noise : InstrumentType.chip), isNoiseChannel, isModChannel);
