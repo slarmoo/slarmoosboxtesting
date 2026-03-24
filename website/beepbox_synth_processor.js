@@ -17680,7 +17680,10 @@ var Song = class _Song {
       case 20 /* addSequence */:
         this.sequences.push(new SequenceSettings2());
         break;
-      case 21 /* sequenceLength */: {
+      case 21 /* removeSequence */:
+        this.sequences.splice(numberData, 1);
+        break;
+      case 22 /* sequenceLength */: {
         const oldValue = this.sequences[channelIndex].length;
         this.sequences[channelIndex].length = numberData;
         if (numberData < oldValue) {
@@ -17690,7 +17693,7 @@ var Song = class _Song {
         }
         break;
       }
-      case 22 /* sequenceHeight */: {
+      case 23 /* sequenceHeight */: {
         const oldValue = this.sequences[channelIndex].length;
         this.sequences[channelIndex].height = numberData;
         if (numberData < oldValue) {
@@ -17700,20 +17703,20 @@ var Song = class _Song {
         }
         break;
       }
-      case 23 /* sequenceValues */:
+      case 24 /* sequenceValues */:
         this.sequences[channelIndex].values = data;
         break;
-      case 24 /* sequenceBooleans */:
+      case 25 /* sequenceBooleans */:
         this.sequences[channelIndex].interpolated = (numberData & 1) == 1;
         this.sequences[channelIndex].looped = (numberData & 2) == 2;
         break;
-      case 26 /* channelOrder */:
+      case 27 /* channelOrder */:
         const selectionMin = data.selectionMin;
         const selectionMax = data.selectionMax;
         const offset = data.offset;
         this.channels.splice(selectionMin + offset, 0, ...this.channels.splice(selectionMin, selectionMax - selectionMin + 1));
         break;
-      case 27 /* updateChannel */:
+      case 28 /* updateChannel */:
         const channel = this.channels[channelIndex];
         switch (instrumentSetting) {
           case 1 /* allPatterns */: {
@@ -17755,7 +17758,7 @@ var Song = class _Song {
           }
         }
         break;
-      case 28 /* updateInstrument */:
+      case 29 /* updateInstrument */:
         const instrument = this.channels[channelIndex].instruments[instrumentIndex];
         if (channelIndex === void 0 || instrumentSetting === void 0)
           return;
@@ -19033,7 +19036,7 @@ var SynthMessenger = class {
     }
   }
   updateSong(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
-    if (songSetting == 28 /* updateInstrument */ || songSetting == 27 /* updateChannel */) {
+    if (songSetting == 29 /* updateInstrument */ || songSetting == 28 /* updateChannel */) {
       if (channelIndex === void 0 || instrumentIndex === void 0 || instrumentSetting === void 0) {
         throw new Error("missing index or setting number");
       }
@@ -19136,7 +19139,7 @@ var SynthMessenger = class {
       };
       this.sendMessage(songMessage);
       for (let channelIndex = 0; channelIndex < this.song.getChannelCount(); channelIndex++) {
-        this.updateSong(+this.song.channels[channelIndex].muted, 27 /* updateChannel */, channelIndex, 0, 3 /* muted */);
+        this.updateSong(+this.song.channels[channelIndex].muted, 28 /* updateChannel */, channelIndex, 0, 3 /* muted */);
       }
     }
   }

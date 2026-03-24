@@ -2973,6 +2973,18 @@ export class ChangeAddNewSequence extends Change {
     }
 }
 
+export class ChangeRemoveSequence extends Change {
+    constructor(doc: SongDocument, sequenceIndex: number) {
+        super();
+        const oldLength: number = doc.song.sequences.length;
+        if (oldLength == 1 || sequenceIndex >= oldLength) return;
+        doc.song.sequences.splice(sequenceIndex, 1);
+        doc.synth.updateSong(sequenceIndex, SongSettings.removeSequence);
+        this._didSomething();
+        doc.notifier.changed();
+    }
+}
+
 export class ChangeSequenceLength extends Change {
     constructor(doc: SongDocument, sequenceIndex: number, value: number) {
         super();

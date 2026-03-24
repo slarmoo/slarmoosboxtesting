@@ -161,6 +161,7 @@ export enum SongSettings {
     eqFilter,
     eqSubFilters,
     addSequence,
+    removeSequence,
     sequenceLength,
     sequenceHeight,
     sequenceValues,

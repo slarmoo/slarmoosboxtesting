@@ -7029,6 +7029,9 @@ export class Song {
             case SongSettings.addSequence:
                 this.sequences.push(new SequenceSettings());
                 break;
+            case SongSettings.removeSequence:
+                this.sequences.splice(numberData, 1);
+                break;
             case SongSettings.sequenceLength: {
                 //channelIndex hijacked for sequence index
                 const oldValue = this.sequences[channelIndex!].length;

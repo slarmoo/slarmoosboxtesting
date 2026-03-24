@@ -3,7 +3,7 @@
 import { InstrumentType, Config, DropdownID, LFOEnvelopeTypes, RandomEnvelopeTypes, EnvelopeType, EffectType } from "../synth/SynthConfig";
 import { EnvelopeSettings, Instrument, SequenceSettings } from "../synth/synthMessenger";
 import { SongDocument } from "./SongDocument";
-import { ChangeSetEnvelopeTarget, ChangeSetEnvelopeType, ChangeRemoveEnvelope, ChangeEnvelopePitchStart, ChangeEnvelopePitchEnd, ChangeEnvelopeInverse, ChangePerEnvelopeSpeed, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeRandomEnvelopeSteps, ChangeRandomEnvelopeSeed, PasteEnvelope, ChangeSetEnvelopeWaveform, ChangeDiscreteEnvelope, ChangeAddNewSequence, ChangeUpdateSequence, } from "./changes";
+import { ChangeSetEnvelopeTarget, ChangeSetEnvelopeType, ChangeRemoveEnvelope, ChangeEnvelopePitchStart, ChangeEnvelopePitchEnd, ChangeEnvelopeInverse, ChangePerEnvelopeSpeed, ChangeEnvelopeLowerBound, ChangeEnvelopeUpperBound, ChangeRandomEnvelopeSteps, ChangeRandomEnvelopeSeed, PasteEnvelope, ChangeSetEnvelopeWaveform, ChangeDiscreteEnvelope, ChangeAddNewSequence, ChangeUpdateSequence, ChangeRemoveSequence, } from "./changes";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Change } from "./Change";
 import { prettyNumber } from "./EditorConfig";
@@ -120,6 +120,9 @@ export class EnvelopeEditor {
 		} else if (sequenceSelectIndex != -1) {
 			if (this._sequenceSelects[sequenceSelectIndex].value == this._doc.song.sequences.length + "") {
 				this._openPrompt("sequenceSettings", { "sequenceIndex": this._doc.song.sequences.length, "envelopeIndex": sequenceSelectIndex });
+			} else if (this._sequenceSelects[sequenceSelectIndex].value == "-1") { 
+				new ChangeRemoveSequence(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].envelopes[sequenceSelectIndex].waveform);
+				this._doc.record(new ChangeSetEnvelopeWaveform(this._doc, Math.min(this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].envelopes[sequenceSelectIndex].waveform, this._doc.song.sequences.length - 1), sequenceSelectIndex));
 			} else {
 				this._doc.record(new ChangeSetEnvelopeWaveform(this._doc, this._sequenceSelects[sequenceSelectIndex].value, sequenceSelectIndex));
 			}
@@ -372,6 +375,7 @@ export class EnvelopeEditor {
 					if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
 						this._sequenceSelects[i].appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
 					}
+					this._sequenceSelects[i].appendChild(HTML.option({ value: -1 }, "remove sequence"));
 
 					//update values
 					this._sequenceSelects[i].value = instrument.envelopes[i].waveform.toString();
@@ -553,6 +557,7 @@ export class EnvelopeEditor {
 			if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
 				sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
 			}
+			sequenceSelect.appendChild(HTML.option({ value: -1 }, "remove sequence"));
 			const editSequenceButton: HTMLButtonElement = HTML.button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelects[envelopeIndex].value, "envelopeIndex": envelopeIndex }) }, "Edit");
 			const SequenceWrapper: HTMLDivElement = HTML.div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, HTML.span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), sequenceSelect);
 			const SequenceRow: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, editSequenceButton);

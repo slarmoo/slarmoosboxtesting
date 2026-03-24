@@ -8,7 +8,7 @@ import { ChangeAddNewSequence, ChangeSequenceBooleans, ChangeSequenceHeight, Cha
 import { ColorConfig } from "./ColorConfig";
 import { SongEditor } from "./SongEditor";
 
-const { div, input, button, span, h2, canvas } = HTML;
+const { div, input, button, span, h2, canvas, p } = HTML;
 
 export class SequenceEditor {
     public sequence: SequenceSettings;
@@ -251,6 +251,7 @@ export class SequenceEditorPrompt implements Prompt {
                 div({ style: "display: flex; flex-direction: row; justify-content: right;" }, span("Loops: "), this._sequenceLoops)
             ),
         ),
+        p({style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, "Note that editing this sequence will update it in every place it is used"),
         div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
             this._okayButton,
             this.copyPasteContainer,
