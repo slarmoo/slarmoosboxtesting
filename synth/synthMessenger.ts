@@ -3429,7 +3429,7 @@ export class Song {
 
     public initToDefault(andResetChannels: boolean = true): void {
         this.scale = 0;
-        this.scaleCustom = [true, false, true, true, false, false, false, true, true, false, true, true];
+        this.scaleCustom = [true, false, true, true, false, true, false, true, true, false, false, true];
         //this.scaleCustom = [true, false, false, false, false, false, false, false, false, false, false, false];
         this.key = 0;
         this.octave = 0;

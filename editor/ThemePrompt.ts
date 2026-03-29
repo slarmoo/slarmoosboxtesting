@@ -72,7 +72,8 @@ export class ThemePrompt implements Prompt {
 		),
 		optgroup({ label: "Misc" },
 			option({ value: "azur lane" }, "Azur Lane"),
-			option({ value: "custom" }, "Custom")
+			option({ value: "custom" }, "Custom"),
+			option({ value: "random" }, "Random")
 		),
 	);
 	private readonly _cancelButton: HTMLButtonElement = button({ class: "cancelButton" });
@@ -129,7 +130,14 @@ export class ThemePrompt implements Prompt {
 	}
 
 	private _previewTheme = (): void => {
-		ColorConfig.setTheme(this._themeSelect.value);
+		if (this._themeSelect.value == "random") {
+			const keys = Object.keys(ColorConfig.themes);
+			const key = keys[Math.floor(Math.random() * keys.length)];
+			ColorConfig.setTheme(key);
+			this._themeSelect.value = key;
+		} else {
+			ColorConfig.setTheme(this._themeSelect.value);
+		}
 		this._doc.notifier.changed();
 	}
 }

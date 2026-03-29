@@ -9420,14 +9420,15 @@ var beepbox = (function (exports) {
         SongSettings[SongSettings["eqFilter"] = 18] = "eqFilter";
         SongSettings[SongSettings["eqSubFilters"] = 19] = "eqSubFilters";
         SongSettings[SongSettings["addSequence"] = 20] = "addSequence";
-        SongSettings[SongSettings["sequenceLength"] = 21] = "sequenceLength";
-        SongSettings[SongSettings["sequenceHeight"] = 22] = "sequenceHeight";
-        SongSettings[SongSettings["sequenceValues"] = 23] = "sequenceValues";
-        SongSettings[SongSettings["sequenceBooleans"] = 24] = "sequenceBooleans";
-        SongSettings[SongSettings["pluginurl"] = 25] = "pluginurl";
-        SongSettings[SongSettings["channelOrder"] = 26] = "channelOrder";
-        SongSettings[SongSettings["updateChannel"] = 27] = "updateChannel";
-        SongSettings[SongSettings["updateInstrument"] = 28] = "updateInstrument";
+        SongSettings[SongSettings["removeSequence"] = 21] = "removeSequence";
+        SongSettings[SongSettings["sequenceLength"] = 22] = "sequenceLength";
+        SongSettings[SongSettings["sequenceHeight"] = 23] = "sequenceHeight";
+        SongSettings[SongSettings["sequenceValues"] = 24] = "sequenceValues";
+        SongSettings[SongSettings["sequenceBooleans"] = 25] = "sequenceBooleans";
+        SongSettings[SongSettings["pluginurl"] = 26] = "pluginurl";
+        SongSettings[SongSettings["channelOrder"] = 27] = "channelOrder";
+        SongSettings[SongSettings["updateChannel"] = 28] = "updateChannel";
+        SongSettings[SongSettings["updateInstrument"] = 29] = "updateInstrument";
     })(SongSettings || (SongSettings = {}));
     var ChannelSettings;
     (function (ChannelSettings) {
@@ -20346,7 +20347,7 @@ var beepbox = (function (exports) {
         }
         initToDefault(andResetChannels = true) {
             this.scale = 0;
-            this.scaleCustom = [true, false, true, true, false, false, false, true, true, false, true, true];
+            this.scaleCustom = [true, false, true, true, false, true, false, true, true, false, false, true];
             this.key = 0;
             this.octave = 0;
             this.loopStart = 0;
@@ -23765,6 +23766,9 @@ var beepbox = (function (exports) {
                     break;
                 case SongSettings.addSequence:
                     this.sequences.push(new SequenceSettings());
+                    break;
+                case SongSettings.removeSequence:
+                    this.sequences.splice(numberData, 1);
                     break;
                 case SongSettings.sequenceLength: {
                     const oldValue = this.sequences[channelIndex].length;

@@ -14504,7 +14504,7 @@ var Song = class _Song {
   }
   initToDefault(andResetChannels = true) {
     this.scale = 0;
-    this.scaleCustom = [true, false, true, true, false, false, false, true, true, false, true, true];
+    this.scaleCustom = [true, false, true, true, false, true, false, true, true, false, false, true];
     this.key = 0;
     this.octave = 0;
     this.loopStart = 0;
