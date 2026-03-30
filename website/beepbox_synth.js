@@ -12819,7 +12819,7 @@ var beepbox = (function (exports) {
                 startNote = 0;
                 endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
             }
-            const range = endNote - startNote + 1;
+            const range = endNote - startNote;
             if (!inverse) {
                 if (pitch <= startNote) {
                     return envelopeLowerBound;
@@ -15799,18 +15799,22 @@ var beepbox = (function (exports) {
                 }
             }
             if (effectsIncludePitchShift(instrument.effects)) {
-                let pitchShift = Config.justIntonationSemitones[instrument.pitchShift] / intervalScale;
-                let pitchShiftScalarStart = 1.0;
-                let pitchShiftScalarEnd = 1.0;
+                let usePitchShiftStart = instrument.pitchShift;
+                let usePitchShiftEnd = instrument.pitchShift;
                 if (this.isModActive(Config.modulators.dictionary["pitch shift"].index, channelIndex, tone.instrumentIndex)) {
-                    pitchShift = Config.justIntonationSemitones[Config.justIntonationSemitones.length - 1];
-                    pitchShiftScalarStart = (this.getModValue(Config.modulators.dictionary["pitch shift"].index, channelIndex, tone.instrumentIndex, false)) / (Config.pitchShiftCenter);
-                    pitchShiftScalarEnd = (this.getModValue(Config.modulators.dictionary["pitch shift"].index, channelIndex, tone.instrumentIndex, true)) / (Config.pitchShiftCenter);
+                    usePitchShiftStart = (this.getModValue(Config.modulators.dictionary["pitch shift"].index, channelIndex, tone.instrumentIndex, false));
+                    usePitchShiftEnd = (this.getModValue(Config.modulators.dictionary["pitch shift"].index, channelIndex, tone.instrumentIndex, true));
                 }
                 const envelopeStart = envelopeStarts[18];
                 const envelopeEnd = envelopeEnds[18];
-                intervalStart += pitchShift * envelopeStart * pitchShiftScalarStart;
-                intervalEnd += pitchShift * envelopeEnd * pitchShiftScalarEnd;
+                const pitchShiftStart = (usePitchShiftStart - Config.pitchShiftCenter) * envelopeStart + Config.pitchShiftCenter;
+                const pitchShiftEnd = (usePitchShiftEnd - Config.pitchShiftCenter) * envelopeEnd + Config.pitchShiftCenter;
+                const pitchShiftStartRounded = Math.floor(pitchShiftStart);
+                const pitchShiftEndRounded = Math.floor(pitchShiftEnd);
+                const pitchShiftStartFrac = pitchShiftStart - pitchShiftStartRounded;
+                const pitchShiftEndFrac = pitchShiftEnd - pitchShiftEndRounded;
+                intervalStart += Config.justIntonationSemitones[pitchShiftStartRounded] / intervalScale * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartRounded + 1] || 0) / intervalScale * pitchShiftStartFrac;
+                intervalEnd += Config.justIntonationSemitones[pitchShiftEndRounded] / intervalScale * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndRounded + 1] || 0) / intervalScale * pitchShiftEndFrac;
             }
             if (effectsIncludeDetune(instrument.effects) || this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
                 const envelopeStart = envelopeStarts[19];
@@ -15821,12 +15825,14 @@ var beepbox = (function (exports) {
                     modDetuneStart = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, false) + Config.detuneCenter;
                     modDetuneEnd = this.getModValue(Config.modulators.dictionary["detune"].index, channelIndex, tone.instrumentIndex, true) + Config.detuneCenter;
                 }
-                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
-                    modDetuneStart += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
-                    modDetuneEnd += 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
-                }
                 intervalStart += Synth.detuneToCents(modDetuneStart) * envelopeStart * Config.pitchesPerOctave / (12.0 * 100.0);
                 intervalEnd += Synth.detuneToCents(modDetuneEnd) * envelopeEnd * Config.pitchesPerOctave / (12.0 * 100.0);
+                if (this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
+                    modDetuneStart = 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, false);
+                    modDetuneEnd = 4 * this.getModValue(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex, true);
+                    intervalStart += modDetuneStart * Config.pitchesPerOctave / (12.0 * 100.0);
+                    intervalEnd += modDetuneEnd * Config.pitchesPerOctave / (12.0 * 100.0);
+                }
             }
             if (effectsIncludeVibrato(instrument.effects)) {
                 let delayTicks;
