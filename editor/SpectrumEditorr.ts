@@ -370,7 +370,7 @@ export class SpectrumEditorPrompt implements Prompt {
         this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
         this.updatePlayButton();
         // this.spectrumEditor.reassignDoc(_doc);
-        
+
         if (this._isDrumset) {
             for (let i: number = Config.drumCount - 1; i >= 0; i--) {
                 this.spectrumEditors[i] = new SpectrumEditor(this._doc, Config.drumCount - 1 - i, true);
@@ -404,7 +404,7 @@ export class SpectrumEditorPrompt implements Prompt {
     }
 
     private _setDrumSpectrum = (index: number): void => {
-        this._drumsetButtons[this._drumsetSpectrumIndex] .classList.remove("selected-instrument");
+        this._drumsetButtons[this._drumsetSpectrumIndex].classList.remove("selected-instrument");
         this.spectrumEditors[this._drumsetSpectrumIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
 
         this._drumsetSpectrumIndex = index;

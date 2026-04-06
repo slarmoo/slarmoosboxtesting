@@ -27,7 +27,7 @@ export class SequenceEditor {
     public canvas: HTMLCanvasElement;
     private renderedColor: string = "";
 
-    
+
 
     constructor(private _doc: SongDocument, private sequenceIndex: number, interactable: boolean, scale: number = 3) {
         this.canvasHeight = 52 * scale;
@@ -117,7 +117,7 @@ export class SequenceEditor {
         // Black BG
         ctx.fillStyle = ColorConfig.getComputed("--editor-background");
         ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
-        
+
         //waveform
         ctx.fillStyle = renderColor;
         if (this.sequence.interpolated) {
@@ -139,14 +139,14 @@ export class SequenceEditor {
                 ctx.fillRect(i * this.canvasWidth / this.sequence.length, this.canvasHeight - h, this.canvasWidth / this.sequence.length, h);
             }
         }
-        
+
         //horizontal divisor lines
         ctx.fillStyle = ColorConfig.getComputed("--editor-background");
         for (let i: number = 0; i < this.sequence.height; i++) {
             const h: number = i / this.sequence.height * this.canvasHeight;
             ctx.fillRect(0, h, this.canvasWidth, 1);
         }
-        
+
         //vertical divisor lines
         ctx.fillStyle = ColorConfig.getComputed("--ui-widget-background");
         for (let i: number = 0; i < this.sequence.length; i++) {
@@ -166,7 +166,7 @@ export class SequenceEditor {
             this.redrawCanvas();
         }
     }
-    
+
     private _onMouseDown = (event: MouseEvent): void => {
         this._mouseDown = true;
         this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
@@ -199,7 +199,7 @@ export class SequenceEditor {
         this._mouseY = Math.floor(event.touches[0].clientY - this.canvas.getBoundingClientRect().top);
         this._onCursorMove();
     }
-    
+
     private _whenCursorReleased = (): void => {
         this._mouseDown = false;
     }
@@ -211,7 +211,7 @@ export class SequenceEditorPrompt implements Prompt {
     private readonly _sequenceHeight: HTMLInputElement = input({ value: this._sequenceEditor.sequence.height, style: "width: 4em; font-size: 80%; ", id: "sequenceHeightInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceHeightMax });
     private readonly _sequenceLength: HTMLInputElement = input({ value: this._sequenceEditor.sequence.length, style: "width: 4em; font-size: 80%; ", id: "sequenceLengthInput", type: "number", step: "1", min: "0", max: Config.envelopeSequenceLengthMax });
     private readonly _sequenceInterpolates: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceInterpolatesCheckbox" });
-    private readonly _sequenceLoops: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceLoopsCheckbox" });    
+    private readonly _sequenceLoops: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0.5em; margin-left: 1.5em;", id: "sequenceLoopsCheckbox" });
 
     private readonly _cancelButton: HTMLButtonElement = button({ class: "cancelButton" });
     private readonly _okayButton: HTMLButtonElement = button({ class: "okayButton", style: "width:45%;" }, "Okay");
@@ -251,7 +251,7 @@ export class SequenceEditorPrompt implements Prompt {
                 div({ style: "display: flex; flex-direction: row; justify-content: right;" }, span("Loops: "), this._sequenceLoops)
             ),
         ),
-        p({style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, "Note that editing this sequence will update it in every place it is used"),
+        p({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" }, "Note that editing this sequence will update it in every place it is used"),
         div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
             this._okayButton,
             this.copyPasteContainer,
