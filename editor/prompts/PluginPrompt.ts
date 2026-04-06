@@ -1,5 +1,5 @@
-import { SongDocument } from "./SongDocument";
-import { ChangePluginurl } from "./changes";
+import { SongDocument } from "../SongDocument";
+import { ChangePluginurl } from "../changes";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html";
 

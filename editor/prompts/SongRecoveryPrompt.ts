@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { SongDocument } from "./SongDocument";
-import { RecoveredSong, RecoveredVersion, SongRecovery, versionToKey } from "./SongRecovery";
+import { SongDocument } from "../SongDocument";
+import { RecoveredSong, RecoveredVersion, SongRecovery, versionToKey } from "../SongRecovery";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 

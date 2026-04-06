@@ -4,7 +4,7 @@ import { Config } from "../synth/SynthConfig";
 import { SongDocument } from "./SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "./ColorConfig";
-import { Instrument } from "../synth/synthMessenger";
+import { Instrument } from "../synth/song";
 
 export class Piano {
     private readonly _pianoContainer: HTMLDivElement = HTML.div({ style: "width: 100%; height: 100%; display: flex; flex-direction: column-reverse; align-items: stretch;" });

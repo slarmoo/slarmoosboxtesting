@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config, performIntegral } from "./SynthConfig";
-import { Song } from "./synthMessenger";
+import { Song } from "./song";
 import { DeactivateMessage, defaultBlockSize, IsRecordingMessage, MessageFlag } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";

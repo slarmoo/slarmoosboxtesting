@@ -18,7 +18,7 @@ export class MuteEditor {
     private readonly _buttons: HTMLDivElement[] = [];
     private readonly _channelCounts: HTMLDivElement[] = [];
     private readonly _channelNameDisplay: HTMLDivElement = HTML.div({ style: `background-color: ${ColorConfig.uiWidgetFocus}; white-space:nowrap; display: none; transform:translate(20px); width: auto; pointer-events: none; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, "");
-    public readonly _channelNameInput: InputBox = new InputBox(HTML.input({ style: `color: ${ColorConfig.primaryText}; background-color: ${ColorConfig.uiWidgetFocus}; margin-top: -2px; display: none; width: 6em; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, ""), this._doc, (oldValue: string, newValue: string) => new ChangeChannelName(this._doc, oldValue, newValue));
+    public readonly _channelNameInput: InputBox;
 
     private readonly _channelDropDown: HTMLSelectElement = HTML.select({ style: "width: 0px; left: 19px; height: 19px; position:absolute; opacity:0" },
 
@@ -31,7 +31,7 @@ export class MuteEditor {
         HTML.option({ value: "chnDelete" }, "Delete This Channel"),
     );
 
-    public readonly container: HTMLElement = HTML.div({ class: "muteEditor", style: "position: sticky; padding-top: " + Config.barEditorHeight + "px;" }, this._channelNameDisplay, this._channelNameInput.input, this._channelDropDown);
+    public readonly container: HTMLElement;
 
     private _editorHeight: number = 128;
     private _renderedPitchChannels: number = 0;
@@ -43,6 +43,10 @@ export class MuteEditor {
     private _channelDropDownLastState: boolean = false;
 
     constructor(private _doc: SongDocument, private _editor: SongEditor) {
+        this._channelNameInput = new InputBox(HTML.input({ style: `color: ${ColorConfig.primaryText}; background-color: ${ColorConfig.uiWidgetFocus}; margin-top: -2px; display: none; width: 6em; position: absolute; border-radius: 0.2em; z-index: 2;`, "color": ColorConfig.primaryText }, ""), this._doc, (oldValue: string, newValue: string) => new ChangeChannelName(this._doc, oldValue, newValue));
+
+        this.container = HTML.div({ class: "muteEditor", style: "position: sticky; padding-top: " + Config.barEditorHeight + "px;" }, this._channelNameDisplay, this._channelNameInput.input, this._channelDropDown);
+        
         this.container.addEventListener("click", this._onClick);
         this.container.addEventListener("mousemove", this._onMouseMove);
         this.container.addEventListener("mouseleave", this._onMouseLeave);

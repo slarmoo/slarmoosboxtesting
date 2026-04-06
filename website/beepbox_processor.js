@@ -323,21 +323,26 @@ var RingBuffer = class {
 
 // synth/processor.ts
 var SynthProcessor = class extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this.isPlaying = false;
-    this.outputFailures = 0;
-    this.maxFailures = 1024;
-    this.browserAutomaticallyClearsAudioBuffer = true;
-    this.bufferClear = new Float32Array(512);
-    this.port.onmessage = (event) => this.receiveMessage(event);
-  }
   static {
     __name(this, "SynthProcessor");
+  }
+  isPlaying = false;
+  outputFailures = 0;
+  maxFailures = 1024;
+  browserAutomaticallyClearsAudioBuffer = true;
+  // Assume true until proven otherwise. Older Chrome does not clear the buffer so it needs to be cleared manually.
+  sabL;
+  sabR;
+  samplesL;
+  samplesR;
+  constructor() {
+    super();
+    this.port.onmessage = (event) => this.receiveMessage(event);
   }
   sendMessage(message) {
     this.port.postMessage(message);
   }
+  bufferClear = new Float32Array(512);
   receiveMessage(event) {
     switch (event.data.flag) {
       case 6 /* sabsProcessor */: {

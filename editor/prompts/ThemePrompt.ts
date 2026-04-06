@@ -2,8 +2,8 @@
 
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
-import { ColorConfig } from "./ColorConfig";
+import { SongDocument } from "../SongDocument";
+import { ColorConfig } from "../ColorConfig";
 
 //namespace beepbox {
 const { button, div, h2, select, option, optgroup } = HTML;

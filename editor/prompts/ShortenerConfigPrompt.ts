@@ -1,5 +1,5 @@
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
 
 const { button, div, h2, select, option } = HTML;

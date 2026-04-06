@@ -1,9 +1,9 @@
 {
-	"files": [ "synth/synth.ts" ],
+	"files": [ "synth/Messenger.ts" ],
 	"compilerOptions": {
 		"rootDir": "./",
 		"outDir": "build",
-		"target": "es6",
+		"target": "es2024",
 		"moduleResolution": "node",
 		"sourceMap": true,
 		"removeComments": true,
@@ -15,19 +15,10 @@
 		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedLocals": true,
-		"module": "ESNext",
+		"module": "ES2022",
 		"lib": [
 			"DOM",
-			"ES5",
-			"ES2015",
-			"ES2016",
-			"ES2017",
-			"ES2018",
-			"ES2019",
-			"ES2020",
-			"ES2021",
-			"ES2022",
-			"ESNext"
+			"ES2024"
 		]
 	}
 }

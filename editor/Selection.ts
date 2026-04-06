@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Dictionary, Config } from "../synth/SynthConfig";
-import { Note, NotePin, Pattern } from "../synth/synthMessenger";
+import { Note, NotePin, Pattern } from "../synth/song";
 import { SongDocument } from "./SongDocument";
 import { ChangeGroup } from "./Change";
 import { ColorConfig } from "./ColorConfig";

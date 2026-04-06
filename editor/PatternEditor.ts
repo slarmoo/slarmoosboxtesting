@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { getLocalStorageItem, Chord, Transition, Config, effectsIncludeNoteRange } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, FilterSettings, Channel, Pattern, Instrument, FilterControlPoint } from "../synth/synthMessenger";
+import { NotePin, Note, makeNotePin, FilterSettings, Channel, Pattern, Instrument, FilterControlPoint } from "../synth/song";
 import { ColorConfig } from "./ColorConfig";
 import { SongDocument } from "./SongDocument";
 import { Slider } from "./HTMLWrapper";
@@ -1490,7 +1490,7 @@ export class PatternEditor {
 
                         pattern = this._doc.song.getPattern(channelIndex, currentBar)!;
 
-                        pattern.instruments[0] = useInstrumentIndex;
+                        pattern!.instruments[0] = useInstrumentIndex;
 
                         changedPatterns = true;
                     }
@@ -1545,7 +1545,7 @@ export class PatternEditor {
 
                                     pattern = this._doc.song.getPattern(channelIndex, currentBar)!;
 
-                                    pattern.instruments[0] = instrumentIndex;
+                                    pattern!.instruments[0] = instrumentIndex;
 
                                     mod = Config.modCount;
                                     instrumentIndex = channel.instruments.length;
@@ -1997,7 +1997,7 @@ export class PatternEditor {
                     this._doc.setProspectiveChange(this._dragChange);
 
                     let scale = this._doc.song.scale == Config.scales.dictionary["Custom"].index ? this._doc.song.scaleCustom : Config.scales[this._doc.song.scale].flags;
-                    const notesInScale: number = scale.filter(x => x).length;
+                    const notesInScale: number = scale.filter((x: boolean) => x).length;
                     const pitchRatio: number = this._doc.song.getChannelIsNoise(this._doc.channel) ? 1 : 12 / notesInScale;
                     const draggedParts: number = Math.round((this._mouseX - this._mouseXStart) / (this._partWidth * minDivision)) * minDivision;
                     const draggedTranspose: number = Math.round((this._mouseYStart - this._mouseY) / (this._pitchHeight * pitchRatio));

@@ -1,5 +1,5 @@
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { HTML } from "imperative-html";
 
 const { div, h2, p, input, label, button } = HTML;

@@ -1,8 +1,8 @@
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { sampleLoadingState, SampleLoadingStatus, getSampleLoadingStatusName, ChipWave, Config } from "../synth/SynthConfig";
-import { ColorConfig } from "./ColorConfig";
-import { EditorConfig } from "./EditorConfig";
-import { SongDocument } from "./SongDocument";
+import { sampleLoadingState, SampleLoadingStatus, getSampleLoadingStatusName, ChipWave, Config } from "../../synth/SynthConfig";
+import { ColorConfig } from "../ColorConfig";
+import { EditorConfig } from "../EditorConfig";
+import { SongDocument } from "../SongDocument";
 
 const { div, h2, span, input, button } = HTML;
 

@@ -1,8 +1,8 @@
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 
-import { PatternEditor } from "./PatternEditor";
+import { PatternEditor } from "../PatternEditor";
 // import { ColorConfig } from "./ColorConfig";
 
 //namespace beepbox {

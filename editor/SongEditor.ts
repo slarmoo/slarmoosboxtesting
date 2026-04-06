@@ -3,62 +3,36 @@
 //import {Layout} from "./Layout";
 import { sampleLoadEvents, SampleLoadedEvent, InstrumentType, EffectType, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeRingModulation, effectsIncludeGranular, DropdownID, calculateRingModHertz, effectsIncludePlugin, effectsIncludeNoteRange } from "../synth/SynthConfig";
 import { BarScrollBar } from "./BarScrollBar";
-import { BeatsPerBarPrompt } from "./BeatsPerBarPrompt";
 import { Change, ChangeGroup } from "./Change";
-import { ChannelSettingsPrompt } from "./ChannelSettingsPrompt";
 import { ColorConfig, ChannelColors } from "./ColorConfig";
-import { CustomChipPrompt } from "./CustomChipPrompt";
-import { CustomFilterPrompt } from "./CustomFilterPrompt";
-import { InstrumentExportPrompt } from "./InstrumentExportPrompt";
-import { InstrumentImportPrompt } from "./InstrumentImportPrompt";
 import { isMobile, ctrlSymbol } from "./DeviceConfig";
 import { EditorConfig, prettyNumber, Preset, PresetCategory } from "./EditorConfig";
 import { PluginConfig } from "./PluginConfig"
-import { EuclideanRhythmPrompt } from "./EuclidgenRhythmPrompt";
-import { ExportPrompt } from "./ExportPrompt";
 import "./Layout"; // Imported here for the sake of ensuring this code is transpiled early.
-import { Instrument, Channel, SynthMessenger } from "../synth/synthMessenger";
+import { Instrument, Channel } from "../synth/song";
+import { SynthMessenger } from "../synth/Messenger";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Preferences } from "./Preferences";
-import { HarmonicsEditor, HarmonicsEditorPrompt } from "./HarmonicsEditor";
+import { HarmonicsEditor } from "./HarmonicsEditor";
 import { InputBox, Slider } from "./HTMLWrapper";
-import { ImportPrompt } from "./ImportPrompt";
+import * as Prompts from "./prompts/index";
 import { ChannelRow } from "./ChannelRow";
-import { LayoutPrompt } from "./LayoutPrompt";
 import { EnvelopeEditor } from "./EnvelopeEditor";
 import { FadeInOutEditor } from "./FadeInOutEditor";
 import { FilterEditor } from "./FilterEditor";
-import { LimiterPrompt } from "./LimiterPrompt";
-import { CustomScalePrompt } from "./CustomScalePrompt";
 import { LoopEditor } from "./LoopEditor";
-import { MoveNotesSidewaysPrompt } from "./MoveNotesSidewaysPrompt";
 import { MuteEditor } from "./MuteEditor";
-import { OctaveScrollBar } from "./OctaveScrollBar";
 import { MidiInputHandler } from "./MidiInput";
 import { KeyboardLayout } from "./KeyboardLayout";
+import { OctaveScrollBar } from "./OctaveScrollBar";
 import { PatternEditor } from "./PatternEditor";
 import { Piano } from "./Piano";
-import { PluginPrompt } from "./PluginPrompt";
-import { Prompt } from "./Prompt";
-import { SequenceEditorPrompt } from "./SequenceEditor"
+import { Prompt } from "./prompts/Prompt";
 import { SongDocument } from "./SongDocument";
-import { SongDurationPrompt } from "./SongDurationPrompt";
-import { SustainPrompt } from "./SustainPrompt";
-import { SongRecoveryPrompt } from "./SongRecoveryPrompt";
-import { RecordingSetupPrompt } from "./RecordingSetupPrompt";
-import { SpectrumEditor, SpectrumEditorPrompt } from "./SpectrumEditor";
-import { CustomThemePrompt } from "./CustomThemePrompt";
-import { ThemePrompt } from "./ThemePrompt";
-import { MultithreadingSetupPrompt } from "./MultithreadingSetupPrompt";
-import { TipPrompt } from "./TipPrompt";
+import { SpectrumEditor } from "./SpectrumEditor";
 import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorithmOrFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainFreqs, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
-
 import { TrackEditor } from "./TrackEditor";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
-import { VisualLoopControlsPrompt } from "./VisualLoopControlsPrompt";
-import { SampleLoadingStatusPrompt } from "./SampleLoadingStatusPrompt";
-import { AddSamplesPrompt } from "./AddSamplesPrompt";
-import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
 import { CustomChipCanvas } from "./CustomChipCanvas";
 import { CustomAlgorithmCanvas } from "./CustomAlgorithmCanvas";
 import { events, EventType } from "../global/Events";
@@ -1652,7 +1626,7 @@ export class SongEditor {
         this._currentPromptName = promptName;
 
         if (this.prompt) {
-            if (this._wasPlaying && !(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomScalePrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt)) {
+            if (this._wasPlaying && !(this.prompt instanceof Prompts.TipPrompt || this.prompt instanceof Prompts.LimiterPrompt || this.prompt instanceof Prompts.CustomScalePrompt || this.prompt instanceof Prompts.CustomChipPrompt || this.prompt instanceof Prompts.CustomFilterPrompt || this.prompt instanceof Prompts.VisualLoopControlsPrompt || this.prompt instanceof Prompts.SustainPrompt || this.prompt instanceof Prompts.HarmonicsEditorPrompt || this.prompt instanceof Prompts.SpectrumEditorPrompt)) {
                 this.doc.performance.play();
             }
             this._wasPlaying = false;
@@ -1667,105 +1641,105 @@ export class SongEditor {
         if (promptName) {
             switch (promptName) {
                 case "export":
-                    this.prompt = new ExportPrompt(this.doc);
+                    this.prompt = new Prompts.ExportPrompt(this.doc);
                     break;
                 case "import":
-                    this.prompt = new ImportPrompt(this.doc);
+                    this.prompt = new Prompts.ImportPrompt(this.doc);
                     break;
                 case "songRecovery":
-                    this.prompt = new SongRecoveryPrompt(this.doc);
+                    this.prompt = new Prompts.SongRecoveryPrompt(this.doc);
                     break;
                 case "barCount":
-                    this.prompt = new SongDurationPrompt(this.doc);
+                    this.prompt = new Prompts.SongDurationPrompt(this.doc);
                     break;
                 case "beatsPerBar":
-                    this.prompt = new BeatsPerBarPrompt(this.doc);
+                    this.prompt = new Prompts.BeatsPerBarPrompt(this.doc);
                     break;
                 case "moveNotesSideways":
-                    this.prompt = new MoveNotesSidewaysPrompt(this.doc);
+                    this.prompt = new Prompts.MoveNotesSidewaysPrompt(this.doc);
                     break;
                 case "channelSettings":
-                    this.prompt = new ChannelSettingsPrompt(this.doc);
+                    this.prompt = new Prompts.ChannelSettingsPrompt(this.doc);
                     break;
                 case "limiterSettings":
-                    this.prompt = new LimiterPrompt(this.doc, this);
+                    this.prompt = new Prompts.LimiterPrompt(this.doc, this);
                     break;
                 case "customScale":
-                    this.prompt = new CustomScalePrompt(this.doc);
+                    this.prompt = new Prompts.CustomScalePrompt(this.doc);
                     break;
                 case "customChipSettings":
-                    this.prompt = new CustomChipPrompt(this.doc, this);
+                    this.prompt = new Prompts.CustomChipPrompt(this.doc, this);
                     break;
                 case "customEQFilterSettings":
-                    this.prompt = new CustomFilterPrompt(this.doc, this, false);
+                    this.prompt = new Prompts.CustomFilterPrompt(this.doc, this, false);
                     break;
                 case "customNoteFilterSettings":
-                    this.prompt = new CustomFilterPrompt(this.doc, this, true);
+                    this.prompt = new Prompts.CustomFilterPrompt(this.doc, this, true);
                     break;
                 case "customSongEQFilterSettings":
-                    this.prompt = new CustomFilterPrompt(this.doc, this, false, true);
+                    this.prompt = new Prompts.CustomFilterPrompt(this.doc, this, false, true);
                     break;
                 case "theme":
-                    this.prompt = new ThemePrompt(this.doc);
+                    this.prompt = new Prompts.ThemePrompt(this.doc);
                     break;
                 case "layout":
-                    this.prompt = new LayoutPrompt(this.doc);
+                    this.prompt = new Prompts.LayoutPrompt(this.doc);
                     break;
                 case "recordingSetup":
-                    this.prompt = new RecordingSetupPrompt(this.doc);
+                    this.prompt = new Prompts.RecordingSetupPrompt(this.doc);
                     break;
                 case "multithreadingSetup":
-                    this.prompt = new MultithreadingSetupPrompt(this.doc);
+                    this.prompt = new Prompts.MultithreadingSetupPrompt(this.doc);
                     break;
                 case "exportInstrument":
-                    this.prompt = new InstrumentExportPrompt(this.doc);//, this);
+                    this.prompt = new Prompts.InstrumentExportPrompt(this.doc);//, this);
                     break;
                 case "importInstrument":
-                    this.prompt = new InstrumentImportPrompt(this.doc);//, this);
+                    this.prompt = new Prompts.InstrumentImportPrompt(this.doc);//, this);
                     break;
                 case "stringSustain":
-                    this.prompt = new SustainPrompt(this.doc);
+                    this.prompt = new Prompts.SustainPrompt(this.doc);
                     break;
                 case "addExternal":
-                    this.prompt = new AddSamplesPrompt(this.doc);
+                    this.prompt = new Prompts.AddSamplesPrompt(this.doc);
                     break;
                 case "addPlugin":
-                    this.prompt = new PluginPrompt(this.doc);
+                    this.prompt = new Prompts.PluginPrompt(this.doc);
                     break;
                 case "generateEuclideanRhythm":
-                    this.prompt = new EuclideanRhythmPrompt(this.doc);
+                    this.prompt = new Prompts.EuclideanRhythmPrompt(this.doc);
                     break;
                 case "customTheme":
-                    this.prompt = new CustomThemePrompt(this.doc, this._patternEditor, this._trackArea, document.getElementById("beepboxEditorContainer")!);
+                    this.prompt = new Prompts.CustomThemePrompt(this.doc, this._patternEditor, this._trackArea, document.getElementById("beepboxEditorContainer")!);
                     break;
                 case "visualLoopControls":
-                    this.prompt = new VisualLoopControlsPrompt(this.doc, this);
+                    this.prompt = new Prompts.VisualLoopControlsPrompt(this.doc, this);
                     break;
                 case "sampleLoadingStatus":
-                    this.prompt = new SampleLoadingStatusPrompt(this.doc);
+                    this.prompt = new Prompts.SampleLoadingStatusPrompt(this.doc);
                     break;
                 case "configureShortener":
-                    this.prompt = new ShortenerConfigPrompt(this.doc);
+                    this.prompt = new Prompts.ShortenerConfigPrompt(this.doc);
                     break;
                 case "harmonicsSettings":
-                    this.prompt = new HarmonicsEditorPrompt(this.doc, this);
+                    this.prompt = new Prompts.HarmonicsEditorPrompt(this.doc, this);
                     break;
                 case "spectrumSettings":
-                    this.prompt = new SpectrumEditorPrompt(this.doc, this, false);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, false);
                     break;
                 case "drumsetSettings":
-                    this.prompt = new SpectrumEditorPrompt(this.doc, this, true);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, true);
                     break;
                 case "sequenceSettings":
-                    this.prompt = new SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
+                    this.prompt = new Prompts.SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
                     break;
                 default:
-                    this.prompt = new TipPrompt(this.doc, promptName, extraSettings);
+                    this.prompt = new Prompts.TipPrompt(this.doc, promptName, extraSettings);
                     break;
             }
 
             if (this.prompt) {
-                if (!(this.prompt instanceof TipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomChipPrompt || this.prompt instanceof CustomFilterPrompt || this.prompt instanceof VisualLoopControlsPrompt || this.prompt instanceof SustainPrompt || this.prompt instanceof HarmonicsEditorPrompt || this.prompt instanceof SpectrumEditorPrompt || this.prompt instanceof SequenceEditorPrompt )) {
+                if (!(this.prompt instanceof Prompts.TipPrompt || this.prompt instanceof Prompts.LimiterPrompt || this.prompt instanceof Prompts.CustomChipPrompt || this.prompt instanceof Prompts.CustomFilterPrompt || this.prompt instanceof Prompts.VisualLoopControlsPrompt || this.prompt instanceof Prompts.SustainPrompt || this.prompt instanceof Prompts.HarmonicsEditorPrompt || this.prompt instanceof Prompts.SpectrumEditorPrompt || this.prompt instanceof Prompts.SequenceEditorPrompt )) {
                     this._wasPlaying = this.doc.synth.playing;
                     this.doc.performance.pause();
                 }
@@ -2541,7 +2515,7 @@ export class SongEditor {
 
             if (instrument.type == InstrumentType.customChipWave) {
                 this._customWaveDrawCanvas.redrawCanvas();
-                if (this.prompt instanceof CustomChipPrompt) {
+                if (this.prompt instanceof Prompts.CustomChipPrompt) {
                     this.prompt.customChipCanvas.render();
                 }
             }
@@ -3625,7 +3599,7 @@ export class SongEditor {
         this._shiftHeld = event.shiftKey;
 
         if (this.prompt) {
-            if (this.prompt instanceof CustomChipPrompt || this.prompt instanceof LimiterPrompt || this.prompt instanceof CustomScalePrompt || this.prompt instanceof CustomFilterPrompt) {
+            if (this.prompt instanceof Prompts.CustomChipPrompt || this.prompt instanceof Prompts.LimiterPrompt || this.prompt instanceof Prompts.CustomScalePrompt || this.prompt instanceof Prompts.CustomFilterPrompt) {
                 this.prompt.whenKeyPressed(event);
             }
             if (event.keyCode == 27) { // ESC key

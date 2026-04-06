@@ -2,9 +2,9 @@
 
 import { HTML } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
-import { Config } from "../synth/SynthConfig";
-import { PluginConfig } from "./PluginConfig";
+import { SongDocument } from "../SongDocument";
+import { Config } from "../../synth/SynthConfig";
+import { PluginConfig } from "../PluginConfig";
 
 const { button, div, p, h2, h3 } = HTML;
 

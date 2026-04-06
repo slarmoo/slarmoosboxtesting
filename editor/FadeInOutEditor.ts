@@ -1,7 +1,8 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config } from "../synth/SynthConfig";
-import { clamp, Instrument, SynthMessenger } from "../synth/synthMessenger";
+import { clamp, Instrument } from "../synth/song";
+import { SynthMessenger } from "../synth/Messenger";
 import { SongDocument } from "./SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "./ColorConfig";

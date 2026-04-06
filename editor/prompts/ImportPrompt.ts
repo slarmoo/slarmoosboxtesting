@@ -1,15 +1,16 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { InstrumentType, Config } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, Pattern, Instrument, Channel, Song, SynthMessenger } from "../synth/synthMessenger";
-import { Preset, EditorConfig } from "./EditorConfig";
-import { SongDocument } from "./SongDocument";
+import { InstrumentType, Config } from "../../synth/SynthConfig";
+import { NotePin, Note, makeNotePin, Pattern, Instrument, Channel, Song } from "../../synth/song";
+import { SynthMessenger } from "../../synth/Messenger";
+import { Preset, EditorConfig } from "../EditorConfig";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { ChangeGroup } from "./Change";
-import { removeDuplicatePatterns, ChangeSong, ChangeReplacePatterns } from "./changes";
-import { AnalogousDrum, analogousDrumMap, MidiChunkType, MidiFileFormat, MidiEventType, MidiControlEventMessage, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, midiVolumeToVolumeMult, midiExpressionToVolumeMult } from "./Midi";
-import { ArrayBufferReader } from "./ArrayBufferReader";
+import { ChangeGroup } from "../Change";
+import { removeDuplicatePatterns, ChangeSong, ChangeReplacePatterns } from "../changes";
+import { AnalogousDrum, analogousDrumMap, MidiChunkType, MidiFileFormat, MidiEventType, MidiControlEventMessage, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, midiVolumeToVolumeMult, midiExpressionToVolumeMult } from "../Midi";
+import { ArrayBufferReader } from "../ArrayBufferReader";
 
 const { button, p, div, h2, input, select, option } = HTML;
 

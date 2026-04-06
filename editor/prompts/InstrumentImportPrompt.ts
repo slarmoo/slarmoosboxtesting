@@ -1,11 +1,11 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 //import { SongEditor } from "./SongEditor";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { Channel, Instrument } from "../synth/synthMessenger";
-import { ChangePasteInstrument, ChangeAppendInstrument, ChangeViewInstrument } from "./changes";
+import { Channel, Instrument } from "../../synth/song";
+import { ChangePasteInstrument, ChangeAppendInstrument, ChangeViewInstrument } from "../changes";
 
 const { button, div, h2, input, select, option, code } = HTML;
 

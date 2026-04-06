@@ -1,10 +1,10 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Config } from "../synth/SynthConfig";
+import { Config } from "../../synth/SynthConfig";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
-import { ChangeBeatsPerBar } from "./changes";
+import { ChangeBeatsPerBar } from "../changes";
 import { ExportPrompt } from "./ExportPrompt";
 
 const { button, div, span, h2, input, br, select, option } = HTML;

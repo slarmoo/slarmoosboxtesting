@@ -1518,12 +1518,12 @@ export class Instrument {
     public type: InstrumentType = InstrumentType.chip;
     public preset: number = 0;
     public chipWave: number = 2;
-	public isUsingAdvancedLoopControls: boolean = false;
-	public chipWaveLoopStart: number = 0;
-	public chipWaveLoopEnd = Config.rawRawChipWaves[this.chipWave].samples.length - 1;
-	public chipWaveLoopMode: number = 0; // 0: loop, 1: ping-pong, 2: once, 3: play loop once
-	public chipWavePlayBackwards: boolean = false;
-        public chipWaveStartOffset: number = 0;
+    public isUsingAdvancedLoopControls: boolean = false;
+    public chipWaveLoopStart: number = 0;
+    public chipWaveLoopEnd = Config.rawRawChipWaves[this.chipWave].samples.length - 1;
+    public chipWaveLoopMode: number = 0; // 0: loop, 1: ping-pong, 2: once, 3: play loop once
+    public chipWavePlayBackwards: boolean = false;
+    public chipWaveStartOffset: number = 0;
     public chipNoise: number = 1;
     public eqFilter: FilterSettings = new FilterSettings();
     public eqFilterType: boolean = false;
@@ -2106,7 +2106,7 @@ export class Instrument {
                 instrumentObject["unisonOffset"] = this.unisonOffset;
                 instrumentObject["unisonExpression"] = this.unisonExpression;
                 instrumentObject["unisonSign"] = this.unisonSign;
-                if (this.unisonVoices == 1) { 
+                if (this.unisonVoices == 1) {
                     instrumentObject["unisonBuzzes"] = this.unisonBuzzes;
                 } else {
                     instrumentObject["unisonAntiPhased"] = this.unisonAntiPhased;
@@ -3012,8 +3012,8 @@ export class Instrument {
                 this.chipWaveStartOffset = 0;
             }
         }
-	}	
-    
+    }
+
 
     public getLargestControlPointCount(forNoteFilter: boolean) {
         let largest: number;
@@ -4254,7 +4254,7 @@ export class Song {
 
     public fromBase64String(compressed: string, jsonFormat: string = "auto"): void {
         if (compressed == null || compressed == "") {
-            if(document.URL) Song._clearSamples(); //only clear samples if this is on the main thread
+            if (document.URL) Song._clearSamples(); //only clear samples if this is on the main thread
 
             this.initToDefault(true);
             return;
@@ -4401,7 +4401,7 @@ export class Song {
             //samplemark
 
             //set the pluginurl
-            if (!PluginConfig.pluginName) {                
+            if (!PluginConfig.pluginName) {
                 if (pluginurl && this.pluginurl != pluginurl) this.fetchPlugin(pluginurl);
             }
             this.pluginurl = pluginurl;
@@ -5337,7 +5337,7 @@ export class Song {
                             instrument.unisonAntiPhased = (booleans & 1) == 1;
                             booleans >>= 1;
                             instrument.unisonBuzzes = (booleans & 1) == 1;
-                        } else if(instrument.type == InstrumentType.spectrum || instrument.type == InstrumentType.drumset) {
+                        } else if (instrument.type == InstrumentType.spectrum || instrument.type == InstrumentType.drumset) {
                             instrument.unisonAntiPhased = true;
                             instrument.unisonBuzzes = false;
                         } else {
@@ -7006,14 +7006,14 @@ export class Song {
             case SongSettings.eqFilter:
                 this.eqFilter.fromJsonObject(data);
                 this.tmpEqFilterStart = this.eqFilter;
-                this.tmpEqFilterEnd = null;        
+                this.tmpEqFilterEnd = null;
                 break;
             case SongSettings.eqSubFilters:
                 //channelIndex hijacked for subfilter index
                 if (this.eqSubFilters[channelIndex!] == null) this.eqSubFilters[channelIndex!] = new FilterSettings();
                 this.eqSubFilters[channelIndex!]!.fromJsonObject(data);
                 this.tmpEqFilterStart = this.eqFilter;
-                this.tmpEqFilterEnd = null;        
+                this.tmpEqFilterEnd = null;
                 break;
             case SongSettings.addSequence:
                 this.sequences.push(new SequenceSettings());
@@ -7039,7 +7039,7 @@ export class Song {
                     this.sequences[channelIndex!].values.forEach((v, i) => {
                         this.sequences[channelIndex!].values[i] = Math.min(numberData, v);
                     });
-                } 
+                }
                 break;
             } case SongSettings.sequenceValues:
                 this.sequences[channelIndex!].values = data as number[];
@@ -7090,7 +7090,7 @@ export class Song {
                         break;
                     }
                     case ChannelSettings.removeInstrunent: {
-                        channel.instruments.splice(data, 1);                        
+                        channel.instruments.splice(data, 1);
                         break;
                     }
                 }
@@ -7157,7 +7157,7 @@ export class Song {
                         instrument.eqFilter.fromJsonObject(data);
                         instrument.tmpEqFilterStart = instrument.eqFilter;
                         instrument.tmpEqFilterEnd = null;
-                
+
                         break;
                     case InstrumentSettings.eqFilterType:
                         instrument.eqFilterType = numberData == 1;
@@ -7238,7 +7238,7 @@ export class Song {
                         break;
                     case InstrumentSettings.slideSpeed:
                         instrument.slideTicks = numberData;
-                        break;    
+                        break;
                     case InstrumentSettings.pitchShift:
                         instrument.pitchShift = numberData;
                         break;
@@ -7252,7 +7252,7 @@ export class Song {
                         instrument.vibrato = numberData;
                         instrument.vibratoDelay = Config.vibratos[instrument.vibrato].delayTicks / 2;
                         instrument.vibratoSpeed = 10; // default
-                        instrument.vibratoType = Config.vibratos[instrument.vibrato].type;            
+                        instrument.vibratoType = Config.vibratos[instrument.vibrato].type;
                         break;
                     case InstrumentSettings.vibratoDepth:
                         instrument.vibrato = Config.vibratos.length; // Custom
@@ -7280,7 +7280,7 @@ export class Song {
                         instrument.unisonOffset = Config.unisons[instrument.unison].offset;
                         instrument.unisonExpression = Config.unisons[instrument.unison].expression;
                         instrument.unisonSign = Config.unisons[instrument.unison].sign;
-                        
+
                         break;
                     case InstrumentSettings.unisonVoices:
                         instrument.unison = Config.unisons.length; // Custom
@@ -7319,7 +7319,7 @@ export class Song {
                         break;
                     case InstrumentSettings.strumSpeed:
                         instrument.strumParts = numberData;
-                        break;    
+                        break;
                     case InstrumentSettings.volume:
                         instrument.volume = numberData;
                         break;

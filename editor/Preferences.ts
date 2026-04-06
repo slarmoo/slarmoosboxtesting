@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import {Scale, Config} from "../synth/SynthConfig";
-import {ColorConfig} from "../editor/ColorConfig";
+import { Scale, Config } from "../synth/SynthConfig";
+import { ColorConfig } from "../editor/ColorConfig";
 
 export class Preferences {
 	public static readonly defaultVisibleOctaves: number = 3;

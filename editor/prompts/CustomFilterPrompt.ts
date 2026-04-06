@@ -2,12 +2,12 @@
 
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
-import { Config } from "../synth/SynthConfig";
-import { FilterEditor } from "./FilterEditor";
-import { SongEditor } from "./SongEditor";
-import { FilterSettings } from "../synth/synthMessenger";
-import { ColorConfig } from "./ColorConfig";
+import { SongDocument } from "../SongDocument";
+import { Config } from "../../synth/SynthConfig";
+import { FilterEditor } from "../FilterEditor";
+import { SongEditor } from "../SongEditor";
+import { FilterSettings } from "../../synth/song";
+import { ColorConfig } from "../ColorConfig";
 
 //namespace beepbox {
 const { button, div, h2, p } = HTML;

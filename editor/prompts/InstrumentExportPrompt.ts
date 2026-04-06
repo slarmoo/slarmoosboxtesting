@@ -1,39 +1,42 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Config } from "../synth/SynthConfig";
-import { SongDocument } from "./SongDocument";
-// import { SongEditor } from "./SongEditor";
+import { Config } from "../../synth/SynthConfig";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { Channel, Instrument } from "../synth/synthMessenger";
+import { Channel, Instrument } from "../../synth/song";
 
 const { button, div, h2, input, label, br } = HTML;
 export class InstrumentExportPrompt implements Prompt {
     private readonly _cancelButton: HTMLButtonElement = button({ class: "cancelButton" });
     private readonly _exportButton: HTMLButtonElement = button({ class: "exportButton", style: "width:45%;" }, "Export");
     private readonly _exportMultipleBox: HTMLInputElement = input({ style: "width: 3em; margin-left: 1em;", type: "checkbox" });
-    private readonly _channelName: String = this._doc.song.channels[this._doc.channel].name == "" ? Config.jsonFormat + "-Instrument" : this._doc.song.channels[this._doc.channel].name;
-    private readonly _fileName: HTMLInputElement = input({ type: "text", style: "width: 10em;", value: this._channelName, maxlength: 250, "autofocus": "autofocus" });
+    private readonly _fileName: HTMLInputElement;
 
-    public readonly container: HTMLDivElement = div({ class: "prompt noSelection", style: "width: 200px;" },
-        h2("Export Instruments Options"),
-        div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" },
-            "File name:",
-            this._fileName,
-        ),
-        label({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" },
-            "Export all instruments",
-            br(),
-            "in channel:",
-            this._exportMultipleBox,
-        ),
-        div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
-            this._exportButton,
-        ),
-        this._cancelButton,
-    );
+    public readonly container: HTMLDivElement;
 
     constructor(private _doc: SongDocument) { //, private _editor: SongEditor
+        const channelName: string = this._doc.song.channels[this._doc.channel].name == "" ? Config.jsonFormat + "-Instrument" : this._doc.song.channels[this._doc.channel].name;
+        this._fileName = input({ type: "text", style: "width: 10em;", value: channelName, maxlength: 250, "autofocus": "autofocus" });
+
+        this.container = div({ class: "prompt noSelection", style: "width: 200px;" },
+            h2("Export Instruments Options"),
+            div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between;" },
+                "File name:",
+                this._fileName,
+            ),
+            label({ style: "display: flex; flex-direction: row; align-items: center; height: 2em; justify-content: flex-end;" },
+                "Export all instruments",
+                br(),
+                "in channel:",
+                this._exportMultipleBox,
+            ),
+            div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
+                this._exportButton,
+            ),
+            this._cancelButton,
+        );
+
         this._cancelButton.addEventListener("click", this._close);
         this._exportButton.addEventListener("click", this._decide_export);
         this._fileName.addEventListener("input", InstrumentExportPrompt._validateFileName)

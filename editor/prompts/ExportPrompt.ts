@@ -1,14 +1,15 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { InstrumentType, /*EnvelopeType,*/ Config, getArpeggioPitchIndex } from "../synth/SynthConfig";
-import { Instrument, Pattern, Note, Song, SynthMessenger } from "../synth/synthMessenger";
-import { ColorConfig } from "./ColorConfig";
-import { Preset, EditorConfig } from "./EditorConfig";
-import { SongDocument } from "./SongDocument";
+import { InstrumentType, /*EnvelopeType,*/ Config, getArpeggioPitchIndex } from "../../synth/SynthConfig";
+import { Instrument, Pattern, Note, Song } from "../../synth/song";
+import { SynthMessenger } from "../../synth/Messenger";
+import { ColorConfig } from "../ColorConfig";
+import { Preset, EditorConfig } from "../EditorConfig";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { ArrayBufferWriter } from "./ArrayBufferWriter";
-import { MidiChunkType, MidiFileFormat, MidiControlEventMessage, MidiEventType, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, volumeMultToMidiVolume, volumeMultToMidiExpression, defaultMidiPitchBend, defaultMidiExpression } from "./Midi";
+import { ArrayBufferWriter } from "../ArrayBufferWriter";
+import { MidiChunkType, MidiFileFormat, MidiControlEventMessage, MidiEventType, MidiMetaEventMessage, MidiRegisteredParameterNumberMSB, MidiRegisteredParameterNumberLSB, volumeMultToMidiVolume, volumeMultToMidiExpression, defaultMidiPitchBend, defaultMidiExpression } from "../Midi";
 
 const { button, div, h2, input, select, option } = HTML;
 

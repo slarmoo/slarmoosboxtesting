@@ -1,11 +1,11 @@
 // Copyright (C) 2020 John Nesky, distributed under the MIT license.
 
-import { Config } from "../synth/SynthConfig";
+import { Config } from "../../synth/SynthConfig";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
-import { ChangeCustomScale } from "./changes";
-import { ColorConfig } from "./ColorConfig";
+import { ChangeCustomScale } from "../changes";
+import { ColorConfig } from "../ColorConfig";
 
 
 //namespace beepbox {

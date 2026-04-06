@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeNoteRange, effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeChord, effectsIncludeTransition } from "./SynthConfig";
-import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song, SequenceSettings } from "./synthMessenger"
+import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song, SequenceSettings } from "./song"
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
 import { FilterCoefficients, FrequencyResponse, DynamicBiquadFilter, warpInfinityToNyquist } from "./filtering";
@@ -10,6 +10,7 @@ import { LiveInputValues } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { BeepboxSet } from "./Set";
 import { BeepBoxEffectPlugin } from "beepboxplugin";
+import { SynthTemplate } from "./song";
 
 const epsilon: number = (1.0e-24); // For detecting and avoiding float denormals, which have poor performance.
 
@@ -206,13 +207,6 @@ class Grain {
     public addDelay(delay: number): void {
         this.delay = delay;
     }
-}
-interface HeldMod {
-    volume: number;
-    channelIndex: number;
-    instrumentIndex: number;
-    setting: number;
-    holdFor: number;
 }
 
 class PickedString {
@@ -2245,7 +2239,7 @@ class ChannelState {
     public singleSeamlessInstrument: number | null = null; // Seamless tones from a pattern with a single instrument can be transferred to a different single seamless instrument in the next pattern.
 }
 
-export class Synth {
+export class Synth extends SynthTemplate {
 
     private syncSongState(): void {
         const channelCount: number = this.song!.getChannelCount();
@@ -2272,21 +2266,6 @@ export class Synth {
         }
     }
 
-    public initModFilters(song: Song | null): void {
-        if (song != null) {
-            song.tmpEqFilterStart = song.eqFilter;
-            song.tmpEqFilterEnd = null;
-            for (let channelIndex: number = 0; channelIndex < song.getChannelCount(); channelIndex++) {
-                for (let instrumentIndex: number = 0; instrumentIndex < song.channels[channelIndex].instruments.length; instrumentIndex++) {
-                    const instrument: Instrument = song.channels[channelIndex].instruments[instrumentIndex];
-                    instrument.tmpEqFilterStart = instrument.eqFilter;
-                    instrument.tmpEqFilterEnd = null;
-                    instrument.tmpNoteFilterStart = instrument.noteFilter;
-                    instrument.tmpNoteFilterEnd = null;
-                }
-            }
-        }
-    }
     public warmUpSynthesizer(song: Song | null): void {
         // Don't bother to generate the drum waves unless the song actually
         // uses them, since they may require a lot of computation.
@@ -2513,29 +2492,12 @@ export class Synth {
         return (Math.pow(16.0, amplitude / 15.0) - 1.0) / 15.0;
     }
 
-    public samplesPerSecond: number = 44100;
     public panningDelayBufferSize: number;
     public panningDelayBufferMask: number;
     public chorusDelayBufferSize: number;
     public chorusDelayBufferMask: number;
     // TODO: reverb
 
-    public song: Song | null = null;
-    public preferLowerLatency: boolean = false; // enable when recording performances from keyboard or MIDI. Takes effect next time you activate audio.
-    public anticipatePoorPerformance: boolean = false; // enable on mobile devices to reduce audio stutter glitches. Takes effect next time you activate audio.
-    /**
-     * liveInputDuration [0]: number
-     * 
-     * liveBassInputDuration [1]: number
-     * 
-     * liveInputStarted [2]: 0 | 1
-     * 
-     * liveBassInputStarted [3]: 0 | 1
-     * 
-     * liveInputChannel [4]: integer
-     * 
-     * liveBassInputChannel [5]: integer
-     */
     public liveInputValues: Uint32Array = new Uint32Array(6 * 4);
     private readonly liveInputPitches: BeepboxSet = new BeepboxSet();
     private readonly liveBassInputPitches: BeepboxSet = new BeepboxSet();
@@ -2543,34 +2505,15 @@ export class Synth {
 
     public loopRepeatCount: number = -1;
     public volume: number = 1.0;
-    public oscRefreshEventTimer: number = 0;
-    public oscEnabled: boolean = true;
-    public enableMetronome: boolean = false;
-    public countInMetronome: boolean = false;
-    public renderingSong: boolean = false;
-    public heldMods: HeldMod[] = [];
     private wantToSkip: boolean = false;
     public prevBar: number | null = null;
     private nextBar: number | null = null;
-    /**
-     * beat [0]: number
-     * 
-     * bar [1]: number
-     * 
-     * part [2]: number
-     */
+
     public songPosition: Uint16Array = new Uint16Array(2 * 3);
     public outVolumeCap: Float32Array = new Float32Array(1 * 4);
-    private tick: number = 0;
-    public isAtStartOfTick: boolean = true;
-    public isAtEndOfTick: boolean = true;
+    // public isAtStartOfTick: boolean = true;
+    // public isAtEndOfTick: boolean = true;
     public tickSampleCountdown: number = 0;
-    private modValues: (number | null)[] = [];
-    public modInsValues: (number | null)[][][] = [];
-    private nextModValues: (number | null)[] = [];
-    public nextModInsValues: (number | null)[][][] = [];
-    public isPlayingSong: boolean = false;
-    public isRecording: boolean = false;
 
     public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
     public static readonly tempFilterEndCoefficients: FilterCoefficients = new FilterCoefficients();
@@ -2622,40 +2565,11 @@ export class Synth {
     private outputDataLUnfiltered: Float32Array | null = null;
     private outputDataRUnfiltered: Float32Array | null = null;
 
-    public getTicksIntoBar(): number {
-        return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]) * Config.ticksPerPart + this.tick;
-    }
-    public getCurrentPart(): number {
-        return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]);
-    }
-
-    private findPartsInBar(bar: number): number {
-        if (this.song == null) return 0;
-        let partsInBar: number = Config.partsPerBeat * this.song.beatsPerBar;
-        for (let channel: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channel < this.song.getChannelCount(); channel++) {
-            let pattern: Pattern | null = this.song.getPattern(channel, bar);
-            if (pattern != null) {
-                let instrument: Instrument = this.song.channels[channel].instruments[pattern.instruments[0]];
-                for (let mod: number = 0; mod < Config.modCount; mod++) {
-                    if (instrument.modulators[mod] == Config.modulators.dictionary["next bar"].index) {
-                        for (const note of pattern.notes) {
-                            if (note.pitches[0] == (Config.modCount - 1 - mod)) {
-                                // Find the earliest next bar note.
-                                if (partsInBar > note.start)
-                                    partsInBar = note.start;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return partsInBar;
-    }
-
     constructor(
         private deactivate: () => void,
         private endCountIn: () => void
     ) {
+        super();
         this.computeDelayBufferSizes();
     }
 
@@ -2680,7 +2594,7 @@ export class Synth {
     }
 
 
-    public play(): void {
+    public play = () => {
         if (this.isPlayingSong) return;
         this.initModFilters(this.song);
         this.computeLatestModValues();
@@ -2721,50 +2635,6 @@ export class Synth {
                 }
             }
         }
-    }
-
-    public setModValue(volumeStart: number, volumeEnd: number, channelIndex: number, instrumentIndex: number, setting: number): number {
-        let val: number = volumeStart + Config.modulators[setting].convertRealFactor;
-        let nextVal: number = volumeEnd + Config.modulators[setting].convertRealFactor;
-        if (Config.modulators[setting].forSong) {
-            if (this.modValues[setting] == null || this.modValues[setting] != val || this.nextModValues[setting] != nextVal) {
-                this.modValues[setting] = val;
-                this.nextModValues[setting] = nextVal;
-            }
-        } else {
-            if (this.modInsValues[channelIndex][instrumentIndex][setting] == null
-                || this.modInsValues[channelIndex][instrumentIndex][setting] != val
-                || this.nextModInsValues[channelIndex][instrumentIndex][setting] != nextVal) {
-                this.modInsValues[channelIndex][instrumentIndex][setting] = val;
-                this.nextModInsValues[channelIndex][instrumentIndex][setting] = nextVal;
-            }
-        }
-
-        return val;
-    }
-
-    public getModValue(setting: number, channel?: number | null, instrument?: number | null, nextVal?: boolean): number {
-        const forSong: boolean = Config.modulators[setting].forSong;
-        if (forSong) {
-            if (this.modValues[setting] != null && this.nextModValues[setting] != null) {
-                return nextVal ? this.nextModValues[setting]! : this.modValues[setting]!;
-            }
-        } else if (channel != undefined && instrument != undefined) {
-            if (this.modInsValues[channel][instrument][setting] != null && this.nextModInsValues[channel][instrument][setting] != null) {
-                return nextVal ? this.nextModInsValues[channel][instrument][setting]! : this.modInsValues[channel][instrument][setting]!;
-            }
-        }
-        return -1;
-    }
-
-    public isModActive(setting: number, channel?: number, instrument?: number): boolean {
-        const forSong: boolean = Config.modulators[setting].forSong;
-        if (forSong) {
-            return (this.modValues != undefined && this.modValues[setting] != null);
-        } else if (channel != undefined && instrument != undefined && this.modInsValues != undefined && this.modInsValues[channel] != null && this.modInsValues[channel][instrument] != null) {
-            return (this.modInsValues[channel][instrument][setting] != null);
-        }
-        return false;
     }
 
     private getNextBar(): number {
@@ -7629,19 +7499,19 @@ export class Synth {
                     for (let i: number = 0; i < Config.filterMorphCount; i++) {
                         if (tgtSong.tmpEqFilterEnd == tgtSong.eqSubFilters[i] && tgtSong.tmpEqFilterEnd != null) {
                             tgtSong.tmpEqFilterEnd = new FilterSettings();
-                            tgtSong.tmpEqFilterEnd.fromJsonObject(tgtSong.eqSubFilters[i]!.toJsonObject());
+                            tgtSong.tmpEqFilterEnd!.fromJsonObject(tgtSong.eqSubFilters[i]!.toJsonObject());
                         }
                     }
                     if (tgtSong.tmpEqFilterEnd == null) {
                         tgtSong.tmpEqFilterEnd = new FilterSettings();
-                        tgtSong.tmpEqFilterEnd.fromJsonObject(tgtSong.eqFilter.toJsonObject());
+                        tgtSong.tmpEqFilterEnd!.fromJsonObject(tgtSong.eqFilter.toJsonObject());
                     }
 
-                    if (tgtSong.tmpEqFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
+                    if (tgtSong.tmpEqFilterEnd!.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
                         if (dotTarget & 1) { // X
-                            tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
+                            tgtSong.tmpEqFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
                         } else { // Y
-                            tgtSong.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
+                            tgtSong.tmpEqFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
                         }
                     }
                 }
@@ -7677,19 +7547,19 @@ export class Synth {
                         for (let i: number = 0; i < Config.filterMorphCount; i++) {
                             if (tgtInstrument.tmpEqFilterEnd == tgtInstrument.eqSubFilters[i] && tgtInstrument.tmpEqFilterEnd != null) {
                                 tgtInstrument.tmpEqFilterEnd = new FilterSettings();
-                                tgtInstrument.tmpEqFilterEnd.fromJsonObject(tgtInstrument.eqSubFilters[i]!.toJsonObject());
+                                tgtInstrument.tmpEqFilterEnd!.fromJsonObject(tgtInstrument.eqSubFilters[i]!.toJsonObject());
                             }
                         }
                         if (tgtInstrument.tmpEqFilterEnd == null) {
                             tgtInstrument.tmpEqFilterEnd = new FilterSettings();
-                            tgtInstrument.tmpEqFilterEnd.fromJsonObject(tgtInstrument.eqFilter.toJsonObject());
+                            tgtInstrument.tmpEqFilterEnd!.fromJsonObject(tgtInstrument.eqFilter.toJsonObject());
                         }
 
-                        if (tgtInstrument.tmpEqFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
+                        if (tgtInstrument.tmpEqFilterEnd!.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
                             if (dotTarget % 2) { // X
-                                tgtInstrument.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
+                                tgtInstrument.tmpEqFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
                             } else { // Y
-                                tgtInstrument.tmpEqFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
+                                tgtInstrument.tmpEqFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
                             }
                         }
                     }
@@ -7726,19 +7596,19 @@ export class Synth {
                         for (let i: number = 0; i < Config.filterMorphCount; i++) {
                             if (tgtInstrument.tmpNoteFilterEnd == tgtInstrument.noteSubFilters[i] && tgtInstrument.tmpNoteFilterEnd != null) {
                                 tgtInstrument.tmpNoteFilterEnd = new FilterSettings();
-                                tgtInstrument.tmpNoteFilterEnd.fromJsonObject(tgtInstrument.noteSubFilters[i]!.toJsonObject());
+                                tgtInstrument.tmpNoteFilterEnd!.fromJsonObject(tgtInstrument.noteSubFilters[i]!.toJsonObject());
                             }
                         }
                         if (tgtInstrument.tmpNoteFilterEnd == null) {
                             tgtInstrument.tmpNoteFilterEnd = new FilterSettings();
-                            tgtInstrument.tmpNoteFilterEnd.fromJsonObject(tgtInstrument.noteFilter.toJsonObject());
+                            tgtInstrument.tmpNoteFilterEnd!.fromJsonObject(tgtInstrument.noteFilter.toJsonObject());
                         }
 
-                        if (tgtInstrument.tmpNoteFilterEnd.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
+                        if (tgtInstrument.tmpNoteFilterEnd!.controlPointCount > Math.floor((dotTarget - 1) / 2)) {
                             if (dotTarget % 2) { // X
-                                tgtInstrument.tmpNoteFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
+                                tgtInstrument.tmpNoteFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].freq = tone.expression + tone.expressionDelta;
                             } else { // Y
-                                tgtInstrument.tmpNoteFilterEnd.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
+                                tgtInstrument.tmpNoteFilterEnd!.controlPoints[Math.floor((dotTarget - 1) / 2)].gain = tone.expression + tone.expressionDelta;
                             }
                         }
                     }
@@ -7818,50 +7688,6 @@ export class Synth {
         return phase;
     }
 
-    public static instrumentVolumeToVolumeMult(instrumentVolume: number): number {
-        return (instrumentVolume == -Config.volumeRange / 2.0) ? 0.0 : Math.pow(2, Config.volumeLogScale * instrumentVolume);
-    }
-    public static volumeMultToInstrumentVolume(volumeMult: number): number {
-        return (volumeMult <= 0.0) ? -Config.volumeRange / 2 : Math.min(Config.volumeRange, (Math.log(volumeMult) / Math.LN2) / Config.volumeLogScale);
-    }
-    public static noteSizeToVolumeMult(size: number): number {
-        return Math.pow(Math.max(0.0, size) / Config.noteSizeMax, 1.5);
-    }
-    public static volumeMultToNoteSize(volumeMult: number): number {
-        return Math.pow(Math.max(0.0, volumeMult), 1 / 1.5) * Config.noteSizeMax;
-    }
-
-    public static fadeInSettingToSeconds(setting: number): number {
-        return 0.0125 * (0.95 * setting + 0.05 * setting * setting);
-    }
-    public static secondsToFadeInSetting(seconds: number): number {
-        return clamp(0, Config.fadeInRange, Math.round((-0.95 + Math.sqrt(0.9025 + 0.2 * seconds / 0.0125)) / 0.1));
-    }
-    public static fadeOutSettingToTicks(setting: number): number {
-        return Config.fadeOutTicks[setting];
-    }
-    public static ticksToFadeOutSetting(ticks: number): number {
-        let lower: number = Config.fadeOutTicks[0];
-        if (ticks <= lower) return 0;
-        for (let i: number = 1; i < Config.fadeOutTicks.length; i++) {
-            let upper: number = Config.fadeOutTicks[i];
-            if (ticks <= upper) return (ticks < (lower + upper) / 2) ? i - 1 : i;
-            lower = upper;
-        }
-        return Config.fadeOutTicks.length - 1;
-    }
-
-    public static detuneToCents(detune: number): number {
-        // BeepBox formula, for reference:
-        // return detune * (Math.abs(detune) + 1) / 2;
-        return detune - Config.detuneCenter;
-    }
-    public static centsToDetune(cents: number): number {
-        // BeepBox formula, for reference:
-        // return Math.sign(cents) * (Math.sqrt(1 + 8 * Math.abs(cents)) - 1) / 2.0;
-        return cents + Config.detuneCenter;
-    }
-
     public static getOperatorWave(waveform: number, pulseWidth: number) {
         if (waveform != 2) {
             return Config.operatorWaves[waveform];
@@ -7869,26 +7695,6 @@ export class Synth {
         else {
             return Config.pwmOperatorWaves[pulseWidth];
         }
-    }
-
-    public getSamplesPerTick(): number {
-        if (this.song == null) return 0;
-        let beatsPerMinute: number = this.song.getBeatsPerMinute();
-        if (this.isModActive(Config.modulators.dictionary["tempo"].index)) {
-            beatsPerMinute = this.getModValue(Config.modulators.dictionary["tempo"].index);
-        }
-        return this.getSamplesPerTickSpecificBPM(beatsPerMinute);
-    }
-
-    private getSamplesPerTickSpecificBPM(beatsPerMinute: number): number {
-        const beatsPerSecond: number = beatsPerMinute / 60.0;
-        const partsPerSecond: number = Config.partsPerBeat * beatsPerSecond;
-        const tickPerSecond: number = Config.ticksPerPart * partsPerSecond;
-        return this.samplesPerSecond / tickPerSecond;
-    }
-
-    public static fittingPowerOfTwo(x: number): number {
-        return 1 << (32 - Math.clz32(Math.ceil(x) - 1));
     }
 
     private sanitizeFilters(filters: DynamicBiquadFilter[]): void {

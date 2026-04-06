@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Config } from "../synth/SynthConfig";
-import { Note, Pattern } from "../synth/synthMessenger";
+import { Note, Pattern } from "../synth/song";
 import { SongDocument } from "./SongDocument";
 import { ChangeGroup } from "./Change";
 import { ChangeChannelBar, ChangePinTime, ChangeEnsurePatternExists, ChangeNoteAdded, ChangeInsertBars, ChangeDeleteBars, ChangeNoteLength } from "./changes";

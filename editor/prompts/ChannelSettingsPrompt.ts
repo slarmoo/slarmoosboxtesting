@@ -1,11 +1,11 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Config } from "../synth/SynthConfig";
+import { Config } from "../../synth/SynthConfig";
 import { HTML } from "imperative-html/dist/esm/elements-strict";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
-import { ChangeGroup } from "./Change";
-import { ChangePatternsPerChannel, ChangeInstrumentsFlags, ChangeChannelCount } from "./changes";
+import { ChangeGroup } from "../Change";
+import { ChangePatternsPerChannel, ChangeInstrumentsFlags, ChangeChannelCount } from "../changes";
 
 const { button, div, label, br, h2, input } = HTML;
 

@@ -2,11 +2,11 @@
 
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
-import { ColorConfig } from "./ColorConfig";
-import { ChangeLimiterSettings } from "./changes";
-import { SongEditor } from "./SongEditor";
-import { prettyNumber } from "./EditorConfig";
+import { SongDocument } from "../SongDocument";
+import { ColorConfig } from "../ColorConfig";
+import { ChangeLimiterSettings } from "../changes";
+import { SongEditor } from "../SongEditor";
+import { prettyNumber } from "../EditorConfig";
 
 //namespace beepbox {
 const { button, div, h2, input } = HTML;

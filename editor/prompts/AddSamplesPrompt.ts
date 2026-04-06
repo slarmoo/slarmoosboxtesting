@@ -1,9 +1,9 @@
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { Dictionary, Config } from "../synth/SynthConfig";
-import { clamp, parseFloatWithDefault, parseIntWithDefault } from "../synth/synthMessenger";
-import { ColorConfig } from "./ColorConfig";
-import { EditorConfig } from "./EditorConfig";
-import { SongDocument } from "./SongDocument";
+import { Dictionary, Config } from "../../synth/SynthConfig";
+import { clamp, parseFloatWithDefault, parseIntWithDefault } from "../../synth/song";
+import { ColorConfig } from "../ColorConfig";
+import { EditorConfig } from "../EditorConfig";
+import { SongDocument } from "../SongDocument";
 
 const { div, input, button, a, code, textarea, details, summary, span, ul, li, select, option, h2, p } = HTML;
 

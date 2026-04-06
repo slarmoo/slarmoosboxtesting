@@ -1,7 +1,8 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes } from "../synth/SynthConfig";
-import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, SynthMessenger, clamp, SequenceSettings } from "../synth/synthMessenger";
+import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, clamp, SequenceSettings } from "../synth/song";
+import { SynthMessenger } from "../synth/Messenger";
 import { Preset, PresetCategory, EditorConfig } from "./EditorConfig";
 import { Change, ChangeGroup, ChangeSequence, UndoableChange } from "./Change";
 import { SongDocument } from "./SongDocument";
@@ -3010,7 +3011,7 @@ export class ChangeSequenceHeight extends Change {
         if (oldValue != value) {
             doc.song.sequences[sequenceIndex].height = value;
             if (value < oldValue) {
-                doc.song.sequences[sequenceIndex].values.forEach((v, i) => {
+                doc.song.sequences[sequenceIndex].values.forEach((v: number, i: number) => {
                     doc.song.sequences[sequenceIndex].values[i] = Math.min(value, v);
                 });
             } 

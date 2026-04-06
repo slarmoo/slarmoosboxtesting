@@ -1,14 +1,14 @@
 // Copyright (C) 2012-2023 John Nesky and contributing authors, distributed under the MIT license, see the accompanying LICENSE.md file.
 
-import { Config } from "../synth/SynthConfig";
+import { Config } from "../../synth/SynthConfig";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { SongDocument } from "./SongDocument";
+import { SongDocument } from "../SongDocument";
 import { Prompt } from "./Prompt";
-import { ColorConfig, ChannelColors } from "./ColorConfig";
-import { prettyNumber } from "./EditorConfig";
-import { ChangeGroup } from "./Change";
-import { ChangeEnsurePatternExists, ChangePatternNumbers, ChangeNoteAdded, ChangeInsertBars } from "./changes";
-import { Note, NotePin, Pattern, makeNotePin } from "../synth/synthMessenger";
+import { ColorConfig, ChannelColors } from "../ColorConfig";
+import { prettyNumber } from "../EditorConfig";
+import { ChangeGroup } from "../Change";
+import { ChangeEnsurePatternExists, ChangePatternNumbers, ChangeNoteAdded, ChangeInsertBars } from "../changes";
+import { Note, NotePin, Pattern, makeNotePin } from "../../synth/song";
 
 const { button, div, h2, input } = HTML;
 

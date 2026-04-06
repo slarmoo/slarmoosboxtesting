@@ -2,10 +2,10 @@
 
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
-import { SongDocument } from "./SongDocument";
-import { ColorConfig } from "./ColorConfig";
-import { ChangeCustomWave } from "./changes";
-import { SongEditor } from "./SongEditor";
+import { SongDocument } from "../SongDocument";
+import { ColorConfig } from "../ColorConfig";
+import { ChangeCustomWave } from "../changes";
+import { SongEditor } from "../SongEditor";
 
 //namespace beepbox {
 const { button, div, h2 } = HTML;
@@ -246,7 +246,7 @@ export class CustomChipPromptCanvas {
 
 export class CustomChipPrompt implements Prompt {
 
-    public customChipCanvas: CustomChipPromptCanvas = new CustomChipPromptCanvas(this._doc);
+    public customChipCanvas: CustomChipPromptCanvas;
 
     public readonly _playButton: HTMLButtonElement = button({ style: "width: 55%;", type: "button" });
 
@@ -270,22 +270,25 @@ export class CustomChipPrompt implements Prompt {
     ]);
     private readonly copyPasteContainer: HTMLDivElement = div({ style: "width: 185px;" }, this.copyButton, this.pasteButton);
 
-    public readonly container: HTMLDivElement = div({ class: "prompt noSelection", style: "width: 600px;" },
-        h2("Edit Custom Chip Instrument"),
-        div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" },
-            this._playButton,
-        ),
-        div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" },
-            this.customChipCanvas.container,
-        ),
-        div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
-            this._okayButton,
-            this.copyPasteContainer,
-        ),
-        this._cancelButton,
-    );
+    public readonly container: HTMLDivElement;
 
     constructor(private _doc: SongDocument, private _songEditor: SongEditor) {
+        this.customChipCanvas = new CustomChipPromptCanvas(this._doc);
+
+        this.container = div({ class: "prompt noSelection", style: "width: 600px;" },
+            h2("Edit Custom Chip Instrument"),
+            div({ style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" },
+                this._playButton,
+            ),
+            div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center;" },
+                this.customChipCanvas.container,
+            ),
+            div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
+                this._okayButton,
+                this.copyPasteContainer,
+            ),
+            this._cancelButton,
+        );
 
         this._okayButton.addEventListener("click", this._saveChanges);
         this._cancelButton.addEventListener("click", this._close);

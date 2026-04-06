@@ -1,12 +1,12 @@
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { sampleLoadingState, SampleLoadingStatus, ChipWave, Config } from "../synth/SynthConfig";
-import { Instrument } from "../synth/synthMessenger";
-import { ColorConfig } from "./ColorConfig";
-import { ChangeGroup } from "./Change";
-import { SongDocument } from "./SongDocument";
-import { SongEditor } from "./SongEditor";
-import { ChangeChipWaveLoopMode, ChangeChipWaveStartOffset, ChangeChipWaveLoopStart, ChangeChipWaveLoopEnd, ChangeChipWavePlayBackwards } from "./changes";
-import { InstrumentSettings, SongSettings } from "../synth/synthMessages";
+import { sampleLoadingState, SampleLoadingStatus, ChipWave, Config } from "../../synth/SynthConfig";
+import { Instrument } from "../../synth/song";
+import { ColorConfig } from "../ColorConfig";
+import { ChangeGroup } from "../Change";
+import { SongDocument } from "../SongDocument";
+import { SongEditor } from "../SongEditor";
+import { ChangeChipWaveLoopMode, ChangeChipWaveStartOffset, ChangeChipWaveLoopStart, ChangeChipWaveLoopEnd, ChangeChipWavePlayBackwards } from "../changes";
+import { InstrumentSettings, SongSettings } from "../../synth/synthMessages";
 
 const { div, input, button, h2, select, option, canvas } = HTML;
 
