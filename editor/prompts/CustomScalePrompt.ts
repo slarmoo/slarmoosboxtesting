@@ -19,9 +19,9 @@ export class CustomScalePrompt implements Prompt {
 
     private readonly _editorWidth: number = 240;
     private readonly _editorHeight: number = 100;
-    private readonly _keys: SVGGElement[] = [];
-    private readonly _unshuffledKeys: SVGRectElement[] = [];
+    private readonly _keys: SVGRectElement[] = [];
     private readonly _keyNames: SVGTextElement[];
+    private readonly _highlights: SVGRectElement[] = [];
     private readonly _svg: SVGSVGElement;
 
     public readonly container: HTMLDivElement;
@@ -35,6 +35,7 @@ export class CustomScalePrompt implements Prompt {
 
         let whiteKeyCount: number = 0;
         const blackKeys: SVGGElement[] = [];
+        const sortedKeys: SVGGElement[] = [];
         const shift: number = CustomScalePrompt.getPitchName(this._doc.song.key, 0).length == 2 ? this._editorWidth * 1 / 10 : 0;
         const editorWidth: number = this._editorWidth - shift - (CustomScalePrompt.getPitchName(this._doc.song.key, 11).length == 2 ? this._editorWidth * 1 / 10 : 0);
         for (let i: number = 0; i < Config.pitchesPerOctave; i++) {
@@ -57,23 +58,27 @@ export class CustomScalePrompt implements Prompt {
             key.setAttribute("width", String(width));
             key.setAttribute("height", String(height));
 
+            const highlight: SVGRectElement = SVG.rect({ x: x, y: y + height - 3, width: width, height: 3, fill: ColorConfig.primaryText });
+            this._highlights.push(highlight);
+
             const wrappedKey: SVGGElement = SVG.g(
                 key, 
                 //shadows
                 SVG.rect({ x: x, y: y, width: 1, height: height, rx: "0.6", fill: "rgba(255,255,255,0.4)" }),
                 SVG.path({ d: `M ${x + 3} ${y + height - 3} L ${x + width - 3} ${y + height - 3} L ${x + width - 3} 0 L ${x + width} -1 L ${x + width} ${y + height} L ${x} ${y + height} z`, fill: "rgba(0,0,0,0.7)" }),
                 SVG.rect({ x: x, y: y, width: width, height: height / 2, rx: "0.6", fill: "url(#shadow)" }),
+                highlight
             );
             if (isBlackKey) blackKeys.push(wrappedKey);
-            else this._keys.push(wrappedKey);
+            else sortedKeys.push(wrappedKey);
             whiteKeyCount += +!isBlackKey;
 
-            this._unshuffledKeys.push(key);
+            this._keys.push(key);
 
-            key.addEventListener("click", () => { this._flags[i] = !this._flags[i]; this._render(); });
+            wrappedKey.addEventListener("click", () => { this._flags[i] = !this._flags[i]; this._render(); });
         }
         for (const blackKey of blackKeys) {
-            this._keys.push(blackKey);
+            sortedKeys.push(blackKey);
         }
 
         this._svg = SVG.svg({ style: `background-color: ${ColorConfig.editorBackground}; touch-action: none;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
@@ -83,7 +88,7 @@ export class CustomScalePrompt implements Prompt {
                     SVG.stop({ offset: "100%", "stop-color": "transparent" })
                 )
             ),
-            ...this._keys,
+            ...sortedKeys,
             ...this._keyNames
         );
 
@@ -126,7 +131,8 @@ export class CustomScalePrompt implements Prompt {
     private _render = (): void => {
         for (let i: number = 0; i < Config.pitchesPerOctave; i++) {
             this._keyNames[i].style.filter = this._flags[i] ? "brightness(0.5)" : "";
-            this._unshuffledKeys[i].style.filter = this._flags[i] ? "brightness(0.5)" : "";
+            this._keys[i].style.filter = this._flags[i] ? "brightness(0.5)" : "";
+            this._highlights[i].style.display = this._flags[i] ? "" : "none";
         }
     }
 

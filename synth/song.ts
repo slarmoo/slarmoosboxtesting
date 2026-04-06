@@ -3083,6 +3083,9 @@ export class Instrument {
         if (automationTarget.name == "arpeggioSpeed") {
             return effectsIncludeChord(this.effects) && this.chord == Config.chords.dictionary["arpeggio"].index;
         }
+        if (automationTarget.name == "slideSpeed") {
+            return effectsIncludeTransition(this.effects) && this.getTransition().slides;
+        }
         if (automationTarget.effect == EffectType.plugin) {
             if (PluginConfig.pluginName == "") return true; //not loaded yet; don't remove envelope
             if (index >= PluginConfig.pluginUIElements.length) return false;
