@@ -136,7 +136,7 @@ export const enum EnvelopeComputeIndex {
     pitchShift,
     detune,
     vibratoDepth,
-    //vibratoSpeed, doesn't follow normal envelope pattern; will figure out. //if you fix this you need to update the url
+    vibratoSpeed,
     noteFilterFreq0, noteFilterFreq1, noteFilterFreq2, noteFilterFreq3, noteFilterFreq4, noteFilterFreq5, noteFilterFreq6, noteFilterFreq7,
     noteFilterGain0, noteFilterGain1, noteFilterGain2, noteFilterGain3, noteFilterGain4, noteFilterGain5, noteFilterGain6, noteFilterGain7,
     decimalOffset, 
@@ -158,9 +158,10 @@ export const enum EnvelopeComputeIndex {
     grainSize,
     grainRange,
     echoDelay,
-    vibratoSpeed,
     slideSpeed,
     strumSpeed,
+    envelopeSpeed0, envelopeSpeed1, envelopeSpeed2, envelopeSpeed3, envelopeSpeed4, envelopeSpeed5, envelopeSpeed6, envelopeSpeed7,
+    envelopeSpeed8, envelopeSpeed9, envelopeSpeed10, envelopeSpeed11, envelopeSpeed12, envelopeSpeed13, envelopeSpeed14, envelopeSpeed15,
     plugin,
     //Add more here
 
@@ -1783,6 +1784,7 @@ export class Config {
         { name: "echoDelay", computeIndex: EnvelopeComputeIndex.echoDelay, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.echo, compatibleInstruments: null },
         { name: "vibratoSpeed", computeIndex: EnvelopeComputeIndex.vibratoSpeed, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: 1, effect: EffectType.vibrato, compatibleInstruments: null },
         { name: "slideSpeed", computeIndex: EnvelopeComputeIndex.slideSpeed, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.transition, compatibleInstruments: null },
+        {name: "envelopeSpeed#", computeIndex: EnvelopeComputeIndex.envelopeSpeed0, displayName: "env# speed", perNote: false, interleave: false, isFilter: false, /*range: Config.defaultAutomationRange,  */    maxCount: Config.maxEnvelopeCount, effect: null, compatibleInstruments: null}, // maxCount special case for envelopes to be allowed to target earlier ones.
         // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
         { name: "plugin", computeIndex: EnvelopeComputeIndex.plugin, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: EffectType.plugin, compatibleInstruments: null},
         // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
@@ -1792,7 +1794,6 @@ export class Config {
         {name: "eqFilterFreq",           computeIndex: InstrumentAutomationIndex.eqFilterFreq0,          displayName: "eq filter # freq", perNote: false, interleave:  true, isFilter:  true, range: Config.filterFreqRange,             maxCount: Config.filterMaxPoints, effect: null,  compatibleInstruments: null},
         {name: "eqFilterGain",           computeIndex: InstrumentAutomationIndex.eqFilterGain0,          displayName: "eq filter # vol",  perNote: false, interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: null,  compatibleInstruments: null},
         {name: "mixVolume",              computeIndex: InstrumentAutomationIndex.mixVolume,              displayName: "mix volume",       perNote: false, interleave: false, isFilter: false, range: Config.volumeRange,                 maxCount: 1,    effect: null,                    compatibleInstruments: null},
-        {name: "envelope#",              computeIndex: null,                                             displayName: "envelope",         perNote: false, interleave: false, isFilter: false, range: Config.defaultAutomationRange,      maxCount: Config.maxEnvelopeCount, effect: null, compatibleInstruments: null}, // maxCount special case for envelopes to be allowed to target earlier ones.
         */
     ]);
     public static readonly operatorWaves: DictionaryArray<OperatorWave> = toNameMap([

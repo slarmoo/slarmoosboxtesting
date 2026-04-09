@@ -5857,6 +5857,10 @@ export class ChangeRemoveEnvelope extends Change {
         for (let i: number = index; i < instrument.envelopeCount; i++) {
             instrument.envelopes[i].target = instrument.envelopes[i + 1].target;
             instrument.envelopes[i].index = instrument.envelopes[i + 1].index;
+            if (Config.instrumentAutomationTargets[instrument.envelopes[i].target].name == "envelopeSpeed#" && instrument.envelopes[i].index == index) {
+                instrument.envelopes[i].target = Config.instrumentAutomationTargets.dictionary["none"].index;
+                instrument.envelopes[i].index = 0;
+            }
             instrument.envelopes[i].envelope = instrument.envelopes[i + 1].envelope;
             instrument.envelopes[i].pitchEnvelopeStart = instrument.envelopes[i + 1].pitchEnvelopeStart;
             instrument.envelopes[i].pitchEnvelopeEnd = instrument.envelopes[i + 1].pitchEnvelopeEnd;

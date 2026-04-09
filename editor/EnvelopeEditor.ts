@@ -239,14 +239,14 @@ export class EnvelopeEditor {
 		return HTML.option({ value: target + index * Config.instrumentAutomationTargets.length }, displayName);
 	}
 
-	private _updateTargetOptionVisibility(menu: HTMLSelectElement, instrument: Instrument): void {
+	private _updateTargetOptionVisibility(menu: HTMLSelectElement, instrument: Instrument, menuIndex: number): void {
 		if (!menu) return;
 		for (let optionIndex: number = 0; optionIndex < menu.childElementCount; optionIndex++) {
 			const option: HTMLOptionElement = <HTMLOptionElement>menu.children[optionIndex];
 			const combinedValue: number = parseInt(option.value);
 			const target: number = combinedValue % Config.instrumentAutomationTargets.length;
 			const index: number = (combinedValue / Config.instrumentAutomationTargets.length) >>> 0;
-			option.hidden = !instrument.supportsEnvelopeTarget(target, index);
+			option.hidden = !instrument.supportsEnvelopeTarget(target, index, menuIndex);
 			if (!option.hidden && Config.instrumentAutomationTargets[target].effect == EffectType.plugin && index < PluginConfig.pluginUIElements.length) {
 				option.text = PluginConfig.pluginUIElements[index].name.toLowerCase();
 			}
@@ -301,7 +301,7 @@ export class EnvelopeEditor {
 				}
 				return;
 			}
-			this._updateTargetOptionVisibility(this._targetSelects[i], instrument);
+			this._updateTargetOptionVisibility(this._targetSelects[i], instrument, i);
 			if (this.openExtraSettingsDropdowns[i]) {
 				this.extraSettingsDropdownGroups[i].style.display = "flex";
 				this.extraSettingsDropdowns[i].style.display = "inline";
@@ -678,7 +678,7 @@ export class EnvelopeEditor {
 		for (let envelopeIndex: number = this._renderedEnvelopeCount; envelopeIndex < instrument.envelopeCount; envelopeIndex++) {
 			this._rows[envelopeIndex].style.display = "";
 			// For newly visible rows, update target option visibiliy.
-			this._updateTargetOptionVisibility(this._targetSelects[envelopeIndex], instrument);
+			this._updateTargetOptionVisibility(this._targetSelects[envelopeIndex], instrument, envelopeIndex);
 		}
 
 		for (let envelopeIndex: number = instrument.envelopeCount; envelopeIndex < this._renderedEnvelopeCount; envelopeIndex++) {
@@ -695,7 +695,7 @@ export class EnvelopeEditor {
 			this._renderedEffects != instrument.effects) {
 			// Update target option visibility for previously visible rows.
 			for (let envelopeIndex: number = 0; envelopeIndex < this._renderedEnvelopeCount; envelopeIndex++) {
-				this._updateTargetOptionVisibility(this._targetSelects[envelopeIndex], instrument);
+				this._updateTargetOptionVisibility(this._targetSelects[envelopeIndex], instrument, envelopeIndex);
 			}
 		}
 

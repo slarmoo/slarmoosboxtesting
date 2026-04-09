@@ -1236,7 +1236,7 @@ class InstrumentState {
     public unisonInitialized: boolean = true;
     public chord: Chord | null = null;
     public effects: number = 0;
-
+    
     public volumeScale: number = 0;
     public aliases: boolean = false;
     public arpTime: number = 0;
@@ -1248,7 +1248,9 @@ class InstrumentState {
     public vibratoEnvelopeStart: number = 1;
     public envelopeTime: number[] = [];
     private envelopeSpeeds: number[] = [];
-
+    public readonly envelopeSpeedEnvelopes: number[] = [];
+    public readonly envelopeComputer: EnvelopeComputer = new EnvelopeComputer();
+    
     public eqFilterVolume: number = 1.0;
     public eqFilterVolumeDelta: number = 0.0;
     public mixVolume: number = 1.0;
@@ -1381,9 +1383,12 @@ class InstrumentState {
             this.granularGrains.push(new Grain());
         }
         this.granularGrainsLength = 0;
+
+        for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+            this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
+        }
     }
 
-    public readonly envelopeComputer: EnvelopeComputer = new EnvelopeComputer();
 
     public allocateNecessaryBuffers(synth: Synth, instrument: Instrument, samplesPerTick: number, samplesPerSecond: number): void {
         if (effectsIncludePanning(instrument.effects)) {
@@ -1511,7 +1516,10 @@ class InstrumentState {
         this.arpEnvelopeStart = 1;
         this.strumEnvelopeStart = 1;
         this.slideEnvelopeStart = 1;
-        for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) this.envelopeTime[envelopeIndex] = 0;
+        for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+            this.envelopeTime[envelopeIndex] = 0;
+            this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
+        }
         this.envelopeComputer.reset();
 
         if (this.chorusDelayLineDirty) {
@@ -1586,7 +1594,7 @@ class InstrumentState {
             if (synth.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed!;
             }
-            this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed;
+            this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed * this.envelopeSpeedEnvelopes[envelopeIndex];
         }
         this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, this.envelopeSpeeds, this, synth, channelIndex, instrumentIndex, false);
         const envelopeStarts: number[] = this.envelopeComputer.envelopeStarts;
@@ -1605,6 +1613,10 @@ class InstrumentState {
         const usesArp: boolean = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
         const usesStrum: boolean = effectsIncludeChord(this.effects) && instrument.getChord().strumParts > 0;
         const usesSlide: boolean = effectsIncludeTransition(this.effects) && instrument.getTransition().slides;
+
+        for (let envelopeIndex: number = 0; envelopeIndex <= Config.maxEnvelopeCount; envelopeIndex++) {
+            this.envelopeSpeedEnvelopes[envelopeIndex] = envelopeStarts[envelopeIndex + EnvelopeComputeIndex.envelopeSpeed0];
+        }
 
         let granularChance: number = 0;
         if (usesGranular) { //has to happen before buffer allocation
@@ -3095,6 +3107,7 @@ export class Synth extends SynthTemplate {
                             if (this.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channel, instrumentIdx) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
                                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed!;
                             }
+                            perEnvelopeSpeed *= instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
                             if (this.isModActive(Config.modulators.dictionary["envelope speed"].index, channel, instrumentIdx)) {
                                 useEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, this.getModValue(Config.modulators.dictionary["envelope speed"].index, channel, instrumentIdx, false)));
                                 if (Number.isInteger(useEnvelopeSpeed)) {
@@ -4249,6 +4262,7 @@ export class Synth extends SynthTemplate {
             if (this.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, tone.instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed!;
             }
+            perEnvelopeSpeed *= instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
             let useEnvelopeSpeed: number = Config.arpSpeedScale[instrument.envelopeSpeed] * perEnvelopeSpeed;
             if (this.isModActive(Config.modulators.dictionary["envelope speed"].index, channelIndex, tone.instrumentIndex)) {
                 useEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, this.getModValue(Config.modulators.dictionary["envelope speed"].index, channelIndex, tone.instrumentIndex, false)));

@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
@@ -3042,7 +3042,7 @@ export class Instrument {
         end = end != -1 ? end : this.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch; //find default if none is given
         perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopePresets[envelope].speed; //find default if none is given
         let makeEmpty: boolean = false;
-        if (!this.supportsEnvelopeTarget(target, index)) makeEmpty = true;
+        if (!this.supportsEnvelopeTarget(target, index, this.envelopeCount)) makeEmpty = true;
         if (this.envelopeCount >= Config.maxEnvelopeCount) throw new Error();
         while (this.envelopes.length <= this.envelopeCount) this.envelopes[this.envelopes.length] = new EnvelopeSettings(this.isNoiseInstrument);
         const envelopeSettings: EnvelopeSettings = this.envelopes[this.envelopeCount];
@@ -3066,7 +3066,7 @@ export class Instrument {
         this.envelopeCount++;
     }
 
-    public supportsEnvelopeTarget(target: number, index: number): boolean {
+    public supportsEnvelopeTarget(target: number, index: number, envelopeIndex: number): boolean {
         const automationTarget: AutomationTarget = Config.instrumentAutomationTargets[target];
         if (automationTarget.computeIndex == null && automationTarget.name != "none") {
             return false;
@@ -3085,6 +3085,9 @@ export class Instrument {
         }
         if (automationTarget.name == "slideSpeed") {
             return effectsIncludeTransition(this.effects) && this.getTransition().slides;
+        }
+        if ((automationTarget.computeIndex || 0) >= EnvelopeComputeIndex.envelopeSpeed0 && (automationTarget.computeIndex || 0) <= EnvelopeComputeIndex.envelopeSpeed15) {
+            return index < envelopeIndex;
         }
         if (automationTarget.effect == EffectType.plugin) {
             if (PluginConfig.pluginName == "") return true; //not loaded yet; don't remove envelope
@@ -3112,7 +3115,7 @@ export class Instrument {
         for (let envelopeIndex: number = 0; envelopeIndex < this.envelopeCount; envelopeIndex++) {
             const target: number = this.envelopes[envelopeIndex].target;
             const index: number = this.envelopes[envelopeIndex].index;
-            if (!this.supportsEnvelopeTarget(target, index)) {
+            if (!this.supportsEnvelopeTarget(target, index, envelopeIndex)) {
                 this.envelopes[envelopeIndex].target = Config.instrumentAutomationTargets.dictionary["none"].index;
                 this.envelopes[envelopeIndex].index = 0;
             }

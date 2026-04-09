@@ -1626,7 +1626,7 @@ var Config = class _Config {
     },
     {
       name: "noteFilterFreq",
-      computeIndex: 21 /* noteFilterFreq0 */,
+      computeIndex: 22 /* noteFilterFreq0 */,
       displayName: "n. filter # freq",
       perNote: true,
       interleave: false,
@@ -1638,7 +1638,7 @@ var Config = class _Config {
     },
     {
       name: "decimalOffset",
-      computeIndex: 37 /* decimalOffset */,
+      computeIndex: 38 /* decimalOffset */,
       displayName: "decimal offset",
       perNote: true,
       interleave: false,
@@ -1650,7 +1650,7 @@ var Config = class _Config {
     },
     {
       name: "supersawDynamism",
-      computeIndex: 38 /* supersawDynamism */,
+      computeIndex: 39 /* supersawDynamism */,
       displayName: "dynamism",
       perNote: true,
       interleave: false,
@@ -1662,7 +1662,7 @@ var Config = class _Config {
     },
     {
       name: "supersawSpread",
-      computeIndex: 39 /* supersawSpread */,
+      computeIndex: 40 /* supersawSpread */,
       displayName: "spread",
       perNote: true,
       interleave: false,
@@ -1674,7 +1674,7 @@ var Config = class _Config {
     },
     {
       name: "supersawShape",
-      computeIndex: 40 /* supersawShape */,
+      computeIndex: 41 /* supersawShape */,
       displayName: "saw\u2194pulse",
       perNote: true,
       interleave: false,
@@ -1686,7 +1686,7 @@ var Config = class _Config {
     },
     {
       name: "panning",
-      computeIndex: 41 /* panning */,
+      computeIndex: 42 /* panning */,
       displayName: "panning",
       perNote: false,
       interleave: false,
@@ -1698,7 +1698,7 @@ var Config = class _Config {
     },
     {
       name: "distortion",
-      computeIndex: 42 /* distortion */,
+      computeIndex: 43 /* distortion */,
       displayName: "distortion",
       perNote: false,
       interleave: false,
@@ -1710,7 +1710,7 @@ var Config = class _Config {
     },
     {
       name: "bitcrusherQuantization",
-      computeIndex: 43 /* bitcrusherQuantization */,
+      computeIndex: 44 /* bitcrusherQuantization */,
       displayName: "bitcrush",
       perNote: false,
       interleave: false,
@@ -1722,7 +1722,7 @@ var Config = class _Config {
     },
     {
       name: "bitcrusherFrequency",
-      computeIndex: 44 /* bitcrusherFrequency */,
+      computeIndex: 45 /* bitcrusherFrequency */,
       displayName: "freq crush",
       perNote: false,
       interleave: false,
@@ -1734,7 +1734,7 @@ var Config = class _Config {
     },
     {
       name: "chorus",
-      computeIndex: 45 /* chorus */,
+      computeIndex: 46 /* chorus */,
       displayName: "chorus",
       perNote: false,
       interleave: false,
@@ -1746,7 +1746,7 @@ var Config = class _Config {
     },
     {
       name: "echoSustain",
-      computeIndex: 46 /* echoSustain */,
+      computeIndex: 47 /* echoSustain */,
       displayName: "echo",
       perNote: false,
       interleave: false,
@@ -1758,7 +1758,7 @@ var Config = class _Config {
     },
     {
       name: "reverb",
-      computeIndex: 47 /* reverb */,
+      computeIndex: 48 /* reverb */,
       displayName: "reverb",
       perNote: false,
       interleave: false,
@@ -1770,7 +1770,7 @@ var Config = class _Config {
     },
     {
       name: "arpeggioSpeed",
-      computeIndex: 48 /* arpeggioSpeed */,
+      computeIndex: 49 /* arpeggioSpeed */,
       displayName: "arpeggio speed",
       perNote: false,
       interleave: false,
@@ -1780,16 +1780,16 @@ var Config = class _Config {
       effect: 11 /* chord */,
       compatibleInstruments: null
     },
-    { name: "ringModulation", computeIndex: 49 /* ringModulation */, displayName: "ring mod", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
-    { name: "ringModulationHz", computeIndex: 50 /* ringModulationHz */, displayName: "ring mod hz", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
-    { name: "granular", computeIndex: 51 /* granular */, displayName: "granular", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
-    { name: "grainFreq", computeIndex: 52 /* grainAmount */, displayName: "grain freq", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
-    { name: "grainSize", computeIndex: 53 /* grainSize */, displayName: "grain size", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
-    { name: "grainRange", computeIndex: 54 /* grainRange */, displayName: "grain range", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
-    { name: "echoDelay", computeIndex: 55 /* echoDelay */, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6 /* echo */, compatibleInstruments: null },
+    { name: "ringModulation", computeIndex: 50 /* ringModulation */, displayName: "ring mod", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
+    { name: "ringModulationHz", computeIndex: 51 /* ringModulationHz */, displayName: "ring mod hz", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
+    { name: "granular", computeIndex: 52 /* granular */, displayName: "granular", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
+    { name: "grainFreq", computeIndex: 53 /* grainAmount */, displayName: "grain freq", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
+    { name: "grainSize", computeIndex: 54 /* grainSize */, displayName: "grain size", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
+    { name: "grainRange", computeIndex: 55 /* grainRange */, displayName: "grain range", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
+    { name: "echoDelay", computeIndex: 56 /* echoDelay */, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6 /* echo */, compatibleInstruments: null },
     {
       name: "vibratoSpeed",
-      computeIndex: 56 /* vibratoSpeed */,
+      computeIndex: 21 /* vibratoSpeed */,
       displayName: "vibrato speed",
       perNote: false,
       interleave: false,
@@ -1800,8 +1800,21 @@ var Config = class _Config {
       compatibleInstruments: null
     },
     { name: "slideSpeed", computeIndex: 57 /* slideSpeed */, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10 /* transition */, compatibleInstruments: null },
+    {
+      name: "envelopeSpeed#",
+      computeIndex: 59 /* envelopeSpeed0 */,
+      displayName: "env# speed",
+      perNote: false,
+      interleave: false,
+      isFilter: false,
+      /*range: Config.defaultAutomationRange,  */
+      maxCount: _Config.maxEnvelopeCount,
+      effect: null,
+      compatibleInstruments: null
+    },
+    // maxCount special case for envelopes to be allowed to target earlier ones.
     // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
-    { name: "plugin", computeIndex: 59 /* plugin */, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15 /* plugin */, compatibleInstruments: null }
+    { name: "plugin", computeIndex: 75 /* plugin */, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15 /* plugin */, compatibleInstruments: null }
     // Controlling filter gain is less obvious and intuitive than controlling filter freq, so to avoid confusion I've disabled it for now...
     //{name: "noteFilterGain",         computeIndex:       EnvelopeComputeIndex.noteFilterGain0,        displayName: "n. filter # vol",  /*perNote:  true,*/ interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: EffectType.noteFilter, compatibleInstruments: null},
     /*
@@ -1809,7 +1822,6 @@ var Config = class _Config {
     {name: "eqFilterFreq",           computeIndex: InstrumentAutomationIndex.eqFilterFreq0,          displayName: "eq filter # freq", perNote: false, interleave:  true, isFilter:  true, range: Config.filterFreqRange,             maxCount: Config.filterMaxPoints, effect: null,  compatibleInstruments: null},
     {name: "eqFilterGain",           computeIndex: InstrumentAutomationIndex.eqFilterGain0,          displayName: "eq filter # vol",  perNote: false, interleave: false, isFilter:  true, range: Config.filterGainRange,             maxCount: Config.filterMaxPoints, effect: null,  compatibleInstruments: null},
     {name: "mixVolume",              computeIndex: InstrumentAutomationIndex.mixVolume,              displayName: "mix volume",       perNote: false, interleave: false, isFilter: false, range: Config.volumeRange,                 maxCount: 1,    effect: null,                    compatibleInstruments: null},
-    {name: "envelope#",              computeIndex: null,                                             displayName: "envelope",         perNote: false, interleave: false, isFilter: false, range: Config.defaultAutomationRange,      maxCount: Config.maxEnvelopeCount, effect: null, compatibleInstruments: null}, // maxCount special case for envelopes to be allowed to target earlier ones.
     */
   ]);
   static operatorWaves = toNameMap([
@@ -6144,7 +6156,7 @@ var Instrument = class {
     end = end != -1 ? end : this.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
     perEnvelopeSpeed = perEnvelopeSpeed != -1 ? perEnvelopeSpeed : newEnvelopes ? 1 : Config.envelopePresets[envelope].speed;
     let makeEmpty = false;
-    if (!this.supportsEnvelopeTarget(target, index)) makeEmpty = true;
+    if (!this.supportsEnvelopeTarget(target, index, this.envelopeCount)) makeEmpty = true;
     if (this.envelopeCount >= Config.maxEnvelopeCount) throw new Error();
     while (this.envelopes.length <= this.envelopeCount) this.envelopes[this.envelopes.length] = new EnvelopeSettings(this.isNoiseInstrument);
     const envelopeSettings = this.envelopes[this.envelopeCount];
@@ -6167,7 +6179,7 @@ var Instrument = class {
     envelopeSettings.discrete = discrete;
     this.envelopeCount++;
   }
-  supportsEnvelopeTarget(target, index) {
+  supportsEnvelopeTarget(target, index, envelopeIndex) {
     const automationTarget = Config.instrumentAutomationTargets[target];
     if (automationTarget.computeIndex == null && automationTarget.name != "none") {
       return false;
@@ -6186,6 +6198,9 @@ var Instrument = class {
     }
     if (automationTarget.name == "slideSpeed") {
       return effectsIncludeTransition(this.effects) && this.getTransition().slides;
+    }
+    if ((automationTarget.computeIndex || 0) >= 59 /* envelopeSpeed0 */ && (automationTarget.computeIndex || 0) <= 74 /* envelopeSpeed15 */) {
+      return index < envelopeIndex;
     }
     if (automationTarget.effect == 15 /* plugin */) {
       if (PluginConfig.pluginName == "") return true;
@@ -6208,7 +6223,7 @@ var Instrument = class {
     for (let envelopeIndex = 0; envelopeIndex < this.envelopeCount; envelopeIndex++) {
       const target = this.envelopes[envelopeIndex].target;
       const index = this.envelopes[envelopeIndex].index;
-      if (!this.supportsEnvelopeTarget(target, index)) {
+      if (!this.supportsEnvelopeTarget(target, index, envelopeIndex)) {
         this.envelopes[envelopeIndex].target = Config.instrumentAutomationTargets.dictionary["none"].index;
         this.envelopes[envelopeIndex].index = 0;
       }
@@ -12038,7 +12053,7 @@ var EnvelopeComputer = class _EnvelopeComputer {
   _modifiedEnvelopeCount = 0;
   lowpassCutoffDecayVolumeCompensation = 1;
   constructor() {
-    const length = 60 /* length */ + 63;
+    const length = 76 /* length */ + 63;
     for (let i = 0; i < length; i++) {
       this.envelopeStarts[i] = 1;
       this.envelopeEnds[i] = 1;
@@ -12773,6 +12788,8 @@ var InstrumentState = class _InstrumentState {
   vibratoEnvelopeStart = 1;
   envelopeTime = [];
   envelopeSpeeds = [];
+  envelopeSpeedEnvelopes = [];
+  envelopeComputer = new EnvelopeComputer();
   eqFilterVolume = 1;
   eqFilterVolumeDelta = 0;
   mixVolume = 1;
@@ -12892,8 +12909,10 @@ var InstrumentState = class _InstrumentState {
       this.granularGrains.push(new Grain());
     }
     this.granularGrainsLength = 0;
+    for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+      this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
+    }
   }
-  envelopeComputer = new EnvelopeComputer();
   allocateNecessaryBuffers(synth2, instrument, samplesPerTick, samplesPerSecond) {
     if (effectsIncludePanning(instrument.effects)) {
       if (this.panningDelayLine == null || this.panningDelayLine.length < synth2.panningDelayBufferSize) {
@@ -13006,7 +13025,10 @@ var InstrumentState = class _InstrumentState {
     this.arpEnvelopeStart = 1;
     this.strumEnvelopeStart = 1;
     this.slideEnvelopeStart = 1;
-    for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) this.envelopeTime[envelopeIndex] = 0;
+    for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+      this.envelopeTime[envelopeIndex] = 0;
+      this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
+    }
     this.envelopeComputer.reset();
     if (this.chorusDelayLineDirty) {
       for (let i = 0; i < this.chorusDelayLineL.length; i++) this.chorusDelayLineL[i] = 0;
@@ -13062,7 +13084,7 @@ var InstrumentState = class _InstrumentState {
       if (synth2.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
         perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed;
       }
-      this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed;
+      this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed * this.envelopeSpeedEnvelopes[envelopeIndex];
     }
     this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, this.envelopeSpeeds, this, synth2, channelIndex, instrumentIndex, false);
     const envelopeStarts = this.envelopeComputer.envelopeStarts;
@@ -13080,6 +13102,9 @@ var InstrumentState = class _InstrumentState {
     const usesArp = effectsIncludeChord(this.effects) && instrument.getChord().arpeggiates;
     const usesStrum = effectsIncludeChord(this.effects) && instrument.getChord().strumParts > 0;
     const usesSlide = effectsIncludeTransition(this.effects) && instrument.getTransition().slides;
+    for (let envelopeIndex = 0; envelopeIndex <= Config.maxEnvelopeCount; envelopeIndex++) {
+      this.envelopeSpeedEnvelopes[envelopeIndex] = envelopeStarts[envelopeIndex + 59 /* envelopeSpeed0 */];
+    }
     let granularChance = 0;
     if (usesGranular) {
       granularChance = instrument.grainFreq + 1;
@@ -13088,8 +13113,8 @@ var InstrumentState = class _InstrumentState {
         this.granularMaximumGrains = synth2.getModValue(Config.modulators.dictionary["grain freq"].index, channelIndex, instrumentIndex, false);
         granularChance = synth2.getModValue(Config.modulators.dictionary["grain freq"].index, channelIndex, instrumentIndex, false) + 1;
       }
-      this.granularMaximumGrains = Math.floor(Math.pow(2, this.granularMaximumGrains * envelopeStarts[52 /* grainAmount */]));
-      granularChance = granularChance * envelopeStarts[52 /* grainAmount */];
+      this.granularMaximumGrains = Math.floor(Math.pow(2, this.granularMaximumGrains * envelopeStarts[53 /* grainAmount */]));
+      granularChance = granularChance * envelopeStarts[53 /* grainAmount */];
     }
     this.allocateNecessaryBuffers(synth2, instrument, samplesPerTick, samplesPerSecond);
     if (usesGranular) {
@@ -13100,8 +13125,8 @@ var InstrumentState = class _InstrumentState {
         this.granularMix = synth2.getModValue(Config.modulators.dictionary["granular"].index, channelIndex, instrumentIndex, false) / Config.granularRange;
         granularMixEnd = synth2.getModValue(Config.modulators.dictionary["granular"].index, channelIndex, instrumentIndex, true) / Config.granularRange;
       }
-      this.granularMix *= envelopeStarts[51 /* granular */];
-      granularMixEnd *= envelopeEnds[51 /* granular */];
+      this.granularMix *= envelopeStarts[52 /* granular */];
+      granularMixEnd *= envelopeEnds[52 /* granular */];
       this.granularMixDelta = (granularMixEnd - this.granularMix) / roundedSamplesPerTick;
       for (let iterations = 0; iterations < Math.ceil(Math.random() * Math.random() * 10); iterations++) {
         if (this.granularGrainsLength < this.granularMaximumGrains && Math.random() <= granularChance) {
@@ -13109,12 +13134,12 @@ var InstrumentState = class _InstrumentState {
           if (synth2.isModActive(Config.modulators.dictionary["grain size"].index, channelIndex, instrumentIndex)) {
             granularMinGrainSizeInMilliseconds = synth2.getModValue(Config.modulators.dictionary["grain size"].index, channelIndex, instrumentIndex, false);
           }
-          granularMinGrainSizeInMilliseconds *= envelopeStarts[53 /* grainSize */];
+          granularMinGrainSizeInMilliseconds *= envelopeStarts[54 /* grainSize */];
           let grainRange = instrument.grainRange;
           if (synth2.isModActive(Config.modulators.dictionary["grain range"].index, channelIndex, instrumentIndex)) {
             grainRange = synth2.getModValue(Config.modulators.dictionary["grain range"].index, channelIndex, instrumentIndex, false);
           }
-          grainRange *= envelopeStarts[54 /* grainRange */];
+          grainRange *= envelopeStarts[55 /* grainRange */];
           const granularMaxGrainSizeInMilliseconds = granularMinGrainSizeInMilliseconds + grainRange;
           const granularGrainSizeInMilliseconds = granularMinGrainSizeInMilliseconds + (granularMaxGrainSizeInMilliseconds - granularMinGrainSizeInMilliseconds) * Math.random();
           const granularGrainSizeInSeconds = granularGrainSizeInMilliseconds / 1e3;
@@ -13138,10 +13163,10 @@ var InstrumentState = class _InstrumentState {
       }
     }
     if (usesVibrato) {
-      this.vibratoEnvelopeStart = envelopeStarts[56 /* vibratoSpeed */];
+      this.vibratoEnvelopeStart = envelopeStarts[21 /* vibratoSpeed */];
     }
     if (usesArp) {
-      this.arpEnvelopeStart = envelopeStarts[48 /* arpeggioSpeed */];
+      this.arpEnvelopeStart = envelopeStarts[49 /* arpeggioSpeed */];
     }
     if (usesStrum) {
       this.strumEnvelopeStart = envelopeStarts[58 /* strumSpeed */];
@@ -13156,8 +13181,8 @@ var InstrumentState = class _InstrumentState {
         useDistortionStart = synth2.getModValue(Config.modulators.dictionary["distortion"].index, channelIndex, instrumentIndex, false);
         useDistortionEnd = synth2.getModValue(Config.modulators.dictionary["distortion"].index, channelIndex, instrumentIndex, true);
       }
-      const distortionSliderStart = Math.min(1, envelopeStarts[42 /* distortion */] * useDistortionStart / (Config.distortionRange - 1));
-      const distortionSliderEnd = Math.min(1, envelopeEnds[42 /* distortion */] * useDistortionEnd / (Config.distortionRange - 1));
+      const distortionSliderStart = Math.min(1, envelopeStarts[43 /* distortion */] * useDistortionStart / (Config.distortionRange - 1));
+      const distortionSliderEnd = Math.min(1, envelopeEnds[43 /* distortion */] * useDistortionEnd / (Config.distortionRange - 1));
       const distortionStart = Math.pow(1 - 0.895 * (Math.pow(20, distortionSliderStart) - 1) / 19, 2);
       const distortionEnd = Math.pow(1 - 0.895 * (Math.pow(20, distortionSliderEnd) - 1) / 19, 2);
       const distortionDriveStart = (1 + 2 * distortionSliderStart) / Config.distortionBaseVolume;
@@ -13168,17 +13193,17 @@ var InstrumentState = class _InstrumentState {
       this.distortionDriveDelta = (distortionDriveEnd - distortionDriveStart) / roundedSamplesPerTick;
     }
     if (usesBitcrusher) {
-      let freqSettingStart = instrument.bitcrusherFreq * Math.sqrt(envelopeStarts[44 /* bitcrusherFrequency */]);
-      let freqSettingEnd = instrument.bitcrusherFreq * Math.sqrt(envelopeEnds[44 /* bitcrusherFrequency */]);
+      let freqSettingStart = instrument.bitcrusherFreq * Math.sqrt(envelopeStarts[45 /* bitcrusherFrequency */]);
+      let freqSettingEnd = instrument.bitcrusherFreq * Math.sqrt(envelopeEnds[45 /* bitcrusherFrequency */]);
       if (synth2.isModActive(Config.modulators.dictionary["freq crush"].index, channelIndex, instrumentIndex)) {
-        freqSettingStart = synth2.getModValue(Config.modulators.dictionary["freq crush"].index, channelIndex, instrumentIndex, false) * Math.sqrt(envelopeStarts[44 /* bitcrusherFrequency */]);
-        freqSettingEnd = synth2.getModValue(Config.modulators.dictionary["freq crush"].index, channelIndex, instrumentIndex, true) * Math.sqrt(envelopeEnds[44 /* bitcrusherFrequency */]);
+        freqSettingStart = synth2.getModValue(Config.modulators.dictionary["freq crush"].index, channelIndex, instrumentIndex, false) * Math.sqrt(envelopeStarts[45 /* bitcrusherFrequency */]);
+        freqSettingEnd = synth2.getModValue(Config.modulators.dictionary["freq crush"].index, channelIndex, instrumentIndex, true) * Math.sqrt(envelopeEnds[45 /* bitcrusherFrequency */]);
       }
-      let quantizationSettingStart = instrument.bitcrusherQuantization * Math.sqrt(envelopeStarts[43 /* bitcrusherQuantization */]);
-      let quantizationSettingEnd = instrument.bitcrusherQuantization * Math.sqrt(envelopeEnds[43 /* bitcrusherQuantization */]);
+      let quantizationSettingStart = instrument.bitcrusherQuantization * Math.sqrt(envelopeStarts[44 /* bitcrusherQuantization */]);
+      let quantizationSettingEnd = instrument.bitcrusherQuantization * Math.sqrt(envelopeEnds[44 /* bitcrusherQuantization */]);
       if (synth2.isModActive(Config.modulators.dictionary["bit crush"].index, channelIndex, instrumentIndex)) {
-        quantizationSettingStart = synth2.getModValue(Config.modulators.dictionary["bit crush"].index, channelIndex, instrumentIndex, false) * Math.sqrt(envelopeStarts[43 /* bitcrusherQuantization */]);
-        quantizationSettingEnd = synth2.getModValue(Config.modulators.dictionary["bit crush"].index, channelIndex, instrumentIndex, true) * Math.sqrt(envelopeEnds[43 /* bitcrusherQuantization */]);
+        quantizationSettingStart = synth2.getModValue(Config.modulators.dictionary["bit crush"].index, channelIndex, instrumentIndex, false) * Math.sqrt(envelopeStarts[44 /* bitcrusherQuantization */]);
+        quantizationSettingEnd = synth2.getModValue(Config.modulators.dictionary["bit crush"].index, channelIndex, instrumentIndex, true) * Math.sqrt(envelopeEnds[44 /* bitcrusherQuantization */]);
       }
       const basePitch = Config.keys[synth2.song.key].basePitch + Config.pitchesPerOctave * synth2.song.octave;
       const freqStart = Instrument.frequencyFromPitch(basePitch + 60) * Math.pow(2, (Config.bitcrusherFreqRange - 1 - freqSettingStart) * Config.bitcrusherOctaveStep);
@@ -13287,8 +13312,8 @@ var InstrumentState = class _InstrumentState {
     let delayInputMultStart = 1;
     let delayInputMultEnd = 1;
     if (usesPanning) {
-      const panEnvelopeStart = envelopeStarts[41 /* panning */] * 2 - 1;
-      const panEnvelopeEnd = envelopeEnds[41 /* panning */] * 2 - 1;
+      const panEnvelopeStart = envelopeStarts[42 /* panning */] * 2 - 1;
+      const panEnvelopeEnd = envelopeEnds[42 /* panning */] * 2 - 1;
       let usePanStart = instrument.pan;
       let usePanEnd = instrument.pan;
       if (synth2.isModActive(Config.modulators.dictionary["pan"].index, channelIndex, instrumentIndex)) {
@@ -13324,8 +13349,8 @@ var InstrumentState = class _InstrumentState {
       this.panningOffsetDeltaR = (delayEndR - delayStartR) / roundedSamplesPerTick;
     }
     if (usesChorus) {
-      const chorusEnvelopeStart = envelopeStarts[45 /* chorus */];
-      const chorusEnvelopeEnd = envelopeEnds[45 /* chorus */];
+      const chorusEnvelopeStart = envelopeStarts[46 /* chorus */];
+      const chorusEnvelopeEnd = envelopeEnds[46 /* chorus */];
       let useChorusStart = instrument.chorus;
       let useChorusEnd = instrument.chorus;
       if (synth2.isModActive(Config.modulators.dictionary["chorus"].index, channelIndex, instrumentIndex)) {
@@ -13346,12 +13371,12 @@ var InstrumentState = class _InstrumentState {
     if (usesRingModulation) {
       let useRingModStart = instrument.ringModulation;
       let useRingModEnd = instrument.ringModulation;
-      let useRingModEnvelopeStart = envelopeStarts[49 /* ringModulation */];
-      let useRingModEnvelopeEnd = envelopeEnds[49 /* ringModulation */];
+      let useRingModEnvelopeStart = envelopeStarts[50 /* ringModulation */];
+      let useRingModEnvelopeEnd = envelopeEnds[50 /* ringModulation */];
       let useRingModHzStart = Math.min(1, instrument.ringModulationHz / (Config.ringModHzRange - 1));
       let useRingModHzEnd = Math.min(1, instrument.ringModulationHz / (Config.ringModHzRange - 1));
-      let useRingModHzEnvelopeStart = envelopeStarts[50 /* ringModulationHz */];
-      let useRingModHzEnvelopeEnd = envelopeEnds[50 /* ringModulationHz */];
+      let useRingModHzEnvelopeStart = envelopeStarts[51 /* ringModulationHz */];
+      let useRingModHzEnvelopeEnd = envelopeEnds[51 /* ringModulationHz */];
       if (synth2.isModActive(Config.modulators.dictionary["ring modulation"].index, channelIndex, instrumentIndex)) {
         useRingModStart = synth2.getModValue(Config.modulators.dictionary["ring modulation"].index, channelIndex, instrumentIndex, false);
         useRingModEnd = synth2.getModValue(Config.modulators.dictionary["ring modulation"].index, channelIndex, instrumentIndex, true);
@@ -13388,8 +13413,8 @@ var InstrumentState = class _InstrumentState {
     let maxEchoMult = 0;
     let averageEchoDelaySeconds = 0;
     if (usesEcho) {
-      const echoSustainEnvelopeStart = envelopeStarts[46 /* echoSustain */];
-      const echoSustainEnvelopeEnd = envelopeEnds[46 /* echoSustain */];
+      const echoSustainEnvelopeStart = envelopeStarts[47 /* echoSustain */];
+      const echoSustainEnvelopeEnd = envelopeEnds[47 /* echoSustain */];
       let useEchoSustainStart = instrument.echoSustain;
       let useEchoSustainEnd = instrument.echoSustain;
       if (synth2.isModActive(Config.modulators.dictionary["echo"].index, channelIndex, instrumentIndex)) {
@@ -13401,8 +13426,8 @@ var InstrumentState = class _InstrumentState {
       this.echoMult = echoMultStart;
       this.echoMultDelta = Math.max(0, (echoMultEnd - echoMultStart) / roundedSamplesPerTick);
       maxEchoMult = Math.max(echoMultStart, echoMultEnd);
-      const echoDelayEnvelopeStart = envelopeStarts[55 /* echoDelay */];
-      const echoDelayEnvelopeEnd = envelopeEnds[55 /* echoDelay */];
+      const echoDelayEnvelopeStart = envelopeStarts[56 /* echoDelay */];
+      const echoDelayEnvelopeEnd = envelopeEnds[56 /* echoDelay */];
       let useEchoDelayStart = instrument.echoDelay * echoDelayEnvelopeStart;
       let useEchoDelayEnd = instrument.echoDelay * echoDelayEnvelopeEnd;
       if (synth2.isModActive(Config.modulators.dictionary["echo delay"].index, channelIndex, instrumentIndex)) {
@@ -13428,8 +13453,8 @@ var InstrumentState = class _InstrumentState {
     }
     let maxReverbMult = 0;
     if (usesReverb) {
-      const reverbEnvelopeStart = envelopeStarts[47 /* reverb */];
-      const reverbEnvelopeEnd = envelopeEnds[47 /* reverb */];
+      const reverbEnvelopeStart = envelopeStarts[48 /* reverb */];
+      const reverbEnvelopeEnd = envelopeEnds[48 /* reverb */];
       let useReverbStart = instrument.reverb;
       let useReverbEnd = instrument.reverb;
       if (synth2.isModActive(Config.modulators.dictionary["reverb"].index, channelIndex, instrumentIndex)) {
@@ -13454,8 +13479,8 @@ var InstrumentState = class _InstrumentState {
     if (usesPlugin && Synth.PluginClass) {
       if (!this.plugin) this.plugin = new Synth.PluginClass();
       for (let i = 0; i < this.plugin.elements.length; i++) {
-        this.pluginStarts[i] = envelopeStarts[59 /* plugin */ + i] * instrument.pluginValues[i];
-        this.pluginEnds[i] = envelopeEnds[59 /* plugin */ + i] * instrument.pluginValues[i];
+        this.pluginStarts[i] = envelopeStarts[75 /* plugin */ + i] * instrument.pluginValues[i];
+        this.pluginEnds[i] = envelopeEnds[75 /* plugin */ + i] * instrument.pluginValues[i];
       }
       this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
     }
@@ -14316,6 +14341,7 @@ var Synth = class _Synth extends SynthTemplate {
               if (this.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channel, instrumentIdx) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed;
               }
+              perEnvelopeSpeed *= instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
               if (this.isModActive(Config.modulators.dictionary["envelope speed"].index, channel, instrumentIdx)) {
                 useEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, this.getModValue(Config.modulators.dictionary["envelope speed"].index, channel, instrumentIdx, false)));
                 if (Number.isInteger(useEnvelopeSpeed)) {
@@ -15294,6 +15320,7 @@ var Synth = class _Synth extends SynthTemplate {
       if (this.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, tone.instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
         perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed;
       }
+      perEnvelopeSpeed *= instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
       let useEnvelopeSpeed = Config.arpSpeedScale[instrument.envelopeSpeed] * perEnvelopeSpeed;
       if (this.isModActive(Config.modulators.dictionary["envelope speed"].index, channelIndex, tone.instrumentIndex)) {
         useEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, this.getModValue(Config.modulators.dictionary["envelope speed"].index, channelIndex, tone.instrumentIndex, false)));
@@ -15440,10 +15467,10 @@ var Synth = class _Synth extends SynthTemplate {
       const noteAllFreqsEnvelopeStart = envelopeStarts[1 /* noteFilterAllFreqs */];
       const noteAllFreqsEnvelopeEnd = envelopeEnds[1 /* noteFilterAllFreqs */];
       if (instrument.noteFilterType) {
-        const noteFreqEnvelopeStart = envelopeStarts[21 /* noteFilterFreq0 */];
-        const noteFreqEnvelopeEnd = envelopeEnds[21 /* noteFilterFreq0 */];
-        const notePeakEnvelopeStart = envelopeStarts[29 /* noteFilterGain0 */];
-        const notePeakEnvelopeEnd = envelopeEnds[29 /* noteFilterGain0 */];
+        const noteFreqEnvelopeStart = envelopeStarts[22 /* noteFilterFreq0 */];
+        const noteFreqEnvelopeEnd = envelopeEnds[22 /* noteFilterFreq0 */];
+        const notePeakEnvelopeStart = envelopeStarts[30 /* noteFilterGain0 */];
+        const notePeakEnvelopeEnd = envelopeEnds[30 /* noteFilterGain0 */];
         startPoint.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
         endPoint.toCoefficients(_Synth.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
         if (tone.noteFilters.length < 1) tone.noteFilters[0] = new DynamicBiquadFilter();
@@ -15453,10 +15480,10 @@ var Synth = class _Synth extends SynthTemplate {
       } else {
         const noteFilterSettings = instrument.tmpNoteFilterStart != null ? instrument.tmpNoteFilterStart : instrument.noteFilter;
         for (let i = 0; i < noteFilterSettings.controlPointCount; i++) {
-          const noteFreqEnvelopeStart = envelopeStarts[21 /* noteFilterFreq0 */ + i];
-          const noteFreqEnvelopeEnd = envelopeEnds[21 /* noteFilterFreq0 */ + i];
-          const notePeakEnvelopeStart = envelopeStarts[29 /* noteFilterGain0 */ + i];
-          const notePeakEnvelopeEnd = envelopeEnds[29 /* noteFilterGain0 */ + i];
+          const noteFreqEnvelopeStart = envelopeStarts[22 /* noteFilterFreq0 */ + i];
+          const noteFreqEnvelopeEnd = envelopeEnds[22 /* noteFilterFreq0 */ + i];
+          const notePeakEnvelopeStart = envelopeStarts[30 /* noteFilterGain0 */ + i];
+          const notePeakEnvelopeEnd = envelopeEnds[30 /* noteFilterGain0 */ + i];
           let startPoint2 = noteFilterSettings.controlPoints[i];
           const endPoint2 = instrument.tmpNoteFilterEnd != null && instrument.tmpNoteFilterEnd.controlPoints[i] != null ? instrument.tmpNoteFilterEnd.controlPoints[i] : noteFilterSettings.controlPoints[i];
           if (startPoint2.type != endPoint2.type) {
@@ -15729,7 +15756,7 @@ var Synth = class _Synth extends SynthTemplate {
         if (this.isModActive(Config.modulators.dictionary["decimal offset"].index, channelIndex, tone.instrumentIndex)) {
           decimalOffsetModStart = this.getModValue(Config.modulators.dictionary["decimal offset"].index, channelIndex, tone.instrumentIndex, false);
         }
-        const decimalOffsetStart = decimalOffsetModStart * envelopeStarts[37 /* decimalOffset */];
+        const decimalOffsetStart = decimalOffsetModStart * envelopeStarts[38 /* decimalOffset */];
         tone.decimalOffset = decimalOffsetStart;
         tone.pulseWidth -= tone.decimalOffset / 1e4;
       }
@@ -15890,8 +15917,8 @@ var Synth = class _Synth extends SynthTemplate {
           useDynamismStart = this.getModValue(Config.modulators.dictionary["dynamism"].index, channelIndex, tone.instrumentIndex, false) / Config.supersawDynamismMax;
           useDynamismEnd = this.getModValue(Config.modulators.dictionary["dynamism"].index, channelIndex, tone.instrumentIndex, true) / Config.supersawDynamismMax;
         }
-        const curvedDynamismStart = 1 - Math.pow(Math.max(0, 1 - useDynamismStart * envelopeStarts[38 /* supersawDynamism */]), 0.2);
-        const curvedDynamismEnd = 1 - Math.pow(Math.max(0, 1 - useDynamismEnd * envelopeEnds[38 /* supersawDynamism */]), 0.2);
+        const curvedDynamismStart = 1 - Math.pow(Math.max(0, 1 - useDynamismStart * envelopeStarts[39 /* supersawDynamism */]), 0.2);
+        const curvedDynamismEnd = 1 - Math.pow(Math.max(0, 1 - useDynamismEnd * envelopeEnds[39 /* supersawDynamism */]), 0.2);
         const firstVoiceAmplitudeStart = Math.pow(2, Math.log2(minFirstVoiceAmplitude) * curvedDynamismStart);
         const firstVoiceAmplitudeEnd = Math.pow(2, Math.log2(minFirstVoiceAmplitude) * curvedDynamismEnd);
         const dynamismStart = Math.sqrt((1 / Math.pow(firstVoiceAmplitudeStart, 2) - 1) / (Config.supersawVoiceCount - 1));
@@ -15956,8 +15983,8 @@ var Synth = class _Synth extends SynthTemplate {
           useSpreadStart = this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, false) / Config.supersawSpreadMax;
           useSpreadEnd = this.getModValue(Config.modulators.dictionary["spread"].index, channelIndex, tone.instrumentIndex, true) / Config.supersawSpreadMax;
         }
-        const spreadSliderStart = Math.max(0, useSpreadStart) * envelopeStarts[39 /* supersawSpread */];
-        const spreadSliderEnd = Math.max(0, useSpreadEnd) * envelopeEnds[39 /* supersawSpread */];
+        const spreadSliderStart = Math.max(0, useSpreadStart) * envelopeStarts[40 /* supersawSpread */];
+        const spreadSliderEnd = Math.max(0, useSpreadEnd) * envelopeEnds[40 /* supersawSpread */];
         const averageSpreadSlider = (spreadSliderStart + spreadSliderEnd) * 0.5;
         const curvedSpread = Math.pow(1 - Math.sqrt(Math.max(0, 1 - averageSpreadSlider)), 1.75);
         for (let i = 0; i < Config.supersawVoiceCount; i++) {
@@ -15965,21 +15992,21 @@ var Synth = class _Synth extends SynthTemplate {
           tone.supersawUnisonDetunes[i] = Math.pow(2, curvedSpread * offset / 12);
         }
         const baseShape = instrument.supersawShape / Config.supersawShapeMax;
-        let useShapeStart = baseShape * envelopeStarts[40 /* supersawShape */];
-        let useShapeEnd = baseShape * envelopeEnds[40 /* supersawShape */];
+        let useShapeStart = baseShape * envelopeStarts[41 /* supersawShape */];
+        let useShapeEnd = baseShape * envelopeEnds[41 /* supersawShape */];
         if (this.isModActive(Config.modulators.dictionary["saw shape"].index, channelIndex, tone.instrumentIndex)) {
           useShapeStart = this.getModValue(Config.modulators.dictionary["saw shape"].index, channelIndex, tone.instrumentIndex, false) / Config.supersawShapeMax;
           useShapeEnd = this.getModValue(Config.modulators.dictionary["saw shape"].index, channelIndex, tone.instrumentIndex, true) / Config.supersawShapeMax;
         }
-        const shapeStart = useShapeStart * envelopeStarts[40 /* supersawShape */];
-        const shapeEnd = useShapeEnd * envelopeEnds[40 /* supersawShape */];
+        const shapeStart = useShapeStart * envelopeStarts[41 /* supersawShape */];
+        const shapeEnd = useShapeEnd * envelopeEnds[41 /* supersawShape */];
         tone.supersawShape = shapeStart;
         tone.supersawShapeDelta = (shapeEnd - shapeStart) / roundedSamplesPerTick;
         let decimalOffsetModStart = instrument.decimalOffset;
         if (this.isModActive(Config.modulators.dictionary["decimal offset"].index, channelIndex, tone.instrumentIndex)) {
           decimalOffsetModStart = this.getModValue(Config.modulators.dictionary["decimal offset"].index, channelIndex, tone.instrumentIndex, false);
         }
-        const decimalOffsetStart = decimalOffsetModStart * envelopeStarts[37 /* decimalOffset */];
+        const decimalOffsetStart = decimalOffsetModStart * envelopeStarts[38 /* decimalOffset */];
         tone.decimalOffset = decimalOffsetStart;
         const basePulseWidth = getPulseWidthRatio(instrument.pulseWidth);
         let pulseWidthModStart = basePulseWidth;
