@@ -210,9 +210,11 @@ export interface Rhythm extends BeepBoxOption {
 export interface ChipWave extends BeepBoxOption {
     readonly expression: number;
     samples: Float32Array;
+    samplesR?: Float32Array;
     isPercussion?: boolean;
     isCustomSampled?: boolean;
     isSampled?: boolean;
+    stereoChannels?: number;
     extraSampleDetune?: number;
     rootKey?: number;
     sampleRate?: number;
@@ -394,13 +396,18 @@ export async function startLoadingSample(url: string, chipWaveIndex: number, pre
     }).then((arrayBuffer) => {
 	return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
     }).then((audioBuffer) => {
-	// @TODO: Downmix.
-	const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
-    events.raise(EventType.sampleLoaded, samples, chipWaveIndex);
-	const integratedSamples = performIntegral(samples);
-	chipWave.samples = integratedSamples;
-	rawChipWave.samples = samples;
-	rawRawChipWave.samples = samples;
+    const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
+    let samplesR = samples;
+    if (audioBuffer.numberOfChannels > 1) samplesR = centerWave(Array.from(audioBuffer.getChannelData(1)));        
+    events.raise(EventType.sampleLoaded, {samplesL: samples, samplesR: samplesR}, chipWaveIndex);
+    const integratedSamples = performIntegral(samples);
+    const integratedSamplesR = performIntegral(samplesR);
+    chipWave.samples = integratedSamples;
+    chipWave.samplesR = integratedSamplesR;
+    rawChipWave.samples = samples;
+    rawChipWave.samplesR = samplesR;
+    rawRawChipWave.samples = samples;
+    rawRawChipWave.samplesR = samplesR;
 	if (rawLoopOptions["isUsingAdvancedLoopControls"]) {
 	    presetSettings["chipWaveLoopStart"] = rawLoopOptions["chipWaveLoopStart"] != null ? rawLoopOptions["chipWaveLoopStart"] : 0;
 	    presetSettings["chipWaveLoopEnd"] = rawLoopOptions["chipWaveLoopEnd"] != null ? rawLoopOptions["chipWaveLoopEnd"] : samples.length - 1;

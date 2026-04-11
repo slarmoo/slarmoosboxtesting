@@ -1,3 +1,7 @@
+/*
+This file takes everything in the prompts folder and exports it as a module, which is then imported as "Prompts" in SongEditor.ts
+*/
+
 import { AddSamplesPrompt } from "./AddSamplesPrompt";
 import { BeatsPerBarPrompt } from "./BeatsPerBarPrompt";
 import { ChannelSettingsPrompt } from "./ChannelSettingsPrompt";

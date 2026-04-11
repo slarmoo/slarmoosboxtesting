@@ -6,7 +6,7 @@ import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
 import { MessageFlag, SongSettings, InstrumentSettings, ChannelSettings, PluginMessage, SampleStartMessage } from "./synthMessages";
 import { events, EventType } from "../global/Events";
-import { PluginElementType, PluginSlider } from "beepboxplugin";
+import { BeepBoxEffectPlugin, PluginElementType, PluginSlider } from "beepboxplugin";
 
 
 declare global {
@@ -6574,6 +6574,14 @@ export class Song {
             const blob = new Blob([code], { type: 'text/javascript' });
             const url = URL.createObjectURL(blob);
 
+            const pluginModule = await import(url);
+            const pluginClass = pluginModule.default;
+            const plugin: BeepBoxEffectPlugin = new pluginClass();
+
+            PluginConfig.pluginUIElements = plugin.elements || [];
+            PluginConfig.pluginName = plugin.pluginName || "plugin";
+            PluginConfig.pluginAbout = plugin.about;
+
             const pluginMessage: PluginMessage = {
                 flag: MessageFlag.pluginMessage,
                 url: url,
@@ -6614,8 +6622,10 @@ export class Song {
         parseOldSyntax: boolean
     ): boolean {
         const defaultIndex: number = 0;
-        const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
-        const defaultSamples: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
+        const defaultIntegratedSamplesL: Float32Array = Config.chipWaves[defaultIndex].samples;
+        const defaultIntegratedSamplesR: Float32Array = Config.chipWaves[defaultIndex].samplesR || Config.chipWaves[defaultIndex].samples;
+        const defaultSamplesL: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
+        const defaultSamplesR: Float32Array = Config.rawRawChipWaves[defaultIndex].samplesR || Config.chipWaves[defaultIndex].samples;
 
         const customSampleUrlIndex: number = customSampleUrls.length;
         customSampleUrls.push(url);
@@ -6634,6 +6644,7 @@ export class Song {
         let presetChipWaveStartOffset: number | null = null;
         let presetChipWaveLoopMode: number | null = null;
         let presetChipWavePlayBackwards: boolean = false;
+        let stereoChannels: number = 0;
 
         let parsedSampleOptions: boolean = false;
         let optionsStartIndex: number = url.indexOf("!");
@@ -6677,6 +6688,8 @@ export class Song {
                     } else if (optionCode === "e") {
                         presetChipWavePlayBackwards = true;
                         presetIsUsingAdvancedLoopControls = true;
+                    } else if (optionCode === "m") {
+                        stereoChannels = parseIntWithDefault(optionData, 0);
                     }
                 }
                 urlSliced = url.slice(optionsEndIndex + 1, url.length);
@@ -6768,6 +6781,7 @@ export class Song {
                 if (presetChipWaveLoopMode != null) namedOptions.push("d" + presetChipWaveLoopMode);
                 if (presetChipWavePlayBackwards) namedOptions.push("e");
             }
+            if (stereoChannels !== 0) namedOptions.push("m" + stereoChannels);
             if (namedOptions.length > 0) {
                 urlWithNamedOptions = "!" + namedOptions.join(",") + "!" + urlSliced;
             }
@@ -6799,7 +6813,9 @@ export class Song {
                 isPercussion: isCustomPercussive,
                 rootKey: customRootKey,
                 sampleRate: customSampleRate,
-                samples: defaultIntegratedSamples,
+                samples: defaultIntegratedSamplesL,
+                samplesR: defaultIntegratedSamplesR,
+                stereoChannels: stereoChannels,
                 index: chipWaveIndex,
             };
             Config.rawChipWaves[chipWaveIndex] = {
@@ -6809,7 +6825,9 @@ export class Song {
                 isPercussion: isCustomPercussive,
                 rootKey: customRootKey,
                 sampleRate: customSampleRate,
-                samples: defaultSamples,
+                samples: defaultSamplesL,
+                samplesR: defaultSamplesR,
+                stereoChannels: stereoChannels,
                 index: chipWaveIndex,
             };
             Config.rawRawChipWaves[chipWaveIndex] = {
@@ -6819,7 +6837,9 @@ export class Song {
                 isPercussion: isCustomPercussive,
                 rootKey: customRootKey,
                 sampleRate: customSampleRate,
-                samples: defaultSamples,
+                samples: defaultSamplesL,
+                samplesR: defaultSamplesR,
+                stereoChannels: stereoChannels,
                 index: chipWaveIndex,
             };
             try {
@@ -6828,6 +6848,7 @@ export class Song {
                     name: name,
                     expression: expression,
                     isCustomSampled: true,
+                    stereoChannels: stereoChannels,
                     isPercussion: isCustomPercussive,
                     rootKey: customRootKey,
                     sampleRate: customSampleRate,
@@ -7434,9 +7455,15 @@ export class Song {
                         break;
                     case InstrumentSettings.algorithm6Op:
                         instrument.algorithm6Op = numberData;
+                        if (numberData != 0) {
+                            instrument.customAlgorithm.fromPreset(numberData);
+                        }
                         break;
                     case InstrumentSettings.feedbackType6Op:
                         instrument.feedbackType6Op = numberData;
+                        if (numberData != 0) {
+                            instrument.customFeedbackType.fromPreset(numberData);
+                        }
                         break;
                     case InstrumentSettings.customAlgorithm:
                         instrument.customAlgorithm = new CustomAlgorithm();

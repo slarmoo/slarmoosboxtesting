@@ -6,8 +6,6 @@ import { Synth } from "./synth";
 import { events, EventType } from "../global/Events";
 import { Note, Song, Pattern, Instrument, FilterSettings, Channel, SynthTemplate } from "./song";
 import { Config, EffectType, InstrumentType, Dictionary, DictionaryArray, FilterType, EnvelopeType, Transition, Chord, Envelope } from "./SynthConfig";
-import { BeepBoxEffectPlugin } from "beepboxplugin";
-import { PluginConfig } from "../editor/PluginConfig";
 
 export function discardInvalidPatternInstruments(instruments: number[], song: Song, channelIndex: number) {
     const uniqueInstruments: Set<number> = new Set(instruments);
@@ -387,10 +385,11 @@ export class SynthMessenger extends SynthTemplate {
         this.sendMessage(samplesMessage);
     }
 
-    public updateProcessorSamplesFinish(samples: Float32Array, index: number) {
+    public updateProcessorSamplesFinish(samples: { samplesL: Float32Array, samplesR: Float32Array }, index: number) {
         let samplesMessage: SampleFinishMessage = {
             flag: MessageFlag.sampleFinishMessage,
-            samples: samples,
+            samplesL: samples.samplesL,
+            samplesR: samples.samplesR,
             index: index
         }
         this.sendMessage(samplesMessage);
@@ -399,11 +398,7 @@ export class SynthMessenger extends SynthTemplate {
     public async updateProcessorPlugin(pluginMessage: PluginMessage): Promise<void> {
         const pluginModule = await import(pluginMessage.url);
         const pluginClass = pluginModule.default;
-        const plugin: BeepBoxEffectPlugin = new pluginClass();
         Synth.PluginClass = pluginClass;
-        PluginConfig.pluginUIElements = plugin.elements || [];
-        PluginConfig.pluginName = plugin.pluginName || "plugin";
-        PluginConfig.pluginAbout = plugin.about;
         this.sendMessage(pluginMessage);
     }
 

@@ -39,7 +39,7 @@
 		"@electron/packager": "^18.0.0",
 		"@rollup/plugin-commonjs": "^29.0.2",
 		"@rollup/plugin-node-resolve": "^15.1.0",
-		"electron": "^39.2.7",
+		"electron": "^41.2.0",
 		"rollup": "^2.79.1",
 		"rollup-plugin-sourcemaps": "^0.6.3",
 		"terser": "^5.19.2",
@@ -48,7 +48,7 @@
 	"dependencies": {
 		"@types/jquery": "^3.5.30",
 		"@types/select2": "^4.0.63",
-		"beepboxplugin": "^0.2.1",
+		"beepboxplugin": "^0.2.4",
 		"electron-packager": "^17.1.2",
 		"esbuild": "^0.25.5",
 		"express": "^4.21.2",

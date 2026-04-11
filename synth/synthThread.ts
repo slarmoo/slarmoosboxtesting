@@ -113,6 +113,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
             const isPercussion: boolean = event.data.isPercussion;
             const rootKey: number = event.data.rootKey;
             const sampleRate: number = event.data.sampleRate;
+            const stereoChannels: number = event.data.stereoChannels;
             const chipWaveIndex: number = event.data.index;
 
             const defaultIndex: number = 0;
@@ -122,6 +123,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
                 name: name,
                 expression: expression,
                 isCustomSampled: isCustomSampled,
+                stereoChannels: stereoChannels,
                 isPercussion: isPercussion,
                 rootKey: rootKey,
                 sampleRate: sampleRate,
@@ -132,6 +134,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
                 name: name,
                 expression: expression,
                 isCustomSampled: isCustomSampled,
+                stereoChannels: stereoChannels,
                 isPercussion: isPercussion,
                 rootKey: rootKey,
                 sampleRate: sampleRate,
@@ -142,6 +145,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
                 name: name,
                 expression: expression,
                 isCustomSampled: isCustomSampled,
+                stereoChannels: stereoChannels,
                 isPercussion: isPercussion,
                 rootKey: rootKey,
                 sampleRate: sampleRate,
@@ -151,11 +155,15 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
             break;
         }
         case MessageFlag.sampleFinishMessage: {
-            const integratedSamples = performIntegral(event.data.samples);
+            const integratedSamplesL = performIntegral(event.data.samplesL);
+            const integratedSamplesR = performIntegral(event.data.samplesR);
             const index: number = event.data.index;
-            Config.chipWaves[index].samples = integratedSamples;
-            Config.rawChipWaves[index].samples = event.data.samples;
-            Config.rawRawChipWaves[index].samples = event.data.samples;
+            Config.chipWaves[index].samples = integratedSamplesL;
+            Config.chipWaves[index].samplesR = integratedSamplesR;
+            Config.rawChipWaves[index].samples = event.data.samplesL;
+            Config.rawChipWaves[index].samplesR = event.data.samplesR;
+            Config.rawRawChipWaves[index].samples = event.data.samplesL;
+            Config.rawRawChipWaves[index].samplesR = event.data.samplesR;
             break;
         }
         case MessageFlag.pluginMessage: {
@@ -217,27 +225,23 @@ const synthesize = () => {
         while (!samplesR.empty()) samplesR.pop(bufferR);
         drain = false;
     } else {
-        if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
-            try {
+        try {
+            if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) {
                 synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
                 samplesL.push(bufferL);
                 samplesR.push(bufferR);
                 bufferL.fill(0.0);
                 bufferR.fill(0.0);
-            } catch (e) {
-                console.log(e);
             }
-        }
-        if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) { //go again if possible
-            try {
+            if (samplesL && samplesR && samplesL.availableWrite() >= blockSize && samplesR.availableWrite() >= blockSize) { //go again if possible
                 synth.synthesize(bufferL, bufferR, blockSize, synth.isPlayingSong);
                 samplesL.push(bufferL);
                 samplesR.push(bufferR);
                 bufferL.fill(0.0);
                 bufferR.fill(0.0);
-            } catch (e) {
-                console.log(e);
             }
+        } catch (e) {
+            console.log(e);
         }
     }
     setTimeout(synthesize, 0);

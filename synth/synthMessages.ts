@@ -102,12 +102,14 @@ export interface SampleStartMessage extends Message {
     isPercussion: boolean,
     rootKey: number,
     sampleRate: number,
+    stereoChannels: number,
     index: number
 }
 
 export interface SampleFinishMessage extends Message {
     flag: MessageFlag.sampleFinishMessage,
-    samples: Float32Array,
+    samplesL: Float32Array,
+    samplesR: Float32Array,
     index: number
 }
 

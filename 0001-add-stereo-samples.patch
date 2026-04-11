@@ -1,0 +1,2537 @@
+From bb5d80a8d0366a77357aede48750c2c5d33a86b6 Mon Sep 17 00:00:00 2001
+From: Theepicosity <theepicadrian@gmail.com>
+Date: Sat, 7 Dec 2024 08:41:26 -0700
+Subject: [PATCH] add stereo samples!
+
+adds stereo samples! this patch is based on slarmoos box 1.3.2
+---
+ editor/AddSamplesPrompt.ts           |   30 +
+ editor/SongEditor.ts                 |    3 +-
+ editor/TipPrompt.ts                  |    7 +-
+ editor/changes.ts                    |    2 +-
+ package-lock.json                    |  537 +++++----
+ package.json                         |    9 +-
+ synth/SynthConfig.ts                 |   21 +-
+ synth/synth.ts                       | 1618 ++++++++++++++++----------
+ website/beepbox_editor.js            | 1137 ++++++++++++------
+ website/beepbox_editor.min.js        |    2 +-
+ website/beepbox_synth.js             | 1112 ++++++++++++------
+ website/beepbox_synth.min.js         |    2 +-
+ website/player/beepbox_player.js     | 1108 ++++++++++++------
+ website/player/beepbox_player.min.js |    2 +-
+ 14 files changed, 3651 insertions(+), 1939 deletions(-)
+
+diff --git a/editor/AddSamplesPrompt.ts b/editor/AddSamplesPrompt.ts
+index d675e99..bbbafb9 100644
+--- a/editor/AddSamplesPrompt.ts
++++ b/editor/AddSamplesPrompt.ts
+@@ -17,6 +17,7 @@ interface SampleEntry {
+     chipWaveStartOffset: number | null;
+     chipWaveLoopMode: number | null;
+     chipWavePlayBackwards: boolean;
++    stereoChannels: number;
+ }
+ 
+ interface ParsedEntries {
+@@ -197,6 +198,7 @@ export class AddSamplesPrompt {
+             chipWaveStartOffset: null,
+             chipWaveLoopMode: null,
+             chipWavePlayBackwards: false,
++            stereoChannels: 2
+         });
+         this._entryOptionsDisplayStates[entryIndex] = false;
+         this._reconfigureAddSampleButton();
+@@ -330,6 +332,13 @@ export class AddSamplesPrompt {
+         }
+     }
+ 
++    private _whenStereoChannelsChanges = (event: Event): void => {
++        const element: HTMLSelectElement = <HTMLSelectElement>event.target;
++        const entryIndex: number = +(element.dataset.index!);
++        const newValue: number = +element.value;
++        this._entries[entryIndex].stereoChannels = newValue;
++    }
++
+     private _whenChipWavePlayBackwardsChanges = (event: Event): void => {
+         const element: HTMLInputElement = <HTMLInputElement>event.target;
+         const entryIndex: number = +(element.dataset.index!);
+@@ -447,6 +456,7 @@ export class AddSamplesPrompt {
+                         chipWaveStartOffset: null,
+                         chipWaveLoopMode: null,
+                         chipWavePlayBackwards: false,
++                        stereoChannels: 0,
+                     });
+                 }
+                 useLegacySamples = true;
+@@ -462,6 +472,7 @@ export class AddSamplesPrompt {
+                         chipWaveStartOffset: null,
+                         chipWaveLoopMode: null,
+                         chipWavePlayBackwards: false,
++                        stereoChannels: 0,
+                     });
+                 }
+                 useNintariboxSamples = true;
+@@ -477,6 +488,7 @@ export class AddSamplesPrompt {
+                         chipWaveStartOffset: null,
+                         chipWaveLoopMode: null,
+                         chipWavePlayBackwards: false,
++                        stereoChannels: 0,
+                     });
+                 }
+                 useMarioPaintboxSamples = true;
+@@ -490,6 +502,7 @@ export class AddSamplesPrompt {
+                 let chipWaveStartOffset: number | null = null;
+                 let chipWaveLoopMode: number | null = null;
+                 let chipWavePlayBackwards: boolean = false;
++                let stereoChannels: number = 0;
+                 let optionsStartIndex: number = url.indexOf("!");
+                 let optionsEndIndex: number = -1;
+                 let parsedSampleOptions: boolean = false;
+@@ -522,6 +535,8 @@ export class AddSamplesPrompt {
+                                 }
+                             } else if (optionCode === "e") {
+                                 chipWavePlayBackwards = true;
++                            } else if (optionCode === "m") {
++                                stereoChannels = parseIntWithDefault(optionData, 0);
+                             }
+                         }
+                         urlSliced = url.slice(optionsEndIndex + 1, url.length);
+@@ -564,6 +579,7 @@ export class AddSamplesPrompt {
+                     chipWaveStartOffset: chipWaveStartOffset,
+                     chipWaveLoopMode: chipWaveLoopMode,
+                     chipWavePlayBackwards: chipWavePlayBackwards,
++                    stereoChannels: stereoChannels,
+                 });
+             }
+         }
+@@ -580,6 +596,7 @@ export class AddSamplesPrompt {
+         const chipWaveStartOffset: number | null = entry.chipWaveStartOffset;
+         const chipWaveLoopMode: number | null = entry.chipWaveLoopMode;
+         const chipWavePlayBackwards: boolean = entry.chipWavePlayBackwards;
++        const stereoChannels: number = entry.stereoChannels;
+         const urlInLowerCase: string = url.toLowerCase();
+         const isBundledSamplePack: boolean = (
+             urlInLowerCase === "legacysamples"
+@@ -595,6 +612,7 @@ export class AddSamplesPrompt {
+         if (chipWaveStartOffset != null) options.push("c" + chipWaveStartOffset);
+         if (chipWaveLoopMode != null) options.push("d" + chipWaveLoopMode);
+         if (chipWavePlayBackwards) options.push("e");
++        if (stereoChannels != 0) options.push("m" + stereoChannels);
+         if (isBundledSamplePack || options.length <= 0) {
+             return url;
+         } else {
+@@ -674,6 +692,12 @@ export class AddSamplesPrompt {
+             if (entry.chipWaveLoopMode != null) {
+                 chipWaveLoopModeSelect.value = "" + entry.chipWaveLoopMode;
+             }
++            const stereoChannelsSelect: HTMLSelectElement = select({ style: "width: 100%; flex-grow: 1; margin-left: 0.5em;" },
++                option({ value: 0 }, "Left"),
++                option({ value: 1 }, "Right"),
++                option({ value: 2 }, "Stereo"),
++            );
++            stereoChannelsSelect.value = "" + entry.stereoChannels;
+             const chipWavePlayBackwardsBox: HTMLInputElement = input({ type: "checkbox", style: "width: 1em; padding: 0; margin-left: auto; margin-right: auto;" });
+             chipWavePlayBackwardsBox.checked = entry.chipWavePlayBackwards;
+             const sampleName: string = this._getSampleName(entry);
+@@ -698,6 +722,10 @@ export class AddSamplesPrompt {
+                     div({ style: `text-align: right; color: ${ColorConfig.primaryText};` }, "Percussion (pitch doesn't change with key)"),
+                     percussionBox
+                 ),
++                div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 0.5em;" },
++                    div({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, "Stereo Channels"),
++                    stereoChannelsSelect
++                ),
+                 div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 0.5em;" },
+                     div({ style: `flex-shrink: 0; text-align: right; color: ${ColorConfig.primaryText};` }, span({ title: "Applies to the \"Loop Start\" loop control option of the preset created for this sample" }, "Loop Start")),
+                     chipWaveLoopStartStepper
+@@ -728,6 +756,7 @@ export class AddSamplesPrompt {
+             chipWaveStartOffsetStepper.dataset.index = "" + entryIndex;
+             chipWaveLoopModeSelect.dataset.index = "" + entryIndex;
+             chipWavePlayBackwardsBox.dataset.index = "" + entryIndex;
++            stereoChannelsSelect.dataset.index = "" + entryIndex;
+             copyLinkPresetButton.dataset.index = "" + entryIndex;
+             removeButton.dataset.index = "" + entryIndex;
+             moveUpButton.dataset.index = "" + entryIndex;
+@@ -765,6 +794,7 @@ export class AddSamplesPrompt {
+             chipWaveStartOffsetStepper.addEventListener("change", this._whenChipWaveStartOffsetChanges);
+             chipWaveLoopModeSelect.addEventListener("change", this._whenChipWaveLoopModeChanges);
+             chipWavePlayBackwardsBox.addEventListener("change", this._whenChipWavePlayBackwardsChanges);
++            stereoChannelsSelect.addEventListener("change", this._whenStereoChannelsChanges);
+             copyLinkPresetButton.addEventListener("click", this._whenCopyLinkPresetClicked);
+             removeButton.addEventListener("click", this._whenRemoveSampleClicked);
+             if (canMoveUp) {
+diff --git a/editor/SongEditor.ts b/editor/SongEditor.ts
+index 69ab39c..49010ac 100644
+--- a/editor/SongEditor.ts
++++ b/editor/SongEditor.ts
+@@ -48,7 +48,6 @@ import { CustomThemePrompt } from "./CustomThemePrompt";
+ import { ThemePrompt } from "./ThemePrompt";
+ import { TipPrompt } from "./TipPrompt";
+ import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeDiscreteEnvelope, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorythmorFeedback } from "./changes";
+-
+ import { TrackEditor } from "./TrackEditor";
+ import { oscilloscopeCanvas } from "../global/Oscilloscope";
+ import { VisualLoopControlsPrompt } from "./VisualLoopControlsPrompt";
+@@ -5460,4 +5459,4 @@ export class SongEditor {
+         this._doc.notifier.changed();
+         this._doc.prefs.save();
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/editor/TipPrompt.ts b/editor/TipPrompt.ts
+index 17cfcfc..6aaf77d 100644
+--- a/editor/TipPrompt.ts
++++ b/editor/TipPrompt.ts
+@@ -510,6 +510,11 @@ export class TipPrompt implements Prompt {
+ 					message = div(h2("Loop End Point"), p("This specifies where the loop region of the chip wave ends. It's measured in \"samples\", or rather, it refers to a point on a waveform."), p("The button next to the input box sets this to end of the chip wave."), p("Be careful with tiny loop sizes (especially combined with high pitches), they may re-introduce aliasing even if the \"Aliasing\" checkbox is unchecked."));
+ 				}
+ 				break;
++			case "inStereo":
++			{
++				message = div(h2("Stereo"), p("If a chip wave is in stereo, this will enable both channels to be used, rather than only the left channel."));
++			}
++			break;
+ 			case "offset":
+ 				{
+ 					message = div(h2("Offset"), p("This specifies where the chip wave should start playing from. You can use this to chop up a large sample, to say, turn a drum loop into a drum kit! It's measured in \"samples\", or rather, it refers to a point on a waveform."));
+@@ -670,4 +675,4 @@ export class TipPrompt implements Prompt {
+ 	public cleanUp = (): void => {
+ 		this._closeButton.removeEventListener("click", this._close);
+ 	}
+-}
+\ No newline at end of file
++}
+diff --git a/editor/changes.ts b/editor/changes.ts
+index 2c77bee..34fcdfc 100644
+--- a/editor/changes.ts
++++ b/editor/changes.ts
+@@ -5276,4 +5276,4 @@ export class ChangeSetEnvelopeWaveform extends Change {
+         doc.notifier.changed();
+         this._didSomething();
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/package.json b/package.json
+index e389b38..e961e1b 100644
+--- a/package.json
++++ b/package.json
+@@ -34,18 +34,17 @@
+ 	"devDependencies": {
+ 		"@electron/packager": "^18.3.5",
+ 		"@rollup/plugin-node-resolve": "^15.1.0",
+-		"electron": "^33.0.0",
++		"electron": "^33.2.0",
+ 		"rollup": "^2.79.1",
+ 		"rollup-plugin-sourcemaps": "^0.6.3",
+ 		"terser": "^5.19.2",
+-		"typescript": "^5.4.5"
++		"typescript": "^5.6.3"
+ 	},
+ 	"dependencies": {
+-		"@types/jquery": "^3.5.30",
++		"@types/jquery": "^3.5.32",
+ 		"@types/select2": "^4.0.63",
+-		"electron": "^29.1.1",
+ 		"electron-packager": "^17.1.2",
+-		"imperative-html": "^0.1.1",
++		"imperative-html": "^0.1.2",
+ 		"js-xxhash": "^4.0.0",
+ 		"select2": "^4.0.13"
+ 	}
+diff --git a/synth/SynthConfig.ts b/synth/SynthConfig.ts
+index c6dd205..989667e 100644
+--- a/synth/SynthConfig.ts
++++ b/synth/SynthConfig.ts
+@@ -202,9 +202,11 @@ export interface Rhythm extends BeepBoxOption {
+ export interface ChipWave extends BeepBoxOption {
+     readonly expression: number;
+     samples: Float32Array;
++    samplesR?: Float32Array;
+     isPercussion?: boolean;
+     isCustomSampled?: boolean;
+     isSampled?: boolean;
++    stereoChannels?: number;
+     extraSampleDetune?: number;
+     rootKey?: number;
+     sampleRate?: number;
+@@ -387,11 +389,18 @@ export async function startLoadingSample(url: string, chipWaveIndex: number, pre
+ 	return sampleLoaderAudioContext.decodeAudioData(arrayBuffer);
+     }).then((audioBuffer) => {
+ 	// @TODO: Downmix.
+-	const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
+-	const integratedSamples = performIntegral(samples);
+-	chipWave.samples = integratedSamples;
+-	rawChipWave.samples = samples;
+-	rawRawChipWave.samples = samples;
++        const samples = centerWave(Array.from(audioBuffer.getChannelData(0)));
++        var samplesR = samples;
++        if(audioBuffer.numberOfChannels > 1) samplesR = centerWave(Array.from(audioBuffer.getChannelData(1)));
++        else samplesR = samples;
++        const integratedSamples = performIntegral(samples);
++        const integratedSamplesR = performIntegral(samplesR);
++        chipWave.samples = integratedSamples;
++        chipWave.samplesR = integratedSamplesR;
++        rawChipWave.samples = samples;
++        rawChipWave.samplesR = samplesR;
++        rawRawChipWave.samples = samples;
++        rawRawChipWave.samplesR = samplesR;
+ 	if (rawLoopOptions["isUsingAdvancedLoopControls"]) {
+ 	    presetSettings["chipWaveLoopStart"] = rawLoopOptions["chipWaveLoopStart"] != null ? rawLoopOptions["chipWaveLoopStart"] : 0;
+ 	    presetSettings["chipWaveLoopEnd"] = rawLoopOptions["chipWaveLoopEnd"] != null ? rawLoopOptions["chipWaveLoopEnd"] : samples.length - 1;
+@@ -936,7 +945,7 @@ export class Config {
+     ]);
+     public static readonly blackKeyNameParents: ReadonlyArray<number> = [-1, 1, -1, 1, -1, 1, -1, -1, 1, -1, 1, -1];
+     public static readonly tempoMin: number = 1;
+-    public static readonly tempoMax: number = 500;
++    public static readonly tempoMax: number = 2000;
+     public static readonly octaveMin: number = -2;
+     public static readonly octaveMax: number = 2;
+     public static readonly echoDelayRange: number = 24;
+diff --git a/synth/synth.ts b/synth/synth.ts
+index 788787a..d3f505b 100644
+--- a/synth/synth.ts
++++ b/synth/synth.ts
+@@ -31,6 +31,10 @@ export function clamp(min: number, max: number, val: number): number {
+     }
+ }
+ 
++export function fittingPowerOfTwo(x: number): number {
++    return 1 << (32 - Math.clz32(Math.ceil(x) - 1));
++}
++
+ function validateRange(min: number, max: number, val: number): number {
+     if (min <= val && val <= max) return val;
+     throw new Error(`Value ${val} not in range [${min}, ${max}]`);
+@@ -3697,7 +3701,7 @@ export class Song {
+                     // The same encoding above is used here, but with the release mode
+                     // (which isn't implemented currently), and the backwards toggle.
+                     const encodedReleaseMode: number = (
+-                        (clamp(0, 31 + 1, 0) << 1)
++                        (clamp(0, 31 + 1, 0) << 2)
+                         | (instrument.chipWavePlayBackwards ? 1 : 0)
+                     );
+                     buffer.push(base64IntToCharCode[encodedReleaseMode]);
+@@ -3993,7 +3997,7 @@ export class Song {
+                             shapeBits.write(bitsPerNoteSize, note.pins[0].size); // volume
+                         }
+                         else {
+-                            shapeBits.write(9, note.pins[0].size); // Modulator value. 9 bits for now = 512 max mod value?
++                            shapeBits.write(11, note.pins[0].size); // Modulator value. 9 bits for now = 512 max mod value?
+                         }
+ 
+                         let shapePart: number = 0;
+@@ -6159,7 +6163,7 @@ export class Song {
+                                     } else if (!isModChannel) {
+                                         shape.initialSize = bits.read(bitsPerNoteSize);
+                                     } else {
+-                                        shape.initialSize = bits.read(9);
++                                        shape.initialSize = bits.read(11);
+                                     }
+ 
+                                     shape.pins = [];
+@@ -6377,8 +6381,10 @@ export class Song {
+     // @TODO: Share more of this code with AddSamplesPrompt.
+     private static _parseAndConfigureCustomSample(url: string, customSampleUrls: string[], customSamplePresets: Preset[], sampleLoadingState: SampleLoadingState, parseOldSyntax: boolean): boolean {
+         const defaultIndex: number = 0;
+-        const defaultIntegratedSamples: Float32Array = Config.chipWaves[defaultIndex].samples;
+-        const defaultSamples: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
++        const defaultIntegratedSamplesL: Float32Array = Config.chipWaves[defaultIndex].samples;
++        const defaultIntegratedSamplesR: Float32Array = Config.chipWaves[defaultIndex].samplesR || Config.chipWaves[defaultIndex].samples;
++        const defaultSamplesL: Float32Array = Config.rawRawChipWaves[defaultIndex].samples;
++        const defaultSamplesR: Float32Array = Config.rawRawChipWaves[defaultIndex].samplesR || Config.chipWaves[defaultIndex].samples;
+ 
+         const customSampleUrlIndex: number = customSampleUrls.length;
+         customSampleUrls.push(url);
+@@ -6397,6 +6403,7 @@ export class Song {
+         let presetChipWaveStartOffset: number | null = null;
+         let presetChipWaveLoopMode: number | null = null;
+         let presetChipWavePlayBackwards: boolean = false;
++        let stereoChannels: number = 0;
+ 
+         let parsedSampleOptions: boolean = false;
+         let optionsStartIndex: number = url.indexOf("!");
+@@ -6440,6 +6447,8 @@ export class Song {
+                     } else if (optionCode === "e") {
+                         presetChipWavePlayBackwards = true;
+                         presetIsUsingAdvancedLoopControls = true;
++                    } else if (optionCode === "m") {
++                        stereoChannels = parseIntWithDefault(optionData, 0);
+                     }
+                 }
+                 urlSliced = url.slice(optionsEndIndex + 1, url.length);
+@@ -6531,6 +6540,7 @@ export class Song {
+                 if (presetChipWaveLoopMode != null) namedOptions.push("d" + presetChipWaveLoopMode);
+                 if (presetChipWavePlayBackwards) namedOptions.push("e");
+             }
++            if (stereoChannels !== 0) namedOptions.push("m" + stereoChannels);
+             if (namedOptions.length > 0) {
+                 urlWithNamedOptions = "!" + namedOptions.join(",") + "!" + urlSliced;
+             }
+@@ -6562,7 +6572,9 @@ export class Song {
+                 isPercussion: isCustomPercussive,
+                 rootKey: customRootKey,
+                 sampleRate: customSampleRate,
+-                samples: defaultIntegratedSamples,
++                samples: defaultIntegratedSamplesL,
++                samplesR: defaultIntegratedSamplesR,
++                stereoChannels: stereoChannels,
+                 index: chipWaveIndex,
+             };
+             Config.rawChipWaves[chipWaveIndex] = {
+@@ -6572,7 +6584,9 @@ export class Song {
+                 isPercussion: isCustomPercussive,
+                 rootKey: customRootKey,
+                 sampleRate: customSampleRate,
+-                samples: defaultSamples,
++                samples: defaultSamplesL,
++                samplesR: defaultSamplesR,
++                stereoChannels: stereoChannels,
+                 index: chipWaveIndex,
+             };
+             Config.rawRawChipWaves[chipWaveIndex] = {
+@@ -6582,7 +6596,9 @@ export class Song {
+                 isPercussion: isCustomPercussive,
+                 rootKey: customRootKey,
+                 sampleRate: customSampleRate,
+-                samples: defaultSamples,
++                samples: defaultSamplesL,
++                samplesR: defaultSamplesR,
++                stereoChannels: stereoChannels,
+                 index: chipWaveIndex,
+             };
+             const customSamplePresetSettings: Dictionary<any> = {
+@@ -7552,7 +7568,7 @@ class PickedString {
+                 delayLine[i & delayBufferMask] = 0.0;
+             }
+ 
+-            const impulseWave: Float32Array = instrumentState.wave!;
++            const impulseWave: Float32Array = instrumentState.waveL!;
+             const impulseWaveLength: number = impulseWave.length - 1; // The first sample is duplicated at the end, don't double-count it.
+             const impulsePhaseDelta: number = impulseWaveLength / periodLengthStart;
+ 
+@@ -8164,8 +8180,10 @@ class Tone {
+ 			// advloop addition
+         public directions: number[] = [];
+         public chipWaveCompletions: number[] = [];
+-        public chipWavePrevWaves: number[] = [];
+-        public chipWaveCompletionsLastWave: number[] = [];
++        public chipWavePrevWavesL: number[] = [];
++        public chipWavePrevWavesR: number[] = [];
++        public chipWaveCompletionsLastWaveL: number[] = [];
++        public chipWaveCompletionsLastWaveR: number[] = [];
+            // advloop addition
+     public readonly phaseDeltaScales: number[] = [];
+     public expression: number = 0.0;
+@@ -8190,10 +8208,13 @@ class Tone {
+ 	public supersawPrevPhaseDelta: number | null = null;
+     public readonly pickedStrings: PickedString[] = [];
+ 
+-    public readonly noteFilters: DynamicBiquadFilter[] = [];
++    public readonly noteFiltersL: DynamicBiquadFilter[] = [];
++    public readonly noteFiltersR: DynamicBiquadFilter[] = [];
+     public noteFilterCount: number = 0;
+-    public initialNoteFilterInput1: number = 0.0;
+-    public initialNoteFilterInput2: number = 0.0;
++    public initialNoteFilterInputL1: number = 0.0;
++    public initialNoteFilterInputR1: number = 0.0;
++    public initialNoteFilterInputL2: number = 0.0;
++    public initialNoteFilterInputR2: number = 0.0;
+ 
+     public specialIntervalExpressionMult: number = 1.0;
+     public readonly feedbackOutputs: number[] = [];
+@@ -8227,19 +8248,24 @@ class Tone {
+ 						// advloop addition
+                 this.directions[i] = 1;
+                 this.chipWaveCompletions[i] = 0;
+-                this.chipWavePrevWaves[i] = 0;
+-                this.chipWaveCompletionsLastWave[i] = 0;
++                this.chipWavePrevWavesL[i] = 0;
++                this.chipWavePrevWavesR[i] = 0;
++                this.chipWaveCompletionsLastWaveL[i] = 0;
++                this.chipWaveCompletionsLastWaveR[i] = 0;
+                 // advloop addition
+             this.operatorWaves[i] = Config.operatorWaves[0];
+             this.feedbackOutputs[i] = 0.0;
+             this.prevPitchExpressions[i] = null;
+         }
+         for (let i: number = 0; i < this.noteFilterCount; i++) {
+-            this.noteFilters[i].resetOutput();
++            this.noteFiltersL[i].resetOutput();
++            this.noteFiltersR[i].resetOutput();
+         }
+         this.noteFilterCount = 0;
+-        this.initialNoteFilterInput1 = 0.0;
+-        this.initialNoteFilterInput2 = 0.0;
++        this.initialNoteFilterInputL1 = 0.0;
++        this.initialNoteFilterInputR1 = 0.0;
++        this.initialNoteFilterInputL2 = 0.0;
++        this.initialNoteFilterInputR2 = 0.0;
+         this.liveInputSamplesHeld = 0;
+         this.supersawDelayIndex = -1;
+         for (const pickedString of this.pickedStrings) {
+@@ -8268,7 +8294,9 @@ class InstrumentState {
+ 
+     public type: InstrumentType = InstrumentType.chip;
+     public synthesizer: Function | null = null;
+-    public wave: Float32Array | null = null;
++    public waveL: Float32Array | null = null;
++    public waveR: Float32Array | null = null;
++    public isStereo: boolean = true;
+ 				 // advloop addition
+             public isUsingAdvancedLoopControls = false;
+             public chipWaveLoopStart = 0;
+@@ -8277,6 +8305,7 @@ class InstrumentState {
+             public chipWavePlayBackwards = false;
+             public chipWaveStartOffset = 0;
+             // advloop addition
++    public stereoChannels: number = 0;
+     public noisePitchFilterMult: number = 1.0;
+     public unison: Unison | null = null;
+     public unisonVoices: number = 1;
+@@ -8305,9 +8334,12 @@ class InstrumentState {
+     public distortionDelta: number = 0.0;
+     public distortionDrive: number = 0.0;
+     public distortionDriveDelta: number = 0.0;
+-    public distortionFractionalInput1: number = 0.0;
+-    public distortionFractionalInput2: number = 0.0;
+-    public distortionFractionalInput3: number = 0.0;
++    public distortionFractionalInputL1: number = 0.0;
++    public distortionFractionalInputL2: number = 0.0;
++    public distortionFractionalInputL3: number = 0.0;
++    public distortionFractionalInputR1: number = 0.0;
++    public distortionFractionalInputR2: number = 0.0;
++    public distortionFractionalInputR3: number = 0.0;
+     public distortionPrevInput: number = 0.0;
+     public distortionNextOutput: number = 0.0;
+ 
+@@ -8321,12 +8353,16 @@ class InstrumentState {
+     public bitcrusherFoldLevel: number = 1.0;
+     public bitcrusherFoldLevelScale: number = 1.0;
+ 
+-    public readonly eqFilters: DynamicBiquadFilter[] = [];
++    public readonly eqFiltersL: DynamicBiquadFilter[] = [];
++    public readonly eqFiltersR: DynamicBiquadFilter[] = [];
+     public eqFilterCount: number = 0;
+-    public initialEqFilterInput1: number = 0.0;
+-    public initialEqFilterInput2: number = 0.0;
++    public initialEqFilterInputL1: number = 0.0;
++    public initialEqFilterInputR1: number = 0.0;
++    public initialEqFilterInputL2: number = 0.0;
++    public initialEqFilterInputR2: number = 0.0;
+ 
+-    public panningDelayLine: Float32Array | null = null;
++    public panningDelayLineL: Float32Array | null = null;
++    public panningDelayLineR: Float32Array | null = null;
+     public panningDelayPos: number = 0;
+     public panningVolumeL: number = 0.0;
+     public panningVolumeR: number = 0.0;
+@@ -8397,8 +8433,9 @@ class InstrumentState {
+ 
+     public allocateNecessaryBuffers(synth: Synth, instrument: Instrument, samplesPerTick: number): void {
+         if (effectsIncludePanning(instrument.effects)) {
+-            if (this.panningDelayLine == null || this.panningDelayLine.length < synth.panningDelayBufferSize) {
+-                this.panningDelayLine = new Float32Array(synth.panningDelayBufferSize);
++            if (this.panningDelayLineL == null || this.panningDelayLineL.length < synth.panningDelayBufferSize || this.panningDelayLineR == null || this.panningDelayLineR.length < synth.panningDelayBufferSize) {
++                this.panningDelayLineL = new Float32Array(synth.panningDelayBufferSize);
++                this.panningDelayLineR = new Float32Array(synth.panningDelayBufferSize);
+             }
+         }
+         if (effectsIncludeChorus(instrument.effects)) {
+@@ -8449,18 +8486,25 @@ class InstrumentState {
+         this.bitcrusherCurrentOutput = 0.0;
+         this.bitcrusherPhase = 1.0;
+         for (let i: number = 0; i < this.eqFilterCount; i++) {
+-            this.eqFilters[i].resetOutput();
++            this.eqFiltersL[i].resetOutput();
++            this.eqFiltersR[i].resetOutput();
+         }
+         this.eqFilterCount = 0;
+-        this.initialEqFilterInput1 = 0.0;
+-        this.initialEqFilterInput2 = 0.0;
+-        this.distortionFractionalInput1 = 0.0;
+-        this.distortionFractionalInput2 = 0.0;
+-        this.distortionFractionalInput3 = 0.0;
++        this.initialEqFilterInputL1 = 0.0;
++        this.initialEqFilterInputR1 = 0.0;
++        this.initialEqFilterInputL2 = 0.0;
++        this.initialEqFilterInputR2 = 0.0;
++        this.distortionFractionalInputL1 = 0.0;
++        this.distortionFractionalInputL2 = 0.0;
++        this.distortionFractionalInputL3 = 0.0;
++        this.distortionFractionalInputR1 = 0.0;
++        this.distortionFractionalInputR2 = 0.0;
++        this.distortionFractionalInputR3 = 0.0;
+         this.distortionPrevInput = 0.0;
+         this.distortionNextOutput = 0.0;
+         this.panningDelayPos = 0;
+-        if (this.panningDelayLine != null) for (let i: number = 0; i < this.panningDelayLine.length; i++) this.panningDelayLine[i] = 0.0;
++        if (this.panningDelayLineL != null) for (let i: number = 0; i < this.panningDelayLineL.length; i++) this.panningDelayLineL[i] = 0.0;
++        if (this.panningDelayLineR != null) for (let i: number = 0; i < this.panningDelayLineR.length; i++) this.panningDelayLineR[i] = 0.0;
+         this.echoDelayOffsetEnd = null;
+         this.echoShelfSampleL = 0.0;
+         this.echoShelfSampleR = 0.0;
+@@ -8662,8 +8706,10 @@ class InstrumentState {
+                 startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+                 endPoint.toCoefficients(Synth.tempFilterEndCoefficients, samplesPerSecond, 1.0, 1.0);
+ 
+-                if (this.eqFilters.length < 1) this.eqFilters[0] = new DynamicBiquadFilter();
+-                this.eqFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                if (this.eqFiltersL.length < 1) this.eqFiltersL[0] = new DynamicBiquadFilter();
++                if (this.eqFiltersR.length < 1) this.eqFiltersR[0] = new DynamicBiquadFilter();
++                this.eqFiltersL[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                this.eqFiltersR[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+ 
+             } else {
+                 eqFilterSettingsStart.convertLegacySettingsForSynth(startSimpleFreq, startSimpleGain, true);
+@@ -8672,8 +8718,10 @@ class InstrumentState {
+ 
+                 startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, 1.0, 1.0);
+ 
+-                if (this.eqFilters.length < 1) this.eqFilters[0] = new DynamicBiquadFilter();
+-                this.eqFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                if (this.eqFiltersL.length < 1) this.eqFiltersL[0] = new DynamicBiquadFilter();
++                if (this.eqFiltersR.length < 1) this.eqFiltersR[0] = new DynamicBiquadFilter();
++                this.eqFiltersL[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                this.eqFiltersR[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterStartCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+ 
+             }
+ 
+@@ -8701,8 +8749,10 @@ class InstrumentState {
+ 
+                 startPoint.toCoefficients(Synth.tempFilterStartCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeStart * eqFreqEnvelopeStart*/ 1.0, /*eqPeakEnvelopeStart*/ 1.0);
+                 endPoint.toCoefficients(Synth.tempFilterEndCoefficients, samplesPerSecond, /*eqAllFreqsEnvelopeEnd   * eqFreqEnvelopeEnd*/   1.0, /*eqPeakEnvelopeEnd*/   1.0);
+-                if (this.eqFilters.length <= i) this.eqFilters[i] = new DynamicBiquadFilter();
+-                this.eqFilters[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                if (this.eqFiltersL.length <= i) this.eqFiltersL[i] = new DynamicBiquadFilter();
++                if (this.eqFiltersR.length <= i) this.eqFiltersR[i] = new DynamicBiquadFilter();
++                this.eqFiltersL[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                this.eqFiltersR[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                 eqFilterVolume *= startPoint.getVolumeCompensationMult();
+ 
+             }
+@@ -8972,7 +9022,8 @@ class InstrumentState {
+     public updateWaves(instrument: Instrument, samplesPerSecond: number): void {
+         this.volumeScale = 1.0;
+         if (instrument.type == InstrumentType.chip) {
+-            this.wave = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
++            this.waveL = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samples;
++            this.waveR = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samplesR || Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samplesR || Config.chipWaves[instrument.chipWave].samples;
+ 						 // advloop addition
+                 this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
+                 this.chipWaveLoopStart = instrument.chipWaveLoopStart;
+@@ -8981,8 +9032,9 @@ class InstrumentState {
+                 this.chipWavePlayBackwards = instrument.chipWavePlayBackwards;
+                 this.chipWaveStartOffset = instrument.chipWaveStartOffset;
+                // advloop addition
++            this.stereoChannels = Config.chipWaves[instrument.chipWave].stereoChannels || 0;
+ 
+-               this.unisonVoices = instrument.unisonVoices;
++            this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+             this.unisonOffset = instrument.unisonOffset;
+             this.unisonExpression = instrument.unisonExpression;
+@@ -8994,7 +9046,7 @@ class InstrumentState {
+             this.unisonExpression = instrument.unisonExpression;
+             this.unisonSign = instrument.unisonSign;
+         } else if (instrument.type == InstrumentType.customChipWave) {
+-            this.wave = (this.aliases) ? instrument.customChipWave! : instrument.customChipWaveIntegral!;
++            this.waveL = (this.aliases) ? instrument.customChipWave! : instrument.customChipWaveIntegral!;
+             this.volumeScale = 0.05;
+             this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+@@ -9002,28 +9054,28 @@ class InstrumentState {
+             this.unisonExpression = instrument.unisonExpression;
+             this.unisonSign = instrument.unisonSign;
+         } else if (instrument.type == InstrumentType.noise) {
+-            this.wave = getDrumWave(instrument.chipNoise, inverseRealFourierTransform, scaleElementsByFactor);
++            this.waveL = getDrumWave(instrument.chipNoise, inverseRealFourierTransform, scaleElementsByFactor);
+             this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+             this.unisonOffset = instrument.unisonOffset;
+             this.unisonExpression = instrument.unisonExpression;
+             this.unisonSign = instrument.unisonSign;
+         } else if (instrument.type == InstrumentType.harmonics) {
+-            this.wave = this.harmonicsWave.getCustomWave(instrument.harmonicsWave, instrument.type);
++            this.waveL = this.harmonicsWave.getCustomWave(instrument.harmonicsWave, instrument.type);
+             this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+             this.unisonOffset = instrument.unisonOffset;
+             this.unisonExpression = instrument.unisonExpression;
+             this.unisonSign = instrument.unisonSign;
+         } else if (instrument.type == InstrumentType.pickedString) {
+-            this.wave = this.harmonicsWave.getCustomWave(instrument.harmonicsWave, instrument.type);
++            this.waveL = this.harmonicsWave.getCustomWave(instrument.harmonicsWave, instrument.type);
+             this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+             this.unisonOffset = instrument.unisonOffset;
+             this.unisonExpression = instrument.unisonExpression;
+             this.unisonSign = instrument.unisonSign;
+         } else if (instrument.type == InstrumentType.spectrum) {
+-            this.wave = this.spectrumWave.getCustomWave(instrument.spectrumWave, 8);
++            this.waveL = this.spectrumWave.getCustomWave(instrument.spectrumWave, 8);
+             this.unisonVoices = instrument.unisonVoices;
+             this.unisonSpread = instrument.unisonSpread;
+             this.unisonOffset = instrument.unisonOffset;
+@@ -9033,11 +9085,11 @@ class InstrumentState {
+             for (let i: number = 0; i < Config.drumCount; i++) {
+                 this.drumsetSpectrumWaves[i].getCustomWave(instrument.drumsetSpectrumWaves[i], InstrumentState._drumsetIndexToSpectrumOctave(i));
+             }
+-            this.wave = null;
++            this.waveL = null;
+         } else if (instrument.type == InstrumentType.additive) {
+-            this.wave = this.additiveWave.getCustomWave(instrument.additiveWave);
++            this.waveL = this.additiveWave.getCustomWave(instrument.additiveWave);
+         } else {
+-            this.wave = null;
++            this.waveL = null;
+         }
+     }
+ 
+@@ -9439,7 +9491,7 @@ export class Synth {
+ 
+     private static readonly fmSynthFunctionCache: Dictionary<Function> = {};
+     private static readonly fm6SynthFunctionCache: Dictionary<Function> = {};
+-    private static readonly effectsFunctionCache: Function[] = Array(1 << 7).fill(undefined); // keep in sync with the number of post-process effects.
++    private static readonly effectsFunctionCache: Function[] = Array(1 << 8).fill(undefined); // keep in sync with the number of post-process effects.
+     private static readonly pickedStringFunctionCache: Function[] = Array(3).fill(undefined); // keep in sync with the number of unison voices.
+ 
+     public readonly channels: ChannelState[] = [];
+@@ -9463,7 +9515,8 @@ export class Synth {
+     public initialSongEqFilterInput1R: number = 0.0;
+     public initialSongEqFilterInput2R: number = 0.0;
+ 
+-    private tempMonoInstrumentSampleBuffer: Float32Array | null = null;
++    private tempInstrumentSampleBufferL: Float32Array | null = null;
++    private tempInstrumentSampleBufferR: Float32Array | null = null;
+ 
+     private audioCtx: any | null = null;
+     private scriptNode: any | null = null;
+@@ -10228,8 +10281,9 @@ export class Synth {
+ 
+         this.syncSongState();
+ 
+-        if (this.tempMonoInstrumentSampleBuffer == null || this.tempMonoInstrumentSampleBuffer.length < outputBufferLength) {
+-            this.tempMonoInstrumentSampleBuffer = new Float32Array(outputBufferLength);
++        if (this.tempInstrumentSampleBufferL == null || this.tempInstrumentSampleBufferL.length < outputBufferLength || this.tempInstrumentSampleBufferR == null || this.tempInstrumentSampleBufferR.length < outputBufferLength) {
++            this.tempInstrumentSampleBufferL = new Float32Array(outputBufferLength);
++            this.tempInstrumentSampleBufferR = new Float32Array(outputBufferLength);
+         }
+ 
+         // Post processing parameters:
+@@ -11532,8 +11586,10 @@ export class Synth {
+                     tone.phases[i] = instrument.chipWavePlayBackwards ? Math.max(0, Math.min(lastOffset, firstOffset)) : Math.max(0, firstOffset);
+                     tone.directions[i] = instrument.chipWavePlayBackwards ? -1 : 1;
+                     tone.chipWaveCompletions[i] = 0;
+-                    tone.chipWavePrevWaves[i] = 0;
+-                    tone.chipWaveCompletionsLastWave[i] = 0;
++                    tone.chipWavePrevWavesL[i] = 0;
++                    tone.chipWavePrevWavesR[i] = 0;
++                    tone.chipWaveCompletionsLastWaveL[i] = 0;
++                    tone.chipWaveCompletionsLastWaveR[i] = 0;
+                 }
+             }
+                 // advloop addition
+@@ -11843,8 +11899,10 @@ export class Synth {
+                 startPoint!.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
+                 endPoint!.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
+ 
+-                if (tone.noteFilters.length < 1) tone.noteFilters[0] = new DynamicBiquadFilter();
+-                tone.noteFilters[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint!.type == FilterType.lowPass);
++                if (tone.noteFiltersL.length < 1) tone.noteFiltersL[0] = new DynamicBiquadFilter();
++                if (tone.noteFiltersR.length < 1) tone.noteFiltersR[0] = new DynamicBiquadFilter();
++                tone.noteFiltersL[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint!.type == FilterType.lowPass);
++                tone.noteFiltersR[0].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint!.type == FilterType.lowPass);
+                 noteFilterExpression *= startPoint!.getVolumeCompensationMult();
+ 
+                 tone.noteFilterCount = 1;
+@@ -11866,8 +11924,10 @@ export class Synth {
+ 
+                     startPoint.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeStart * noteFreqEnvelopeStart, notePeakEnvelopeStart);
+                     endPoint.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, noteAllFreqsEnvelopeEnd * noteFreqEnvelopeEnd, notePeakEnvelopeEnd);
+-                    if (tone.noteFilters.length <= i) tone.noteFilters[i] = new DynamicBiquadFilter();
+-                    tone.noteFilters[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                    if (tone.noteFiltersL.length <= i) tone.noteFiltersL[i] = new DynamicBiquadFilter();
++                    if (tone.noteFiltersR.length <= i) tone.noteFiltersR[i] = new DynamicBiquadFilter();
++                    tone.noteFiltersL[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
++                    tone.noteFiltersR[i].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, startPoint.type == FilterType.lowPass);
+                     noteFilterExpression *= startPoint.getVolumeCompensationMult();
+                 }
+                 tone.noteFilterCount = noteFilterSettings.controlPointCount;
+@@ -11894,8 +11954,10 @@ export class Synth {
+             // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.
+             point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
+             point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
+-            if (tone.noteFilters.length == tone.noteFilterCount) tone.noteFilters[tone.noteFilterCount] = new DynamicBiquadFilter();
+-            tone.noteFilters[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
++            if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
++            if (tone.noteFiltersR.length == tone.noteFilterCount) tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
++            tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
++            tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+             tone.noteFilterCount++;
+         }
+ 
+@@ -12523,349 +12585,452 @@ export class Synth {
+             throw new Error("Unrecognized instrument type: " + instrument.type);
+         }
+     }
+-// advloop addition
+-        static wrap(x: number, b: number): number {
+-            return (x % b + b) % b;
+-        }
+-        static loopableChipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+-            // @TODO:
+-            // - Longer declicking? This is more difficult than I thought.
+-            //   When determining this automatically is difficult (or the input
+-            //   samples are expected to vary too much), this is left up to the
+-            //   user.
+-            const aliases: boolean = (effectsIncludeDistortion(instrumentState.effects) && instrumentState.aliases);
+-            // const aliases = false;
+-            const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-            const wave: Float32Array = instrumentState.wave!;
+-            const volumeScale: number = instrumentState.volumeScale;
+-            const waveLength: number = (aliases && instrumentState.type == 8) ? wave.length : wave.length - 1;
+-            let chipWaveLoopEnd: number = Math.max(0, Math.min(waveLength, instrumentState.chipWaveLoopEnd));
+-            let chipWaveLoopStart: number = Math.max(0, Math.min(chipWaveLoopEnd - 1, instrumentState.chipWaveLoopStart));
+-			// @TODO: This is where to set things up for the release loop mode.
+-           // const ticksSinceReleased = tone.ticksSinceReleased;
+-            // if (ticksSinceReleased > 0) {
+-            //     chipWaveLoopStart = 0;
+-            //     chipWaveLoopEnd = waveLength - 1;
+-            // }
+-            let chipWaveLoopLength: number = chipWaveLoopEnd - chipWaveLoopStart;
+-			if (chipWaveLoopLength < 2) {
+-                chipWaveLoopStart = 0;
+-                chipWaveLoopEnd = waveLength;
+-                chipWaveLoopLength = waveLength;
+-            }
+-            const chipWaveLoopMode: number = instrumentState.chipWaveLoopMode;
+-            const chipWavePlayBackwards: boolean = instrumentState.chipWavePlayBackwards;
+-            const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+-            if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord!.customInterval)
+-                tone.phases[1] = tone.phases[0];
+-            let phaseDeltaA: number = tone.phaseDeltas[0] * waveLength;
+-            let phaseDeltaB: number = tone.phaseDeltas[1] * waveLength;
+-            let directionA: number = tone.directions[0];
+-            let directionB: number = tone.directions[1];
+-            let chipWaveCompletionA: number = tone.chipWaveCompletions[0];
+-            let chipWaveCompletionB: number = tone.chipWaveCompletions[1];
+-            if (chipWaveLoopMode === 3 || chipWaveLoopMode === 2 || chipWaveLoopMode === 0) {
+-                // If playing once or looping, we force the correct direction,
+-                // since it shouldn't really change. This is mostly so that if
+-                // the mode is changed midway through playback, it won't get
+-                // stuck on the wrong direction.
+-                if (!chipWavePlayBackwards) {
+-                    directionA = 1;
+-                    directionB = 1;
+-                } else {
+-                    directionA = -1;
+-                    directionB = -1;
+-                }
+-            }
+-            if (chipWaveLoopMode === 0 || chipWaveLoopMode === 1) {
+-                // If looping or ping-ponging, we clear the completion status,
+-                // as it's not relevant anymore. This is mostly so that if the
+-                // mode is changed midway through playback, it won't get stuck
+-                // on zero volume.
+-                chipWaveCompletionA = 0;
+-                chipWaveCompletionB = 0;
+-            }
+-            let lastWaveA: number = tone.chipWaveCompletionsLastWave[0];
+-            let lastWaveB: number = tone.chipWaveCompletionsLastWave[1];
+-            const chipWaveCompletionFadeLength: number = 1000;
+-            const phaseDeltaScaleA: number = +tone.phaseDeltaScales[0];
+-            const phaseDeltaScaleB: number = +tone.phaseDeltaScales[1];
+-            let expression: number = +tone.expression;
+-            const expressionDelta: number = +tone.expressionDelta;
+-            let phaseA: number = Synth.wrap(tone.phases[0], 1) * waveLength;
+-            let phaseB: number = Synth.wrap(tone.phases[1], 1) * waveLength;
+-            let prevWaveIntegralA: number = 0;
+-            let prevWaveIntegralB: number = 0;
+-            if (!aliases) {
+-                const phaseAInt = Math.floor(phaseA);
+-                const phaseBInt = Math.floor(phaseB);
+-                const indexA = Synth.wrap(phaseAInt, waveLength);
+-               const indexB = Synth.wrap(phaseBInt, waveLength);
+-                const phaseRatioA = phaseA - phaseAInt;
+-                const phaseRatioB = phaseB - phaseBInt;
+-                prevWaveIntegralA = +wave[indexA];
+-                prevWaveIntegralB = +wave[indexB];
+-                prevWaveIntegralA += (wave[Synth.wrap(indexA + 1, waveLength)] - prevWaveIntegralA) * phaseRatioA;
+-                prevWaveIntegralB += (wave[Synth.wrap(indexB + 1, waveLength)] - prevWaveIntegralB) * phaseRatioB;
+-           }
+-            const filters = tone.noteFilters;
+-            const filterCount: number = tone.noteFilterCount | 0;
+-            let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-            let initialFilterInput2: number = +tone.initialNoteFilterInput2;
+-            const applyFilters: Function = Synth.applyFilters;
+-            const stopIndex: number = bufferIndex + roundedSamplesPerTick;
+-            let prevWaveA: number = tone.chipWavePrevWaves[0];
+-            let prevWaveB: number = tone.chipWavePrevWaves[1];
+-            for (let sampleIndex: number = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
+-                if (chipWaveCompletionA > 0 && chipWaveCompletionA < chipWaveCompletionFadeLength) {
+-                    chipWaveCompletionA++;
+-                }
+-                if (chipWaveCompletionB > 0 && chipWaveCompletionB < chipWaveCompletionFadeLength) {
+-                    chipWaveCompletionB++;
+-                }
+-               let wrapped: number = 0;
+-                phaseA += phaseDeltaA * directionA;
+-                phaseB += phaseDeltaB * directionB;
+-                if (chipWaveLoopMode === 2) {
+-                    // once
+-                    if (directionA === 1) {
+-                        if (phaseA > waveLength) {
+-                            if (chipWaveCompletionA <= 0) {
+-                                lastWaveA = prevWaveA;
+-                                chipWaveCompletionA++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseA < 0) {
+-                            if (chipWaveCompletionA <= 0) {
+-                                lastWaveA = prevWaveA;
+-                                chipWaveCompletionA++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    }
+-                    if (directionB === 1) {
+-                        if (phaseB > waveLength) {
+-                            if (chipWaveCompletionB <= 0) {
+-                                lastWaveB = prevWaveB;
+-                                chipWaveCompletionB++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseB < 0) {
+-                            if (chipWaveCompletionB <= 0) {
+-                                lastWaveB = prevWaveB;
+-                                chipWaveCompletionB++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    }
+-                } else if (chipWaveLoopMode === 3) {
+-                    // loop once
+-                    if (directionA === 1) {
+-                        if (phaseA > chipWaveLoopEnd) {
+-                            if (chipWaveCompletionA <= 0) {
+-                                lastWaveA = prevWaveA;
+-                                chipWaveCompletionA++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseA < chipWaveLoopStart) {
+-                            if (chipWaveCompletionA <= 0) {
+-                                lastWaveA = prevWaveA;
+-                                chipWaveCompletionA++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    }
+-                    if (directionB === 1) {
+-                        if (phaseB > chipWaveLoopEnd) {
+-                            if (chipWaveCompletionB <= 0) {
+-                                lastWaveB = prevWaveB;
+-                                chipWaveCompletionB++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseB < chipWaveLoopStart) {
+-                            if (chipWaveCompletionB <= 0) {
+-                                lastWaveB = prevWaveB;
+-                                chipWaveCompletionB++;
+-                            }
+-                            wrapped = 1;
+-                        }
+-                    }
+-                } else if (chipWaveLoopMode === 0) {
+-                    // loop
+-                    if (directionA === 1) {
+-                        if (phaseA > chipWaveLoopEnd) {
+-                            phaseA = chipWaveLoopStart + Synth.wrap(phaseA - chipWaveLoopEnd, chipWaveLoopLength);
+-                            // phaseA = chipWaveLoopStart;
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseA < chipWaveLoopStart) {
+-                            phaseA = chipWaveLoopEnd - Synth.wrap(chipWaveLoopStart - phaseA, chipWaveLoopLength);
+-                            // phaseA = chipWaveLoopEnd;
+-                            wrapped = 1;
+-                        }
+-                    }
+-                    if (directionB === 1) {
+-                        if (phaseB > chipWaveLoopEnd) {
+-                            phaseB = chipWaveLoopStart + Synth.wrap(phaseB - chipWaveLoopEnd, chipWaveLoopLength);
+-                            // phaseB = chipWaveLoopStart;
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionB === -1) {
+-                        if (phaseB < chipWaveLoopStart) {
+-                            phaseB = chipWaveLoopEnd - Synth.wrap(chipWaveLoopStart - phaseB, chipWaveLoopLength);
+-                            // phaseB = chipWaveLoopEnd;
+-                            wrapped = 1;
+-                        }
+-                    }
+-                } else if (chipWaveLoopMode === 1) {
+-                    // ping-pong
+-                    if (directionA === 1) {
+-                        if (phaseA > chipWaveLoopEnd) {
+-                            phaseA = chipWaveLoopEnd - Synth.wrap(phaseA - chipWaveLoopEnd, chipWaveLoopLength);
+-                            // phaseA = chipWaveLoopEnd;
+-                            directionA = -1;
+-                           wrapped = 1;
+-                        }
+-                    } else if (directionA === -1) {
+-                        if (phaseA < chipWaveLoopStart) {
+-                            phaseA = chipWaveLoopStart + Synth.wrap(chipWaveLoopStart - phaseA, chipWaveLoopLength);
+-                            // phaseA = chipWaveLoopStart;
+-                            directionA = 1;
+-                           wrapped = 1;
+-                        }
+-                    }
+-                    if (directionB === 1) {
+-                        if (phaseB > chipWaveLoopEnd) {
+-                            phaseB = chipWaveLoopEnd - Synth.wrap(phaseB - chipWaveLoopEnd, chipWaveLoopLength);
+-                            // phaseB = chipWaveLoopEnd;
+-                            directionB = -1;
+-                            wrapped = 1;
+-                        }
+-                    } else if (directionB === -1) {
+-                        if (phaseB < chipWaveLoopStart) {
+-                            phaseB = chipWaveLoopStart + Synth.wrap(chipWaveLoopStart - phaseB, chipWaveLoopLength);
+-                            // phaseB = chipWaveLoopStart;
+-                            directionB = 1;
+-                            wrapped = 1;
+-                        }
+-                    }
+-               }
+-                let waveA = 0;
+-                let waveB = 0;
+-                let inputSample = 0;
+-                if (aliases) {
+-                    waveA = wave[Synth.wrap(Math.floor(phaseA), waveLength)];
+-                    waveB = wave[Synth.wrap(Math.floor(phaseB), waveLength)];
+-                    prevWaveA = waveA;
+-                    prevWaveB = waveB;
+-                    const completionFadeA: number = chipWaveCompletionA > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionA, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
+-                    const completionFadeB: number = chipWaveCompletionB > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionB, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
+-                    inputSample = 0;
+-                    if (chipWaveCompletionA > 0) {
+-                        inputSample += lastWaveA * completionFadeA;
+-                    } else {
+-                        inputSample += waveA;
+-                    }
+-                    if (chipWaveCompletionB > 0) {
+-                        inputSample += lastWaveB * completionFadeB;
+-                    } else {
+-                        inputSample += waveB;
+-                    }
+-                }
+-                else {
+-                    const phaseAInt = Math.floor(phaseA);
+-                    const phaseBInt = Math.floor(phaseB);
+-                    const indexA = Synth.wrap(phaseAInt, waveLength);
+-                    const indexB = Synth.wrap(phaseBInt, waveLength);
+-                    let nextWaveIntegralA = wave[indexA];
+-                    let nextWaveIntegralB = wave[indexB];
+-                    const phaseRatioA = phaseA - phaseAInt;
+-                    const phaseRatioB = phaseB - phaseBInt;
+-                    nextWaveIntegralA += (wave[Synth.wrap(indexA + 1, waveLength)] - nextWaveIntegralA) * phaseRatioA;
+-                    nextWaveIntegralB += (wave[Synth.wrap(indexB + 1, waveLength)] - nextWaveIntegralB) * phaseRatioB;
+-                    if (!(chipWaveLoopMode === 0 && chipWaveLoopStart === 0 && chipWaveLoopEnd === waveLength) && wrapped !== 0) {
+-                        let pwia = 0;
+-                        let pwib = 0;
+-                        const phaseA_ = Math.max(0, phaseA - phaseDeltaA * directionA);
+-                        const phaseB_ = Math.max(0, phaseB - phaseDeltaB * directionB);
+-                        const phaseAInt = Math.floor(phaseA_);
+-                        const phaseBInt = Math.floor(phaseB_);
+-                        const indexA = Synth.wrap(phaseAInt, waveLength);
+-                        const indexB = Synth.wrap(phaseBInt, waveLength);
+-                        pwia = wave[indexA];
+-                        pwib = wave[indexB];
+-                        pwia += (wave[Synth.wrap(indexA + 1, waveLength)] - pwia) * (phaseA_ - phaseAInt) * directionA;
+-                        pwib += (wave[Synth.wrap(indexB + 1, waveLength)] - pwib) * (phaseB_ - phaseBInt) * directionB;
+-                        prevWaveIntegralA = pwia;
+-                        prevWaveIntegralB = pwib;
+-				   }
+-                   if (chipWaveLoopMode === 1 && wrapped !== 0) {
+-                       waveA = prevWaveA;
+-                       waveB = prevWaveB;
+-                   } else {
+-                       waveA = (nextWaveIntegralA - prevWaveIntegralA) / (phaseDeltaA * directionA);
+-                       waveB = (nextWaveIntegralB - prevWaveIntegralB) / (phaseDeltaB * directionB);
+-                   }
+-                   prevWaveA = waveA;
+-                   prevWaveB = waveB;
+-				   prevWaveIntegralA = nextWaveIntegralA;
+-				   prevWaveIntegralB = nextWaveIntegralB;
+-                    const completionFadeA = chipWaveCompletionA > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionA, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
+-                    const completionFadeB = chipWaveCompletionB > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionB, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
+-                    if (chipWaveCompletionA > 0) {
+-                        inputSample += lastWaveA * completionFadeA;
+-                    } else {
+-                        inputSample += waveA;
+-                    }
+-                    if (chipWaveCompletionB > 0) {
+-                        inputSample += lastWaveB * completionFadeB;
+-                    } else {
+-                        inputSample += waveB * unisonSign;
+-                    }
+-                }
+-                const sample = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
+-                initialFilterInput2 = initialFilterInput1;
+-                initialFilterInput1 = inputSample * volumeScale;
+-                phaseDeltaA *= phaseDeltaScaleA;
+-                phaseDeltaB *= phaseDeltaScaleB;
+-                const output = sample * expression;
+-                expression += expressionDelta;
+-                data[sampleIndex] += output;
+-            }
+-            tone.phases[0] = phaseA / waveLength;
+-            tone.phases[1] = phaseB / waveLength;
+-            tone.phaseDeltas[0] = phaseDeltaA / waveLength;
+-            tone.phaseDeltas[1] = phaseDeltaB / waveLength;
+-            tone.directions[0] = directionA;
+-            tone.directions[1] = directionB;
+-            tone.chipWaveCompletions[0] = chipWaveCompletionA;
+-            tone.chipWaveCompletions[1] = chipWaveCompletionB;
+-            tone.chipWavePrevWaves[0] = prevWaveA;
+-            tone.chipWavePrevWaves[1] = prevWaveB;
+-            tone.chipWaveCompletionsLastWave[0] = lastWaveA;
+-            tone.chipWaveCompletionsLastWave[1] = lastWaveB;
+-            tone.expression = expression;
+-            synth.sanitizeFilters(filters);
+-            tone.initialNoteFilterInput1 = initialFilterInput1;
+-            tone.initialNoteFilterInput2 = initialFilterInput2;
+-        }
+-        // advloop addition
++
++    // advloop addition
++    static wrap(x: number, b: number): number {
++        return (x % b + b) % b;
++    }
++	static loopableChipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
++		// @TODO:
++		// - Longer declicking? This is more difficult than I thought.
++		//   When determining this automatically is difficult (or the input
++		//   samples are expected to vary too much), this is left up to the
++		//   user.
++		const aliases: boolean = instrumentState.aliases;
++        // const aliases = false;
++        const stereoChannels: number = instrumentState.stereoChannels;
++        let dataL: Float32Array = synth.tempInstrumentSampleBufferL!;
++        let dataR: Float32Array = synth.tempInstrumentSampleBufferR!;
++        let waveL: Float32Array = instrumentState.waveL!;
++        let waveR: Float32Array = instrumentState.waveR!;
++
++        //TODO: it makes sense to avoid doing stereo calculations if both channels are the same
++        if (stereoChannels == 0) {
++            dataL = synth.tempInstrumentSampleBufferL!;
++            dataR = synth.tempInstrumentSampleBufferL!;
++            waveL = instrumentState.waveL!;
++            waveR = instrumentState.waveL!;
++        }
++        else if (stereoChannels == 1) {
++            dataL = synth.tempInstrumentSampleBufferR!;
++            dataR = synth.tempInstrumentSampleBufferR!;
++            waveL = instrumentState.waveR!;
++            waveR = instrumentState.waveR!;
++        }
++
++		const volumeScale: number = instrumentState.volumeScale;
++		const waveLength: number = (aliases && instrumentState.type == 8) ? waveL.length : waveL.length - 1;
++		let chipWaveLoopEnd: number = Math.max(0, Math.min(waveLength, instrumentState.chipWaveLoopEnd));
++		let chipWaveLoopStart: number = Math.max(0, Math.min(chipWaveLoopEnd - 1, instrumentState.chipWaveLoopStart));
++		// @TODO: This is where to set things up for the release loop mode.
++		// const ticksSinceReleased = tone.ticksSinceReleased;
++		// if (ticksSinceReleased > 0) {
++		//     chipWaveLoopStart = 0;
++		//     chipWaveLoopEnd = waveLength - 1;
++		// }
++		let chipWaveLoopLength: number = chipWaveLoopEnd - chipWaveLoopStart;
++		if (chipWaveLoopLength < 2) {
++			chipWaveLoopStart = 0;
++			chipWaveLoopEnd = waveLength;
++			chipWaveLoopLength = waveLength;
++		}
++		const chipWaveLoopMode: number = instrumentState.chipWaveLoopMode;
++        const chipWavePlayBackwards: boolean = instrumentState.chipWavePlayBackwards;
++		const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
++		if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord!.customInterval)
++			tone.phases[1] = tone.phases[0];
++		let phaseDeltaA: number = tone.phaseDeltas[0] * waveLength;
++		let phaseDeltaB: number = tone.phaseDeltas[1] * waveLength;
++		let directionA: number = tone.directions[0];
++		let directionB: number = tone.directions[1];
++		let chipWaveCompletionA: number = tone.chipWaveCompletions[0];
++		let chipWaveCompletionB: number = tone.chipWaveCompletions[1];
++		if (chipWaveLoopMode === 3 || chipWaveLoopMode === 2 || chipWaveLoopMode === 0) {
++			// If playing once or looping, we force the correct direction,
++			// since it shouldn't really change. This is mostly so that if
++			// the mode is changed midway through playback, it won't get
++			// stuck on the wrong direction.
++			if (!chipWavePlayBackwards) {
++				directionA = 1;
++				directionB = 1;
++			} else {
++				directionA = -1;
++				directionB = -1;
++			}
++		}
++		if (chipWaveLoopMode === 0 || chipWaveLoopMode === 1) {
++			// If looping or ping-ponging, we clear the completion status,
++			// as it's not relevant anymore. This is mostly so that if the
++			// mode is changed midway through playback, it won't get stuck
++			// on zero volume.
++			chipWaveCompletionA = 0;
++			chipWaveCompletionB = 0;
++		}
++		let lastWaveLA: number = tone.chipWaveCompletionsLastWaveL[0];
++		let lastWaveLB: number = tone.chipWaveCompletionsLastWaveL[1];
++		let lastWaveRA: number = tone.chipWaveCompletionsLastWaveR[0];
++		let lastWaveRB: number = tone.chipWaveCompletionsLastWaveR[1];
++		const chipWaveCompletionFadeLength: number = 1000;
++		const phaseDeltaScaleA: number = +tone.phaseDeltaScales[0];
++		const phaseDeltaScaleB: number = +tone.phaseDeltaScales[1];
++		let expression: number = +tone.expression;
++		const expressionDelta: number = +tone.expressionDelta;
++		let phaseA: number = Synth.wrap(tone.phases[0], 1) * waveLength;
++		let phaseB: number = Synth.wrap(tone.phases[1], 1) * waveLength;
++		let prevWaveIntegralLA: number = 0;
++		let prevWaveIntegralLB: number = 0;
++		let prevWaveIntegralRA: number = 0;
++		let prevWaveIntegralRB: number = 0;
++		if (!aliases) {
++			const phaseAInt = Math.floor(phaseA);
++			const phaseBInt = Math.floor(phaseB);
++			const indexA = Synth.wrap(phaseAInt, waveLength);
++			const indexB = Synth.wrap(phaseBInt, waveLength);
++			const phaseRatioA = phaseA - phaseAInt;
++			const phaseRatioB = phaseB - phaseBInt;
++			prevWaveIntegralLA = +waveL[indexA];
++			prevWaveIntegralLB = +waveL[indexB];
++			prevWaveIntegralRA = +waveR[indexA];
++			prevWaveIntegralRB = +waveR[indexB];
++			prevWaveIntegralLA += (waveL[Synth.wrap(indexA + 1, waveLength)] - prevWaveIntegralLA) * phaseRatioA;
++			prevWaveIntegralLB += (waveL[Synth.wrap(indexB + 1, waveLength)] - prevWaveIntegralLB) * phaseRatioB;
++			prevWaveIntegralRA += (waveR[Synth.wrap(indexA + 1, waveLength)] - prevWaveIntegralRA) * phaseRatioA;
++			prevWaveIntegralRB += (waveR[Synth.wrap(indexB + 1, waveLength)] - prevWaveIntegralRB) * phaseRatioB;
++		}
++		const filtersL = tone.noteFiltersL;
++		const filtersR = tone.noteFiltersR;
++		const filterCount: number = tone.noteFilterCount | 0;
++		let initialFilterInputL1: number = +tone.initialNoteFilterInputL1;
++		let initialFilterInputR1: number = +tone.initialNoteFilterInputR1;
++		let initialFilterInputL2: number = +tone.initialNoteFilterInputL2;
++		let initialFilterInputR2: number = +tone.initialNoteFilterInputR2;
++		const applyFilters: Function = Synth.applyFilters;
++		const stopIndex: number = bufferIndex + roundedSamplesPerTick;
++		let prevWaveLA: number = tone.chipWavePrevWavesL[0];
++		let prevWaveLB: number = tone.chipWavePrevWavesL[1];
++		let prevWaveRA: number = tone.chipWavePrevWavesR[0];
++		let prevWaveRB: number = tone.chipWavePrevWavesR[1];
++		for (let sampleIndex: number = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
++			if (chipWaveCompletionA > 0 && chipWaveCompletionA < chipWaveCompletionFadeLength) {
++				chipWaveCompletionA++;
++			}
++			if (chipWaveCompletionB > 0 && chipWaveCompletionB < chipWaveCompletionFadeLength) {
++				chipWaveCompletionB++;
++			}
++			let wrapped: number = 0;
++			phaseA += phaseDeltaA * directionA;
++			phaseB += phaseDeltaB * directionB;
++			if (chipWaveLoopMode === 2) {
++				// once
++				if (directionA === 1) {
++					if (phaseA > waveLength) {
++						if (chipWaveCompletionA <= 0) {
++							lastWaveLA = prevWaveLA;
++							lastWaveRA = prevWaveRA;
++							chipWaveCompletionA++;
++						}
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseA < 0) {
++						if (chipWaveCompletionA <= 0) {
++							lastWaveLA = prevWaveLA;
++							lastWaveRA = prevWaveRA;
++							chipWaveCompletionA++;
++						}
++						wrapped = 1;
++					}
++				}
++				if (directionB === 1) {
++					if (phaseB > waveLength) {
++						if (chipWaveCompletionB <= 0) {
++							lastWaveLB = prevWaveLB;
++							lastWaveRB = prevWaveRB;
++							chipWaveCompletionB++;
++						}
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseB < 0) {
++						if (chipWaveCompletionB <= 0) {
++							lastWaveLB = prevWaveLB;
++							lastWaveRB = prevWaveRB;
++							chipWaveCompletionB++;
++						}
++						wrapped = 1;
++					}
++				}
++			} else if (chipWaveLoopMode === 3) {
++				// loop once
++				if (directionA === 1) {
++					if (phaseA > chipWaveLoopEnd) {
++						if (chipWaveCompletionA <= 0) {
++							lastWaveLA = prevWaveLA;
++							lastWaveRA = prevWaveRA;
++							chipWaveCompletionA++;
++						}
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseA < chipWaveLoopStart) {
++						if (chipWaveCompletionA <= 0) {
++							lastWaveLA = prevWaveLA;
++							lastWaveRA = prevWaveRA;
++							chipWaveCompletionA++;
++						}
++						wrapped = 1;
++					}
++				}
++				if (directionB === 1) {
++					if (phaseB > chipWaveLoopEnd) {
++						if (chipWaveCompletionB <= 0) {
++							lastWaveLB = prevWaveLB;
++							lastWaveRB = prevWaveRB;
++							chipWaveCompletionB++;
++						}
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseB < chipWaveLoopStart) {
++						if (chipWaveCompletionB <= 0) {
++							lastWaveLB = prevWaveLB;
++							lastWaveRB = prevWaveRB;
++							chipWaveCompletionB++;
++						}
++						wrapped = 1;
++					}
++				}
++			} else if (chipWaveLoopMode === 0) {
++				// loop
++				if (directionA === 1) {
++					if (phaseA > chipWaveLoopEnd) {
++						phaseA = chipWaveLoopStart + Synth.wrap(phaseA - chipWaveLoopEnd, chipWaveLoopLength);
++						// phaseA = chipWaveLoopStart;
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseA < chipWaveLoopStart) {
++						phaseA = chipWaveLoopEnd - Synth.wrap(chipWaveLoopStart - phaseA, chipWaveLoopLength);
++						// phaseA = chipWaveLoopEnd;
++						wrapped = 1;
++					}
++				}
++				if (directionB === 1) {
++					if (phaseB > chipWaveLoopEnd) {
++						phaseB = chipWaveLoopStart + Synth.wrap(phaseB - chipWaveLoopEnd, chipWaveLoopLength);
++						// phaseB = chipWaveLoopStart;
++						wrapped = 1;
++					}
++				} else if (directionB === -1) {
++					if (phaseB < chipWaveLoopStart) {
++						phaseB = chipWaveLoopEnd - Synth.wrap(chipWaveLoopStart - phaseB, chipWaveLoopLength);
++						// phaseB = chipWaveLoopEnd;
++						wrapped = 1;
++					}
++				}
++			} else if (chipWaveLoopMode === 1) {
++				// ping-pong
++				if (directionA === 1) {
++					if (phaseA > chipWaveLoopEnd) {
++						phaseA = chipWaveLoopEnd - Synth.wrap(phaseA - chipWaveLoopEnd, chipWaveLoopLength);
++						// phaseA = chipWaveLoopEnd;
++						directionA = -1;
++						wrapped = 1;
++					}
++				} else if (directionA === -1) {
++					if (phaseA < chipWaveLoopStart) {
++						phaseA = chipWaveLoopStart + Synth.wrap(chipWaveLoopStart - phaseA, chipWaveLoopLength);
++						// phaseA = chipWaveLoopStart;
++						directionA = 1;
++						wrapped = 1;
++					}
++				}
++				if (directionB === 1) {
++					if (phaseB > chipWaveLoopEnd) {
++						phaseB = chipWaveLoopEnd - Synth.wrap(phaseB - chipWaveLoopEnd, chipWaveLoopLength);
++						// phaseB = chipWaveLoopEnd;
++						directionB = -1;
++						wrapped = 1;
++					}
++				} else if (directionB === -1) {
++					if (phaseB < chipWaveLoopStart) {
++						phaseB = chipWaveLoopStart + Synth.wrap(chipWaveLoopStart - phaseB, chipWaveLoopLength);
++						// phaseB = chipWaveLoopStart;
++						directionB = 1;
++						wrapped = 1;
++					}
++				}
++			}
++			let waveLA = 0;
++			let waveLB = 0;
++			let waveRA = 0;
++			let waveRB = 0;
++			let inputSampleL = 0;
++			let inputSampleR = 0;
++			if (aliases) {
++				waveLA = waveL[Synth.wrap(Math.floor(phaseA), waveLength)];
++				waveLB = waveL[Synth.wrap(Math.floor(phaseB), waveLength)];
++				waveRA = waveR[Synth.wrap(Math.floor(phaseA), waveLength)];
++				waveRB = waveR[Synth.wrap(Math.floor(phaseB), waveLength)];
++				prevWaveLA = waveLA;
++				prevWaveLB = waveLB;
++				prevWaveRA = waveRA;
++				prevWaveRB = waveRB;
++				const completionFadeA: number = chipWaveCompletionA > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionA, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
++				const completionFadeB: number = chipWaveCompletionB > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionB, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
++				inputSampleL = 0;
++				if (chipWaveCompletionA > 0) {
++					inputSampleL += lastWaveLA * completionFadeA;
++					inputSampleR += lastWaveLA * completionFadeA;
++				} else {
++					inputSampleL += waveLA;
++					inputSampleR += waveRA;
++				}
++				if (chipWaveCompletionB > 0) {
++					inputSampleL += lastWaveLB * completionFadeB;
++					inputSampleR += lastWaveRB * completionFadeB;
++				} else {
++					inputSampleL += waveLB;
++					inputSampleR += waveRB;
++				}
++			}
++			else {
++				const phaseAInt = Math.floor(phaseA);
++				const phaseBInt = Math.floor(phaseB);
++				const indexA = Synth.wrap(phaseAInt, waveLength);
++				const indexB = Synth.wrap(phaseBInt, waveLength);
++				let nextWaveIntegralLA = waveL[indexA];
++				let nextWaveIntegralLB = waveL[indexB];
++				let nextWaveIntegralRA = waveR[indexA];
++				let nextWaveIntegralRB = waveR[indexB];
++				const phaseRatioA = phaseA - phaseAInt;
++				const phaseRatioB = phaseB - phaseBInt;
++				nextWaveIntegralLA += (waveL[Synth.wrap(indexA + 1, waveLength)] - nextWaveIntegralLA) * phaseRatioA;
++				nextWaveIntegralLB += (waveL[Synth.wrap(indexB + 1, waveLength)] - nextWaveIntegralLB) * phaseRatioB;
++				nextWaveIntegralRA += (waveR[Synth.wrap(indexA + 1, waveLength)] - nextWaveIntegralRA) * phaseRatioA;
++				nextWaveIntegralRB += (waveR[Synth.wrap(indexB + 1, waveLength)] - nextWaveIntegralRB) * phaseRatioB;
++				if (!(chipWaveLoopMode === 0 && chipWaveLoopStart === 0 && chipWaveLoopEnd === waveLength) && wrapped !== 0) {
++					let pwila = 0;
++					let pwilb = 0;
++					let pwira = 0;
++					let pwirb = 0;
++					const phaseA_ = Math.max(0, phaseA - phaseDeltaA * directionA);
++					const phaseB_ = Math.max(0, phaseB - phaseDeltaB * directionB);
++					const phaseAInt = Math.floor(phaseA_);
++					const phaseBInt = Math.floor(phaseB_);
++					const indexA = Synth.wrap(phaseAInt, waveLength);
++					const indexB = Synth.wrap(phaseBInt, waveLength);
++					pwila = waveL[indexA];
++					pwilb = waveL[indexB];
++					pwira = waveR[indexA];
++					pwirb = waveR[indexB];
++					pwila += (waveL[Synth.wrap(indexA + 1, waveLength)] - pwila) * (phaseA_ - phaseAInt) * directionA;
++					pwilb += (waveL[Synth.wrap(indexB + 1, waveLength)] - pwilb) * (phaseB_ - phaseBInt) * directionB;
++					pwira += (waveR[Synth.wrap(indexA + 1, waveLength)] - pwira) * (phaseA_ - phaseAInt) * directionA;
++					pwirb += (waveR[Synth.wrap(indexB + 1, waveLength)] - pwirb) * (phaseB_ - phaseBInt) * directionB;
++					prevWaveIntegralLA = pwila;
++					prevWaveIntegralLB = pwilb;
++					prevWaveIntegralRA = pwira;
++					prevWaveIntegralRB = pwirb;
++				}
++				if (chipWaveLoopMode === 1 && wrapped !== 0) {
++					waveLA = prevWaveLA;
++					waveLB = prevWaveLB;
++					waveRA = prevWaveRA;
++					waveRB = prevWaveRB;
++				} else {
++					waveLA = (nextWaveIntegralLA - prevWaveIntegralLA) / (phaseDeltaA * directionA);
++					waveLB = (nextWaveIntegralLB - prevWaveIntegralLB) / (phaseDeltaB * directionB);
++					waveRA = (nextWaveIntegralRA - prevWaveIntegralRA) / (phaseDeltaA * directionA);
++					waveRB = (nextWaveIntegralRB - prevWaveIntegralRB) / (phaseDeltaB * directionB);
++				}
++				prevWaveLA = waveLA;
++				prevWaveLB = waveLB;
++				prevWaveRA = waveRA;
++				prevWaveRB = waveRB;
++				prevWaveIntegralLA = nextWaveIntegralLA;
++				prevWaveIntegralLB = nextWaveIntegralLB;
++				prevWaveIntegralRA = nextWaveIntegralRA;
++				prevWaveIntegralRB = nextWaveIntegralRB;
++				const completionFadeA = chipWaveCompletionA > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionA, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
++				const completionFadeB = chipWaveCompletionB > 0 ? ((chipWaveCompletionFadeLength - Math.min(chipWaveCompletionB, chipWaveCompletionFadeLength)) / chipWaveCompletionFadeLength) : 1;
++				if (chipWaveCompletionA > 0) {
++					inputSampleL += lastWaveLA * completionFadeA;
++					inputSampleR += lastWaveRA * completionFadeA;
++				} else {
++					inputSampleL += waveLA;
++					inputSampleR += waveRA;
++				}
++				if (chipWaveCompletionB > 0) {
++					inputSampleL += lastWaveLB * completionFadeB;
++					inputSampleR += lastWaveRB * completionFadeB;
++				} else {
++					inputSampleL += waveLB * unisonSign;
++					inputSampleR += waveRB * unisonSign;
++				}
++			}
++			const sampleL = applyFilters(inputSampleL * volumeScale, initialFilterInputL1, initialFilterInputL2, filterCount, filtersL);
++			const sampleR = applyFilters(inputSampleR * volumeScale, initialFilterInputR1, initialFilterInputR2, filterCount, filtersR);
++			initialFilterInputL2 = initialFilterInputL1;
++			initialFilterInputR2 = initialFilterInputR1;
++			initialFilterInputL1 = inputSampleL * volumeScale;
++			initialFilterInputR1 = inputSampleR * volumeScale;
++			phaseDeltaA *= phaseDeltaScaleA;
++			phaseDeltaB *= phaseDeltaScaleB;
++			const outputL = sampleL * expression;
++			const outputR = sampleR * expression;
++			expression += expressionDelta;
++			dataL[sampleIndex] += outputL;
++			dataR[sampleIndex] += outputR;
++		}
++		tone.phases[0] = phaseA / waveLength;
++		tone.phases[1] = phaseB / waveLength;
++		tone.phaseDeltas[0] = phaseDeltaA / waveLength;
++		tone.phaseDeltas[1] = phaseDeltaB / waveLength;
++		tone.directions[0] = directionA;
++		tone.directions[1] = directionB;
++		tone.chipWaveCompletions[0] = chipWaveCompletionA;
++		tone.chipWaveCompletions[1] = chipWaveCompletionB;
++		tone.chipWavePrevWavesL[0] = prevWaveLA;
++		tone.chipWavePrevWavesL[1] = prevWaveLB;
++		tone.chipWavePrevWavesR[0] = prevWaveRA;
++		tone.chipWavePrevWavesR[1] = prevWaveRB;
++		tone.chipWaveCompletionsLastWaveL[0] = lastWaveLA;
++		tone.chipWaveCompletionsLastWaveL[1] = lastWaveLB;
++		tone.chipWaveCompletionsLastWaveR[0] = lastWaveRA;
++		tone.chipWaveCompletionsLastWaveR[1] = lastWaveRB;
++		tone.expression = expression;
++		synth.sanitizeFilters(filtersL);
++		synth.sanitizeFilters(filtersR);
++		tone.initialNoteFilterInputL1 = initialFilterInputL1;
++		tone.initialNoteFilterInputR1 = initialFilterInputR1;
++		tone.initialNoteFilterInputL2 = initialFilterInputL2;
++		tone.initialNoteFilterInputR2 = initialFilterInputR2;
++	}
+     private static chipSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+-        const aliases: boolean = (effectsIncludeDistortion(instrumentState.effects) && instrumentState.aliases);
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-        const wave: Float32Array = instrumentState.wave!;
++        const aliases: boolean = instrumentState.aliases;
++        const stereoChannels: number = instrumentState.stereoChannels;
++        let dataL: Float32Array = synth.tempInstrumentSampleBufferL!;
++        let dataR: Float32Array = synth.tempInstrumentSampleBufferR!;
++        let waveL: Float32Array = instrumentState.waveL!;
++        let waveR: Float32Array = instrumentState.waveR!;
++
++        //TODO: it makes sense to avoid doing stereo calculations if both channels are the same
++        if (stereoChannels == 0) {
++            dataL = synth.tempInstrumentSampleBufferL!;
++            dataR = synth.tempInstrumentSampleBufferL!;
++            waveL = instrumentState.waveL!;
++            waveR = instrumentState.waveL!;
++        }
++        else if (stereoChannels == 1) {
++            dataL = synth.tempInstrumentSampleBufferR!;
++            dataR = synth.tempInstrumentSampleBufferR!;
++            waveL = instrumentState.waveR!;
++            waveR = instrumentState.waveR!;
++        }
+         const volumeScale = instrumentState.volumeScale;
+ 
+-        const waveLength = (aliases && instrumentState.type == 8) ? wave.length : wave.length - 1;
++        const waveLength = (aliases && instrumentState.type == 8) ? waveL.length : waveL.length - 1;
+ 
+         const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+         if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord!.customInterval) tone.phases[1] = tone.phases[0];
+@@ -12878,13 +13043,18 @@ export class Synth {
+         let phaseA: number = (tone.phases[0] % 1) * waveLength;
+         let phaseB: number = (tone.phases[1] % 1) * waveLength;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filtersL: DynamicBiquadFilter[] = tone.noteFiltersL;
++        const filtersR: DynamicBiquadFilter[] = tone.noteFiltersR;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInputL1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInputR1: number = +tone.initialNoteFilterInputR1;
++        let initialFilterInputL2: number = +tone.initialNoteFilterInputL2;
++        let initialFilterInputR2: number = +tone.initialNoteFilterInputR2;
+         const applyFilters: Function = Synth.applyFilters;
+-        let prevWaveIntegralA: number = 0;
+-        let prevWaveIntegralB: number = 0;
++        let prevWaveIntegralLA: number = 0;
++        let prevWaveIntegralLB: number = 0;
++        let prevWaveIntegralRA: number = 0;
++        let prevWaveIntegralRB: number = 0;
+ 
+         if (!aliases) {
+             const phaseAInt: number = phaseA | 0;
+@@ -12893,10 +13063,14 @@ export class Synth {
+             const indexB: number = phaseBInt % waveLength;
+             const phaseRatioA: number = phaseA - phaseAInt;
+             const phaseRatioB: number = phaseB - phaseBInt;
+-            prevWaveIntegralA = +wave[indexA];
+-            prevWaveIntegralB = +wave[indexB];
+-            prevWaveIntegralA += (wave[indexA + 1] - prevWaveIntegralA) * phaseRatioA;
+-            prevWaveIntegralB += (wave[indexB + 1] - prevWaveIntegralB) * phaseRatioB;
++            prevWaveIntegralLA = +waveL[indexA];
++            prevWaveIntegralLB = +waveL[indexB];
++            prevWaveIntegralRA = +waveR[indexA];
++            prevWaveIntegralRB = +waveR[indexB];
++            prevWaveIntegralLA += (waveL[indexA + 1] - prevWaveIntegralLA) * phaseRatioA;
++            prevWaveIntegralLB += (waveL[indexB + 1] - prevWaveIntegralLB) * phaseRatioB;
++            prevWaveIntegralRA += (waveR[indexA + 1] - prevWaveIntegralRA) * phaseRatioA;
++            prevWaveIntegralRB += (waveR[indexB + 1] - prevWaveIntegralRB) * phaseRatioB;
+         }
+ 
+         const stopIndex: number = bufferIndex + roundedSamplesPerTick;
+@@ -12905,43 +13079,63 @@ export class Synth {
+             phaseA += phaseDeltaA;
+             phaseB += phaseDeltaB;
+ 
+-            let waveA: number;
+-            let waveB: number;
+-            let inputSample: number;
++            let waveLA: number;
++            let waveLB: number;
++            let waveRA: number;
++            let waveRB: number;
++            let inputSampleL: number;
++            let inputSampleR: number;
+ 
+             if (aliases) {
+-                waveA = wave[(0 | phaseA) % waveLength];
+-                waveB = wave[(0 | phaseB) % waveLength];
+-                inputSample = waveA + waveB;
++                waveLA = waveL[(0 | phaseA) % waveLength];
++                waveLB = waveL[(0 | phaseB) % waveLength];
++                waveRA = waveR[(0 | phaseA) % waveLength];
++                waveRB = waveR[(0 | phaseB) % waveLength];
++                inputSampleL = waveLA + waveLB;
++                inputSampleR = waveRA + waveRB;
+             } else {
+                 const phaseAInt: number = phaseA | 0;
+                 const phaseBInt: number = phaseB | 0;
+                 const indexA: number = phaseAInt % waveLength;
+                 const indexB: number = phaseBInt % waveLength;
+-                let nextWaveIntegralA: number = wave[indexA];
+-                let nextWaveIntegralB: number = wave[indexB];
++                let nextWaveIntegralLA: number = waveL[indexA];
++                let nextWaveIntegralLB: number = waveL[indexB];
++                let nextWaveIntegralRA: number = waveR[indexA];
++                let nextWaveIntegralRB: number = waveR[indexB];
+                 const phaseRatioA: number = phaseA - phaseAInt;
+                 const phaseRatioB: number = phaseB - phaseBInt;
+-                nextWaveIntegralA += (wave[indexA + 1] - nextWaveIntegralA) * phaseRatioA;
+-                nextWaveIntegralB += (wave[indexB + 1] - nextWaveIntegralB) * phaseRatioB;
+-                waveA = (nextWaveIntegralA - prevWaveIntegralA) / phaseDeltaA;
+-                waveB = (nextWaveIntegralB - prevWaveIntegralB) / phaseDeltaB;
+-                prevWaveIntegralA = nextWaveIntegralA;
+-                prevWaveIntegralB = nextWaveIntegralB;
+-                inputSample = waveA + waveB * unisonSign;
+-            }
+-
+-            const sample: number = applyFilters(inputSample * volumeScale, initialFilterInput1, initialFilterInput2, filterCount, filters);
+-            initialFilterInput2 = initialFilterInput1;
+-            initialFilterInput1 = inputSample * volumeScale;
++                nextWaveIntegralLA += (waveL[indexA + 1] - nextWaveIntegralLA) * phaseRatioA;
++                nextWaveIntegralLB += (waveL[indexB + 1] - nextWaveIntegralLB) * phaseRatioB;
++                nextWaveIntegralRA += (waveR[indexA + 1] - nextWaveIntegralRA) * phaseRatioA;
++                nextWaveIntegralRB += (waveR[indexB + 1] - nextWaveIntegralRB) * phaseRatioB;
++                waveLA = (nextWaveIntegralLA - prevWaveIntegralLA) / phaseDeltaA;
++                waveLB = (nextWaveIntegralLB - prevWaveIntegralLB) / phaseDeltaB;
++                waveRA = (nextWaveIntegralRA - prevWaveIntegralRA) / phaseDeltaA;
++                waveRB = (nextWaveIntegralRB - prevWaveIntegralRB) / phaseDeltaB;
++                prevWaveIntegralLA = nextWaveIntegralLA;
++                prevWaveIntegralLB = nextWaveIntegralLB;
++                prevWaveIntegralRA = nextWaveIntegralRA;
++                prevWaveIntegralRB = nextWaveIntegralRB;
++                inputSampleL = waveLA + waveLB * unisonSign;
++                inputSampleR = waveRA + waveRB * unisonSign;
++            }
++
++            const sampleL: number = applyFilters(inputSampleL * volumeScale, initialFilterInputL1, initialFilterInputL2, filterCount, filtersL);
++            const sampleR: number = applyFilters(inputSampleR * volumeScale, initialFilterInputR1, initialFilterInputR2, filterCount, filtersR);
++            initialFilterInputL2 = initialFilterInputL1;
++            initialFilterInputR2 = initialFilterInputR1;
++            initialFilterInputL1 = inputSampleL * volumeScale;
++            initialFilterInputR1 = inputSampleR * volumeScale;
+ 
+             phaseDeltaA *= phaseDeltaScaleA;
+             phaseDeltaB *= phaseDeltaScaleB;
+ 
+-            const output: number = sample * expression;
++            const outputL: number = sampleL * expression;
++            const outputR: number = sampleR * expression;
+             expression += expressionDelta;
+ 
+-            data[sampleIndex] += output;
++            dataL[sampleIndex] += outputL;
++            dataR[sampleIndex] += outputR;
+         }
+ 
+         tone.phases[0] = phaseA / waveLength;
+@@ -12950,14 +13144,17 @@ export class Synth {
+         tone.phaseDeltas[1] = phaseDeltaB / waveLength;
+         tone.expression = expression;
+ 
+-        synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        synth.sanitizeFilters(filtersL);
++        synth.sanitizeFilters(filtersR);
++        tone.initialNoteFilterInputL1 = initialFilterInputL1;
++        tone.initialNoteFilterInputR1 = initialFilterInputR1;
++        tone.initialNoteFilterInputL2 = initialFilterInputL2;
++        tone.initialNoteFilterInputR2 = initialFilterInputR2;
+     }
+ 
+     private static harmonicsSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-        const wave: Float32Array = instrumentState.wave!;
++        const data: Float32Array = synth.tempInstrumentSampleBufferL!;
++        const wave: Float32Array = instrumentState.waveL!;
+         const waveLength: number = wave.length - 1; // The first sample is duplicated at the end, don't double-count it.
+ 
+         const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+@@ -12971,10 +13168,10 @@ export class Synth {
+         let phaseA: number = (tone.phases[0] % 1) * waveLength;
+         let phaseB: number = (tone.phases[1] % 1) * waveLength;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+         const applyFilters: Function = Synth.applyFilters;
+ 
+         const phaseAInt: number = phaseA | 0;
+@@ -13030,8 +13227,8 @@ export class Synth {
+         tone.expression = expression;
+ 
+         synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        tone.initialNoteFilterInputL1 = initialFilterInput1;
++        tone.initialNoteFilterInputL2 = initialFilterInput2;
+     }
+ 
+     private static pickedStringSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+@@ -13053,7 +13250,7 @@ export class Synth {
+             pickedStringSource += `
+ 				const Config = beepbox.Config;
+ 				const Synth = beepbox.Synth;
+-				const data = synth.tempMonoInstrumentSampleBuffer;
++                const data = synth.tempInstrumentSampleBufferL;
+ 				
+ 				let pickedString# = tone.pickedStrings[#];
+ 				let allPassSample# = +pickedString#.allPassSample;
+@@ -13088,10 +13285,10 @@ export class Synth {
+ 				const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+ 				const delayResetOffset# = pickedString#.delayResetOffset|0;
+ 				
+-				const filters = tone.noteFilters;
++				const filters = tone.noteFiltersL;
+ 				const filterCount = tone.noteFilterCount|0;
+-				let initialFilterInput1 = +tone.initialNoteFilterInput1;
+-				let initialFilterInput2 = +tone.initialNoteFilterInput2;
++				let initialFilterInput1 = +tone.initialNoteFilterInputL1;
++				let initialFilterInput2 = +tone.initialNoteFilterInputL2;
+ 				const applyFilters = Synth.applyFilters;
+ 				
+ 				const stopIndex = bufferIndex + runLength;
+@@ -13131,7 +13328,7 @@ export class Synth {
+ 					const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+ 					initialFilterInput2 = initialFilterInput1;
+ 					initialFilterInput1 = inputSample;
+-					data[sampleIndex] += sample;
++                    data[sampleIndex] += sample;
+ 					
+ 					expression += expressionDelta;
+ 					delayLength# += delayLengthDelta#;
+@@ -13171,8 +13368,8 @@ export class Synth {
+ 				tone.expression = expression;
+ 				
+ 				synth.sanitizeFilters(filters);
+-				tone.initialNoteFilterInput1 = initialFilterInput1;
+-				tone.initialNoteFilterInput2 = initialFilterInput2;
++				tone.initialNoteFilterInputL1 = initialFilterInput1;
++				tone.initialNoteFilterInputL2 = initialFilterInput2;
+ 			}`
+ 
+             // Duplicate lines containing "#" for each voice and replace the "#" with the voice index.
+@@ -13194,8 +13391,8 @@ export class Synth {
+ 
+     private static additiveSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+         //Essentially identical to harmonics, just without unison (for now)
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-        const wave: Float32Array = instrumentState.wave!;
++        const data: Float32Array = synth.tempInstrumentSampleBufferL!;
++        const wave: Float32Array = instrumentState.waveL!;
+         const waveLength: number = wave.length - 1; // The first sample is duplicated at the end, don't double-count it.
+ 
+         if (!instrumentState.chord!.customInterval) tone.phases[1] = tone.phases[0];
+@@ -13205,10 +13402,10 @@ export class Synth {
+         const expressionDelta: number = +tone.expressionDelta;
+         let phaseA: number = (tone.phases[0] % 1) * waveLength;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+         const applyFilters: Function = Synth.applyFilters;
+ 
+         const phaseAInt: number = phaseA | 0;
+@@ -13248,8 +13445,8 @@ export class Synth {
+         tone.expression = expression;
+ 
+         synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        tone.initialNoteFilterInputL1 = initialFilterInput1;
++        tone.initialNoteFilterInputL2 = initialFilterInput2;
+     }
+ 
+     private static effectsSynth(synth: Synth, outputDataL: Float32Array, outputDataR: Float32Array, bufferIndex: number, runLength: number, instrumentState: InstrumentState): void {
+@@ -13263,6 +13460,7 @@ export class Synth {
+         const usesChorus: boolean = effectsIncludeChorus(instrumentState.effects);
+         const usesEcho: boolean = effectsIncludeEcho(instrumentState.effects);
+         const usesReverb: boolean = effectsIncludeReverb(instrumentState.effects);
++        const stereoChannels: number = (instrumentState.synthesizer == Synth.loopableChipSynth || instrumentState.synthesizer == Synth.chipSynth) ? instrumentState.stereoChannels : 0; //TODO: make an instrumentIsStereo function
+         let signature: number = 0; if (usesDistortion) signature = signature | 1;
+         signature = signature << 1; if (usesBitcrusher) signature = signature | 1;
+         signature = signature << 1; if (usesEqFilter) signature = signature | 1;
+@@ -13270,6 +13468,7 @@ export class Synth {
+         signature = signature << 1; if (usesChorus) signature = signature | 1;
+         signature = signature << 1; if (usesEcho) signature = signature | 1;
+         signature = signature << 1; if (usesReverb) signature = signature | 1;
++        signature = signature << 2; signature = signature | stereoChannels;
+ 
+         let effectsFunction: Function = Synth.effectsFunctionCache[signature];
+         if (effectsFunction == undefined) {
+@@ -13278,7 +13477,8 @@ export class Synth {
+             const usesDelays: boolean = usesChorus || usesReverb || usesEcho;
+ 
+             effectsSource += `
+-				const tempMonoInstrumentSampleBuffer = synth.tempMonoInstrumentSampleBuffer;
++                const tempInstrumentSampleBufferL = synth.tempInstrumentSampleBufferL;
++                const tempInstrumentSampleBufferR = synth.tempInstrumentSampleBufferR;
+ 				
+ 				let mixVolume = +instrumentState.mixVolume;
+ 				const mixVolumeDelta = +instrumentState.mixVolumeDelta;`
+@@ -13289,7 +13489,7 @@ export class Synth {
+ 				let delayInputMult = +instrumentState.delayInputMult;
+ 				const delayInputMultDelta = +instrumentState.delayInputMultDelta;`
+             }
+-
++            
+             if (usesDistortion) {
+                 // Distortion can sometimes create noticeable aliasing.
+                 // It seems the established industry best practice for distortion antialiasing
+@@ -13325,18 +13525,25 @@ export class Synth {
+ 				const distortionPrevOutputWeight2 = 1.0 - distortionNextOutputWeight2;
+ 				const distortionPrevOutputWeight3 = 1.0 - distortionNextOutputWeight3;
+ 				
+-				let distortionFractionalInput1 = +instrumentState.distortionFractionalInput1;
+-				let distortionFractionalInput2 = +instrumentState.distortionFractionalInput2;
+-				let distortionFractionalInput3 = +instrumentState.distortionFractionalInput3;
+-				let distortionPrevInput = +instrumentState.distortionPrevInput;
+-				let distortionNextOutput = +instrumentState.distortionNextOutput;`
++				let distortionFractionalInputL1 = +instrumentState.distortionFractionalInputL1;
++				let distortionFractionalInputL2 = +instrumentState.distortionFractionalInputL2;
++                let distortionFractionalInputL3 = +instrumentState.distortionFractionalInputL3;
++                let distortionFractionalInputR1 = +instrumentState.distortionFractionalInputR1;
++                let distortionFractionalInputR2 = +instrumentState.distortionFractionalInputR2;
++                let distortionFractionalInputR3 = +instrumentState.distortionFractionalInputR3;
++                let distortionPrevInputL = +instrumentState.distortionPrevInputL;
++                let distortionPrevInputR = +instrumentState.distortionPrevInputR;
++                let distortionNextOutputL = +instrumentState.distortionNextOutputL;
++                let distortionNextOutputR = +instrumentState.distortionNextOutputR;`
+             }
+ 
+             if (usesBitcrusher) {
+                 effectsSource += `
+ 				
+-				let bitcrusherPrevInput = +instrumentState.bitcrusherPrevInput;
+-				let bitcrusherCurrentOutput = +instrumentState.bitcrusherCurrentOutput;
++				let bitcrusherPrevInputL = +instrumentState.bitcrusherPrevInputL;
++                let bitcrusherPrevInputR = +instrumentState.bitcrusherPrevInputR;
++                let bitcrusherCurrentOutputL = +instrumentState.bitcrusherCurrentOutputL;
++                let bitcrusherCurrentOutputR = +instrumentState.bitcrusherCurrentOutputR;
+ 				let bitcrusherPhase = +instrumentState.bitcrusherPhase;
+ 				let bitcrusherPhaseDelta = +instrumentState.bitcrusherPhaseDelta;
+ 				const bitcrusherPhaseDeltaScale = +instrumentState.bitcrusherPhaseDeltaScale;
+@@ -13349,10 +13556,13 @@ export class Synth {
+             if (usesEqFilter) {
+                 effectsSource += `
+ 				
+-				let filters = instrumentState.eqFilters;
++				let filtersL = instrumentState.eqFiltersL;
++                let filtersR = instrumentState.eqFiltersR;
+ 				const filterCount = instrumentState.eqFilterCount|0;
+-				let initialFilterInput1 = +instrumentState.initialEqFilterInput1;
+-				let initialFilterInput2 = +instrumentState.initialEqFilterInput2;
++                let initialFilterInputL1 = +instrumentState.initialEqFilterInputL1;
++                let initialFilterInputR1 = +instrumentState.initialEqFilterInputR1;
++                let initialFilterInputL2 = +instrumentState.initialEqFilterInputL2;
++                let initialFilterInputR2 = +instrumentState.initialEqFilterInputR2;
+ 				const applyFilters = Synth.applyFilters;`
+             }
+ 
+@@ -13366,7 +13576,8 @@ export class Synth {
+                 effectsSource += `
+ 				
+ 				const panningMask = synth.panningDelayBufferMask >>> 0;
+-				const panningDelayLine = instrumentState.panningDelayLine;
++                const panningDelayLineL = instrumentState.panningDelayLineL;
++                const panningDelayLineR = instrumentState.panningDelayLineR;
+ 				let panningDelayPos = instrumentState.panningDelayPos & panningMask;
+ 				let   panningVolumeL      = +instrumentState.panningVolumeL;
+ 				let   panningVolumeR      = +instrumentState.panningVolumeR;
+@@ -13473,102 +13684,243 @@ export class Synth {
+ 				let reverbShelfPrevInput3 = +instrumentState.reverbShelfPrevInput3;`
+             }
+ 
+-            effectsSource += `
+-				
+-				const stopIndex = bufferIndex + runLength;
+-				for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
+-					let sample = tempMonoInstrumentSampleBuffer[sampleIndex];
+-					tempMonoInstrumentSampleBuffer[sampleIndex] = 0.0;`
+-
+-            if (usesDistortion) {
++            if (stereoChannels == 2) {
+                 effectsSource += `
+-					
+-					const distortionReverse = 1.0 - distortion;
+-					const distortionNextInput = sample * distortionDrive;
+-					sample = distortionNextOutput;
+-					distortionNextOutput = distortionNextInput / (distortionReverse * Math.abs(distortionNextInput) + distortion);
+-					distortionFractionalInput1 = distortionFractionalDelayG1 * distortionNextInput + distortionPrevInput - distortionFractionalDelayG1 * distortionFractionalInput1;
+-					distortionFractionalInput2 = distortionFractionalDelayG2 * distortionNextInput + distortionPrevInput - distortionFractionalDelayG2 * distortionFractionalInput2;
+-					distortionFractionalInput3 = distortionFractionalDelayG3 * distortionNextInput + distortionPrevInput - distortionFractionalDelayG3 * distortionFractionalInput3;
+-					const distortionOutput1 = distortionFractionalInput1 / (distortionReverse * Math.abs(distortionFractionalInput1) + distortion);
+-					const distortionOutput2 = distortionFractionalInput2 / (distortionReverse * Math.abs(distortionFractionalInput2) + distortion);
+-					const distortionOutput3 = distortionFractionalInput3 / (distortionReverse * Math.abs(distortionFractionalInput3) + distortion);
+-					distortionNextOutput += distortionOutput1 * distortionNextOutputWeight1 + distortionOutput2 * distortionNextOutputWeight2 + distortionOutput3 * distortionNextOutputWeight3;
+-					sample += distortionOutput1 * distortionPrevOutputWeight1 + distortionOutput2 * distortionPrevOutputWeight2 + distortionOutput3 * distortionPrevOutputWeight3;
+-					sample *= distortionOversampleCompensation;
+-					distortionPrevInput = distortionNextInput;
+-					distortion += distortionDelta;
+-					distortionDrive += distortionDriveDelta;`
+-            }
++                const stopIndex = bufferIndex + runLength;
++                for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
++                    let sampleL = tempInstrumentSampleBufferL[sampleIndex];
++                    let sampleR = tempInstrumentSampleBufferR[sampleIndex];
++                    tempInstrumentSampleBufferL[sampleIndex] = 0.0;
++                    tempInstrumentSampleBufferR[sampleIndex] = 0.0;`
++
++                    if (usesDistortion) {
++                        effectsSource += `
++
++                        const distortionReverse = 1.0 - distortion;
++                        const distortionNextInputL = sampleL * distortionDrive;
++                        const distortionNextInputR = sampleR * distortionDrive;
++                        sampleL = distortionNextOutputL;
++                        sampleR = distortionNextOutputR;
++                        distortionNextOutputL = distortionNextInputL / (distortionReverse * Math.abs(distortionNextInputL) + distortion);
++                        distortionNextOutputR = distortionNextInputR / (distortionReverse * Math.abs(distortionNextInputR) + distortion);
++                        distortionFractionalInputL1 = distortionFractionalDelayG1 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG1 * distortionFractionalInputL1;
++                        distortionFractionalInputL2 = distortionFractionalDelayG2 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG2 * distortionFractionalInputL2;
++                        distortionFractionalInputL3 = distortionFractionalDelayG3 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG3 * distortionFractionalInputL3;
++                        distortionFractionalInputR1 = distortionFractionalDelayG1 * distortionNextInputR + distortionPrevInputR - distortionFractionalDelayG1 * distortionFractionalInputR1;
++                        distortionFractionalInputR2 = distortionFractionalDelayG2 * distortionNextInputR + distortionPrevInputR - distortionFractionalDelayG2 * distortionFractionalInputR2;
++                        distortionFractionalInputR3 = distortionFractionalDelayG3 * distortionNextInputR + distortionPrevInputR - distortionFractionalDelayG3 * distortionFractionalInputR3;
++                        const distortionOutputL1 = distortionFractionalInputL1 / (distortionReverse * Math.abs(distortionFractionalInputL1) + distortion);
++                        const distortionOutputL2 = distortionFractionalInputL2 / (distortionReverse * Math.abs(distortionFractionalInputL2) + distortion);
++                        const distortionOutputL3 = distortionFractionalInputL3 / (distortionReverse * Math.abs(distortionFractionalInputL3) + distortion);
++                        const distortionOutputR1 = distortionFractionalInputR1 / (distortionReverse * Math.abs(distortionFractionalInputR1) + distortion);
++                        const distortionOutputR2 = distortionFractionalInputR2 / (distortionReverse * Math.abs(distortionFractionalInputR2) + distortion);
++                        const distortionOutputR3 = distortionFractionalInputR3 / (distortionReverse * Math.abs(distortionFractionalInputR3) + distortion);
++                        distortionNextOutputL += distortionOutputL1 * distortionNextOutputWeight1 + distortionOutputL2 * distortionNextOutputWeight2 + distortionOutputL3 * distortionNextOutputWeight3;
++                        distortionNextOutputR += distortionOutputR1 * distortionNextOutputWeight1 + distortionOutputR2 * distortionNextOutputWeight2 + distortionOutputR3 * distortionNextOutputWeight3;
++                        sampleL += distortionOutputL1 * distortionPrevOutputWeight1 + distortionOutputL2 * distortionPrevOutputWeight2 + distortionOutputL3 * distortionPrevOutputWeight3;
++                        sampleR += distortionOutputR1 * distortionPrevOutputWeight1 + distortionOutputR2 * distortionPrevOutputWeight2 + distortionOutputR3 * distortionPrevOutputWeight3;
++                        sampleL *= distortionOversampleCompensation;
++                        sampleR *= distortionOversampleCompensation;
++                        distortionPrevInputL = distortionNextInputL;
++                        distortionPrevInputR = distortionNextInputR;
++                        distortion += distortionDelta;
++                        distortionDrive += distortionDriveDelta;`
++                    }
++
++                    if (usesBitcrusher) {
++                        effectsSource += `
++
++                        bitcrusherPhase += bitcrusherPhaseDelta;
++                        if (bitcrusherPhase < 1.0) {
++                            bitcrusherPrevInputL = sampleL;
++                            bitcrusherPrevInputR = sampleR;
++                            sampleL = bitcrusherCurrentOutputL;
++                            sampleR = bitcrusherCurrentOutputR;
++                        } else {
++                            bitcrusherPhase = bitcrusherPhase % 1.0;
++                            const ratio = bitcrusherPhase / bitcrusherPhaseDelta;
+ 
+-            if (usesBitcrusher) {
+-                effectsSource += `
+-					
+-					bitcrusherPhase += bitcrusherPhaseDelta;
+-					if (bitcrusherPhase < 1.0) {
+-						bitcrusherPrevInput = sample;
+-						sample = bitcrusherCurrentOutput;
+-					} else {
+-						bitcrusherPhase = bitcrusherPhase % 1.0;
+-						const ratio = bitcrusherPhase / bitcrusherPhaseDelta;
+-						
+-						const lerpedInput = sample + (bitcrusherPrevInput - sample) * ratio;
+-						bitcrusherPrevInput = sample;
+-						
+-						const bitcrusherWrapLevel = bitcrusherFoldLevel * 4.0;
+-						const wrappedSample = (((lerpedInput + bitcrusherFoldLevel) % bitcrusherWrapLevel) + bitcrusherWrapLevel) % bitcrusherWrapLevel;
+-						const foldedSample = bitcrusherFoldLevel - Math.abs(bitcrusherFoldLevel * 2.0 - wrappedSample);
+-						const scaledSample = foldedSample / bitcrusherScale;
+-						const oldValue = bitcrusherCurrentOutput;
+-						const newValue = (((scaledSample > 0 ? scaledSample + 1 : scaledSample)|0)-.5) * bitcrusherScale;
+-						
+-						sample = oldValue + (newValue - oldValue) * ratio;
+-						bitcrusherCurrentOutput = newValue;
+-					}
+-					bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
+-					bitcrusherScale *= bitcrusherScaleScale;
+-					bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`
+-            }
++                            const lerpedInputL = sampleL + (bitcrusherPrevInputL - sample) * ratio;
++                            const lerpedInputR = sampleR + (bitcrusherPrevInputR - sample) * ratio;
++                            bitcrusherPrevInputL = sampleL;
++                            bitcrusherPrevInputR = sampleR;
+ 
+-            if (usesEqFilter) {
+-                effectsSource += `
+-					
+-					const inputSample = sample;
+-					sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
+-					initialFilterInput2 = initialFilterInput1;
+-					initialFilterInput1 = inputSample;`
+-            }
++                            const bitcrusherWrapLevel = bitcrusherFoldLevel * 4.0;
++                            const wrappedSampleL = (((lerpedInputL + bitcrusherFoldLevel) % bitcrusherWrapLevel) + bitcrusherWrapLevel) % bitcrusherWrapLevel;
++                            const wrappedSampleR = (((lerpedInputR + bitcrusherFoldLevel) % bitcrusherWrapLevel) + bitcrusherWrapLevel) % bitcrusherWrapLevel;
++                            const foldedSampleL = bitcrusherFoldLevel - Math.abs(bitcrusherFoldLevel * 2.0 - wrappedSampleL);
++                            const foldedSampleR = bitcrusherFoldLevel - Math.abs(bitcrusherFoldLevel * 2.0 - wrappedSampleR);
++                            const scaledSampleL = foldedSampleL / bitcrusherScale;
++                            const scaledSampleR = foldedSampleR / bitcrusherScale;
++                            const oldValueL = bitcrusherCurrentOutputL;
++                            const oldValueR = bitcrusherCurrentOutputR;
++                            const newValueL = (((scaledSampleL > 0 ? scaledSampleL + 1 : scaledSampleL)|0)-.5) * bitcrusherScale;
++                            const newValueR = (((scaledSampleR > 0 ? scaledSampleR + 1 : scaledSampleR)|0)-.5) * bitcrusherScale;
+ 
+-            // The eq filter volume is also used to fade out the instrument state, so always include it.
+-            effectsSource += `
+-					
+-					sample *= eqFilterVolume;
+-					eqFilterVolume += eqFilterVolumeDelta;`
++                            sampleL = oldValueL + (newValueL - oldValueL) * ratio;
++                            sampleR = oldValueR + (newValueR - oldValueR) * ratio;
++                            bitcrusherCurrentOutputL = newValueL;
++                            bitcrusherCurrentOutputR = newValueR;
++                        }
++                        bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
++                        bitcrusherScale *= bitcrusherScaleScale;
++                        bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`
++                    }
+ 
+-            if (usesPanning) {
+-                effectsSource += `
+-					
+-					panningDelayLine[panningDelayPos] = sample;
+-					const panningRatioL  = panningOffsetL % 1;
+-					const panningRatioR  = panningOffsetR % 1;
+-					const panningTapLA   = panningDelayLine[(panningOffsetL) & panningMask];
+-					const panningTapLB   = panningDelayLine[(panningOffsetL + 1) & panningMask];
+-					const panningTapRA   = panningDelayLine[(panningOffsetR) & panningMask];
+-					const panningTapRB   = panningDelayLine[(panningOffsetR + 1) & panningMask];
+-					const panningTapL    = panningTapLA + (panningTapLB - panningTapLA) * panningRatioL;
+-					const panningTapR    = panningTapRA + (panningTapRB - panningTapRA) * panningRatioR;
+-					let sampleL = panningTapL * panningVolumeL;
+-					let sampleR = panningTapR * panningVolumeR;
+-					panningDelayPos = (panningDelayPos + 1) & panningMask;
+-					panningVolumeL += panningVolumeDeltaL;
+-					panningVolumeR += panningVolumeDeltaR;
+-					panningOffsetL += panningOffsetDeltaL;
+-					panningOffsetR += panningOffsetDeltaR;`
++                    if (usesEqFilter) {
++                        effectsSource += `
++
++                        const inputSampleL = sampleL;
++                        const inputSampleR = sampleR;
++                        sampleL = applyFilters(inputSampleL, initialFilterInputL1, initialFilterInputL2, filterCount, filtersL);
++                        sampleR = applyFilters(inputSampleR, initialFilterInputR1, initialFilterInputR2, filterCount, filtersR);
++                        initialFilterInputL2 = initialFilterInputL1;
++                        initialFilterInputR2 = initialFilterInputR1;
++                        initialFilterInputL1 = inputSampleL;
++                        initialFilterInputR1 = inputSampleR;`
++                    }
++
++                    // The eq filter volume is also used to fade out the instrument state, so always include it.
++
++                    effectsSource += `
++
++                    63`
++
++                if (usesPanning) {
++                    effectsSource += `
++
++                    panningDelayLineL[panningDelayPos] = sampleL;
++                    panningDelayLineR[panningDelayPos] = sampleR;
++                    const panningRatioL  = panningOffsetL % 1;
++                    const panningRatioR  = panningOffsetR % 1;
++                    const panningTapLA   = panningDelayLineL[(panningOffsetL) & panningMask];
++                    const panningTapLB   = panningDelayLineL[(panningOffsetL + 1) & panningMask];
++                    const panningTapRA   = panningDelayLineR[(panningOffsetR) & panningMask];
++                    const panningTapRB   = panningDelayLineR[(panningOffsetR + 1) & panningMask];
++                    const panningTapL    = panningTapLA + (panningTapLB - panningTapLA) * panningRatioL;
++                    const panningTapR    = panningTapRA + (panningTapRB - panningTapRA) * panningRatioR;
++
++                    sampleL = panningTapL * panningVolumeL;
++                    sampleR = panningTapR * panningVolumeR;
++                    panningDelayPos = (panningDelayPos + 1) & panningMask;
++                    panningVolumeL += panningVolumeDeltaL;
++                    panningVolumeR += panningVolumeDeltaR;
++                    panningOffsetL += panningOffsetDeltaL;
++                    panningOffsetR += panningOffsetDeltaR;`
++                }
+             } else {
++                if (stereoChannels == 0) {
++                    effectsSource += `
++
++                    const stopIndex = bufferIndex + runLength;
++                    for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
++                        let sample = tempInstrumentSampleBufferL[sampleIndex];
++                        tempInstrumentSampleBufferL[sampleIndex] = 0.0;
++                        tempInstrumentSampleBufferR[sampleIndex] = 0.0;`
++                } else if (stereoChannels == 1) {
++                    effectsSource += `
++
++                    const stopIndex = bufferIndex + runLength;
++                    for (let sampleIndex = bufferIndex; sampleIndex < stopIndex; sampleIndex++) {
++                        let sample = tempInstrumentSampleBufferR[sampleIndex];
++                        tempInstrumentSampleBufferL[sampleIndex] = 0.0;
++                        tempInstrumentSampleBufferR[sampleIndex] = 0.0;`
++                }
++
++                if (usesDistortion) {
++                    effectsSource += `
++
++                    const distortionReverse = 1.0 - distortion;
++                    const distortionNextInput = sample * distortionDrive;
++                    sample = distortionNextOutput;
++                    distortionNextOutput = distortionNextInput / (distortionReverse * Math.abs(distortionNextInputL) + distortion);
++                    distortionFractionalInputL1 = distortionFractionalDelayG1 * distortionNextInput + distortionPrevInputL - distortionFractionalDelayG1 * distortionFractionalInputL1;
++                    distortionFractionalInputL2 = distortionFractionalDelayG2 * distortionNextInput + distortionPrevInputL - distortionFractionalDelayG2 * distortionFractionalInputL2;
++                    distortionFractionalInputL3 = distortionFractionalDelayG3 * distortionNextInput + distortionPrevInputL - distortionFractionalDelayG3 * distortionFractionalInputL3;
++                    const distortionOutput1 = distortionFractionalInputL1 / (distortionReverse * Math.abs(distortionFractionalInputL1) + distortion);
++                    const distortionOutput2 = distortionFractionalInputL2 / (distortionReverse * Math.abs(distortionFractionalInputL2) + distortion);
++                    const distortionOutput3 = distortionFractionalInputL3 / (distortionReverse * Math.abs(distortionFractionalInputL3) + distortion);
++                    distortionNextOutputL += distortionOutput1 * distortionNextOutputWeight1 + distortionOutput2 * distortionNextOutputWeight2 + distortionOutput3 * distortionNextOutputWeight3;
++                    sample += distortionOutput1 * distortionPrevOutputWeight1 + distortionOutput2 * distortionPrevOutputWeight2 + distortionOutput3 * distortionPrevOutputWeight3;
++                    sample *= distortionOversampleCompensation;
++                    distortionPrevInputL = distortionNextInput;
++                    distortion += distortionDelta;
++                    distortionDrive += distortionDriveDelta;`
++                }
++
++                if (usesBitcrusher) {
++                    effectsSource += `
++
++                    bitcrusherPhase += bitcrusherPhaseDelta;
++                    if (bitcrusherPhase < 1.0) {
++                        bitcrusherPrevInputL = sample;
++                        sample = bitcrusherCurrentOutputL;
++                    } else {
++                        bitcrusherPhase = bitcrusherPhase % 1.0;
++                        const ratio = bitcrusherPhase / bitcrusherPhaseDelta;
++
++                        const lerpedInput = sample + (bitcrusherPrevInputL - sample) * ratio;
++                        bitcrusherPrevInputL = sample;
++
++                        const bitcrusherWrapLevel = bitcrusherFoldLevel * 4.0;
++                        const wrappedSample = (((lerpedInput + bitcrusherFoldLevel) % bitcrusherWrapLevel) + bitcrusherWrapLevel) % bitcrusherWrapLevel;
++                        const foldedSample = bitcrusherFoldLevel - Math.abs(bitcrusherFoldLevel * 2.0 - wrappedSample);
++                        const scaledSample = foldedSample / bitcrusherScale;
++                        const oldValue = bitcrusherCurrentOutputL;
++                        const newValue = (((scaledSample > 0 ? scaledSample + 1 : scaledSample)|0)-.5) * bitcrusherScale;
++
++                        sample = oldValue + (newValue - oldValue) * ratio;
++                        bitcrusherCurrentOutputL = newValue;
++                    }
++                    bitcrusherPhaseDelta *= bitcrusherPhaseDeltaScale;
++                    bitcrusherScale *= bitcrusherScaleScale;
++                    bitcrusherFoldLevel *= bitcrusherFoldLevelScale;`
++                }
++
++                if (usesEqFilter) {
++                    effectsSource += `
++
++                    const inputSampleL = sample;
++                    sample = applyFilters(inputSampleL, initialFilterInputL1, initialFilterInputL2, filterCount, filtersL);
++                    initialFilterInputL2 = initialFilterInputL1;
++                    initialFilterInputL1 = inputSampleL;`
++                }
++
++                // The eq filter volume is also used to fade out the instrument state, so always include it.
+                 effectsSource += `
+-					
+-					let sampleL = sample;
+-					let sampleR = sample;`
++
++                sample *= eqFilterVolume;
++                eqFilterVolume += eqFilterVolumeDelta;`
++
++                if (usesPanning) {
++                    effectsSource += `
++
++                    panningDelayLineL[panningDelayPos] = sample;
++                    panningDelayLineR[panningDelayPos] = sample;
++                    const panningRatioL  = panningOffsetL % 1;
++                    const panningRatioR  = panningOffsetR % 1;
++                    const panningTapLA   = panningDelayLineL[(panningOffsetL) & panningMask];
++                    const panningTapLB   = panningDelayLineL[(panningOffsetL + 1) & panningMask];
++                    const panningTapRA   = panningDelayLineR[(panningOffsetR) & panningMask];
++                    const panningTapRB   = panningDelayLineR[(panningOffsetR + 1) & panningMask];
++                    const panningTapL    = panningTapLA + (panningTapLB - panningTapLA) * panningRatioL;
++                    const panningTapR    = panningTapRA + (panningTapRB - panningTapRA) * panningRatioR;
++
++                    let sampleL = panningTapL * panningVolumeL;
++                    let sampleR = panningTapR * panningVolumeR;
++                    panningDelayPos = (panningDelayPos + 1) & panningMask;
++                    panningVolumeL += panningVolumeDeltaL;
++                    panningVolumeR += panningVolumeDeltaR;
++                    panningOffsetL += panningOffsetDeltaL;
++                    panningOffsetR += panningOffsetDeltaR;`
++                } else {
++                    effectsSource += `
++
++                    let sampleL = sample;
++                    let sampleR = sample;`
++                }
+             }
+ 
+             if (usesChorus) {
+@@ -13713,26 +14065,40 @@ export class Synth {
+ 				instrumentState.distortion = distortion;
+ 				instrumentState.distortionDrive = distortionDrive;
+ 				
+-				if (!Number.isFinite(distortionFractionalInput1) || Math.abs(distortionFractionalInput1) < epsilon) distortionFractionalInput1 = 0.0;
+-				if (!Number.isFinite(distortionFractionalInput2) || Math.abs(distortionFractionalInput2) < epsilon) distortionFractionalInput2 = 0.0;
+-				if (!Number.isFinite(distortionFractionalInput3) || Math.abs(distortionFractionalInput3) < epsilon) distortionFractionalInput3 = 0.0;
+-				if (!Number.isFinite(distortionPrevInput) || Math.abs(distortionPrevInput) < epsilon) distortionPrevInput = 0.0;
+-				if (!Number.isFinite(distortionNextOutput) || Math.abs(distortionNextOutput) < epsilon) distortionNextOutput = 0.0;
++				if (!Number.isFinite(distortionFractionalInputL1) || Math.abs(distortionFractionalInputL1) < epsilon) distortionFractionalInputL1 = 0.0;
++				if (!Number.isFinite(distortionFractionalInputL2) || Math.abs(distortionFractionalInputL2) < epsilon) distortionFractionalInputL2 = 0.0;
++                if (!Number.isFinite(distortionFractionalInputL3) || Math.abs(distortionFractionalInputL3) < epsilon) distortionFractionalInputL3 = 0.0;
++                if (!Number.isFinite(distortionFractionalInputR1) || Math.abs(distortionFractionalInputR1) < epsilon) distortionFractionalInputR1 = 0.0;
++                if (!Number.isFinite(distortionFractionalInputR2) || Math.abs(distortionFractionalInputR2) < epsilon) distortionFractionalInputR2 = 0.0;
++                if (!Number.isFinite(distortionFractionalInputR3) || Math.abs(distortionFractionalInputR3) < epsilon) distortionFractionalInputR3 = 0.0;
++                if (!Number.isFinite(distortionPrevInputL) || Math.abs(distortionPrevInputL) < epsilon) distortionPrevInputL = 0.0;
++                if (!Number.isFinite(distortionPrevInputR) || Math.abs(distortionPrevInputR) < epsilon) distortionPrevInputR = 0.0;
++                if (!Number.isFinite(distortionNextOutputL) || Math.abs(distortionNextOutputL) < epsilon) distortionNextOutputL = 0.0;
++                if (!Number.isFinite(distortionNextOutputR) || Math.abs(distortionNextOutputR) < epsilon) distortionNextOutputR = 0.0;
+ 				
+-				instrumentState.distortionFractionalInput1 = distortionFractionalInput1;
+-				instrumentState.distortionFractionalInput2 = distortionFractionalInput2;
+-				instrumentState.distortionFractionalInput3 = distortionFractionalInput3;
+-				instrumentState.distortionPrevInput = distortionPrevInput;
+-				instrumentState.distortionNextOutput = distortionNextOutput;`
++				instrumentState.distortionFractionalInputL1 = distortionFractionalInputL1;
++				instrumentState.distortionFractionalInputL2 = distortionFractionalInputL2;
++                instrumentState.distortionFractionalInputL3 = distortionFractionalInputL3;
++                instrumentState.distortionFractionalInputR1 = distortionFractionalInputR1;
++                instrumentState.distortionFractionalInputR2 = distortionFractionalInputR2;
++                instrumentState.distortionFractionalInputR3 = distortionFractionalInputR3;
++                instrumentState.distortionPrevInputL = distortionPrevInputL;
++                instrumentState.distortionPrevInputR = distortionPrevInputR;
++                instrumentState.distortionNextOutputL = distortionNextOutputL;
++                instrumentState.distortionNextOutputR = distortionNextOutputR;`
+             }
+ 
+             if (usesBitcrusher) {
+                 effectsSource += `
+ 					
+-				if (Math.abs(bitcrusherPrevInput) < epsilon) bitcrusherPrevInput = 0.0;
+-				if (Math.abs(bitcrusherCurrentOutput) < epsilon) bitcrusherCurrentOutput = 0.0;
+-				instrumentState.bitcrusherPrevInput = bitcrusherPrevInput;
+-				instrumentState.bitcrusherCurrentOutput = bitcrusherCurrentOutput;
++                if (Math.abs(bitcrusherPrevInputL) < epsilon) bitcrusherPrevInputL = 0.0;
++                if (Math.abs(bitcrusherPrevInputR) < epsilon) bitcrusherPrevInputR = 0.0;
++                if (Math.abs(bitcrusherCurrentOutputL) < epsilon) bitcrusherCurrentOutputL = 0.0;
++                if (Math.abs(bitcrusherCurrentOutputR) < epsilon) bitcrusherCurrentOutputR = 0.0;
++                instrumentState.bitcrusherPrevInputL = bitcrusherPrevInputL;
++                instrumentState.bitcrusherPrevInputR = bitcrusherPrevInputR;
++                instrumentState.bitcrusherCurrentOutputL = bitcrusherCurrentOutputL;
++                instrumentState.bitcrusherCurrentOutputR = bitcrusherCurrentOutputR;
+ 				instrumentState.bitcrusherPhase = bitcrusherPhase;
+ 				instrumentState.bitcrusherPhaseDelta = bitcrusherPhaseDelta;
+ 				instrumentState.bitcrusherScale = bitcrusherScale;
+@@ -13743,23 +14109,31 @@ export class Synth {
+             if (usesEqFilter) {
+                 effectsSource += `
+ 					
+-				synth.sanitizeFilters(filters);
++					synth.sanitizeFilters(filtersL);
++                    synth.sanitizeFilters(filtersR);
+ 				// The filter input here is downstream from another filter so we
+ 				// better make sure it's safe too.
+-				if (!(initialFilterInput1 < 100) || !(initialFilterInput2 < 100)) {
+-					initialFilterInput1 = 0.0;
+-					initialFilterInput2 = 0.0;
++				if (!(initialFilterInputL1 < 100) || !(initialFilterInputL2 < 100) || !(initialFilterInputR1 < 100) || !(initialFilterInputR2 < 100)) {
++					initialFilterInputL1 = 0.0;
++                    initialFilterInputR2 = 0.0;
++                    initialFilterInputL1 = 0.0;
++                    initialFilterInputR2 = 0.0;
+ 				}
+-				if (Math.abs(initialFilterInput1) < epsilon) initialFilterInput1 = 0.0;
+-				if (Math.abs(initialFilterInput2) < epsilon) initialFilterInput2 = 0.0;
+-				instrumentState.initialEqFilterInput1 = initialFilterInput1;
+-				instrumentState.initialEqFilterInput2 = initialFilterInput2;`
++				if (Math.abs(initialFilterInputL1) < epsilon) initialFilterInputL1 = 0.0;
++                if (Math.abs(initialFilterInputL2) < epsilon) initialFilterInputL2 = 0.0;
++                if (Math.abs(initialFilterInputR1) < epsilon) initialFilterInputR1 = 0.0;
++                if (Math.abs(initialFilterInputR2) < epsilon) initialFilterInputR2 = 0.0;
++				instrumentState.initialEqFilterInputL1 = initialFilterInputL1;
++                instrumentState.initialEqFilterInputL2 = initialFilterInputL2;
++                instrumentState.initialEqFilterInputR1 = initialFilterInputR1;
++                instrumentState.initialEqFilterInputR2 = initialFilterInputR2;`
+             }
+ 
+             if (usesPanning) {
+                 effectsSource += `
+ 				
+-				Synth.sanitizeDelayLine(panningDelayLine, panningDelayPos, panningMask);
++				Synth.sanitizeDelayLine(panningDelayLineL, panningDelayPos, panningMask);
++                Synth.sanitizeDelayLine(panningDelayLineR, panningDelayPos, panningMask);
+ 				instrumentState.panningDelayPos = panningDelayPos;
+ 				instrumentState.panningVolumeL = panningVolumeL;
+ 				instrumentState.panningVolumeR = panningVolumeR;
+@@ -13836,7 +14210,7 @@ export class Synth {
+     }
+ 
+     private static pulseWidthSynth(synth: Synth, bufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrumentState: InstrumentState): void {
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
++        const data: Float32Array = synth.tempInstrumentSampleBufferL!;
+ 
+         const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+         if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord!.customInterval) tone.phases[1] = tone.phases[0];
+@@ -13852,10 +14226,10 @@ export class Synth {
+         let pulseWidth: number = tone.pulseWidth;
+         const pulseWidthDelta: number = tone.pulseWidthDelta;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+         const applyFilters: Function = Synth.applyFilters;
+ 
+         const stopIndex: number = bufferIndex + roundedSamplesPerTick;
+@@ -13927,12 +14301,12 @@ export class Synth {
+         tone.pulseWidth = pulseWidth;
+ 
+         synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        tone.initialNoteFilterInputL1 = initialFilterInput1;
++        tone.initialNoteFilterInputL2 = initialFilterInput2;
+     }
+ 
+     private static supersawSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+-		const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
++		const data: Float32Array = synth.tempInstrumentSampleBufferL!;
+ 		const voiceCount: number = Config.supersawVoiceCount|0;
+ 
+ 		let phaseDelta: number = tone.phaseDeltas[0];
+@@ -13953,10 +14327,10 @@ export class Synth {
+ 		let delayIndex: number = tone.supersawDelayIndex|0;
+ 		delayIndex = (delayIndex & delayBufferMask) + delayLine.length;
+ 
+-		const filters: DynamicBiquadFilter[] = tone.noteFilters;
++		const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+ 		const filterCount: number = tone.noteFilterCount|0;
+-		let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-		let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++		let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++		let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+ 		const applyFilters: Function = Synth.applyFilters;
+ 
+ 		const stopIndex: number = bufferIndex + runLength;
+@@ -14034,12 +14408,12 @@ export class Synth {
+ 		tone.supersawDelayIndex = delayIndex;
+ 
+ 		synth.sanitizeFilters(filters);
+-		tone.initialNoteFilterInput1 = initialFilterInput1;
+-		tone.initialNoteFilterInput2 = initialFilterInput2;
++		tone.initialNoteFilterInputL1 = initialFilterInput1;
++		tone.initialNoteFilterInputL2 = initialFilterInput2;
+ 	}
+ 
+     private static fmSourceTemplate: string[] = (`
+-		const data = synth.tempMonoInstrumentSampleBuffer;
++		const data = synth.tempInstrumentSampleBufferL;
+ 		const sineWave = Config.sineWave;
+ 			
+ 		// I'm adding 1000 to the phase to ensure that it's never negative even when modulated by other waves because negative numbers don't work with the modulus operator very well.
+@@ -14055,10 +14429,10 @@ export class Synth {
+         let expression = +tone.expression;
+ 		const expressionDelta = +tone.expressionDelta;
+ 		
+-		const filters = tone.noteFilters;
++		const filters = tone.noteFiltersL;
+ 		const filterCount = tone.noteFilterCount|0;
+-		let initialFilterInput1 = +tone.initialNoteFilterInput1;
+-		let initialFilterInput2 = +tone.initialNoteFilterInput2;
++		let initialFilterInput1 = +tone.initialNoteFilterInputL1;
++		let initialFilterInput2 = +tone.initialNoteFilterInputL2;
+ 		const applyFilters = Synth.applyFilters;
+ 		
+ 		const stopIndex = bufferIndex + roundedSamplesPerTick;
+@@ -14090,8 +14464,8 @@ export class Synth {
+ 		    tone.expression = expression;
+ 			
+ 		synth.sanitizeFilters(filters);
+-		tone.initialNoteFilterInput1 = initialFilterInput1;
+-		tone.initialNoteFilterInput2 = initialFilterInput2;
++		tone.initialNoteFilterInputL1 = initialFilterInput1;
++		tone.initialNoteFilterInputL2 = initialFilterInput2;
+ 		`).split("\n");
+ 
+     private static operatorSourceTemplate: string[] = (`
+@@ -14104,8 +14478,8 @@ export class Synth {
+ 		`).split("\n");
+ 
+         private static noiseSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+-            const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-            const wave: Float32Array = instrumentState.wave!;
++            const data: Float32Array = synth.tempInstrumentSampleBufferL!;
++            const wave: Float32Array = instrumentState.waveL!;
+             
+             const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+             if (instrumentState.unisonVoices == 1 && instrumentState.unisonSpread == 0 && !instrumentState.chord!.customInterval) tone.phases[1] = tone.phases[0];
+@@ -14130,10 +14504,10 @@ export class Synth {
+             let noiseSampleA: number = +tone.noiseSampleA;
+             let noiseSampleB: number = +tone.noiseSampleB;
+     
+-            const filters: DynamicBiquadFilter[] = tone.noteFilters;
++            const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+             const filterCount: number = tone.noteFilterCount | 0;
+-            let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-            let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++            let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++            let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+             const applyFilters: Function = Synth.applyFilters;
+     
+             // This is for a "legacy" style simplified 1st order lowpass filter with
+@@ -14174,13 +14548,13 @@ export class Synth {
+             tone.noiseSampleB = noiseSampleB;
+     
+             synth.sanitizeFilters(filters);
+-            tone.initialNoteFilterInput1 = initialFilterInput1;
+-            tone.initialNoteFilterInput2 = initialFilterInput2;
++            tone.initialNoteFilterInputL1 = initialFilterInput1;
++            tone.initialNoteFilterInputL2 = initialFilterInput2;
+         }
+ 
+     private static spectrumSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
+-        const wave: Float32Array = instrumentState.wave!;
++        const data: Float32Array = synth.tempInstrumentSampleBufferL!;
++        const wave: Float32Array = instrumentState.waveL!;
+         const samplesInPeriod: number = (1 << 7);
+ 
+         const unisonSign: number = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
+@@ -14194,10 +14568,10 @@ export class Synth {
+         let noiseSampleA: number = +tone.noiseSampleA;
+ 		let noiseSampleB: number = +tone.noiseSampleB;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+         const applyFilters: Function = Synth.applyFilters;
+ 
+         let phaseA: number = (tone.phases[0] % 1) * Config.spectrumNoiseLength;
+@@ -14260,12 +14634,12 @@ export class Synth {
+         tone.noiseSampleB = noiseSampleB;
+ 
+         synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        tone.initialNoteFilterInputL1 = initialFilterInput1;
++        tone.initialNoteFilterInputL2 = initialFilterInput2;
+     }
+ 
+     private static drumsetSynth(synth: Synth, bufferIndex: number, runLength: number, tone: Tone, instrumentState: InstrumentState): void {
+-        const data: Float32Array = synth.tempMonoInstrumentSampleBuffer!;
++        const data: Float32Array = synth.tempInstrumentSampleBufferL!;
+         let wave: Float32Array = instrumentState.getDrumsetWave(tone.drumsetPitch!);
+         const referenceDelta: number = InstrumentState.drumsetIndexReferenceDelta(tone.drumsetPitch!);
+         let phaseDelta: number = tone.phaseDeltas[0] / referenceDelta;
+@@ -14273,10 +14647,10 @@ export class Synth {
+         let expression: number = +tone.expression;
+         const expressionDelta: number = +tone.expressionDelta;
+ 
+-        const filters: DynamicBiquadFilter[] = tone.noteFilters;
++        const filters: DynamicBiquadFilter[] = tone.noteFiltersL;
+         const filterCount: number = tone.noteFilterCount | 0;
+-        let initialFilterInput1: number = +tone.initialNoteFilterInput1;
+-        let initialFilterInput2: number = +tone.initialNoteFilterInput2;
++        let initialFilterInput1: number = +tone.initialNoteFilterInputL1;
++        let initialFilterInput2: number = +tone.initialNoteFilterInputL2;
+         const applyFilters: Function = Synth.applyFilters;
+ 
+         let phase: number = (tone.phases[0] % 1) * Config.spectrumNoiseLength;
+@@ -14311,8 +14685,8 @@ export class Synth {
+         tone.expression = expression;
+ 
+         synth.sanitizeFilters(filters);
+-        tone.initialNoteFilterInput1 = initialFilterInput1;
+-        tone.initialNoteFilterInput2 = initialFilterInput2;
++        tone.initialNoteFilterInputL1 = initialFilterInput1;
++        tone.initialNoteFilterInputL2 = initialFilterInput2;
+     }
+ 
+     private static modSynth(synth: Synth, stereoBufferIndex: number, roundedSamplesPerTick: number, tone: Tone, instrument: Instrument): void {
