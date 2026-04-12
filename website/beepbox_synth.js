@@ -14652,14 +14652,18 @@ var beepbox = (function (exports) {
                 }
                 const envelopeStart = envelopeStarts[18];
                 const envelopeEnd = envelopeEnds[18];
-                const pitchShiftStart = (usePitchShiftStart - Config.pitchShiftCenter) * envelopeStart + Config.pitchShiftCenter;
-                const pitchShiftEnd = (usePitchShiftEnd - Config.pitchShiftCenter) * envelopeEnd + Config.pitchShiftCenter;
+                const pitchShiftStart = (usePitchShiftStart - Config.pitchShiftCenter) * envelopeStart;
+                const pitchShiftEnd = (usePitchShiftEnd - Config.pitchShiftCenter) * envelopeEnd;
                 const pitchShiftStartRounded = Math.floor(pitchShiftStart);
                 const pitchShiftEndRounded = Math.floor(pitchShiftEnd);
                 const pitchShiftStartFrac = pitchShiftStart - pitchShiftStartRounded;
                 const pitchShiftEndFrac = pitchShiftEnd - pitchShiftEndRounded;
-                intervalStart += Config.justIntonationSemitones[pitchShiftStartRounded] / intervalScale * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartRounded + 1] || 0) / intervalScale * pitchShiftStartFrac;
-                intervalEnd += Config.justIntonationSemitones[pitchShiftEndRounded] / intervalScale * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndRounded + 1] || 0) / intervalScale * pitchShiftEndFrac;
+                const pitchShiftStartOctaves = Math.floor(pitchShiftStartRounded / Config.pitchesPerOctave) + 1;
+                const pitchShiftEndOctaves = Math.floor(pitchShiftEndRounded / Config.pitchesPerOctave) + 1;
+                const pitchShiftStartSemitones = pitchShiftStartRounded - ((pitchShiftStartOctaves - 1) * Config.pitchesPerOctave);
+                const pitchShiftEndSemitones = pitchShiftEndRounded - ((pitchShiftEndOctaves - 1) * Config.pitchesPerOctave);
+                intervalStart += pitchShiftStartOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter] * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftStartFrac);
+                intervalEnd += pitchShiftEndOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter] * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftEndFrac);
             }
             if (effectsIncludeDetune(instrument.effects) || this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
                 const envelopeStart = envelopeStarts[19];
@@ -16084,8 +16088,8 @@ var beepbox = (function (exports) {
                 }
                 harmonicsSource += `inputSample = ${sampleList.join(" + ")}
             const sample = applyFilters(inputSample, initialFilterInput1, initialFilterInput2, filterCount, filters);
-            initialFilterInputL2 = initialFilterInput1;
-            initialFilterInputL1 = inputSample;
+            initialFilterInput2 = initialFilterInput1;
+            initialFilterInput1 = inputSample;
             phaseDelta# *= phaseDeltaScale#;
             const output = sample * expression;
             expression += expressionDelta;
@@ -16094,8 +16098,8 @@ var beepbox = (function (exports) {
         tone.phases[#] = phase# / waveLength;
         tone.phaseDeltas[#] = phaseDelta# / waveLength;tone.expression = expression;
         synth.sanitizeFilters(filters);
-        tone.initialNoteFilterInput1 = initialFilterInput1;
-        tone.initialNoteFilterInput2 = initialFilterInput2;
+        tone.initialNoteFilterInputL1 = initialFilterInput1;
+        tone.initialNoteFilterInputL2 = initialFilterInput2;
     }`;
                 harmonicsSource = harmonicsSource.replace(/^.*\#.*$/mg, line => {
                     const lines = [];
