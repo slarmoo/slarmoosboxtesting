@@ -2054,6 +2054,7 @@ var beepbox = (function (exports) {
                     { name: "tormented", generalMidi: false, isNoise: false, settings: { "type": "harmonics", "eqFilter": [{ "type": "low-pass", "cutoffHz": 3363.59, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 297.3, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 3363.59, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 297.3, "linearGain": 2 }], "effects": ["transition type", "chord type", "detune", "note filter", "chorus", "reverb", "ring mod"], "transition": "continue", "clicklessTransition": false, "chord": "simultaneous", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 1, "detuneCents": -9, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.25 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.25 }], "noteSubFilters1": [{ "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.25 }], "ringMod": 43, "ringModHz": 89, "ringModWaveformIndex": 0, "ringModPulseWidth": 10, "ringModHzOffset": 50, "panDelay": 0, "chorus": 57, "reverb": 29, "fadeInSeconds": 0, "fadeOutTicks": 48, "harmonics": [100, 100, 0, 100, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "unison": "none", "envelopes": [] } },
                     { name: "pure evil", generalMidi: false, isNoise: false, settings: { "type": "spectrum", "eqFilter": [{ "type": "peak", "cutoffHz": 2378.41, "linearGain": 0.25 }, { "type": "low-pass", "cutoffHz": 5656.85, "linearGain": 0.25 }, { "type": "peak", "cutoffHz": 74.33, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "peak", "cutoffHz": 2378.41, "linearGain": 0.25 }, { "type": "low-pass", "cutoffHz": 5656.85, "linearGain": 0.25 }, { "type": "peak", "cutoffHz": 74.33, "linearGain": 2 }], "effects": ["pitch shift", "note filter", "granular", "distortion", "bitcrusher"], "pitchShiftSemitones": 17, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 2000, "linearGain": 1.4142 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 2000, "linearGain": 1.4142 }], "granular": 2, "grainSize": 38, "grainFreq": 6, "grainRange": 18, "distortion": 100, "aliases": false, "bitcrusherOctave": 6.5, "bitcrusherQuantization": 57, "panDelay": 0, "fadeInSeconds": 0, "fadeOutTicks": 24, "unison": "none", "spectrum": [100, 0, 57, 43, 43, 71, 0, 100, 0, 57, 0, 71, 29, 71, 14, 14, 43, 43, 43, 43, 43, 100, 57, 57, 57, 57, 14, 14, 0, 0], "envelopes": [{ "target": "pitchShift", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 256, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "granular", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 0.25, "perEnvelopeLowerBound": 0.3, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 2, "steps": 2 }, { "target": "bitcrusherQuantization", "envelope": "flare", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteFilterAllFreqs", "envelope": "decay", "inverse": false, "perEnvelopeSpeed": 13, "perEnvelopeLowerBound": 0.2, "perEnvelopeUpperBound": 1, "discrete": false }] } },
                     { name: "80s supersaw", generalMidi: false, settings: { "type": "supersaw", "eqFilter": [{ "type": "low-pass", "cutoffHz": 19027.31, "linearGain": 0.5 }, { "type": "high-pass", "cutoffHz": 148.65, "linearGain": 1 }, { "type": "peak", "cutoffHz": 594.6, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 0.7071 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 19027.31, "linearGain": 0.5 }, { "type": "high-pass", "cutoffHz": 148.65, "linearGain": 1 }, { "type": "peak", "cutoffHz": 594.6, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 0.7071 }], "effects": ["detune", "vibrato", "note filter"], "detuneCents": 24, "vibrato": "custom", "vibratoDepth": 0.16, "vibratoDelay": 0, "vibratoSpeed": 4, "vibratoType": 0, "noteFilterType": false, "noteSimpleCut": 10, "noteSimplePeak": 0, "noteFilter": [{ "type": "low-pass", "cutoffHz": 9513.66, "linearGain": 2.8284 }], "noteSubFilters0": [{ "type": "low-pass", "cutoffHz": 9513.66, "linearGain": 2.8284 }], "panDelay": 0, "fadeInSeconds": 0, "fadeOutTicks": 6, "unison": "custom", "unisonVoices": 9, "unisonSpread": 0.01, "unisonOffset": 0, "unisonExpression": 0.3, "unisonSign": 0.7, "unisonAntiPhased": false, "pulseWidth": 25, "decimalOffset": 0, "dynamism": 100, "spread": 75, "shape": 0, "envelopes": [{ "target": "unison", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 8.5, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteFilterAllFreqs", "envelope": "linear", "inverse": false, "perEnvelopeSpeed": 5.5, "perEnvelopeLowerBound": 0.4, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "pulseWidth", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 6, "perEnvelopeLowerBound": 0.2, "perEnvelopeUpperBound": 0.9, "discrete": false }, { "target": "detune", "envelope": "sequence", "inverse": false, "perEnvelopeSpeed": 1.25, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 0, "sequenceSettings": { "height": 8, "length": 8, "values": [6, 2, 4, 8, 1, 6, 1, 3], "interpolated": true, "looped": true } }, { "target": "vibratoDepth", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0.2, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 0, "steps": 2 }] } },
+                    { name: "icicle", generalMidi: false, settings: { "type": "spectrum", "eqFilter": [{ "type": "low-pass", "cutoffHz": 11313.71, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 7, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters1": [], "effects": ["granular", "bitcrusher", "echo", "reverb"], "granular": 10, "grainSize": 49, "grainAmounts": 6, "grainRange": 40, "bitcrusherOctave": 3.5, "bitcrusherQuantization": 43, "panDelay": 0, "echoSustain": 71, "echoDelayBeats": 1, "reverb": 74, "fadeInSeconds": 0.0575, "fadeOutTicks": -1, "spectrum": [86, 0, 43, 0, 14, 29, 0, 57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "unison": "none", "envelopes": [] } },
                 ])
             },
             {
@@ -5253,7 +5254,15 @@ var beepbox = (function (exports) {
                 return effectsIncludeTransition(this.effects) && this.getTransition().slides;
             }
             if ((automationTarget.computeIndex || 0) >= 59 && (automationTarget.computeIndex || 0) <= 74) {
-                return index < envelopeIndex;
+                if (index >= envelopeIndex)
+                    return false;
+                const envelope = this.envelopes[index];
+                if ([0, 1, 4, 2].indexOf(envelope.envelope) >= 0)
+                    return false;
+                if (envelope.envelope == 3) {
+                    return [2, 1].indexOf(envelope.waveform) < 0;
+                }
+                return true;
             }
             if (automationTarget.effect == 15) {
                 if (PluginConfig.pluginName == "")
@@ -11215,9 +11224,9 @@ var beepbox = (function (exports) {
                 const startPin = tone.note.pins[endPinIndex - 1];
                 const endPin = tone.note.pins[endPinIndex];
                 const startPinTick = (tone.note.start + startPin.time) * Config.ticksPerPart;
-                if (this.startPinTickAbsolute == null || (!(transition.continues || transition.slides)) && tone.passedEndOfNote)
+                if (this.startPinTickAbsolute == null || (!(transition.continues || transition.slides)) && (tone.passedEndOfNote || tone.atNoteStart))
                     this.startPinTickAbsolute = startPinTick + synth.computeTicksSinceStart(true);
-                if (this.startPinTickDefaultPitch == null || tone.passedEndOfNote)
+                if (this.startPinTickDefaultPitch == null || (tone.passedEndOfNote || tone.atNoteStart))
                     this.startPinTickDefaultPitch = this.getPitchValue(instrument, tone, instrumentState, false);
                 if (!tone.passedEndOfNote)
                     this.startPinTickPitch = this.getPitchValue(instrument, tone, instrumentState, true);
@@ -11298,7 +11307,7 @@ var beepbox = (function (exports) {
                     isDiscrete = instrument.envelopes[envelopeIndex].discrete;
                     perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
                     globalEnvelopeSpeed = Math.pow(instrument.envelopeSpeed, 2) / 144;
-                    envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed;
+                    envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed * instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
                     perEnvelopeLowerBound = instrument.envelopes[envelopeIndex].perEnvelopeLowerBound;
                     perEnvelopeUpperBound = instrument.envelopes[envelopeIndex].perEnvelopeUpperBound;
                     if (synth.isModActive(Config.modulators.dictionary["individual envelope lower bound"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeLowerBound != null) {
@@ -14222,6 +14231,7 @@ var beepbox = (function (exports) {
                                 let passedEndOfNote = false;
                                 if (noteStartPart > currentPart) {
                                     if (toneList.count() > i && (transition.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
+                                        console.log("here");
                                         nextNoteForThisTone = noteForThisTone;
                                         noteForThisTone = prevNoteForThisTone;
                                         pitchesForThisTone = noteForThisTone.pitches;
@@ -14658,12 +14668,12 @@ var beepbox = (function (exports) {
                 const pitchShiftEndRounded = Math.floor(pitchShiftEnd);
                 const pitchShiftStartFrac = pitchShiftStart - pitchShiftStartRounded;
                 const pitchShiftEndFrac = pitchShiftEnd - pitchShiftEndRounded;
-                const pitchShiftStartOctaves = Math.floor(pitchShiftStartRounded / Config.pitchesPerOctave) + 1;
-                const pitchShiftEndOctaves = Math.floor(pitchShiftEndRounded / Config.pitchesPerOctave) + 1;
-                const pitchShiftStartSemitones = pitchShiftStartRounded - ((pitchShiftStartOctaves - 1) * Config.pitchesPerOctave);
-                const pitchShiftEndSemitones = pitchShiftEndRounded - ((pitchShiftEndOctaves - 1) * Config.pitchesPerOctave);
-                intervalStart += pitchShiftStartOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter] * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftStartFrac);
-                intervalEnd += pitchShiftEndOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter] * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftEndFrac);
+                const pitchShiftStartOctaves = Math.floor(pitchShiftStartRounded / Config.pitchesPerOctave) * Config.pitchesPerOctave;
+                const pitchShiftEndOctaves = Math.floor(pitchShiftEndRounded / Config.pitchesPerOctave) * Config.pitchesPerOctave;
+                const pitchShiftStartSemitones = pitchShiftStartRounded - pitchShiftStartOctaves;
+                const pitchShiftEndSemitones = pitchShiftEndRounded - pitchShiftEndOctaves;
+                intervalStart += (pitchShiftStartOctaves + Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter] * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftStartFrac) / intervalScale;
+                intervalEnd += (pitchShiftEndOctaves + Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter] * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftEndFrac) / intervalScale;
             }
             if (effectsIncludeDetune(instrument.effects) || this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
                 const envelopeStart = envelopeStarts[19];

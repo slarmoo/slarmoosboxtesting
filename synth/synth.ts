@@ -560,8 +560,8 @@ class EnvelopeComputer {
             const startPin: NotePin = tone.note.pins[endPinIndex - 1];
             const endPin: NotePin = tone.note.pins[endPinIndex];
             const startPinTick = (tone.note.start + startPin.time) * Config.ticksPerPart;
-            if (this.startPinTickAbsolute == null || (!(transition.continues || transition.slides)) && tone.passedEndOfNote) this.startPinTickAbsolute = startPinTick + synth.computeTicksSinceStart(true); //for random per note
-            if (this.startPinTickDefaultPitch == null ||/* (!(transition.continues || transition.slides)) &&*/ tone.passedEndOfNote) this.startPinTickDefaultPitch = this.getPitchValue(instrument, tone, instrumentState, false);
+            if (this.startPinTickAbsolute == null || (!(transition.continues || transition.slides)) && (tone.passedEndOfNote || tone.atNoteStart)) this.startPinTickAbsolute = startPinTick + synth.computeTicksSinceStart(true); //for random per note
+            if (this.startPinTickDefaultPitch == null ||/* (!(transition.continues || transition.slides)) &&*/ (tone.passedEndOfNote || tone.atNoteStart)) this.startPinTickDefaultPitch = this.getPitchValue(instrument, tone, instrumentState, false);
             if (!tone.passedEndOfNote) this.startPinTickPitch = this.getPitchValue(instrument, tone, instrumentState, true);
             const endPinTick: number = (tone.note.start + endPin.time) * Config.ticksPerPart;
             const ratioStart: number = (tickTimeStartReal - startPinTick) / (endPinTick - startPinTick);
@@ -642,7 +642,7 @@ class EnvelopeComputer {
                 isDiscrete = instrument.envelopes[envelopeIndex].discrete;
                 perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
                 globalEnvelopeSpeed = Math.pow(instrument.envelopeSpeed, 2) / 144;
-                envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed;
+                envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed * instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
 
                 perEnvelopeLowerBound = instrument.envelopes[envelopeIndex].perEnvelopeLowerBound;
                 perEnvelopeUpperBound = instrument.envelopes[envelopeIndex].perEnvelopeUpperBound;
@@ -3917,6 +3917,7 @@ export class Synth extends SynthTemplate {
                             // the new tone until it is ready to start.
                             if (noteStartPart > currentPart) {
                                 if (toneList.count() > i && (transition.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
+                                    console.log("here")
                                     // Continue the previous note's chord until the current one takes over.
                                     nextNoteForThisTone = noteForThisTone;
                                     noteForThisTone = prevNoteForThisTone;
@@ -4382,12 +4383,12 @@ export class Synth extends SynthTemplate {
             const pitchShiftEndRounded: number = Math.floor(pitchShiftEnd);
             const pitchShiftStartFrac: number = pitchShiftStart - pitchShiftStartRounded;
             const pitchShiftEndFrac: number = pitchShiftEnd - pitchShiftEndRounded;
-            const pitchShiftStartOctaves: number = Math.floor(pitchShiftStartRounded / Config.pitchesPerOctave) + 1;
-            const pitchShiftEndOctaves: number = Math.floor(pitchShiftEndRounded / Config.pitchesPerOctave) + 1;
-            const pitchShiftStartSemitones: number = pitchShiftStartRounded - ((pitchShiftStartOctaves - 1) * Config.pitchesPerOctave);
-            const pitchShiftEndSemitones: number = pitchShiftEndRounded - ((pitchShiftEndOctaves - 1) * Config.pitchesPerOctave);
-            intervalStart += pitchShiftStartOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter] * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftStartFrac);
-            intervalEnd += pitchShiftEndOctaves / intervalScale * (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter] * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftEndFrac);
+            const pitchShiftStartOctaves: number = Math.floor(pitchShiftStartRounded / Config.pitchesPerOctave) * Config.pitchesPerOctave;
+            const pitchShiftEndOctaves: number = Math.floor(pitchShiftEndRounded / Config.pitchesPerOctave) * Config.pitchesPerOctave;
+            const pitchShiftStartSemitones: number = pitchShiftStartRounded - pitchShiftStartOctaves;
+            const pitchShiftEndSemitones: number = pitchShiftEndRounded - pitchShiftEndOctaves;
+            intervalStart += (pitchShiftStartOctaves + Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter] * (1 - pitchShiftStartFrac) + (Config.justIntonationSemitones[pitchShiftStartSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftStartFrac) / intervalScale;
+            intervalEnd += (pitchShiftEndOctaves + Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter] * (1 - pitchShiftEndFrac) + (Config.justIntonationSemitones[pitchShiftEndSemitones + Config.pitchShiftCenter + 1] || 0) * pitchShiftEndFrac) / intervalScale;
         }
         if (effectsIncludeDetune(instrument.effects) || this.isModActive(Config.modulators.dictionary["song detune"].index, channelIndex, tone.instrumentIndex)) {
             const envelopeStart: number = envelopeStarts[EnvelopeComputeIndex.detune];

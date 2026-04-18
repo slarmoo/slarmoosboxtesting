@@ -5910,6 +5910,14 @@ export class ChangeSetEnvelopeType extends Change {
                 instrument.envelopes[envelopeIndex].perEnvelopeSpeed = Config.envelopes[newValue].speed;
             }
             doc.synth.updateSong(instrument.envelopes[envelopeIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.envelopes, envelopeIndex);
+            //check other envelopes and make sure that their targets are still valid (ie, if targetting the current envelope's speed)
+            for (let i: number = envelopeIndex + 1; i < instrument.envelopeCount; i++) {
+                const otherEnv = instrument.envelopes[i];
+                if (!instrument.supportsEnvelopeTarget(otherEnv.target, otherEnv.index, i)) {
+                    otherEnv.target = Config.envelopes.dictionary["none"].index;
+                    doc.synth.updateSong(instrument.envelopes[i].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.envelopes, i);
+                }
+            }
             doc.notifier.changed();
             this._didSomething();
         }

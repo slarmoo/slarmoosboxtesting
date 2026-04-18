@@ -3087,7 +3087,13 @@ export class Instrument {
             return effectsIncludeTransition(this.effects) && this.getTransition().slides;
         }
         if ((automationTarget.computeIndex || 0) >= EnvelopeComputeIndex.envelopeSpeed0 && (automationTarget.computeIndex || 0) <= EnvelopeComputeIndex.envelopeSpeed15) {
-            return index < envelopeIndex;
+            if (index >= envelopeIndex) return false;
+            const envelope: EnvelopeSettings = this.envelopes[index];
+            if ([EnvelopeType.none, EnvelopeType.noteSize, EnvelopeType.punch, EnvelopeType.pitch].indexOf(envelope.envelope) >= 0) return false;
+            if (envelope.envelope == EnvelopeType.pseudorandom) {
+                return [RandomEnvelopeTypes.note, RandomEnvelopeTypes.pitch].indexOf(envelope.waveform) < 0;
+            }
+            return true;
         }
         if (automationTarget.effect == EffectType.plugin) {
             if (PluginConfig.pluginName == "") return true; //not loaded yet; don't remove envelope
