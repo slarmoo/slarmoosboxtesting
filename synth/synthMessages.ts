@@ -284,6 +284,7 @@ export enum InstrumentSettings {
     harmonicsWave,
     drumsetEnvelopes,
     drumsetSpectrumWaves,
+    drumsetFilters,
     modChannels,
     modInstruments,
     modulators,

@@ -2581,7 +2581,6 @@ export class Synth extends SynthTemplate {
 
     public static readonly tempFilterStartCoefficients: FilterCoefficients = new FilterCoefficients();
     public static readonly tempFilterEndCoefficients: FilterCoefficients = new FilterCoefficients();
-    private tempDrumSetControlPoint: FilterControlPoint = new FilterControlPoint();
     public tempFrequencyResponse: FrequencyResponse = new FrequencyResponse();
     public loopBarStart: number = -1;
     /** An *inclusive* bound. */
@@ -3917,7 +3916,6 @@ export class Synth extends SynthTemplate {
                             // the new tone until it is ready to start.
                             if (noteStartPart > currentPart) {
                                 if (toneList.count() > i && (transition.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
-                                    console.log("here")
                                     // Continue the previous note's chord until the current one takes over.
                                     nextNoteForThisTone = noteForThisTone;
                                     noteForThisTone = prevNoteForThisTone;
@@ -4557,18 +4555,18 @@ export class Synth extends SynthTemplate {
             const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
             const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
 
-            const point: FilterControlPoint = this.tempDrumSetControlPoint;
-            point.type = FilterType.lowPass;
-            point.gain = FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50);
-            point.freq = FilterControlPoint.getRoundedSettingValueFromHz(8000.0);
-            // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.
-            point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
-            point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
-            if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
-            if (tone.noteFiltersR.length == tone.noteFilterCount) tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
-            tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
-            tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
-            tone.noteFilterCount++;
+            const drumsetFilter: FilterSettings = instrument.drumsetFilters[11 - tone.drumsetPitch!];
+            for (let i: number = 0; i < drumsetFilter.controlPointCount; i++) {
+                const point: FilterControlPoint = drumsetFilter.controlPoints[i];
+                // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.
+                point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
+                point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
+                if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
+                if (tone.noteFiltersR.length == tone.noteFilterCount) tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
+                tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+                tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+                tone.noteFilterCount++;
+            }
         }
 
         noteFilterExpression = Math.min(3.0, noteFilterExpression);

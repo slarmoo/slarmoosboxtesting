@@ -3216,7 +3216,7 @@ export class ChangeNoteFilterSimplePeak extends ChangeInstrumentSlider {
     }
 }
 
-export class ChangeSongFilterAddPoint extends UndoableChange {
+export class ChangeSongFilterAddPoint extends UndoableChange { //also used for drumsets bc it's identical lol
     private _doc: SongDocument;
     private _filterSettings: FilterSettings;
     private _point: FilterControlPoint;
@@ -3398,7 +3398,7 @@ export class ChangeFilterMovePoint extends UndoableChange {
     public useNoteFilter: boolean;
     public pointIndex: number;
     public pointType: FilterType;
-    constructor(doc: SongDocument, point: FilterControlPoint, oldFreq: number, newFreq: number, oldGain: number, newGain: number, useNoteFilter: boolean, pointIndex: number) {
+    constructor(doc: SongDocument, point: FilterControlPoint, oldFreq: number, newFreq: number, oldGain: number, newGain: number, pointIndex: number) {
         super(false);
         this._doc = doc;
         this._instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
@@ -3409,7 +3409,6 @@ export class ChangeFilterMovePoint extends UndoableChange {
         this._newFreq = newFreq;
         this._oldGain = oldGain;
         this._newGain = newGain;
-        this.useNoteFilter = useNoteFilter;
         this.pointIndex = pointIndex;
         this.pointType = point.type;
         this._didSomething();
@@ -3460,15 +3459,21 @@ export class ChangeSongFilterSettings extends UndoableChange {
 
     protected _doForwards(): void {
         this._doc.song.eqFilter = this._filterSettings;
-        if (this._subFilters != null)
+        if (this._subFilters != null) {
             this._doc.song.eqSubFilters = this._subFilters;
+            for (let i: number = 0; i < this._subFilters.length; i++) this._doc.synth.updateSong(this._subFilters[i]?.toJsonObject(), SongSettings.eqSubFilters, i);
+        }
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
         this._doc.notifier.changed();
     }
 
     protected _doBackwards(): void {
         this._doc.song.eqFilter = this._oldSettings;
-        if (this._oldSubFilters != null)
+        if (this._oldSubFilters != null) {
             this._doc.song.eqSubFilters = this._oldSubFilters;
+            for (let i: number = 0; i < this._oldSubFilters.length; i++) this._doc.synth.updateSong(this._oldSubFilters[i]?.toJsonObject(), SongSettings.eqSubFilters, i);
+        }
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
         this._doc.notifier.changed();
     }
 }
@@ -3483,10 +3488,14 @@ export class ChangeFilterSettings extends UndoableChange {
     private _oldSubFilters: (FilterSettings | null)[];
     private _oldSettings: FilterSettings;
     private _useNoteFilter: boolean;
+    private _channelIndex: number;
+    private _instrumentIndex: number;
     constructor(doc: SongDocument, settings: FilterSettings, oldSettings: FilterSettings, useNoteFilter: boolean, subFilters: (FilterSettings | null)[] | null = null, oldSubFilters: (FilterSettings | null)[] | null = null) {
         super(false);
         this._doc = doc;
-        this._instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+        this._channelIndex = this._doc.channel;
+        this._instrumentIndex = this._doc.getCurrentInstrument();
+        this._instrument = this._doc.song.channels[this._channelIndex].instruments[this._instrumentIndex];
         this._instrumentNextPreset = this._instrument.type;
         this._instrumentPrevPreset = this._instrument.preset;
         this._oldSettings = oldSettings;
@@ -3505,31 +3514,77 @@ export class ChangeFilterSettings extends UndoableChange {
 
         if (this._useNoteFilter) {
             this._instrument.noteFilter = this._filterSettings;
-            if (this._subFilters != null)
+            if (this._subFilters != null) {
                 this._instrument.noteSubFilters = this._subFilters;
+                for (let i: number = 0; i < this._subFilters.length; i++) this._doc.synth.updateSong(this._subFilters[i]?.toJsonObject(), SongSettings.updateInstrument, this._channelIndex, this._instrumentIndex, InstrumentSettings.noteSubFilters, i);
+            }
         } else {
             this._instrument.eqFilter = this._filterSettings;
-            if (this._subFilters != null)
+            if (this._subFilters != null) {
                 this._instrument.eqSubFilters = this._subFilters;
+                for (let i: number = 0; i < this._subFilters.length; i++) this._doc.synth.updateSong(this._subFilters[i]?.toJsonObject(), SongSettings.updateInstrument, this._channelIndex, this._instrumentIndex, InstrumentSettings.eqSubFilters, i);
+            }
         }
 
         this._instrument.preset = this._instrumentNextPreset;
         this._instrument.clearInvalidEnvelopeTargets();
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         this._doc.notifier.changed();
     }
 
     protected _doBackwards(): void {
         if (this._useNoteFilter) {
             this._instrument.noteFilter = this._oldSettings;
-            if (this._oldSubFilters != null)
+            if (this._oldSubFilters != null) {
                 this._instrument.noteSubFilters = this._oldSubFilters;
+                for (let i: number = 0; i < this._oldSubFilters.length; i++) this._doc.synth.updateSong(this._oldSubFilters[i]?.toJsonObject(), SongSettings.updateInstrument, this._channelIndex, this._instrumentIndex, InstrumentSettings.noteSubFilters, i);
+            }
         } else {
             this._instrument.eqFilter = this._oldSettings;
-            if (this._oldSubFilters != null)
+            if (this._oldSubFilters != null) {
                 this._instrument.eqSubFilters = this._oldSubFilters;
+                for (let i: number = 0; i < this._oldSubFilters.length; i++) this._doc.synth.updateSong(this._oldSubFilters[i]?.toJsonObject(), SongSettings.updateInstrument, this._channelIndex, this._instrumentIndex, InstrumentSettings.eqSubFilters, i);
+            }
         }
         this._instrument.preset = this._instrumentPrevPreset;
         this._instrument.clearInvalidEnvelopeTargets();
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+        this._doc.notifier.changed();
+    }
+}
+
+export class ChangeDrumsetFilterSettings extends UndoableChange {
+    private _doc: SongDocument;
+    private _instrument: Instrument;
+    private _instrumentPrevPreset: number;
+    private _instrumentNextPreset: number;
+    private _filterSettings: FilterSettings;
+    private _oldSettings: FilterSettings;
+    private _drumsetIndex: number;
+    constructor(doc: SongDocument, settings: FilterSettings, oldSettings: FilterSettings, index: number) {
+        super(false);
+        this._doc = doc;
+        this._instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+        this._instrumentNextPreset = this._instrument.type;
+        this._instrumentPrevPreset = this._instrument.preset;
+        this._oldSettings = oldSettings;
+        this._filterSettings = settings;
+        this._drumsetIndex = index;
+        this._didSomething();
+        this.redo();
+    }
+
+    protected _doForwards(): void {
+        this._instrument.drumsetFilters[this._drumsetIndex] = this._filterSettings;
+        this._instrument.preset = this._instrumentNextPreset;
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.drumsetFilters, this._drumsetIndex);
+        this._doc.notifier.changed();
+    }
+
+    protected _doBackwards(): void {
+        this._instrument.drumsetFilters[this._drumsetIndex] = this._oldSettings;
+        this._instrument.preset = this._instrumentPrevPreset;
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.drumsetFilters, this._drumsetIndex);
         this._doc.notifier.changed();
     }
 }

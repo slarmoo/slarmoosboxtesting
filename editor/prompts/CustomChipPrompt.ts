@@ -359,7 +359,11 @@ export class CustomChipPrompt implements Prompt {
             event.preventDefault();
         }
         else if (event.keyCode == 90) { // z
-            this.customChipCanvas.undo();
+            if (event.shiftKey) {
+                this.customChipCanvas.redo();
+            } else {
+                this.customChipCanvas.undo();
+            }
             event.stopPropagation();
         }
         else if (event.keyCode == 89) { // y

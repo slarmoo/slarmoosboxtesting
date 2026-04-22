@@ -157,7 +157,7 @@ if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 editor.updatePlayButton();
 
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all", scope: "/" }).catch(() => { });
+    navigator.serviceWorker.register("../service_worker.js", { updateViaCache: "all", scope: "/" }).catch(() => { });
 }
 
 // When compiling synth.ts as a standalone module named "beepbox", expose these classes as members to JavaScript:

@@ -56,7 +56,7 @@ export class SpectrumEditor {
             this._fifths.appendChild(rect({ fill: ColorConfig.fifthNote, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
         }
 
-        this.storeChange();
+        if (this._isPrompt) this.storeChange();
 
         this.container.addEventListener("mousedown", this._whenMousePressed);
         document.addEventListener("mousemove", this._whenMouseMoved);
@@ -71,9 +71,10 @@ export class SpectrumEditor {
     public storeChange = (): void => {
         // Check if change is unique compared to the current history state
         var sameCheck = true;
+        const spectrum = this._spectrumIndex == null ? this.instrument.spectrumWave : this.instrument.drumsetSpectrumWaves[this._spectrumIndex];
         if (this._changeQueue.length > 0) {
             for (var i = 0; i < Config.spectrumControlPoints; i++) {
-                if (this._changeQueue[this._undoHistoryState][i] != this.instrument.spectrumWave.spectrum[i]) {
+                if (this._changeQueue[this._undoHistoryState][i] != spectrum.spectrum[i]) {
                     sameCheck = false; i = Config.spectrumControlPoints;
                 }
             }
@@ -86,7 +87,7 @@ export class SpectrumEditor {
 
             this._undoHistoryState = 0;
 
-            this._changeQueue.unshift(this.instrument.spectrumWave.spectrum.slice());
+            this._changeQueue.unshift(spectrum.spectrum.slice());
 
             // 32 undo max
             if (this._changeQueue.length > 32) {

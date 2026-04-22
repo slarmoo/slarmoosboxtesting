@@ -139,14 +139,14 @@ export class CustomFilterPrompt implements Prompt {
     }
 
     private _whenKeyPressed = (event: KeyboardEvent): void => {
-        if (event.keyCode == 90) { // z
+        if (event.keyCode == 90 && !event.shiftKey) { // z
             let newIdx = this.filterEditor.undo();
             if (newIdx >= 0) {
                 this._setSubfilter(newIdx, false, false);
             }
             event.stopPropagation();
         }
-        if (event.keyCode == 89) { // y
+        if (event.keyCode == 89 || (event.keyCode == 90 && event.shiftKey)) { // y
             let newIdx = this.filterEditor.redo();
             if (newIdx >= 0) {
                 this._setSubfilter(newIdx, false, false);

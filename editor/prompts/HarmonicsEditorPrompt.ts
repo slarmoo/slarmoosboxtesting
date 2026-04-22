@@ -123,7 +123,11 @@ export class HarmonicsEditorPrompt implements Prompt {
             event.preventDefault();
         }
         else if (event.keyCode == 90) { // z
-            this.harmonicsEditor.undo();
+            if (event.shiftKey) {
+                this.harmonicsEditor.redo();
+            } else {
+                this.harmonicsEditor.undo();
+            }
             event.stopPropagation();
         }
         else if (event.keyCode == 89) { // y

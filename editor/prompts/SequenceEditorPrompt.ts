@@ -169,7 +169,11 @@ export class SequenceEditorPrompt implements Prompt {
             this._togglePlay();
             event.preventDefault();
         } else if (event.keyCode == 90) { // z
-            this._sequenceEditor.undo();
+            if (event.shiftKey) {
+                this._sequenceEditor.redo();
+            } else {
+                this._sequenceEditor.undo();
+            }
             event.stopPropagation();
         } else if (event.keyCode == 89) { // y
             this._sequenceEditor.redo();

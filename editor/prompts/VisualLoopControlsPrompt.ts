@@ -981,6 +981,7 @@ export class VisualLoopControlsPrompt {
             this._togglePlaySong();
             event.preventDefault();
         }
+        //TODO: Undo / Redo support
     }
 
     private _updatePlaySongButton = (): void => {

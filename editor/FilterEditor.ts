@@ -7,9 +7,17 @@ import { SongDocument } from "./SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "./ColorConfig";
 import { ChangeSequence, UndoableChange } from "./Change";
-import { ChangeSongFilterAddPoint, ChangeSongFilterMovePoint, ChangeSongFilterSettings, ChangeFilterAddPoint, ChangeFilterMovePoint, ChangeFilterSettings, FilterMoveData } from "./changes";
+import { ChangeSongFilterAddPoint, ChangeSongFilterMovePoint, ChangeSongFilterSettings, ChangeFilterAddPoint, ChangeFilterMovePoint, ChangeFilterSettings, FilterMoveData, ChangeDrumsetFilterSettings } from "./changes";
 import { prettyNumber } from "./EditorConfig";
 import { InstrumentSettings, SongSettings } from "../synth/synthMessages";
+
+export const enum FilterEditorTypes {
+    NoteFilter,
+    EqFilter,
+    SongEq,
+    Drumset
+}
+//TODO: Drumset filter mods and subfilters?
 
 export class FilterEditor {
     private _editorWidth: number = 120;
@@ -40,8 +48,6 @@ export class FilterEditor {
     );
     private _pointRadius: number = 2;
 
-    private _useNoteFilter: boolean = false;
-    private _larger: boolean = false;
     private _touchMode: boolean = false;
     private _mouseX: number = 0;
     private _mouseY: number = 0;
@@ -56,7 +62,7 @@ export class FilterEditor {
     private _gainStart: number = 0;
     private _dragChange: UndoableChange | null = null;
     private _subfilterIndex: number = 0;
-
+    
     private _filterSettings: FilterSettings;
     private _useFilterSettings: FilterSettings;
     private _renderedSelectedIndex: number = -1;
@@ -65,13 +71,18 @@ export class FilterEditor {
     private _renderedPointFreqs: number = -1;
     private _renderedPointGains: number = -1;
     //private _renderedKey: number = -1;
+    
+    private _filterType: FilterEditorTypes;
+    // private _useNoteFilter: boolean = false;
+    private _larger: boolean = false;
+    // private _forSong: boolean = false;
+    public _drumsetIndex: number = 0;
 
-    private _forSong: boolean = false;
-
-    constructor(private _doc: SongDocument, useNoteFilter: boolean = false, larger: boolean = false, forSong: boolean = false) {
-        this._useNoteFilter = useNoteFilter;
+    constructor(private _doc: SongDocument, filterType: FilterEditorTypes, larger: boolean = false, drumsetIndex?: number) {
+        this._filterType = filterType;
         this._larger = larger;
-        this._forSong = forSong;
+        // this._forSong = filterType == FilterEditorTypes.SongEq;
+        this._drumsetIndex = drumsetIndex || 0;
 
         if (this._larger) {
             this.container.addEventListener("keydown", this._whenKeyPressed)
@@ -112,16 +123,17 @@ export class FilterEditor {
             // Push initial state
             let filterSettings: FilterSettings;
             const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-            if (this._forSong) {
-                filterSettings = this._doc.song.eqFilter;
-            } else {
-                filterSettings = this._useNoteFilter ? instrument.noteFilter : instrument.eqFilter;
+            switch (this._filterType) {
+                case FilterEditorTypes.SongEq: filterSettings = this._doc.song.eqFilter; break;
+                case FilterEditorTypes.NoteFilter: filterSettings = instrument.noteFilter; break;
+                case FilterEditorTypes.EqFilter: filterSettings = instrument.eqFilter; break;
+                case FilterEditorTypes.Drumset: filterSettings = instrument.drumsetFilters[this._drumsetIndex]; break;
             }
             this.selfUndoSettings.push(JSON.stringify(filterSettings.toJsonObject()));
 
             this._subFilters[0] = filterSettings;
             for (let i: number = 1; i < Config.filterMorphCount; i++) {
-                if (this._forSong) {
+                if (this._filterType == FilterEditorTypes.SongEq) {
                     const subFilter: FilterSettings | null = this._doc.song.eqSubFilters[i];
                     if (subFilter != null) {
                         let parsedFilter: FilterSettings = new FilterSettings();
@@ -129,7 +141,7 @@ export class FilterEditor {
                         this._subFilters[i] = parsedFilter;
                     }
                 } else {
-                    const subFilter: FilterSettings | null = this._useNoteFilter ? instrument.noteSubFilters[i] : instrument.eqSubFilters[i];
+                    const subFilter: FilterSettings | null = this._filterType == FilterEditorTypes.NoteFilter ? instrument.noteSubFilters[i] : instrument.eqSubFilters[i];
                     if (subFilter != null) {
                         let parsedFilter: FilterSettings = new FilterSettings();
                         parsedFilter.fromJsonObject(subFilter.toJsonObject());
@@ -253,6 +265,9 @@ export class FilterEditor {
         this._addingPoint = true;
         this._selectedIndex = -1;
         let nearestDistance: number = Number.POSITIVE_INFINITY;
+        // const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+
+        // if (this._drumsetIndex > -1) console.log(this._useFilterSettings, this._filterSettings, instrument.drumsetFilters[this._drumsetIndex])
         for (let i: number = 0; i < this._useFilterSettings.controlPointCount; i++) {
             const point: FilterControlPoint = this._useFilterSettings.controlPoints[i];
             const distance: number = Math.sqrt(Math.pow(this._freqToX(point.freq) - this._mouseX, 2) + Math.pow(this._gainToY(point.gain) - this._mouseY, 2));
@@ -277,8 +292,11 @@ export class FilterEditor {
     private _whenCursorMoved(): void {
         let isDirty: boolean = false;
         if (this._writingMods) {
-            if (this._forSong) {
+            if (this._filterType == FilterEditorTypes.SongEq) {
                 this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
+            } else if (this._filterType == FilterEditorTypes.Drumset) { 
+                const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+                this._useFilterSettings = instrument.drumsetFilters[this._drumsetIndex];
             } else {
                 const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
                 this._useFilterSettings = this._getTargetFilterSettings(instrument);
@@ -296,7 +314,7 @@ export class FilterEditor {
                         newPoint.freq = data.freq;
                         newPoint.gain = data.gain;
                     }
-                } else if (this._forSong && this._dragChange instanceof ChangeSequence && this._dragChange.checkFirst() instanceof ChangeSongFilterMovePoint) {
+                } else if (this._filterType == FilterEditorTypes.SongEq && this._dragChange instanceof ChangeSequence && this._dragChange.checkFirst() instanceof ChangeSongFilterMovePoint) {
                     const data: FilterMoveData = ((this._dragChange as ChangeSequence).checkFirst() as ChangeSongFilterMovePoint).getMoveData(true);
                     const newPoint: FilterControlPoint | null = this._useFilterSettings.controlPoints[this._selectedIndex];
 
@@ -347,10 +365,10 @@ export class FilterEditor {
                     point.freq = freq;
                     point.gain = gain;
 
-                    if (this._forSong) {
+                    if (this._filterType == FilterEditorTypes.SongEq || this._filterType == FilterEditorTypes.Drumset) {
                         sequence.append(new ChangeSongFilterAddPoint(this._doc, this._useFilterSettings, point, this._useFilterSettings.controlPointCount));
                     } else {
-                        sequence.append(new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._useFilterSettings.controlPointCount, this._useNoteFilter));
+                        sequence.append(new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._useFilterSettings.controlPointCount, this._filterType == FilterEditorTypes.NoteFilter));
                     }
 
                     if (this.coordText != null) {
@@ -375,15 +393,15 @@ export class FilterEditor {
                 }
 
                 if (freq >= 0 && freq < Config.filterFreqRange) {
-                    if (this._forSong) {
+                    if (this._filterType == FilterEditorTypes.SongEq) {
                         sequence.append(new ChangeSongFilterMovePoint(this._doc, point, point.freq, freq, point.gain, gain, this._selectedIndex));
                     } else {
-                        sequence.append(new ChangeFilterMovePoint(this._doc, point, point.freq, freq, point.gain, gain, this._useNoteFilter, this._selectedIndex));
+                        sequence.append(new ChangeFilterMovePoint(this._doc, point, point.freq, freq, point.gain, gain, this._selectedIndex));
                     }
                     if (this.coordText != null) {
                         this.coordText.innerText = "(" + freq + ", " + gain + ")";
                         if (!this._writingMods) {
-                            if (this._forSong) {
+                            if (this._filterType == FilterEditorTypes.SongEq) {
                                 this._doc.song.tmpEqFilterStart = this._doc.song.eqFilter;
                                 this._doc.song.tmpEqFilterEnd = null;
                             } else {
@@ -396,10 +414,10 @@ export class FilterEditor {
                         }
                     }
                 } else {
-                    if (this._forSong) {
+                    if (this._filterType == FilterEditorTypes.SongEq || this._filterType == FilterEditorTypes.Drumset) {
                         sequence.append(new ChangeSongFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, true));
                     } else {
-                        sequence.append(new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._useNoteFilter, true));
+                        sequence.append(new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._filterType == FilterEditorTypes.NoteFilter, true));
                     }
                     this._deletingPoint = true;
                 }
@@ -410,10 +428,12 @@ export class FilterEditor {
             this._updatePath();
         }
         if (isDirty) {
-            if (this._forSong) {
+            if (this._filterType == FilterEditorTypes.SongEq) {
                 this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+            } else if (this._filterType == FilterEditorTypes.Drumset) { 
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.drumsetFilters, this._drumsetIndex);
             } else {
-                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == FilterEditorTypes.NoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
             }
         }
     }
@@ -421,8 +441,11 @@ export class FilterEditor {
     private _whenCursorReleased = (event: Event): void => {
         let isDirty: boolean = false;
         if (this._writingMods) {
-            if (this._forSong) {
+            if (this._filterType == FilterEditorTypes.SongEq) {
                 this._useFilterSettings = this._getTargetFilterSettingsForSong(this._doc.song);
+            } else if (this._filterType == FilterEditorTypes.Drumset) {
+                const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+                this._useFilterSettings = instrument.drumsetFilters[this._drumsetIndex];
             } else {
                 const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
                 this._useFilterSettings = this._getTargetFilterSettings(instrument);
@@ -434,13 +457,13 @@ export class FilterEditor {
             if (!this._addingPoint && !this._mouseDragging && !this._touchMode) {
                 if (this._selectedIndex < this._useFilterSettings.controlPointCount && this._selectedIndex != -1) {
                     const point: FilterControlPoint = this._useFilterSettings.controlPoints[this._selectedIndex];
-                    if (this._forSong) {
+                    if (this._filterType == FilterEditorTypes.SongEq || this._filterType == FilterEditorTypes.Drumset) {
                         let change: ChangeSongFilterAddPoint = new ChangeSongFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, true);
                         if (!this._larger) {
                             this._doc.record(change);
                         }
                     } else {
-                        let change: ChangeFilterAddPoint = new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._useNoteFilter, true);
+                        let change: ChangeFilterAddPoint = new ChangeFilterAddPoint(this._doc, this._useFilterSettings, point, this._selectedIndex, this._filterType == FilterEditorTypes.NoteFilter, true);
                         if (!this._larger) {
                             this._doc.record(change);
                         }
@@ -464,10 +487,12 @@ export class FilterEditor {
         this._writingMods = false;
         this._updateCursor();
         if (isDirty) {
-            if (this._forSong) {
+            if (this._filterType == FilterEditorTypes.SongEq) {
                 this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
+            } else if (this._filterType == FilterEditorTypes.Drumset) {
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), InstrumentSettings.drumsetFilters, this._drumsetIndex);
             } else {
-                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+                this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == FilterEditorTypes.NoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
             }
         }
     }
@@ -588,11 +613,13 @@ export class FilterEditor {
 
     // Swap to new filter settings all at once.
     public swapToSettings(settings: FilterSettings, useHistory: boolean = false) {
-        if (this._forSong) {
+        if (this._filterType == FilterEditorTypes.SongEq) {
             new ChangeSongFilterSettings(this._doc, settings, this._filterSettings, this._subFilters, this._doc.song.eqSubFilters);
+        } if (this._filterType == FilterEditorTypes.Drumset) { 
+            new ChangeDrumsetFilterSettings(this._doc, settings, this._filterSettings, this._drumsetIndex);
         } else {
             const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-            new ChangeFilterSettings(this._doc, settings, this._filterSettings, this._useNoteFilter, this._subFilters, this._useNoteFilter ? instrument.noteSubFilters : instrument.eqSubFilters);
+            new ChangeFilterSettings(this._doc, settings, this._filterSettings, this._filterType == FilterEditorTypes.NoteFilter, this._subFilters, this._filterType == FilterEditorTypes.NoteFilter ? instrument.noteSubFilters : instrument.eqSubFilters);
         }
         this._filterSettings = settings;
         this._subFilters[this._subfilterIndex] = settings;
@@ -610,10 +637,12 @@ export class FilterEditor {
         let firstFilter: FilterSettings = new FilterSettings;
         const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
         firstFilter.fromJsonObject(JSON.parse(String(this.selfUndoSettings[0])));
-        if (this._forSong) {
+        if (this._filterType == FilterEditorTypes.SongEq) {
             this._doc.record(new ChangeSongFilterSettings(this._doc, this._subFilters[0], firstFilter, this._subFilters, this._doc.song.eqSubFilters), true);
+        } else if (this._filterType == FilterEditorTypes.Drumset) {
+            this._doc.record(new ChangeDrumsetFilterSettings(this._doc, this._filterSettings, firstFilter, this._drumsetIndex), true);
         } else {
-            this._doc.record(new ChangeFilterSettings(this._doc, this._subFilters[0], firstFilter, this._useNoteFilter, this._subFilters, this._useNoteFilter ? instrument.noteSubFilters : instrument.eqSubFilters), true);
+            this._doc.record(new ChangeFilterSettings(this._doc, this._subFilters[0], firstFilter, this._filterType == FilterEditorTypes.NoteFilter, this._subFilters, this._filterType == FilterEditorTypes.NoteFilter ? instrument.noteSubFilters : instrument.eqSubFilters), true);
         }
     }
 
@@ -639,10 +668,10 @@ export class FilterEditor {
                 savedFilter.fromJsonObject(JSON.parse(String(this.selfUndoSettings[this.selfUndoHistoryPos])));
                 this.swapToSettings(savedFilter, false);
             }
-        } if (this._forSong) {
+        } if (this._filterType == FilterEditorTypes.SongEq) {
             this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
         } else {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == FilterEditorTypes.NoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         }
         return -1;
     }
@@ -663,10 +692,10 @@ export class FilterEditor {
                 this.swapToSettings(savedFilter, false);
             }
         }
-        if (this._forSong) {
+        if (this._filterType == FilterEditorTypes.SongEq) {
             this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.eqFilter);
         } else {
-            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._useNoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
+            this._doc.synth.updateSong(this._filterSettings.toJsonObject(), SongSettings.updateInstrument, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == FilterEditorTypes.NoteFilter ? InstrumentSettings.noteFilter : InstrumentSettings.eqFilter);
         }
         return -1;
     }
@@ -729,8 +758,8 @@ export class FilterEditor {
 
     private _getTargetFilterSettings(instrument: Instrument): FilterSettings {
         // TODO: Re-compute default point freqs/gains only when needed
-        let targetSettings: FilterSettings = (this._useNoteFilter) ? instrument.tmpNoteFilterStart! : instrument.tmpEqFilterStart!;
-        if (targetSettings == null) targetSettings = (this._useNoteFilter) ? instrument.noteFilter : instrument.eqFilter;
+        let targetSettings: FilterSettings = (this._filterType == FilterEditorTypes.NoteFilter) ? instrument.tmpNoteFilterStart! : instrument.tmpEqFilterStart!;
+        if (targetSettings == null) targetSettings = (this._filterType == FilterEditorTypes.NoteFilter) ? instrument.noteFilter : instrument.eqFilter;
 
         return targetSettings;
     }
@@ -738,7 +767,9 @@ export class FilterEditor {
     public render(activeMods: boolean = false, forceModRender: boolean = false): void {
         this._writingMods = forceModRender && this._mouseDown;
         const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-        const filterSettings: FilterSettings = this._forSong ? this._doc.song.eqFilter : (this._useNoteFilter ? instrument.noteFilter : instrument.eqFilter);
+        const filterSettings: FilterSettings = this._filterType == FilterEditorTypes.SongEq ? this._doc.song.eqFilter :
+            (this._filterType == FilterEditorTypes.Drumset ? instrument.drumsetFilters[this._drumsetIndex] :
+                (this._filterType == FilterEditorTypes.NoteFilter ? instrument.noteFilter : instrument.eqFilter));
         let displayMods: boolean = (activeMods && !this._larger && (forceModRender || (!this._mouseOver && !this._mouseDragging && !this._mouseDown)) && this._doc.synth.playing);
         if (displayMods)
             this._controlPointPath.style.setProperty("fill", `${ColorConfig.overwritingModSlider}`);
@@ -755,7 +786,7 @@ export class FilterEditor {
         // Will auto update, but if the user is writing directly to mod values then the writing point will be
         // forcibly maintained at the cursor position.
         if (displayMods) {
-            this._useFilterSettings = this._forSong ? this._getTargetFilterSettingsForSong(this._doc.song) : this._getTargetFilterSettings(instrument);
+            this._useFilterSettings = this._filterType == FilterEditorTypes.SongEq ? this._getTargetFilterSettingsForSong(this._doc.song) : this._getTargetFilterSettings(instrument);
 
             if (this._writingMods)
                 this._whenCursorMoved();

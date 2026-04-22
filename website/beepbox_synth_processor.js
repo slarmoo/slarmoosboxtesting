@@ -1525,308 +1525,32 @@ var Config = class _Config {
   static bitcrusherOctaveStep = 0.5;
   static bitcrusherQuantizationRange = 8;
   static maxEnvelopeCount = 16;
-  static defaultAutomationRange = 13;
   static instrumentAutomationTargets = toNameMap([
-    {
-      name: "none",
-      computeIndex: null,
-      displayName: "none",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: 0,                              */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: null
-    },
-    {
-      name: "noteVolume",
-      computeIndex: 0 /* noteVolume */,
-      displayName: "note volume",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.volumeRange,             */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: null
-    },
-    {
-      name: "pulseWidth",
-      computeIndex: 2 /* pulseWidth */,
-      displayName: "pulse width",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.pulseWidthRange,         */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [6 /* pwm */, 8 /* supersaw */]
-    },
-    {
-      name: "stringSustain",
-      computeIndex: 3 /* stringSustain */,
-      displayName: "sustain",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.stringSustainRange,      */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [7 /* pickedString */]
-    },
-    {
-      name: "unison",
-      computeIndex: 4 /* unison */,
-      displayName: "unison",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: null
-    },
-    {
-      name: "operatorFrequency",
-      computeIndex: 5 /* operatorFrequency0 */,
-      displayName: "fm# freq",
-      perNote: true,
-      interleave: true,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: _Config.operatorCount + 2,
-      effect: null,
-      compatibleInstruments: [1 /* fm */, 11 /* fm6op */]
-    },
-    {
-      name: "operatorAmplitude",
-      computeIndex: 11 /* operatorAmplitude0 */,
-      displayName: "fm# volume",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.operatorAmplitudeMax + 1,*/
-      maxCount: _Config.operatorCount + 2,
-      effect: null,
-      compatibleInstruments: [1 /* fm */, 11 /* fm6op */]
-    },
-    {
-      name: "feedbackAmplitude",
-      computeIndex: 17 /* feedbackAmplitude */,
-      displayName: "fm feedback",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.operatorAmplitudeMax + 1,*/
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [1 /* fm */, 11 /* fm6op */]
-    },
-    {
-      name: "pitchShift",
-      computeIndex: 18 /* pitchShift */,
-      displayName: "pitch shift",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.pitchShiftRange,         */
-      maxCount: 1,
-      effect: 7 /* pitchShift */,
-      compatibleInstruments: null
-    },
-    {
-      name: "detune",
-      computeIndex: 19 /* detune */,
-      displayName: "detune",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.detuneMax + 1,           */
-      maxCount: 1,
-      effect: 8 /* detune */,
-      compatibleInstruments: null
-    },
-    {
-      name: "vibratoDepth",
-      computeIndex: 20 /* vibratoDepth */,
-      displayName: "vibrato depth",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: 9 /* vibrato */,
-      compatibleInstruments: null
-    },
-    {
-      name: "noteFilterAllFreqs",
-      computeIndex: 1 /* noteFilterAllFreqs */,
-      displayName: "n. filter freqs",
-      perNote: true,
-      interleave: false,
-      isFilter: true,
-      /*range: null,                           */
-      maxCount: 1,
-      effect: 5 /* noteFilter */,
-      compatibleInstruments: null
-    },
-    {
-      name: "noteFilterFreq",
-      computeIndex: 22 /* noteFilterFreq0 */,
-      displayName: "n. filter # freq",
-      perNote: true,
-      interleave: false,
-      isFilter: true,
-      /*range: Config.filterFreqRange,     */
-      maxCount: _Config.filterMaxPoints,
-      effect: 5 /* noteFilter */,
-      compatibleInstruments: null
-    },
-    {
-      name: "decimalOffset",
-      computeIndex: 38 /* decimalOffset */,
-      displayName: "decimal offset",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.pulseWidthRange,         */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [6 /* pwm */, 8 /* supersaw */]
-    },
-    {
-      name: "supersawDynamism",
-      computeIndex: 39 /* supersawDynamism */,
-      displayName: "dynamism",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.supersawDynamismMax + 1, */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [8 /* supersaw */]
-    },
-    {
-      name: "supersawSpread",
-      computeIndex: 40 /* supersawSpread */,
-      displayName: "spread",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.supersawSpreadMax + 1,   */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [8 /* supersaw */]
-    },
-    {
-      name: "supersawShape",
-      computeIndex: 41 /* supersawShape */,
-      displayName: "saw\u2194pulse",
-      perNote: true,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.supersawShapeMax + 1,    */
-      maxCount: 1,
-      effect: null,
-      compatibleInstruments: [8 /* supersaw */]
-    },
-    {
-      name: "panning",
-      computeIndex: 42 /* panning */,
-      displayName: "panning",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.chorusRange,    */
-      maxCount: 1,
-      effect: 2 /* panning */,
-      compatibleInstruments: null
-    },
-    {
-      name: "distortion",
-      computeIndex: 43 /* distortion */,
-      displayName: "distortion",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: 3 /* distortion */,
-      compatibleInstruments: null
-    },
-    {
-      name: "bitcrusherQuantization",
-      computeIndex: 44 /* bitcrusherQuantization */,
-      displayName: "bitcrush",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: 4 /* bitcrusher */,
-      compatibleInstruments: null
-    },
-    {
-      name: "bitcrusherFrequency",
-      computeIndex: 45 /* bitcrusherFrequency */,
-      displayName: "freq crush",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: 4 /* bitcrusher */,
-      compatibleInstruments: null
-    },
-    {
-      name: "chorus",
-      computeIndex: 46 /* chorus */,
-      displayName: "chorus",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.chorusRange,    */
-      maxCount: 1,
-      effect: 1 /* chorus */,
-      compatibleInstruments: null
-    },
-    {
-      name: "echoSustain",
-      computeIndex: 47 /* echoSustain */,
-      displayName: "echo",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.chorusRange,    */
-      maxCount: 1,
-      effect: 6 /* echo */,
-      compatibleInstruments: null
-    },
-    {
-      name: "reverb",
-      computeIndex: 48 /* reverb */,
-      displayName: "reverb",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.chorusRange,    */
-      maxCount: 1,
-      effect: 0 /* reverb */,
-      compatibleInstruments: null
-    },
-    {
-      name: "arpeggioSpeed",
-      computeIndex: 49 /* arpeggioSpeed */,
-      displayName: "arpeggio speed",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.chorusRange,    */
-      maxCount: 1,
-      effect: 11 /* chord */,
-      compatibleInstruments: null
-    },
+    { name: "none", computeIndex: null, displayName: "none", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
+    { name: "noteVolume", computeIndex: 0 /* noteVolume */, displayName: "note volume", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
+    { name: "pulseWidth", computeIndex: 2 /* pulseWidth */, displayName: "pulse width", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [6 /* pwm */, 8 /* supersaw */] },
+    { name: "stringSustain", computeIndex: 3 /* stringSustain */, displayName: "sustain", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [7 /* pickedString */] },
+    { name: "unison", computeIndex: 4 /* unison */, displayName: "unison", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
+    { name: "operatorFrequency", computeIndex: 5 /* operatorFrequency0 */, displayName: "fm# freq", perNote: true, interleave: true, isFilter: false, maxCount: _Config.operatorCount + 2, effect: null, compatibleInstruments: [1 /* fm */, 11 /* fm6op */] },
+    { name: "operatorAmplitude", computeIndex: 11 /* operatorAmplitude0 */, displayName: "fm# volume", perNote: true, interleave: false, isFilter: false, maxCount: _Config.operatorCount + 2, effect: null, compatibleInstruments: [1 /* fm */, 11 /* fm6op */] },
+    { name: "feedbackAmplitude", computeIndex: 17 /* feedbackAmplitude */, displayName: "fm feedback", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [1 /* fm */, 11 /* fm6op */] },
+    { name: "pitchShift", computeIndex: 18 /* pitchShift */, displayName: "pitch shift", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 7 /* pitchShift */, compatibleInstruments: null },
+    { name: "detune", computeIndex: 19 /* detune */, displayName: "detune", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 8 /* detune */, compatibleInstruments: null },
+    { name: "vibratoDepth", computeIndex: 20 /* vibratoDepth */, displayName: "vibrato depth", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: 9 /* vibrato */, compatibleInstruments: null },
+    { name: "noteFilterAllFreqs", computeIndex: 1 /* noteFilterAllFreqs */, displayName: "n. filter freqs", perNote: true, interleave: false, isFilter: true, maxCount: 1, effect: 5 /* noteFilter */, compatibleInstruments: null },
+    { name: "noteFilterFreq", computeIndex: 22 /* noteFilterFreq0 */, displayName: "n. filter # freq", perNote: true, interleave: false, isFilter: true, maxCount: _Config.filterMaxPoints, effect: 5 /* noteFilter */, compatibleInstruments: null },
+    { name: "decimalOffset", computeIndex: 38 /* decimalOffset */, displayName: "decimal offset", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [6 /* pwm */, 8 /* supersaw */] },
+    { name: "supersawDynamism", computeIndex: 39 /* supersawDynamism */, displayName: "dynamism", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [8 /* supersaw */] },
+    { name: "supersawSpread", computeIndex: 40 /* supersawSpread */, displayName: "spread", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [8 /* supersaw */] },
+    { name: "supersawShape", computeIndex: 41 /* supersawShape */, displayName: "saw\u2194pulse", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: [8 /* supersaw */] },
+    { name: "panning", computeIndex: 42 /* panning */, displayName: "panning", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 2 /* panning */, compatibleInstruments: null },
+    { name: "distortion", computeIndex: 43 /* distortion */, displayName: "distortion", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 3 /* distortion */, compatibleInstruments: null },
+    { name: "bitcrusherQuantization", computeIndex: 44 /* bitcrusherQuantization */, displayName: "bitcrush", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 4 /* bitcrusher */, compatibleInstruments: null },
+    { name: "bitcrusherFrequency", computeIndex: 45 /* bitcrusherFrequency */, displayName: "freq crush", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 4 /* bitcrusher */, compatibleInstruments: null },
+    { name: "chorus", computeIndex: 46 /* chorus */, displayName: "chorus", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 1 /* chorus */, compatibleInstruments: null },
+    { name: "echoSustain", computeIndex: 47 /* echoSustain */, displayName: "echo", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6 /* echo */, compatibleInstruments: null },
+    { name: "reverb", computeIndex: 48 /* reverb */, displayName: "reverb", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 0 /* reverb */, compatibleInstruments: null },
+    { name: "arpeggioSpeed", computeIndex: 49 /* arpeggioSpeed */, displayName: "arpeggio speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 11 /* chord */, compatibleInstruments: null },
     { name: "ringModulation", computeIndex: 50 /* ringModulation */, displayName: "ring mod", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
     { name: "ringModulationHz", computeIndex: 51 /* ringModulationHz */, displayName: "ring mod hz", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 13 /* ringModulation */, compatibleInstruments: null },
     { name: "granular", computeIndex: 52 /* granular */, displayName: "granular", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
@@ -1834,31 +1558,9 @@ var Config = class _Config {
     { name: "grainSize", computeIndex: 54 /* grainSize */, displayName: "grain size", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
     { name: "grainRange", computeIndex: 55 /* grainRange */, displayName: "grain range", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 14 /* granular */, compatibleInstruments: null },
     { name: "echoDelay", computeIndex: 56 /* echoDelay */, displayName: "echo delay", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 6 /* echo */, compatibleInstruments: null },
-    {
-      name: "vibratoSpeed",
-      computeIndex: 21 /* vibratoSpeed */,
-      displayName: "vibrato speed",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: 1,
-      effect: 9 /* vibrato */,
-      compatibleInstruments: null
-    },
+    { name: "vibratoSpeed", computeIndex: 21 /* vibratoSpeed */, displayName: "vibrato speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 9 /* vibrato */, compatibleInstruments: null },
     { name: "slideSpeed", computeIndex: 57 /* slideSpeed */, displayName: "slide speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: 10 /* transition */, compatibleInstruments: null },
-    {
-      name: "envelopeSpeed#",
-      computeIndex: 59 /* envelopeSpeed0 */,
-      displayName: "env# speed",
-      perNote: false,
-      interleave: false,
-      isFilter: false,
-      /*range: Config.defaultAutomationRange,  */
-      maxCount: _Config.maxEnvelopeCount,
-      effect: null,
-      compatibleInstruments: null
-    },
+    { name: "envelopeSpeed#", computeIndex: 59 /* envelopeSpeed0 */, displayName: "env# speed", perNote: false, interleave: false, isFilter: false, maxCount: _Config.maxEnvelopeCount, effect: null, compatibleInstruments: null },
     // maxCount special case for envelopes to be allowed to target earlier ones.
     // { name: "strumSpeed", computeIndex: EnvelopeComputeIndex.strumSpeed, displayName: "strum speed", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: EffectType.chord, compatibleInstruments: null },
     { name: "plugin", computeIndex: 75 /* plugin */, displayName: "plugin #", perNote: false, interleave: false, isFilter: false, maxCount: 63, effect: 15 /* plugin */, compatibleInstruments: null }
@@ -4960,6 +4662,7 @@ var Instrument = class {
   harmonicsWave = new HarmonicsWave();
   drumsetEnvelopes = [];
   drumsetSpectrumWaves = [];
+  drumsetFilters = [];
   modChannels = [];
   modInstruments = [];
   modulators = [];
@@ -4980,9 +4683,11 @@ var Instrument = class {
     for (let i = 0; i < Config.operatorCount + 2; i++) {
       this.operators[i] = new Operator(i);
     }
-    for (let i = 0; i < Config.drumCount; i++) {
+    if (isNoiseChannel) for (let i = 0; i < Config.drumCount; i++) {
       this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
       this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
+      this.drumsetFilters[i] = new FilterSettings();
+      this.drumsetFilters[i].addPoint(0 /* lowPass */, FilterControlPoint.getRoundedSettingValueFromHz(8e3), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.5));
     }
     for (let i = 0; i < 64; i++) {
       this.customChipWave[i] = 24 - Math.floor(i * (48 / 64));
@@ -5044,6 +4749,7 @@ var Instrument = class {
     this.vibrato = 0;
     this.unison = 0;
     this.unisonBuzzes = false;
+    this.unisonAntiPhased = type == 3 /* spectrum */ || type == 4 /* drumset */;
     this.stringSustain = 10;
     this.stringSustainType = Config.enableAcousticSustain ? 1 /* acoustic */ : 0 /* bright */;
     this.clicklessTransition = false;
@@ -5132,6 +4838,8 @@ var Instrument = class {
             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
           }
           this.drumsetSpectrumWaves[i].reset(isNoiseChannel);
+          this.drumsetFilters[i] = new FilterSettings();
+          this.drumsetFilters[i].addPoint(0 /* lowPass */, FilterControlPoint.getRoundedSettingValueFromHz(8e3), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.5));
         }
         break;
       case 5 /* harmonics */:
@@ -5408,7 +5116,8 @@ var Instrument = class {
         }
         instrumentObject["drums"][j] = {
           "filterEnvelope": this.getDrumsetEnvelope(j).name,
-          "spectrum": spectrum
+          "spectrum": spectrum,
+          "filter": this.drumsetFilters[j].toJsonObject()
         };
       }
     } else if (this.type == 0 /* chip */) {
@@ -5829,6 +5538,12 @@ var Instrument = class {
               this.drumsetSpectrumWaves[j].spectrum[i] = Math.max(0, Math.min(Config.spectrumMax, Math.round(Config.spectrumMax * +drum["spectrum"][i] / 100)));
             }
           }
+          this.drumsetFilters[j] = new FilterSettings();
+          if (drum["filter"] != void 0) {
+            this.drumsetFilters[j].fromJsonObject(drum["filter"]);
+          } else {
+            this.drumsetFilters[j].addPoint(0 /* lowPass */, FilterControlPoint.getRoundedSettingValueFromHz(8e3), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.5));
+          }
           this.drumsetSpectrumWaves[j].markCustomWaveDirty();
         }
       }
@@ -6248,7 +5963,7 @@ var Instrument = class {
       return effectsIncludeTransition(this.effects) && this.getTransition().slides;
     }
     if ((automationTarget.computeIndex || 0) >= 59 /* envelopeSpeed0 */ && (automationTarget.computeIndex || 0) <= 74 /* envelopeSpeed15 */) {
-      if (index >= envelopeIndex) return false;
+      if (index >= envelopeIndex || index >= this.envelopeCount) return false;
       const envelope = this.envelopes[index];
       if ([0 /* none */, 1 /* noteSize */, 4 /* punch */, 2 /* pitch */].indexOf(envelope.envelope) >= 0) return false;
       if (envelope.envelope == 3 /* pseudorandom */) {
@@ -6970,6 +6685,13 @@ var Song = class _Song {
           buffer.push(122 /* drumsetEnvelopes */);
           for (let j = 0; j < Config.drumCount; j++) {
             buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[j]]);
+          }
+          for (let j = 0; j < Config.drumCount; j++) {
+            buffer.push(base64IntToCharCode[instrument.drumsetFilters[j].controlPointCount]);
+            for (let k = 0; k < instrument.drumsetFilters[j].controlPointCount; k++) {
+              const point = instrument.drumsetFilters[j].controlPoints[k];
+              buffer.push(base64IntToCharCode[point.type], base64IntToCharCode[Math.round(point.freq)], base64IntToCharCode[Math.round(point.gain)]);
+            }
           }
           buffer.push(83 /* spectrum */);
           const spectrumBits = new BitFieldWriter();
@@ -7928,6 +7650,19 @@ var Song = class _Song {
               if (beforeTwo && fromGoldBox || !fromGoldBox && !fromUltraBox && !fromSlarmoosBox) aa = pregoldToEnvelope[aa];
               if (!fromSlarmoosBox && aa >= 2) aa++;
               instrument.drumsetEnvelopes[i2] = clamp(0, Config.envelopePresets.length, aa);
+            }
+            if (fromSlarmoosBox && !beforeSix) {
+              for (let i2 = 0; i2 < Config.drumCount; i2++) {
+                instrument.drumsetFilters[i2] = new FilterSettings();
+                instrument.drumsetFilters[i2].controlPointCount = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                for (let j = 0; j < instrument.drumsetFilters[i2].controlPointCount; j++) {
+                  const point = new FilterControlPoint();
+                  point.type = clamp(0, 3 /* length */, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                  point.freq = clamp(0, Config.filterFreqRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                  point.gain = clamp(0, Config.filterGainRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                  instrument.drumsetFilters[i2].controlPoints[j] = point;
+                }
+              }
             }
           }
         }
@@ -9887,6 +9622,7 @@ var Song = class _Song {
             instrument.eqFilter.fromJsonObject(data);
             instrument.tmpEqFilterStart = instrument.eqFilter;
             instrument.tmpEqFilterEnd = null;
+            instrument.clearInvalidEnvelopeTargets();
             break;
           case 12 /* eqFilterType */:
             instrument.eqFilterType = numberData == 1;
@@ -9909,6 +9645,7 @@ var Song = class _Song {
             instrument.noteFilter.fromJsonObject(data);
             instrument.tmpNoteFilterStart = instrument.noteFilter;
             instrument.tmpNoteFilterEnd = null;
+            instrument.clearInvalidEnvelopeTargets();
             break;
           case 16 /* noteFilterType */:
             instrument.noteFilterType = numberData == 1;
@@ -10216,22 +9953,25 @@ var Song = class _Song {
             instrument.drumsetSpectrumWaves[settingIndex].spectrum = data;
             instrument.drumsetSpectrumWaves[settingIndex].markCustomWaveDirty();
             break;
-          case 96 /* modChannels */:
+          case 96 /* drumsetFilters */:
+            instrument.drumsetFilters[settingIndex].fromJsonObject(data);
+            break;
+          case 97 /* modChannels */:
             instrument.modChannels = data;
             break;
-          case 97 /* modInstruments */:
+          case 98 /* modInstruments */:
             instrument.modInstruments = data;
             break;
-          case 98 /* modulators */:
+          case 99 /* modulators */:
             instrument.modulators = data;
             break;
-          case 99 /* modFilterTypes */:
+          case 100 /* modFilterTypes */:
             instrument.modFilterTypes = data;
             break;
-          case 100 /* modEnvelopeNumbers */:
+          case 101 /* modEnvelopeNumbers */:
             instrument.modEnvelopeNumbers = data;
             break;
-          case 101 /* invalidModulators */:
+          case 102 /* invalidModulators */:
             instrument.invalidModulators = data;
             break;
         }
@@ -13990,7 +13730,6 @@ var Synth = class _Synth extends SynthTemplate {
   tickSampleCountdown = 0;
   static tempFilterStartCoefficients = new FilterCoefficients();
   static tempFilterEndCoefficients = new FilterCoefficients();
-  tempDrumSetControlPoint = new FilterControlPoint();
   tempFrequencyResponse = new FrequencyResponse();
   loopBarStart = -1;
   /** An *inclusive* bound. */
@@ -15113,7 +14852,6 @@ var Synth = class _Synth extends SynthTemplate {
               let passedEndOfNote = false;
               if (noteStartPart > currentPart) {
                 if (toneList.count() > i && (transition2.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
-                  console.log("here");
                   nextNoteForThisTone = noteForThisTone;
                   noteForThisTone = prevNoteForThisTone;
                   pitchesForThisTone = noteForThisTone.pitches;
@@ -15649,17 +15387,17 @@ var Synth = class _Synth extends SynthTemplate {
       drumsetEnvelopeComputer.computeDrumsetEnvelopes(instrument, drumsetFilterEnvelope, beatsPerPart, partTimeStart, partTimeEnd);
       const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
       const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
-      const point = this.tempDrumSetControlPoint;
-      point.type = 0 /* lowPass */;
-      point.gain = FilterControlPoint.getRoundedSettingValueFromLinearGain(0.5);
-      point.freq = FilterControlPoint.getRoundedSettingValueFromHz(8e3);
-      point.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1 + drumsetFilterEnvelopeStart), 1);
-      point.toCoefficients(_Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1 + drumsetFilterEnvelopeEnd), 1);
-      if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
-      if (tone.noteFiltersR.length == tone.noteFilterCount) tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
-      tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(_Synth.tempFilterStartCoefficients, _Synth.tempFilterEndCoefficients, 1 / roundedSamplesPerTick, true);
-      tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(_Synth.tempFilterStartCoefficients, _Synth.tempFilterEndCoefficients, 1 / roundedSamplesPerTick, true);
-      tone.noteFilterCount++;
+      const drumsetFilter = instrument.drumsetFilters[11 - tone.drumsetPitch];
+      for (let i = 0; i < drumsetFilter.controlPointCount; i++) {
+        const point = drumsetFilter.controlPoints[i];
+        point.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1 + drumsetFilterEnvelopeStart), 1);
+        point.toCoefficients(_Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1 + drumsetFilterEnvelopeEnd), 1);
+        if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
+        if (tone.noteFiltersR.length == tone.noteFilterCount) tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
+        tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(_Synth.tempFilterStartCoefficients, _Synth.tempFilterEndCoefficients, 1 / roundedSamplesPerTick, true);
+        tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(_Synth.tempFilterStartCoefficients, _Synth.tempFilterEndCoefficients, 1 / roundedSamplesPerTick, true);
+        tone.noteFilterCount++;
+      }
     }
     noteFilterExpression = Math.min(3, noteFilterExpression);
     if (instrument.type == 1 /* fm */ || instrument.type == 11 /* fm6op */) {
