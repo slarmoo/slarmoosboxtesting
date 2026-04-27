@@ -38,17 +38,15 @@ export class SpectrumEditor {
     private _renderedPath: String = "";
     private _renderedFifths: boolean = true;
     private instrument: Instrument;
-    // private _initial: SpectrumWave = new SpectrumWave(this._spectrumIndex != null);
 
     private _undoHistoryState: number = 0;
     private _changeQueue: number[][] = [];
 
     private _doc: SongDocument;
 
-    constructor(_doc: SongDocument, private _spectrumIndex: number | null, private _isPrompt: boolean = false) {
+    constructor(_doc: SongDocument, public _spectrumIndex: number | null, private _isPrompt: boolean = false, private _notifyCommandSystem?: () => void) {
         this._doc = _doc;
         this.instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-        // this._initial.spectrum = this._spectrumIndex == null ? this.instrument.spectrumWave.spectrum.slice() : this.instrument.drumsetSpectrumWaves[this._spectrumIndex].spectrum.slice();
         for (let i: number = 0; i < Config.spectrumControlPoints; i += Config.spectrumControlPointsPerOctave) {
             this._octaves.appendChild(rect({ fill: ColorConfig.tonic, x: (i + 1) * this._editorWidth / (Config.spectrumControlPoints + 2) - 1, y: 0, width: 2, height: this._editorHeight }));
         }
@@ -81,7 +79,7 @@ export class SpectrumEditor {
         }
 
         if (sameCheck == false || this._changeQueue.length == 0) {
-
+            if (this._notifyCommandSystem != undefined) this._notifyCommandSystem();
             // Create new branch in history, removing all after this in time
             this._changeQueue.splice(0, this._undoHistoryState);
 
@@ -95,7 +93,6 @@ export class SpectrumEditor {
             }
 
         }
-
     }
 
     public undo = (): void => {
@@ -105,7 +102,6 @@ export class SpectrumEditor {
             const spectrum: number[] = this._changeQueue[this._undoHistoryState].slice();
             this.setSpectrumWave(spectrum);
         }
-
     }
 
     public redo = (): void => {
@@ -115,7 +111,6 @@ export class SpectrumEditor {
             const spectrum: number[] = this._changeQueue[this._undoHistoryState].slice();
             this.setSpectrumWave(spectrum);
         }
-
     }
 
     private _xToFreq(x: number): number {
@@ -300,8 +295,4 @@ export class SpectrumEditor {
             this._fifths.style.display = this._doc.prefs.showFifth ? "" : "none";
         }
     }
-
-    // public reassignDoc(_doc: SongDocument) {
-    //     this._doc = _doc;
-    // }
 }

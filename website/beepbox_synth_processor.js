@@ -15387,7 +15387,7 @@ var Synth = class _Synth extends SynthTemplate {
       drumsetEnvelopeComputer.computeDrumsetEnvelopes(instrument, drumsetFilterEnvelope, beatsPerPart, partTimeStart, partTimeEnd);
       const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
       const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
-      const drumsetFilter = instrument.drumsetFilters[11 - tone.drumsetPitch];
+      const drumsetFilter = instrument.drumsetFilters[tone.drumsetPitch];
       for (let i = 0; i < drumsetFilter.controlPointCount; i++) {
         const point = drumsetFilter.controlPoints[i];
         point.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1 + drumsetFilterEnvelopeStart), 1);

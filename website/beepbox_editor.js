@@ -119,7 +119,7 @@ var beepbox = (() => {
     Pattern: () => Pattern,
     Song: () => Song,
     SongDocument: () => SongDocument,
-    SongEditor: () => SongEditor,
+    SongEditor: () => SongEditor2,
     Synth: () => SynthMessenger
   });
 
@@ -24808,7 +24808,7 @@ li.select2-results__option[role=group] > strong:hover {
         drumsetEnvelopeComputer.computeDrumsetEnvelopes(instrument, drumsetFilterEnvelope, beatsPerPart, partTimeStart, partTimeEnd);
         const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
         const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
-        const drumsetFilter = instrument.drumsetFilters[11 - tone.drumsetPitch];
+        const drumsetFilter = instrument.drumsetFilters[tone.drumsetPitch];
         for (let i = 0; i < drumsetFilter.controlPointCount; i++) {
           const point = drumsetFilter.controlPoints[i];
           point.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1 + drumsetFilterEnvelopeStart), 1);
@@ -40374,13 +40374,15 @@ You should be redirected to the song at:<br /><br />
     _renderedPointGains = -1;
     //private _renderedKey: number = -1;
     _filterType;
-    // private _useNoteFilter: boolean = false;
     _larger = false;
-    // private _forSong: boolean = false;
     _drumsetIndex = 0;
     _whenKeyPressed = /* @__PURE__ */ __name((event) => {
       if (event.keyCode == 90) {
-        this.undo();
+        if (event.shiftKey) {
+          this.redo();
+        } else {
+          this.undo();
+        }
         event.stopPropagation();
       }
       if (event.keyCode == 89) {
@@ -40810,6 +40812,9 @@ You should be redirected to the song at:<br /><br />
         this._doc.record(new ChangeFilterSettings(this._doc, this._subFilters[0], firstFilter, this._filterType == 0 /* NoteFilter */, this._subFilters, this._filterType == 0 /* NoteFilter */ ? instrument.noteSubFilters : instrument.eqSubFilters), true);
       }
     }
+    get filterSettings() {
+      return this._filterSettings;
+    }
     // Self-undo history management
     // Returns the subfilter index to swap to, if any
     undo() {
@@ -40833,6 +40838,8 @@ You should be redirected to the song at:<br /><br />
       }
       if (this._filterType == 2 /* SongEq */) {
         this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 18 /* eqFilter */);
+      } else if (this._filterType == 3 /* Drumset */) {
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 29 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 96 /* drumsetFilters */, this._drumsetIndex);
       } else {
         this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 29 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == 0 /* NoteFilter */ ? 15 /* noteFilter */ : 11 /* eqFilter */);
       }
@@ -40855,6 +40862,8 @@ You should be redirected to the song at:<br /><br />
       }
       if (this._filterType == 2 /* SongEq */) {
         this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 18 /* eqFilter */);
+      } else if (this._filterType == 3 /* Drumset */) {
+        this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 29 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), 96 /* drumsetFilters */, this._drumsetIndex);
       } else {
         this._doc.synth.updateSong(this._filterSettings.toJsonObject(), 29 /* updateInstrument */, this._doc.channel, this._doc.getCurrentInstrument(), this._filterType == 0 /* NoteFilter */ ? 15 /* noteFilter */ : 11 /* eqFilter */);
       }
@@ -40960,7 +40969,7 @@ You should be redirected to the song at:<br /><br />
       this._filterPasteButton.addEventListener("click", this._pasteFilterSettings);
       this.updatePlayButton();
       let colors = ColorConfig.getChannelColor(this._doc.song, this._doc.channel);
-      this.filterEditor = new FilterEditor(_doc, _useNoteFilter, true, this.forSong);
+      this.filterEditor = new FilterEditor(_doc, _useNoteFilter ? 0 /* NoteFilter */ : forSong ? 2 /* SongEq */ : 3 /* Drumset */, true);
       this._filterContainer.appendChild(this.filterEditor.container);
       this.filterEditor.container.insertBefore(this._filterCoordinateText, this.filterEditor.container.firstChild);
       this.filterEditor.coordText = this._filterCoordinateText;
@@ -41049,7 +41058,7 @@ You should be redirected to the song at:<br /><br />
       window.localStorage.setItem("filterCopy", JSON.stringify(filterCopy));
     }, "_copyFilterSettings");
     _pasteFilterSettings = /* @__PURE__ */ __name(() => {
-      let filterCopy = new FilterSettings();
+      const filterCopy = new FilterSettings();
       filterCopy.fromJsonObject(JSON.parse(String(window.localStorage.getItem("filterCopy"))));
       if (filterCopy != null) {
         this.filterEditor.swapToSettings(filterCopy, true);
@@ -45995,9 +46004,10 @@ You should be redirected to the song at:<br /><br />
   var { div: div26 } = HTML;
   var { svg, path, rect } = SVG;
   var SpectrumEditor = class {
-    constructor(_doc, _spectrumIndex, _isPrompt = false) {
+    constructor(_doc, _spectrumIndex, _isPrompt = false, _notifyCommandSystem) {
       this._spectrumIndex = _spectrumIndex;
       this._isPrompt = _isPrompt;
+      this._notifyCommandSystem = _notifyCommandSystem;
       this._doc = _doc;
       this.instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
       for (let i = 0; i < Config.spectrumControlPoints; i += Config.spectrumControlPointsPerOctave) {
@@ -46043,7 +46053,6 @@ You should be redirected to the song at:<br /><br />
     _renderedPath = "";
     _renderedFifths = true;
     instrument;
-    // private _initial: SpectrumWave = new SpectrumWave(this._spectrumIndex != null);
     _undoHistoryState = 0;
     _changeQueue = [];
     _doc;
@@ -46059,6 +46068,7 @@ You should be redirected to the song at:<br /><br />
         }
       }
       if (sameCheck == false || this._changeQueue.length == 0) {
+        if (this._notifyCommandSystem != void 0) this._notifyCommandSystem();
         this._changeQueue.splice(0, this._undoHistoryState);
         this._undoHistoryState = 0;
         this._changeQueue.unshift(spectrum.spectrum.slice());
@@ -46240,24 +46250,88 @@ You should be redirected to the song at:<br /><br />
         this._fifths.style.display = this._doc.prefs.showFifth ? "" : "none";
       }
     }
-    // public reassignDoc(_doc: SongDocument) {
-    //     this._doc = _doc;
-    // }
   };
 
   // editor/prompts/SpectrumEditorPrompt.ts
   var { h2: h225, div: div27, button: button24 } = HTML;
   var { svg: svg2, path: path2 } = SVG;
+  var DrumsetCommand = class {
+    constructor(_drumsetPrompt, _command) {
+      this._drumsetPrompt = _drumsetPrompt;
+      this._command = _command;
+    }
+    static {
+      __name(this, "DrumsetCommand");
+    }
+    _oldValue;
+  };
+  var SwitchDrumsetIndexCommand = class extends DrumsetCommand {
+    static {
+      __name(this, "SwitchDrumsetIndexCommand");
+    }
+    constructor(drumsetPrompt, index) {
+      super(drumsetPrompt, index);
+      this._oldValue = this._drumsetPrompt.drumsetIndex;
+    }
+    do() {
+      this._drumsetPrompt.setDrumSpectrum(this._command);
+    }
+    undo() {
+      this._drumsetPrompt.setDrumSpectrum(this._oldValue);
+    }
+  };
+  var SpectrumUpdateCommand = class extends DrumsetCommand {
+    static {
+      __name(this, "SpectrumUpdateCommand");
+    }
+    constructor(drumsetPrompt) {
+      super(drumsetPrompt, null);
+    }
+    do() {
+      this._drumsetPrompt.spectrumEditor.redo();
+    }
+    undo() {
+      this._drumsetPrompt.spectrumEditor.undo();
+    }
+  };
+  var FilterUpdateCommand = class extends DrumsetCommand {
+    static {
+      __name(this, "FilterUpdateCommand");
+    }
+    constructor(drumsetPrompt) {
+      super(drumsetPrompt, null);
+    }
+    do() {
+      this._drumsetPrompt.filterEditors[this._drumsetPrompt.drumsetIndex].redo();
+    }
+    undo() {
+      this._drumsetPrompt.filterEditors[this._drumsetPrompt.drumsetIndex].undo();
+    }
+  };
+  var DrumsetViewUpdateCommand = class extends DrumsetCommand {
+    static {
+      __name(this, "DrumsetViewUpdateCommand");
+    }
+    constructor(drumsetPrompt, view) {
+      super(drumsetPrompt, view);
+      this._oldValue = this._drumsetPrompt.drumsetView;
+    }
+    do() {
+      this._drumsetPrompt.switchDrumsetView(this._command, false);
+    }
+    undo() {
+      this._drumsetPrompt.switchDrumsetView(this._oldValue, false);
+    }
+  };
   var SpectrumEditorPrompt = class {
-    constructor(_doc, _songEditor, _isDrumset) {
+    constructor(_doc, _songEditor, _isDrumset, initialView) {
       this._doc = _doc;
       this._songEditor = _songEditor;
       this._isDrumset = _isDrumset;
-      this.spectrumEditor = new SpectrumEditor(this._doc, null, true);
-      this.filterEditor = new FilterEditor(this._doc, 3 /* Drumset */, true, 0);
+      this.spectrumEditor = new SpectrumEditor(this._doc, null, true, () => this._pushCommand(new SpectrumUpdateCommand(this)));
       this.container = div27(
         { class: "prompt noSelection", style: "width: 500px;" },
-        h225("Edit Spectrum Instrument"),
+        h225(`Edit ${this._isDrumset ? "Drumset" : "Spectrum"} Instrument`),
         div27(
           { style: "display: flex; width: 55%; align-self: center; flex-direction: row; align-items: center; justify-content: center;" },
           this._playButton
@@ -46267,7 +46341,10 @@ You should be redirected to the song at:<br /><br />
         div27(
           { style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 80%" },
           this.spectrumEditor.container,
-          this.filterEditor.container
+          this._filterEditorContainer
+        ),
+        div27(
+          { style: "display: flex; flex-direction: row; align-items: center; justify-content: center; width: 80%" }
         ),
         div27(
           { style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
@@ -46292,11 +46369,15 @@ You should be redirected to the song at:<br /><br />
         this.spectrumEditors[this._drumsetIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
       });
       this.spectrumEditor.container.addEventListener("mousedown", this.spectrumEditor.render.bind(this.spectrumEditor));
+      this._filterEditorContainer.addEventListener("mouseup", (event) => this._pushCommand(new FilterUpdateCommand(this)));
+      this._filterEditorContainer.addEventListener("touchend", (event) => this._pushCommand(new FilterUpdateCommand(this)));
+      this._filterEditorContainer.addEventListener("touchcancel", (event) => this._pushCommand(new FilterUpdateCommand(this)));
       this.updatePlayButton();
       if (this._isDrumset) {
         for (let i = Config.drumCount - 1; i >= 0; i--) {
           this.spectrumEditors[i] = new SpectrumEditor(this._doc, Config.drumCount - 1 - i, true);
-          this.spectrumEditors[i].setSpectrumWave(this._songEditor._drumsetSpectrumEditors[Config.drumCount - 1 - i].getSpectrumWave().spectrum);
+          this.spectrumEditors[i].setSpectrumWave(this._songEditor.drumsetSpectrumEditors[Config.drumCount - 1 - i].getSpectrumWave().spectrum);
+          this.filterEditors[i] = new FilterEditor(this._doc, 3 /* Drumset */, true, Config.drumCount - 1 - i);
         }
         let colors = ColorConfig.getChannelColor(this._doc.song, this._doc.channel);
         for (let i = 0; i < Config.drumCount; i++) {
@@ -46304,7 +46385,8 @@ You should be redirected to the song at:<br /><br />
           this._drumsetButtons.push(newSpectrumButton);
           this._drumsetButtonContainer.appendChild(newSpectrumButton);
           newSpectrumButton.addEventListener("click", () => {
-            this._setDrumSpectrum(i);
+            this._pushCommand(new SwitchDrumsetIndexCommand(this, i));
+            this.setDrumSpectrum(i);
           });
         }
         this._drumsetButtons[Config.drumCount - 1].classList.add("last-button");
@@ -46315,11 +46397,16 @@ You should be redirected to the song at:<br /><br />
         this._drumsetButtonContainer.style.setProperty("--background-color-dim", colors.secondaryChannel);
         this._drumsetButtonContainer.style.display = "";
         this._drumsetSwitchContainer.style.display = "";
-        this._switchDrumsetView(0 /* spectrum */);
         this.spectrumEditor.container.style.display = "";
-        this.spectrumEditor.undo();
-        this.spectrumEditor.setSpectrumWave(this.spectrumEditors[this._drumsetIndex].getSpectrumWave().spectrum);
+        this.spectrumEditor.resetToInitial();
+        this.spectrumEditor.setSpectrumWave(this.spectrumEditors[this._drumsetIndex].getSpectrumWave().spectrum, false);
         this.spectrumEditor.storeChange();
+        this._commands = [];
+        this._commandIndex = 0;
+        this.drumsetIndex = 0;
+        const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+        this.filterEditors[this._drumsetIndex].swapToSettings(instrument.drumsetFilters[Config.drumCount - 1 - this._drumsetIndex], false);
+        this.switchDrumsetView(initialView, false);
       } else {
         this._drumsetButtonContainer.style.display = "none";
         this.spectrumEditors[0] = this.spectrumEditor;
@@ -46332,17 +46419,28 @@ You should be redirected to the song at:<br /><br />
       __name(this, "SpectrumEditorPrompt");
     }
     spectrumEditor;
-    //for drumsets
-    filterEditor;
-    // private envelopeEditor: EnvelopeEditor;
     spectrumEditors = [];
+    //for drumsets
+    _filterEditorContainer = div27();
+    filterEditors = [];
+    // private envelopeEditor: EnvelopeEditor;
     _drumsetIndex = 0;
+    get drumsetIndex() {
+      return this._drumsetIndex;
+    }
+    set drumsetIndex(index) {
+      this._drumsetIndex = index;
+      this._filterEditorContainer.innerHTML = "";
+      this._filterEditorContainer.appendChild(this.filterEditors[this.drumsetIndex].container);
+    }
+    _commands = [];
+    _commandIndex = 0;
     _playButton = button24({ style: "width: 55%;", type: "button" });
     _drumsetButtons = [];
     _drumsetButtonContainer = div27({ class: "instrument-bar", style: "justify-content: center;" });
-    _drumsetSpectrumButton = button24({ style: "width: 50%;", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this._switchDrumsetView(0 /* spectrum */), "onclick") }, "spectrum");
-    _drumsetFilterButton = button24({ style: "width: 50%;", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this._switchDrumsetView(1 /* filter */), "onclick") }, "filter");
-    _drumsetEnvelopeButton = button24({ style: "width: 50%;", class: "last-button no-underline", onclick: /* @__PURE__ */ __name(() => this._switchDrumsetView(2 /* envelope */), "onclick") }, "envelope");
+    _drumsetSpectrumButton = button24({ style: "width: 50%;", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(0 /* spectrum */), "onclick") }, "spectrum");
+    _drumsetFilterButton = button24({ style: "width: 50%;", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(1 /* filter */), "onclick") }, "filter");
+    _drumsetEnvelopeButton = button24({ style: "width: 50%;", class: "last-button no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(2 /* envelope */), "onclick") }, "envelope");
     _drumsetSwitchContainer = div27({ style: "width: 50%; align-self: center;", class: "instrument-bar" }, this._drumsetSpectrumButton, this._drumsetFilterButton, this._drumsetEnvelopeButton);
     _cancelButton = button24({ class: "cancelButton" });
     _okayButton = button24({ class: "okayButton", style: "width:45%;" }, "Okay");
@@ -46363,33 +46461,48 @@ You should be redirected to the song at:<br /><br />
     ]);
     _copyPasteContainer = div27({ style: "width: 185px;" }, this._copyButton, this._pasteButton);
     container;
-    _setDrumSpectrum = /* @__PURE__ */ __name((index) => {
+    setDrumSpectrum = /* @__PURE__ */ __name((index) => {
       this._drumsetButtons[this._drumsetIndex].classList.remove("selected-instrument");
       this.spectrumEditors[this._drumsetIndex].setSpectrumWave(this.spectrumEditor.getSpectrumWave().spectrum);
-      this._drumsetIndex = index;
+      const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+      this.filterEditors[this._drumsetIndex].swapToSettings(instrument.drumsetFilters[Config.drumCount - 1 - this._drumsetIndex], false);
+      this.drumsetIndex = index;
       this._drumsetButtons[index].classList.add("selected-instrument");
       this.spectrumEditor.setSpectrumWave(this.spectrumEditors[this._drumsetIndex].getSpectrumWave().spectrum);
       this.spectrumEditor.render();
-    }, "_setDrumSpectrum");
-    _switchDrumsetView(view) {
+      this.filterEditors[this._drumsetIndex].render();
+    }, "setDrumSpectrum");
+    get drumsetView() {
+      if (this._drumsetSpectrumButton.classList.contains("deactivated") && this._drumsetFilterButton.classList.contains("deactivated")) return 2 /* envelope */;
+      if (this._drumsetFilterButton.classList.contains("deactivated")) return 0 /* spectrum */;
+      return 1 /* filter */;
+    }
+    switchDrumsetView(view, saveHistory = true) {
+      if (saveHistory) this._pushCommand(new DrumsetViewUpdateCommand(this, view));
       this._drumsetSpectrumButton.classList.add("deactivated");
       this._drumsetFilterButton.classList.add("deactivated");
       this._drumsetEnvelopeButton.classList.add("deactivated");
+      this._songEditor.switchDrumsetView(view);
       if (view == 0 /* spectrum */) {
         this._drumsetSpectrumButton.classList.remove("deactivated");
         this.spectrumEditor.container.style.display = "";
-        this.filterEditor.container.style.display = "none";
+        this._filterEditorContainer.style.display = "none";
       } else if (view == 1 /* filter */) {
         this._drumsetFilterButton.classList.remove("deactivated");
         this.spectrumEditor.container.style.display = "none";
-        this.filterEditor.container.style.display = "";
-        const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-        this.filterEditor.swapToSettings(instrument.drumsetFilters[this._drumsetIndex]);
+        this._filterEditorContainer.style.display = "";
       } else if (view == 2 /* envelope */) {
         this._drumsetEnvelopeButton.classList.remove("deactivated");
         this.spectrumEditor.container.style.display = "none";
-        this.filterEditor.container.style.display = "none";
+        this._filterEditorContainer.style.display = "none";
       }
+    }
+    _pushCommand(command) {
+      if (this._commandIndex != this._commands.length) {
+        this._commands.length = this._commandIndex;
+      }
+      this._commands.push(command);
+      this._commandIndex++;
     }
     _togglePlay = /* @__PURE__ */ __name(() => {
       this._songEditor.togglePlay();
@@ -46420,12 +46533,28 @@ You should be redirected to the song at:<br /><br />
       this._playButton.removeEventListener("click", this._togglePlay);
     }, "cleanUp");
     _copySettings = /* @__PURE__ */ __name(() => {
-      const spectrumCopy = this.spectrumEditor.getSpectrumWave();
-      window.localStorage.setItem("spectrumCopy", JSON.stringify(spectrumCopy.spectrum));
+      if (this.drumsetView == 0 /* spectrum */) {
+        const spectrumCopy = this.spectrumEditor.getSpectrumWave();
+        window.localStorage.setItem("spectrumCopy", JSON.stringify(spectrumCopy.spectrum));
+      } else if (this.drumsetView == 1 /* filter */) {
+        const filterCopy = this.filterEditors[this.drumsetIndex].filterSettings;
+        window.localStorage.setItem("filterCopy", JSON.stringify(filterCopy.toJsonObject()));
+      }
     }, "_copySettings");
     _pasteSettings = /* @__PURE__ */ __name(() => {
-      const storedSpectrumWave = JSON.parse(String(window.localStorage.getItem("spectrumCopy")));
-      this.spectrumEditor.setSpectrumWave(storedSpectrumWave);
+      if (this.drumsetView == 0 /* spectrum */) {
+        const storedSpectrumWave = JSON.parse(String(window.localStorage.getItem("spectrumCopy")));
+        this.spectrumEditor.setSpectrumWave(storedSpectrumWave);
+        this.spectrumEditor.storeChange();
+        this._pushCommand(new SpectrumUpdateCommand(this));
+      } else if (this.drumsetView == 1 /* filter */) {
+        const filterCopy = new FilterSettings();
+        filterCopy.fromJsonObject(JSON.parse(String(window.localStorage.getItem("filterCopy"))));
+        if (filterCopy != null) {
+          this.filterEditors[this.drumsetIndex].swapToSettings(filterCopy, true);
+        }
+        this._pushCommand(new FilterUpdateCommand(this));
+      }
     }, "_pasteSettings");
     whenKeyPressed = /* @__PURE__ */ __name((event) => {
       if (event.target.tagName != "BUTTON" && event.keyCode == 13) {
@@ -46435,13 +46564,22 @@ You should be redirected to the song at:<br /><br />
         event.preventDefault();
       } else if (event.keyCode == 90) {
         if (event.shiftKey) {
-          this.spectrumEditor.redo();
+          if (this._commandIndex < this._commands.length) {
+            this._commands[this._commandIndex].do();
+            this._commandIndex++;
+          }
         } else {
-          this.spectrumEditor.undo();
+          if (this._commandIndex > 0) {
+            this._commandIndex--;
+            this._commands[this._commandIndex].undo();
+          }
         }
         event.stopPropagation();
       } else if (event.keyCode == 89) {
-        this.spectrumEditor.redo();
+        if (this._commandIndex < this._commands.length) {
+          this._commands[this._commandIndex].do();
+          this._commandIndex++;
+        }
         event.stopPropagation();
       } else if (event.keyCode == 219) {
         this._doc.synth.goToPrevBar();
@@ -46449,19 +46587,19 @@ You should be redirected to the song at:<br /><br />
         this._doc.synth.goToNextBar();
       } else if (event.keyCode >= 49 && event.keyCode <= 57) {
         if (event.shiftKey && this._isDrumset) {
-          this._setDrumSpectrum(event.keyCode - 49);
+          this.setDrumSpectrum(event.keyCode - 49);
         }
       } else if (event.keyCode == 48) {
         if (event.shiftKey && this._isDrumset) {
-          this._setDrumSpectrum(9);
+          this.setDrumSpectrum(9);
         }
       } else if (event.keyCode == 189 || event.keyCode == 173) {
         if (event.shiftKey && this._isDrumset) {
-          this._setDrumSpectrum(10);
+          this.setDrumSpectrum(10);
         }
       } else if (event.keyCode == 187 || event.keyCode == 61 || event.keyCode == 171) {
         if (event.shiftKey && this._isDrumset) {
-          this._setDrumSpectrum(11);
+          this.setDrumSpectrum(11);
         }
       }
     }, "whenKeyPressed");
@@ -47047,7 +47185,7 @@ You should be redirected to the song at:<br /><br />
           {
             message = div30(
               h228("Drumset Envelope"),
-              p12("This drumset comes with a low-pass filter, and this setting can dynamically change the low-pass filter frequency over time. Each row in the pattern editor can have a different envelope shape.")
+              p12("This drumset comes with a customizable filter, and this setting can dynamically change the filter frequency over time. Each row in the pattern editor can have a different envelope shape.")
             );
           }
           break;
@@ -47057,6 +47195,17 @@ You should be redirected to the song at:<br /><br />
               h228("Drumset Spectrum"),
               p12("This setting allows you to draw your own noise spectrum! This is good for making drumsets. Each row in the pattern editor gets its own spectrum."),
               p12("The left side of the spectrum editor controls the noise energy at lower frequencies, and the right side controls higher frequencies.")
+            );
+          }
+          break;
+        case "drumsetFilter":
+          {
+            message = div30(
+              h228("Drumset Filter"),
+              p12("This setting allows you to shape the filter for each individual drumset spectrum and corresponding envelope."),
+              p12("Filters are a way of emphasizing or diminishing different parts of a sound. Musical notes have a fundamental (base) frequency, but the sound of a musical note also has parts at higher frequencies and filters can adjust the volume of each of these parts based on their frequency."),
+              p12("Click in the filter editor to insert, delete, or drag a filter control point. The horizontal position of the point determines which frequencies it affects, and the vertical position determines how the volume is affected at that frequency."),
+              p12('Insert a new point on the left side of the filter editor to add a "high-pass" filter point, which additionally reduces the volume of lower frequencies, or insert a new point on the right side to add a "low-pass" filter point which reduces the volume of higher frequencies.')
             );
           }
           break;
@@ -53792,7 +53941,7 @@ You should be redirected to the song at:<br /><br />
     }
   }
   __name(setSelectedValue, "setSelectedValue");
-  var SongEditor = class {
+  var SongEditor2 = class {
     static {
       __name(this, "SongEditor");
     }
@@ -54182,8 +54331,16 @@ You should be redirected to the song at:<br /><br />
     _envelopeSpeedRow = div32({ class: "selectRow dropFader" }, span8({ class: "tip", style: "margin-left:4px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("envelopeSpeed"), "onclick") }, "\u2023 Spd:"), this._envelopeSpeedDisplay, this._envelopeSpeedSlider.container);
     _envelopeDropdownGroup = div32({ class: "editor-controls", style: "display: none;" }, this._envelopeSpeedRow);
     _envelopeDropdown = button29({ style: "margin-left:0em; margin-right: 1em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: /* @__PURE__ */ __name(() => this._toggleDropdownMenu(7 /* Envelope */), "onclick") }, "\u25BC");
-    _drumsetGroup = div32({ class: "editor-controls" });
+    drumsetView = 0 /* spectrum */;
+    _drumsetSpectrumButton = button29({ style: "height: 55%; font-size: x-small; ", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(0 /* spectrum */), "onclick") }, "spectrum");
+    _drumsetFilterButton = button29({ style: "height: 55%; font-size: x-small; ", class: "no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(1 /* filter */), "onclick") }, "filter");
+    _drumsetEnvelopeButton = button29({ style: "height: 55%; font-size: x-small; ", class: "last-button no-underline", onclick: /* @__PURE__ */ __name(() => this.switchDrumsetView(2 /* envelope */), "onclick") }, "envelope");
+    _drumsetSwitchContainer = div32({ style: "margin-top: 4px;", class: "instrument-bar" }, this._drumsetSpectrumButton, this._drumsetFilterButton, this._drumsetEnvelopeButton);
+    _drumsetGroup = div32({ class: "editor-controls" }, this._drumsetSwitchContainer);
     _drumsetZoom = button29({ style: "margin-left:0em; padding-left:0.3em; margin-right:0.5em; height:1.5em; max-width: 16px;", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetSettings"), "onclick") }, "+");
+    _drumsetSpectrumTipPrompt = span8({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetSpectrum"), "onclick") }, "Spectrum:");
+    _drumsetFilterTipPrompt = span8({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetFilter"), "onclick") }, "Filter:");
+    _drumsetEnvelopeTipPrompt = span8({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetEnvelope"), "onclick") }, "Envelope:");
     _modulatorGroup = div32({ class: "editor-controls" });
     _modNameRows;
     _modChannelBoxes;
@@ -54579,8 +54736,9 @@ You should be redirected to the song at:<br /><br />
     _operatorWaveformPulsewidthSliders = [];
     _operatorDropdownRows = [];
     _operatorDropdownGroups = [];
-    _drumsetSpectrumEditors = [];
+    drumsetSpectrumEditors = [];
     _drumsetEnvelopeSelects = [];
+    drumsetFilterEditors = [];
     _showModSliders = [];
     _newShowModSliders = [];
     _modSliderValues = [];
@@ -54684,8 +54842,9 @@ You should be redirected to the song at:<br /><br />
       this._drumsetGroup.appendChild(
         div32(
           { class: "selectRow" },
-          span8({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetEnvelope"), "onclick") }, "Envelope:"),
-          span8({ class: "tip", onclick: /* @__PURE__ */ __name(() => this._openPrompt("drumsetSpectrum"), "onclick") }, "Spectrum:"),
+          this._drumsetEnvelopeTipPrompt,
+          this._drumsetSpectrumTipPrompt,
+          this._drumsetFilterTipPrompt,
           this._drumsetZoom
         )
       );
@@ -54693,7 +54852,10 @@ You should be redirected to the song at:<br /><br />
         const drumIndex = i;
         const spectrumEditor = new SpectrumEditor(this.doc, drumIndex);
         spectrumEditor.container.addEventListener("mousedown", this.refocusStage);
-        this._drumsetSpectrumEditors[i] = spectrumEditor;
+        this.drumsetSpectrumEditors[i] = spectrumEditor;
+        const filterEditor = new FilterEditor(this.doc, 3 /* Drumset */, false, i);
+        filterEditor.container.addEventListener("mousedown", this.refocusStage);
+        this.drumsetFilterEditors[i] = filterEditor;
         const envelopeSelect = buildOptions(select14({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopePresets.map((envelope) => envelope.name));
         this._drumsetEnvelopeSelects[i] = envelopeSelect;
         envelopeSelect.addEventListener("change", () => {
@@ -54702,10 +54864,12 @@ You should be redirected to the song at:<br /><br />
         const row = div32(
           { class: "selectRow" },
           div32({ class: "selectContainer", style: "width: 5em; margin-right: .3em;" }, envelopeSelect),
-          this._drumsetSpectrumEditors[i].container
+          this.drumsetSpectrumEditors[i].container,
+          this.drumsetFilterEditors[i].container
         );
         this._drumsetGroup.appendChild(row);
       }
+      this.switchDrumsetView(0 /* spectrum */);
       this._modNameRows = [];
       this._modChannelBoxes = [];
       this._modInstrumentBoxes = [];
@@ -55342,10 +55506,10 @@ You should be redirected to the song at:<br /><br />
             this.prompt = new HarmonicsEditorPrompt(this.doc, this);
             break;
           case "spectrumSettings":
-            this.prompt = new SpectrumEditorPrompt(this.doc, this, false);
+            this.prompt = new SpectrumEditorPrompt(this.doc, this, false, 0 /* spectrum */);
             break;
           case "drumsetSettings":
-            this.prompt = new SpectrumEditorPrompt(this.doc, this, true);
+            this.prompt = new SpectrumEditorPrompt(this.doc, this, true, this.drumsetView);
             break;
           case "sequenceSettings":
             this.prompt = new SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
@@ -55639,7 +55803,8 @@ You should be redirected to the song at:<br /><br />
           this._fadeInOutRow.style.display = "none";
           for (let i = 0; i < Config.drumCount; i++) {
             setSelectedValue(this._drumsetEnvelopeSelects[i], instrument.drumsetEnvelopes[i]);
-            this._drumsetSpectrumEditors[i].render();
+            this.drumsetSpectrumEditors[i].render();
+            this.drumsetFilterEditors[i].render();
           }
         } else {
           this._drumsetGroup.style.display = "none";
@@ -57775,6 +57940,49 @@ You should be redirected to the song at:<br /><br />
         this.doc.record(new ChangeNoteFilterType(this.doc, instrument, toSimple));
       }
     }
+    switchDrumsetView(view) {
+      this.drumsetView = view;
+      this._drumsetSpectrumButton.classList.add("deactivated");
+      this._drumsetFilterButton.classList.add("deactivated");
+      this._drumsetEnvelopeButton.classList.add("deactivated");
+      if (view == 0 /* spectrum */) {
+        this._drumsetSpectrumButton.classList.remove("deactivated");
+        for (const spectrumEditor of this.drumsetSpectrumEditors) {
+          spectrumEditor.container.style.display = "";
+        }
+        for (const filterEditor of this.drumsetFilterEditors) {
+          filterEditor.container.style.display = "none";
+        }
+        this._drumsetSpectrumTipPrompt.style.display = "";
+        this._drumsetFilterTipPrompt.style.display = "none";
+        this._drumsetEnvelopeTipPrompt.style.display = "";
+      } else if (view == 1 /* filter */) {
+        this._drumsetFilterButton.classList.remove("deactivated");
+        for (const spectrumEditor of this.drumsetSpectrumEditors) {
+          spectrumEditor.container.style.display = "none";
+        }
+        const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
+        for (let i = 0; i < this.drumsetFilterEditors.length; i++) {
+          const filterEditor = this.drumsetFilterEditors[i];
+          filterEditor.container.style.display = "";
+          filterEditor.swapToSettings(instrument.drumsetFilters[i]);
+        }
+        this._drumsetSpectrumTipPrompt.style.display = "none";
+        this._drumsetFilterTipPrompt.style.display = "";
+        this._drumsetEnvelopeTipPrompt.style.display = "";
+      } else if (view == 2 /* envelope */) {
+        this._drumsetEnvelopeButton.classList.remove("deactivated");
+        for (const spectrumEditor of this.drumsetSpectrumEditors) {
+          spectrumEditor.container.style.display = "none";
+        }
+        for (const filterEditor of this.drumsetFilterEditors) {
+          filterEditor.container.style.display = "none";
+        }
+        this._drumsetSpectrumTipPrompt.style.display = "none";
+        this._drumsetFilterTipPrompt.style.display = "none";
+        this._drumsetEnvelopeTipPrompt.style.display = "";
+      }
+    }
     _randomPreset() {
       const isNoise = this.doc.song.getChannelIsNoise(this.doc.channel);
       this.doc.record(new ChangePreset(this.doc, pickRandomPresetValue(isNoise)));
@@ -58277,7 +58485,7 @@ You should be redirected to the song at:<br /><br />
   };
 
   // editor/main.ts
-  var editor = new SongEditor();
+  var editor = new SongEditor2();
   var sbtitle = document.getElementById("sbtitle");
   if (sbtitle != null) {
     sbtitle.innerHTML = true ? "Slarmoo's Box Testing" : "Slarmoo's Box";

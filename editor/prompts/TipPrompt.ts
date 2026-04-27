@@ -308,7 +308,7 @@ export class TipPrompt implements Prompt {
 			case "drumsetEnvelope": {
 				message = div(
 					h2("Drumset Envelope"),
-					p("This drumset comes with a low-pass filter, and this setting can dynamically change the low-pass filter frequency over time. Each row in the pattern editor can have a different envelope shape."),
+					p("This drumset comes with a customizable filter, and this setting can dynamically change the filter frequency over time. Each row in the pattern editor can have a different envelope shape."),
 				);
 			} break;
 			case "drumsetSpectrum": {
@@ -316,6 +316,15 @@ export class TipPrompt implements Prompt {
 					h2("Drumset Spectrum"),
 					p("This setting allows you to draw your own noise spectrum! This is good for making drumsets. Each row in the pattern editor gets its own spectrum."),
 					p("The left side of the spectrum editor controls the noise energy at lower frequencies, and the right side controls higher frequencies."),
+				);
+			} break;
+			case "drumsetFilter": {
+				message = div(
+					h2("Drumset Filter"),
+					p("This setting allows you to shape the filter for each individual drumset spectrum and corresponding envelope."),
+					p("Filters are a way of emphasizing or diminishing different parts of a sound. Musical notes have a fundamental (base) frequency, but the sound of a musical note also has parts at higher frequencies and filters can adjust the volume of each of these parts based on their frequency."),
+					p("Click in the filter editor to insert, delete, or drag a filter control point. The horizontal position of the point determines which frequencies it affects, and the vertical position determines how the volume is affected at that frequency."),
+					p("Insert a new point on the left side of the filter editor to add a \"high-pass\" filter point, which additionally reduces the volume of lower frequencies, or insert a new point on the right side to add a \"low-pass\" filter point which reduces the volume of higher frequencies."),
 				);
 			} break;
 			case "chorus": {

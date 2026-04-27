@@ -4,7 +4,7 @@ import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { Prompt } from "./Prompt";
 import { SongDocument } from "../SongDocument";
 import { Config } from "../../synth/SynthConfig";
-import { FilterEditor } from "../FilterEditor";
+import { FilterEditor, FilterEditorTypes } from "../FilterEditor";
 import { SongEditor } from "../SongEditor";
 import { FilterSettings } from "../../synth/song";
 import { ColorConfig } from "../ColorConfig";
@@ -77,7 +77,7 @@ export class CustomFilterPrompt implements Prompt {
         this.updatePlayButton();
         let colors = ColorConfig.getChannelColor(this._doc.song, this._doc.channel);
 
-        this.filterEditor = new FilterEditor(_doc, _useNoteFilter, true, this.forSong);
+        this.filterEditor = new FilterEditor(_doc, _useNoteFilter ? FilterEditorTypes.NoteFilter : (forSong ? FilterEditorTypes.SongEq : FilterEditorTypes.Drumset), true);
         this._filterContainer.appendChild(this.filterEditor.container);
 
         // Add coordinates to editor
@@ -131,7 +131,7 @@ export class CustomFilterPrompt implements Prompt {
 
     private _pasteFilterSettings = (): void => {
 
-        let filterCopy: FilterSettings = new FilterSettings();
+        const filterCopy: FilterSettings = new FilterSettings();
         filterCopy.fromJsonObject(JSON.parse(String(window.localStorage.getItem("filterCopy"))));
         if (filterCopy != null) {
             this.filterEditor.swapToSettings(filterCopy, true);

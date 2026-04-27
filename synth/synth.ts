@@ -4555,7 +4555,7 @@ export class Synth extends SynthTemplate {
             const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
             const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
 
-            const drumsetFilter: FilterSettings = instrument.drumsetFilters[11 - tone.drumsetPitch!];
+            const drumsetFilter: FilterSettings = instrument.drumsetFilters[tone.drumsetPitch!];
             for (let i: number = 0; i < drumsetFilter.controlPointCount; i++) {
                 const point: FilterControlPoint = drumsetFilter.controlPoints[i];
                 // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.

@@ -158,6 +158,12 @@ function setSelectedValue(menu: HTMLSelectElement, value: number, isSelect2: boo
     }
 }
 
+export const enum DrumsetView {
+    spectrum,
+    filter,
+    envelope
+}
+
 export class SongEditor {
     public prompt: Prompt | null = null;
 
@@ -537,8 +543,16 @@ export class SongEditor {
     private readonly _envelopeDropdownGroup: HTMLElement = div({ class: "editor-controls", style: "display: none;" }, this._envelopeSpeedRow);
     private readonly _envelopeDropdown: HTMLButtonElement = button({ style: "margin-left:0em; margin-right: 1em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(DropdownID.Envelope) }, "▼");
 
-    private readonly _drumsetGroup: HTMLElement = div({ class: "editor-controls" });
+    public drumsetView: DrumsetView = DrumsetView.spectrum;
+    private readonly _drumsetSpectrumButton: HTMLButtonElement = button({ style: "height: 55%; font-size: x-small; ", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetView.spectrum) }, "spectrum");
+    private readonly _drumsetFilterButton: HTMLButtonElement = button({ style: "height: 55%; font-size: x-small; ", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetView.filter) }, "filter");
+    private readonly _drumsetEnvelopeButton: HTMLButtonElement = button({ style: "height: 55%; font-size: x-small; ", class: "last-button no-underline", onclick: () => this.switchDrumsetView(DrumsetView.envelope) }, "envelope");
+    private readonly _drumsetSwitchContainer: HTMLDivElement = div({ style: "margin-top: 4px;", class: "instrument-bar" }, this._drumsetSpectrumButton, this._drumsetFilterButton, this._drumsetEnvelopeButton);
+    private readonly _drumsetGroup: HTMLElement = div({ class: "editor-controls" }, this._drumsetSwitchContainer);
     private readonly _drumsetZoom: HTMLButtonElement = button({ style: "margin-left:0em; padding-left:0.3em; margin-right:0.5em; height:1.5em; max-width: 16px;", onclick: () => this._openPrompt("drumsetSettings") }, "+");
+    private readonly _drumsetSpectrumTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetSpectrum") }, "Spectrum:");
+    private readonly _drumsetFilterTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetFilter") }, "Filter:");
+    private readonly _drumsetEnvelopeTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetEnvelope") }, "Envelope:");
     private readonly _modulatorGroup: HTMLElement = div({ class: "editor-controls" });
     private readonly _modNameRows: HTMLElement[];
     private readonly _modChannelBoxes: HTMLSelectElement[];
@@ -898,8 +912,9 @@ export class SongEditor {
     private readonly _operatorWaveformPulsewidthSliders: Slider[] = [];
     private readonly _operatorDropdownRows: HTMLElement[] = []
     private readonly _operatorDropdownGroups: HTMLDivElement[] = [];
-    readonly _drumsetSpectrumEditors: SpectrumEditor[] = [];
+    readonly drumsetSpectrumEditors: SpectrumEditor[] = [];
     private readonly _drumsetEnvelopeSelects: HTMLSelectElement[] = [];
+    readonly drumsetFilterEditors: FilterEditor[] = [];
     private _showModSliders: boolean[][] = [];
     private _newShowModSliders: boolean[][] = [];
     private _modSliderValues: number[][] = [];
@@ -920,7 +935,7 @@ export class SongEditor {
     public patternUsed: boolean = false;
     private _modRecTimeout: number = -1;
 
-    constructor(/*private _doc: SongDocument*/) {
+    constructor() {
 
         this.doc.notifier.watch(this.whenUpdated);
         events.listen(EventType.pluginLoaded, this._updatePlugin.bind(this));
@@ -1007,8 +1022,9 @@ export class SongEditor {
 
         this._drumsetGroup.appendChild(
             div({ class: "selectRow" },
-                span({ class: "tip", onclick: () => this._openPrompt("drumsetEnvelope") }, "Envelope:"),
-                span({ class: "tip", onclick: () => this._openPrompt("drumsetSpectrum") }, "Spectrum:"),
+                this._drumsetEnvelopeTipPrompt,
+                this._drumsetSpectrumTipPrompt,
+                this._drumsetFilterTipPrompt,
                 this._drumsetZoom,
             ),
         );
@@ -1016,7 +1032,11 @@ export class SongEditor {
             const drumIndex: number = i;
             const spectrumEditor: SpectrumEditor = new SpectrumEditor(this.doc, drumIndex);
             spectrumEditor.container.addEventListener("mousedown", this.refocusStage);
-            this._drumsetSpectrumEditors[i] = spectrumEditor;
+            this.drumsetSpectrumEditors[i] = spectrumEditor;
+
+            const filterEditor: FilterEditor = new FilterEditor(this.doc, FilterEditorTypes.Drumset, false, i);
+            filterEditor.container.addEventListener("mousedown", this.refocusStage);
+            this.drumsetFilterEditors[i] = filterEditor;
 
             const envelopeSelect: HTMLSelectElement = buildOptions(select({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopePresets.map(envelope => envelope.name));
             this._drumsetEnvelopeSelects[i] = envelopeSelect;
@@ -1026,10 +1046,12 @@ export class SongEditor {
 
             const row: HTMLDivElement = div({ class: "selectRow" },
                 div({ class: "selectContainer", style: "width: 5em; margin-right: .3em;" }, envelopeSelect),
-                this._drumsetSpectrumEditors[i].container,
+                this.drumsetSpectrumEditors[i].container,
+                this.drumsetFilterEditors[i].container,
             );
             this._drumsetGroup.appendChild(row);
         }
+        this.switchDrumsetView(DrumsetView.spectrum);
 
         this._modNameRows = [];
         this._modChannelBoxes = [];
@@ -1723,10 +1745,10 @@ export class SongEditor {
                     this.prompt = new Prompts.HarmonicsEditorPrompt(this.doc, this);
                     break;
                 case "spectrumSettings":
-                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, false);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, false, DrumsetView.spectrum);
                     break;
                 case "drumsetSettings":
-                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, true);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, true, this.drumsetView);
                     break;
                 case "sequenceSettings":
                     this.prompt = new Prompts.SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"]);
@@ -2069,7 +2091,8 @@ export class SongEditor {
                 this._fadeInOutRow.style.display = "none";
                 for (let i: number = 0; i < Config.drumCount; i++) {
                     setSelectedValue(this._drumsetEnvelopeSelects[i], instrument.drumsetEnvelopes[i]);
-                    this._drumsetSpectrumEditors[i].render();
+                    this.drumsetSpectrumEditors[i].render();
+                    this.drumsetFilterEditors[i].render();
                 }
             } else {
                 this._drumsetGroup.style.display = "none";
@@ -4577,6 +4600,50 @@ export class SongEditor {
         const instrument: Instrument = channel.instruments[this.doc.getCurrentInstrument()];
         if (instrument.noteFilterType != toSimple) {
             this.doc.record(new ChangeNoteFilterType(this.doc, instrument, toSimple));
+        }
+    }
+
+    public switchDrumsetView(view: DrumsetView) {
+        this.drumsetView = view;
+        this._drumsetSpectrumButton.classList.add("deactivated");
+        this._drumsetFilterButton.classList.add("deactivated");
+        this._drumsetEnvelopeButton.classList.add("deactivated");
+        if (view == DrumsetView.spectrum) {
+            this._drumsetSpectrumButton.classList.remove("deactivated");
+            for (const spectrumEditor of this.drumsetSpectrumEditors) {
+                spectrumEditor.container.style.display = "";
+            }
+            for (const filterEditor of this.drumsetFilterEditors) {
+                filterEditor.container.style.display = "none";
+            }
+            this._drumsetSpectrumTipPrompt.style.display = "";
+            this._drumsetFilterTipPrompt.style.display = "none";
+            this._drumsetEnvelopeTipPrompt.style.display = "";
+        } else if (view == DrumsetView.filter) {
+            this._drumsetFilterButton.classList.remove("deactivated");
+            for (const spectrumEditor of this.drumsetSpectrumEditors) {
+                spectrumEditor.container.style.display = "none";
+            }
+            const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
+            for (let i: number = 0; i < this.drumsetFilterEditors.length; i++) {
+                const filterEditor = this.drumsetFilterEditors[i];
+                filterEditor.container.style.display = "";
+                filterEditor.swapToSettings(instrument.drumsetFilters[i]);
+            }
+            this._drumsetSpectrumTipPrompt.style.display = "none";
+            this._drumsetFilterTipPrompt.style.display = "";
+            this._drumsetEnvelopeTipPrompt.style.display = "";
+        } else if (view == DrumsetView.envelope) {
+            this._drumsetEnvelopeButton.classList.remove("deactivated");
+            for (const spectrumEditor of this.drumsetSpectrumEditors) {
+                spectrumEditor.container.style.display = "none";
+            }
+            for (const filterEditor of this.drumsetFilterEditors) {
+                filterEditor.container.style.display = "none";
+            }
+            this._drumsetSpectrumTipPrompt.style.display = "none";
+            this._drumsetFilterTipPrompt.style.display = "none";
+            this._drumsetEnvelopeTipPrompt.style.display = "";
         }
     }
 
