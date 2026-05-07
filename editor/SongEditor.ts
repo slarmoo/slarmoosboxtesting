@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
 //import {Layout} from "./Layout";
-import { sampleLoadEvents, SampleLoadedEvent, InstrumentType, EffectType, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeRingModulation, effectsIncludeGranular, DropdownID, calculateRingModHertz, effectsIncludePlugin, effectsIncludeNoteRange } from "../synth/SynthConfig";
+import { sampleLoadEvents, SampleLoadedEvent, InstrumentType, EffectType, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeRingModulation, effectsIncludeGranular, DropdownID, calculateRingModHertz, effectsIncludePlugin, effectsIncludeNoteRange, DrumsetEnvelopeIndex } from "../synth/SynthConfig";
 import { BarScrollBar } from "./BarScrollBar";
 import { Change, ChangeGroup } from "./Change";
 import { ColorConfig, ChannelColors } from "./ColorConfig";
@@ -30,7 +30,7 @@ import { Piano } from "./Piano";
 import { Prompt } from "./prompts/Prompt";
 import { SongDocument } from "./SongDocument";
 import { SpectrumEditor } from "./SpectrumEditor";
-import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorithmOrFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainFreqs, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit } from "./changes";
+import { ChangeTempo, ChangeKeyOctave, ChangeChorus, ChangeEchoDelay, ChangeEchoSustain, ChangeReverb, ChangeVolume, ChangePan, ChangePatternSelection, ChangePatternsPerChannel, ChangePatternNumbers, ChangeSupersawDynamism, ChangeSupersawSpread, ChangeSupersawShape, ChangePulseWidth, ChangeFeedbackAmplitude, ChangeOperatorAmplitude, ChangeOperatorFrequency, ChangeDrumsetEnvelope, ChangePasteInstrument, ChangePreset, pickRandomPresetValue, ChangeRandomGeneratedInstrument, ChangeEQFilterType, ChangeNoteFilterType, ChangeEQFilterSimpleCut, ChangeEQFilterSimplePeak, ChangeNoteFilterSimpleCut, ChangeNoteFilterSimplePeak, ChangeScale, ChangeDetectKey, ChangeKey, ChangeRhythm, ChangeFeedbackType, ChangeAlgorithm, ChangeChipWave, ChangeNoiseWave, ChangeTransition, ChangeToggleEffects, ChangeVibrato, ChangeUnison, ChangeChord, ChangeSong, ChangePitchShift, ChangeDetune, ChangeDistortion, ChangeStringSustain, ChangeBitcrusherFreq, ChangeBitcrusherQuantization, ChangeAddEnvelope, ChangeEnvelopeSpeed, ChangeAddChannelInstrument, ChangeRemoveChannelInstrument, ChangeCustomWave, ChangeOperatorWaveform, ChangeOperatorPulseWidth, ChangeSongTitle, ChangeVibratoDepth, ChangeVibratoSpeed, ChangeVibratoDelay, ChangeVibratoType, ChangePanDelay, ChangeArpeggioSpeed, ChangeFastTwoNoteArp, ChangeClicklessTransition, ChangeAliasing, ChangeSetPatternInstruments, ChangeHoldingModRecording, ChangeChipWavePlayBackwards, ChangeChipWaveStartOffset, ChangeChipWaveLoopEnd, ChangeChipWaveLoopStart, ChangeChipWaveLoopMode, ChangeChipWaveUseAdvancedLoopControls, ChangeDecimalOffset, ChangeUnisonVoices, ChangeUnisonSpread, ChangeUnisonOffset, ChangeUnisonExpression, ChangeUnisonSign, Change6OpFeedbackType, Change6OpAlgorithm, ChangeCustomAlgorithmOrFeedback, ChangeRingMod, ChangeRingModHz, ChangeRingModChipWave, ChangeRingModPulseWidth, ChangeGranular, ChangeGrainSize, ChangeGrainFreqs, ChangeGrainRange, ChangeMonophonicTone, ChangePluginValue, ChangePluginSliderValue, ChangeUnisonAntiPhased, ChangeLowerLimit, ChangeSlideSpeed, ChangeStrumSpeed, ChangeUnisonBuzzing, ChangeUpperLimit, ChangeDrumsetEnvelopeTarget } from "./changes";
 import { TrackEditor } from "./TrackEditor";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { CustomChipCanvas } from "./CustomChipCanvas";
@@ -162,6 +162,88 @@ export const enum DrumsetView {
     spectrum,
     filter,
     envelope
+}
+
+const filterTargetNames: string[] = ["filter freqs"];
+for (let i: number = 0; i < Config.filterMaxPoints; i++) {
+    filterTargetNames.push("filter " + (i + 1) + " freq");
+}
+for (let i: number = 1; i < Config.filterMaxPoints - 1; i++) {
+    filterTargetNames.push("points 1 to " + (i + 1));
+}
+
+class DrumsetRow {
+    readonly drumsetSpectrumEditor: SpectrumEditor;
+    private readonly _drumsetEnvelopeSelect: HTMLSelectElement;
+    private readonly _drumsetEnvelopeTarget: HTMLSelectElement;
+    private readonly _drumsetEnvelopeTargetWrapper: HTMLDivElement;
+    readonly drumsetFilterEditor: FilterEditor;
+    public readonly container: HTMLDivElement;
+
+    constructor(private _doc: SongDocument, private _drumIndex: number) {
+        this.drumsetSpectrumEditor = new SpectrumEditor(this._doc, _drumIndex);
+
+        this.drumsetFilterEditor = new FilterEditor(this._doc, FilterEditorTypes.Drumset, false, _drumIndex);
+
+        this._drumsetEnvelopeSelect = buildOptions(select({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopes.map(envelope => envelope.name));
+        this._drumsetEnvelopeTarget = buildOptions(select({ style: "width: 100%;", title: "Filter Target" }), filterTargetNames);
+
+        this._drumsetEnvelopeSelect.addEventListener("change", () => {
+            this._doc.record(new ChangeDrumsetEnvelope(this._doc, _drumIndex, this._drumsetEnvelopeSelect.selectedIndex));
+        });
+
+        this._drumsetEnvelopeTarget.addEventListener("change", () => {
+            this._doc.record(new ChangeDrumsetEnvelopeTarget(this._doc, _drumIndex, this._drumsetEnvelopeTarget.selectedIndex));
+        });
+
+        this._drumsetEnvelopeTargetWrapper = div({ class: "selectContainer", style: "width: 115.26px;" }, this._drumsetEnvelopeTarget);
+
+
+        this.container = div({ class: "selectRow" },
+            div({ class: "selectContainer", style: "width: 5em; margin-right: .3em;" }, this._drumsetEnvelopeSelect),
+            this.drumsetSpectrumEditor.container,
+            this.drumsetFilterEditor.container,
+            this._drumsetEnvelopeTargetWrapper
+        );
+    }
+
+    private _updateTargetOptionVisibility(menu: HTMLSelectElement): void {
+        if (!menu) return;
+        for (let optionIndex: number = 0; optionIndex < menu.childElementCount; optionIndex++) {
+            const option: HTMLOptionElement = <HTMLOptionElement>menu.children[optionIndex];
+            const target: number = parseInt(option.value);
+            const filterPointCount: number = this.drumsetFilterEditor.filterSettings.controlPointCount;
+            option.hidden = !(target == DrumsetEnvelopeIndex.filterAll || target - 1 < filterPointCount || (target - Config.filterMaxPoints >= 1 && target - Config.filterMaxPoints < filterPointCount - 1));
+        }
+    }
+
+    public switchToView(view: DrumsetView) {
+        if (view == DrumsetView.spectrum) {
+            this.drumsetSpectrumEditor.container.style.display = "";
+            this.drumsetFilterEditor.container.style.display = "none";
+            this._drumsetEnvelopeTargetWrapper.style.display = "none";
+        } else if (view == DrumsetView.filter) {
+            this.drumsetSpectrumEditor.container.style.display = "none";
+            this.drumsetFilterEditor.container.style.display = "";
+            this._drumsetEnvelopeTargetWrapper.style.display = "none";
+
+            const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+            this.drumsetFilterEditor.swapToSettings(instrument.drumsetFilters[this._drumIndex]);
+        } else if (view == DrumsetView.envelope) {
+            this.drumsetSpectrumEditor.container.style.display = "none";
+            this.drumsetFilterEditor.container.style.display = "none";
+            this._drumsetEnvelopeTargetWrapper.style.display = "";
+        }
+    }
+
+    public render() {
+        const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+        setSelectedValue(this._drumsetEnvelopeSelect, instrument.drumsetEnvelopes[this._drumIndex].envelope);
+        this.drumsetSpectrumEditor.render();
+        this.drumsetFilterEditor.render();
+        setSelectedValue(this._drumsetEnvelopeTarget, instrument.drumsetEnvelopes[this._drumIndex].target);
+        this._updateTargetOptionVisibility(this._drumsetEnvelopeTarget);
+    }
 }
 
 export class SongEditor {
@@ -553,6 +635,7 @@ export class SongEditor {
     private readonly _drumsetSpectrumTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetSpectrum") }, "Spectrum:");
     private readonly _drumsetFilterTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetFilter") }, "Filter:");
     private readonly _drumsetEnvelopeTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetEnvelope") }, "Envelope:");
+    private readonly _drumsetTargetTipPrompt: HTMLSpanElement = span({ class: "tip", onclick: () => this._openPrompt("drumsetEnvelopeTarget") }, "Target:");
     private readonly _modulatorGroup: HTMLElement = div({ class: "editor-controls" });
     private readonly _modNameRows: HTMLElement[];
     private readonly _modChannelBoxes: HTMLSelectElement[];
@@ -913,7 +996,7 @@ export class SongEditor {
     private readonly _operatorDropdownRows: HTMLElement[] = []
     private readonly _operatorDropdownGroups: HTMLDivElement[] = [];
     readonly drumsetSpectrumEditors: SpectrumEditor[] = [];
-    private readonly _drumsetEnvelopeSelects: HTMLSelectElement[] = [];
+    private readonly _drumsetRows: DrumsetRow[] = [];
     readonly drumsetFilterEditors: FilterEditor[] = [];
     private _showModSliders: boolean[][] = [];
     private _newShowModSliders: boolean[][] = [];
@@ -1025,31 +1108,21 @@ export class SongEditor {
                 this._drumsetEnvelopeTipPrompt,
                 this._drumsetSpectrumTipPrompt,
                 this._drumsetFilterTipPrompt,
+                this._drumsetTargetTipPrompt,
                 this._drumsetZoom,
             ),
         );
-        for (let i: number = Config.drumCount - 1; i >= 0; i--) {
-            const drumIndex: number = i;
-            const spectrumEditor: SpectrumEditor = new SpectrumEditor(this.doc, drumIndex);
-            spectrumEditor.container.addEventListener("mousedown", this.refocusStage);
-            this.drumsetSpectrumEditors[i] = spectrumEditor;
 
-            const filterEditor: FilterEditor = new FilterEditor(this.doc, FilterEditorTypes.Drumset, false, i);
-            filterEditor.container.addEventListener("mousedown", this.refocusStage);
-            this.drumsetFilterEditors[i] = filterEditor;
+        for (let drumIndex: number = Config.drumCount - 1; drumIndex >= 0; drumIndex--) {
+            const drumsetRow: DrumsetRow = new DrumsetRow(this.doc, drumIndex);
+            drumsetRow.drumsetSpectrumEditor.container.addEventListener("mousedown", this.refocusStage);
+            this.drumsetSpectrumEditors[drumIndex] = drumsetRow.drumsetSpectrumEditor;
 
-            const envelopeSelect: HTMLSelectElement = buildOptions(select({ style: "width: 100%;", title: "Filter Envelope" }), Config.envelopePresets.map(envelope => envelope.name));
-            this._drumsetEnvelopeSelects[i] = envelopeSelect;
-            envelopeSelect.addEventListener("change", () => {
-                this.doc.record(new ChangeDrumsetEnvelope(this.doc, drumIndex, envelopeSelect.selectedIndex));
-            });
+            drumsetRow.drumsetFilterEditor.container.addEventListener("mousedown", this.refocusStage);
+            this.drumsetFilterEditors[drumIndex] = drumsetRow.drumsetFilterEditor;
 
-            const row: HTMLDivElement = div({ class: "selectRow" },
-                div({ class: "selectContainer", style: "width: 5em; margin-right: .3em;" }, envelopeSelect),
-                this.drumsetSpectrumEditors[i].container,
-                this.drumsetFilterEditors[i].container,
-            );
-            this._drumsetGroup.appendChild(row);
+            this._drumsetGroup.appendChild(drumsetRow.container);
+            this._drumsetRows[drumIndex] = drumsetRow;
         }
         this.switchDrumsetView(DrumsetView.spectrum);
 
@@ -2090,9 +2163,7 @@ export class SongEditor {
                 this._chipWaveSelectRow.style.display = "none";
                 this._fadeInOutRow.style.display = "none";
                 for (let i: number = 0; i < Config.drumCount; i++) {
-                    setSelectedValue(this._drumsetEnvelopeSelects[i], instrument.drumsetEnvelopes[i]);
-                    this.drumsetSpectrumEditors[i].render();
-                    this.drumsetFilterEditors[i].render();
+                    this._drumsetRows[i].render();
                 }
             } else {
                 this._drumsetGroup.style.display = "none";
@@ -4610,40 +4681,28 @@ export class SongEditor {
         this._drumsetEnvelopeButton.classList.add("deactivated");
         if (view == DrumsetView.spectrum) {
             this._drumsetSpectrumButton.classList.remove("deactivated");
-            for (const spectrumEditor of this.drumsetSpectrumEditors) {
-                spectrumEditor.container.style.display = "";
-            }
-            for (const filterEditor of this.drumsetFilterEditors) {
-                filterEditor.container.style.display = "none";
+            for (const row of this._drumsetRows) {
+                row.switchToView(view);
             }
             this._drumsetSpectrumTipPrompt.style.display = "";
             this._drumsetFilterTipPrompt.style.display = "none";
-            this._drumsetEnvelopeTipPrompt.style.display = "";
+            this._drumsetTargetTipPrompt.style.display = "none";
         } else if (view == DrumsetView.filter) {
             this._drumsetFilterButton.classList.remove("deactivated");
-            for (const spectrumEditor of this.drumsetSpectrumEditors) {
-                spectrumEditor.container.style.display = "none";
-            }
-            const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
-            for (let i: number = 0; i < this.drumsetFilterEditors.length; i++) {
-                const filterEditor = this.drumsetFilterEditors[i];
-                filterEditor.container.style.display = "";
-                filterEditor.swapToSettings(instrument.drumsetFilters[i]);
+            for (const row of this._drumsetRows) {
+                row.switchToView(view);
             }
             this._drumsetSpectrumTipPrompt.style.display = "none";
             this._drumsetFilterTipPrompt.style.display = "";
-            this._drumsetEnvelopeTipPrompt.style.display = "";
+            this._drumsetTargetTipPrompt.style.display = "none";
         } else if (view == DrumsetView.envelope) {
             this._drumsetEnvelopeButton.classList.remove("deactivated");
-            for (const spectrumEditor of this.drumsetSpectrumEditors) {
-                spectrumEditor.container.style.display = "none";
-            }
-            for (const filterEditor of this.drumsetFilterEditors) {
-                filterEditor.container.style.display = "none";
+            for (const row of this._drumsetRows) {
+                row.switchToView(view);
             }
             this._drumsetSpectrumTipPrompt.style.display = "none";
             this._drumsetFilterTipPrompt.style.display = "none";
-            this._drumsetEnvelopeTipPrompt.style.display = "";
+            this._drumsetTargetTipPrompt.style.display = "";
         }
     }
 

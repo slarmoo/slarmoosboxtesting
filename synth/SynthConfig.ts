@@ -168,6 +168,17 @@ export const enum EnvelopeComputeIndex {
     length,
 }
 
+export const enum DrumsetEnvelopeIndex {
+    //all points
+    filterAll,
+    //a specific point
+    filterPoint0, filterPoint1, filterPoint2, filterPoint3, filterPoint4, filterPoint5, filterPoint6, filterPoint7,
+    filterPoint8, filterPoint9, filterPoint10, filterPoint11, filterPoint12, filterPoint13, filterPoint14, filterPoint15,
+    //every point from 0 to that index
+    filterPointsTo1, filterPointsTo2, filterPointsTo3, filterPointsTo4, filterPointsTo5, filterPointsTo6, filterPointsTo7,
+    filterPointsTo8, filterPointsTo9, filterPointsTo10, filterPointsTo11, filterPointsTo12, filterPointsTo13, filterPointsTo14,
+}
+
 export const enum LFOEnvelopeTypes {
     sine,
     square,
@@ -186,6 +197,7 @@ export const enum RandomEnvelopeTypes {
     timeSmooth,
     length,
 }
+
 
 export interface BeepBoxOption {
     readonly index: number;
@@ -1366,7 +1378,7 @@ export class Config {
         { name: "256×", mult: 256.0, hzOffset: 0.0, amplitudeSign: 1.0 },
     ]);
 
-    //still used for drumsets
+    //only used for updating; may add presets to the ui later
     public static readonly envelopePresets: DictionaryArray<Envelope> = toNameMap([
         { name: "none", type: EnvelopeType.none, speed: 1.0 },
         { name: "note size", type: EnvelopeType.noteSize, speed: 1.0 },
@@ -1456,7 +1468,7 @@ export class Config {
         { name: "rise", type: EnvelopeType.rise, speed: 32.0 },
         { name: "blip", type: EnvelopeType.blip, speed: 6.0 },
         { name: "fall", type: EnvelopeType.fall, speed: 6.0 },
-        { name: "sequence", type: EnvelopeType.sequence, speed: 1.0 } //Slarmoo's Box 1.5
+        { name: "sequence", type: EnvelopeType.sequence, speed: 1.0 } //Slarmoo's Box 2.0
     ]);
 
 
@@ -1802,6 +1814,7 @@ export class Config {
         {name: "mixVolume",              computeIndex: InstrumentAutomationIndex.mixVolume,              displayName: "mix volume",       perNote: false, interleave: false, isFilter: false, range: Config.volumeRange,                 maxCount: 1,    effect: null,                    compatibleInstruments: null},
         */
     ]);
+
     public static readonly operatorWaves: DictionaryArray<OperatorWave> = toNameMap([
 		{ name: "sine", samples: Config.sineWave },
         { name: "triangle", samples: Config.generateTriWave() },
@@ -1814,6 +1827,7 @@ export class Config {
         // { name: "1-bit white noise", samples: Config.generateOneBitWhiteNoiseFmWave() },
         { name: "metallic noise", samples: Config.generateMetallicNoiseFMWave() },
     ]);
+
     public static readonly pwmOperatorWaves: DictionaryArray<OperatorWave> = toNameMap([
         { name: "1%", samples: Config.generateSquareWave(0.01) },
         { name: "5%", samples: Config.generateSquareWave(0.05) },

@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes } from "../synth/SynthConfig";
+import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes, DrumsetEnvelopeIndex } from "../synth/SynthConfig";
 import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, clamp, SequenceSettings } from "../synth/song";
 import { SynthMessenger } from "../synth/Messenger";
 import { Preset, PresetCategory, EditorConfig } from "./EditorConfig";
@@ -1019,7 +1019,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 case InstrumentType.drumset: {
                     for (let i: number = 0; i < Config.drumCount; i++) {
                         // Might wanna do this Random*Config.____.length thing for all envelope/unison randomization?
-                        instrument.drumsetEnvelopes[i] = Math.floor(Math.random() * Config.envelopePresets.length);
+                        instrument.drumsetEnvelopes[i].envelope = Math.floor(Math.random() * Config.envelopePresets.length);
                         const spectrum: number[] = [];
                         let randomFactor: number = Math.floor(Math.random() * 3)
                         for (let j = 0; j < Config.spectrumControlPoints; j++) {
@@ -2698,11 +2698,26 @@ export class ChangeDrumsetEnvelope extends Change {
     constructor(doc: SongDocument, drumIndex: number, newValue: number) {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
-        const oldValue: number = instrument.drumsetEnvelopes[drumIndex];
+        const oldValue: number = instrument.drumsetEnvelopes[drumIndex].envelope;
         if (oldValue != newValue) {
-            instrument.drumsetEnvelopes[drumIndex] = newValue;
+            instrument.drumsetEnvelopes[drumIndex].envelope = newValue;
             instrument.preset = instrument.type;
-            doc.synth.updateSong(newValue, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.notifier.changed();
+            this._didSomething();
+        }
+    }
+}
+
+export class ChangeDrumsetEnvelopeTarget extends Change {
+    constructor(doc: SongDocument, drumIndex: number, newValue: DrumsetEnvelopeIndex) {
+        super();
+        const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
+        const oldValue: number = instrument.drumsetEnvelopes[drumIndex].target;
+        if (oldValue != newValue) {
+            instrument.drumsetEnvelopes[drumIndex].target = newValue;
+            instrument.preset = instrument.type;
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }

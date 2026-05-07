@@ -311,6 +311,12 @@ export class TipPrompt implements Prompt {
 					p("This drumset comes with a customizable filter, and this setting can dynamically change the filter frequency over time. Each row in the pattern editor can have a different envelope shape."),
 				);
 			} break;
+			case "drumsetEnvelopeTarget": {
+				message = div(
+					h2("Drumset Envelope Target"),
+					p("This drumset comes with a customizable filter and envelope for each row. These envelopes can target specific points of the filter, which is what this setting controls."),
+				);
+			} break;
 			case "drumsetSpectrum": {
 				message = div(
 					h2("Drumset Spectrum"),

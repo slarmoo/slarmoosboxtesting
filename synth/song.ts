@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex, DrumsetEnvelopeIndex } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
@@ -1344,6 +1344,13 @@ export class EnvelopeSettings {
         this.discrete = false;
     }
 
+    defaultToDrumset(): void {
+        this.reset();
+        this.envelope = Config.envelopePresets.dictionary["twang 2"].type;
+        this.perEnvelopeSpeed = Config.envelopePresets.dictionary["twang 2"].speed;
+        this.target = DrumsetEnvelopeIndex.filterAll;
+    }
+
     public toJsonObject(sequenceSettings?: SequenceSettings): Object {
         const envelopeObject: any = {
             "target": Config.instrumentAutomationTargets[this.target].name,
@@ -1612,7 +1619,7 @@ export class Instrument {
     public readonly operators: Operator[] = [];
     public readonly spectrumWave: SpectrumWave;
     public readonly harmonicsWave: HarmonicsWave = new HarmonicsWave();
-    public readonly drumsetEnvelopes: number[] = [];
+    public readonly drumsetEnvelopes: EnvelopeSettings[] = [];
     public readonly drumsetSpectrumWaves: SpectrumWave[] = [];
     public readonly drumsetFilters: FilterSettings[] = [];
     public modChannels: number[] = [];
@@ -1657,7 +1664,8 @@ export class Instrument {
             this.operators[i] = new Operator(i);
         }
         if (isNoiseChannel) for (let i: number = 0; i < Config.drumCount; i++) {
-            this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
+            this.drumsetEnvelopes[i] = new EnvelopeSettings(true);
+            this.drumsetEnvelopes[i].defaultToDrumset();
             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
             this.drumsetFilters[i] = new FilterSettings();
             this.drumsetFilters[i].addPoint(FilterType.lowPass, FilterControlPoint.getRoundedSettingValueFromHz(8000.0), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50));
@@ -1822,7 +1830,7 @@ export class Instrument {
             case InstrumentType.drumset:
                 this.chord = Config.chords.dictionary["simultaneous"].index;
                 for (let i: number = 0; i < Config.drumCount; i++) {
-                    this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
+                    this.drumsetEnvelopes[i].defaultToDrumset();
                     if (this.drumsetSpectrumWaves[i] == undefined) {
                         this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
                     }
@@ -2134,7 +2142,7 @@ export class Instrument {
                     spectrum[i] = Math.round(100 * this.drumsetSpectrumWaves[j].spectrum[i] / Config.spectrumMax);
                 }
                 instrumentObject["drums"][j] = {
-                    "filterEnvelope": this.getDrumsetEnvelope(j).name,
+                    "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(),
                     "spectrum": spectrum,
                     "filter": this.drumsetFilters[j].toJsonObject()
                 };
@@ -2614,10 +2622,19 @@ export class Instrument {
                     const drum: any = instrumentObject["drums"][j];
                     if (drum == undefined) continue;
 
-                    this.drumsetEnvelopes[j] = Config.envelopePresets.dictionary["twang 2"].index; // default value.
+                    this.drumsetEnvelopes[j].defaultToDrumset();
                     if (drum["filterEnvelope"] != undefined) {
                         const envelope: Envelope | undefined = getEnvelope(drum["filterEnvelope"]);
-                        if (envelope != undefined) this.drumsetEnvelopes[j] = envelope.index;
+                        if (envelope != undefined) {
+                            let type: number = Config.envelopePresets[envelope.index].type;
+                            this.drumsetEnvelopes[j].perEnvelopeSpeed = Config.envelopePresets[envelope.index].speed;
+                            if (type == EnvelopeType.tremolo2) this.drumsetEnvelopes[j].perEnvelopeLowerBound = 0.5;
+                            if (type >= EnvelopeType.tremolo2) type--;
+                            this.drumsetEnvelopes[j].envelope = type;
+                        }
+                    } else if (drum["drumEnvelope"]) {
+                        const envelopeSettings: EnvelopeSettings = new EnvelopeSettings(true);
+                        envelopeSettings.fromJsonObject(drum["drumEnvelope"], format);
                     }
                     if (drum["spectrum"] != undefined) {
                         for (let i: number = 0; i < Config.spectrumControlPoints; i++) {
@@ -3155,11 +3172,6 @@ export class Instrument {
 
     public getChord(): Chord {
         return effectsIncludeChord(this.effects) ? Config.chords[this.chord] : Config.chords.dictionary["simultaneous"];
-    }
-
-    public getDrumsetEnvelope(pitch: number): Envelope {
-        if (this.type != InstrumentType.drumset) throw new Error("Can't getDrumsetEnvelope() for non-drumset.");
-        return Config.envelopePresets[this.drumsetEnvelopes[pitch]];
     }
 }
 
@@ -3938,8 +3950,42 @@ export class Song {
                     spectrumBits.encodeBase64(buffer);
                 } else if (instrument.type == InstrumentType.drumset) {
                     buffer.push(SongTagCode.drumsetEnvelopes);
-                    for (let j: number = 0; j < Config.drumCount; j++) {
-                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[j]]);
+                    for (let envelopeIndex: number = 0; envelopeIndex < Config.drumCount; envelopeIndex++) {
+                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].target]);
+                        if (Config.instrumentAutomationTargets[instrument.drumsetEnvelopes[envelopeIndex].target].maxCount > 1) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].index]);
+                        }
+                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].envelope]);
+                        //run pitch envelope handling
+                        if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.pitch) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeStart]);
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeEnd]);
+                            //random
+                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.pseudorandom) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].seed]);
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                            //lfo
+                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.lfo) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                            if (instrument.drumsetEnvelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedSaw || instrument.drumsetEnvelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedTri) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+                            }
+                            //sequence
+                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.sequence) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                        }
+                        //inverse + discrete
+                        let checkboxValues: number = +instrument.drumsetEnvelopes[envelopeIndex].discrete;
+                        checkboxValues = checkboxValues << 1;
+                        checkboxValues += +instrument.drumsetEnvelopes[envelopeIndex].inverse;
+                        buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
+                        //midbox envelope port
+                        if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].name) < 0) {
+                            buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeSpeed]]);
+                        }
+                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
+                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeUpperBound * 10]);
                     }
                     for (let j: number = 0; j < Config.drumCount; j++) {
                         buffer.push(base64IntToCharCode[instrument.drumsetFilters[j].controlPointCount]);
@@ -5018,14 +5064,13 @@ export class Song {
                 const instrument: Instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                 const pregoldToEnvelope: number[] = [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 19, 20, 21, 23, 24, 25, 27, 28, 29, 32, 33, 34, 31, 11];
                 if ((beforeNine && fromBeepBox) || (beforeFive && fromJummBox) || (beforeFour && fromGoldBox)) {
-                    if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox)) {
-
-                    }
                     if (instrument.type == InstrumentType.drumset) {
                         for (let i: number = 0; i < Config.drumCount; i++) {
                             let aa: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                             if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox)) aa = pregoldToEnvelope[aa];
-                            instrument.drumsetEnvelopes[i] = Song._envelopeFromLegacyIndex(aa).index;
+                            instrument.drumsetEnvelopes[i].defaultToDrumset();
+                            instrument.drumsetEnvelopes[i].envelope = Config.envelopePresets[aa].type;
+                            instrument.drumsetEnvelopes[i].perEnvelopeSpeed = Config.envelopePresets[aa].speed;
                         }
                     } else {
                         // This used to be used for general filter envelopes.
@@ -5039,13 +5084,48 @@ export class Song {
                     }
                 } else {
                     // This tag is now only used for drumset filter envelopes + filters.
-                    for (let i: number = 0; i < Config.drumCount; i++) {
-                        let aa: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-                        if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox)) aa = pregoldToEnvelope[aa];
-                        if (!fromSlarmoosBox && aa >= 2) aa++; //2 for pitch
-                        instrument.drumsetEnvelopes[i] = clamp(0, Config.envelopePresets.length, aa);
-                    }
+                    
                     if (fromSlarmoosBox && !beforeSix) {
+                        //envelopes first
+                        for (let i: number = 0; i < Config.drumCount; i++) {
+                            const drumsetEnvelope: EnvelopeSettings = new EnvelopeSettings(true);
+                            drumsetEnvelope.target = clamp(0, Config.instrumentAutomationTargets.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                            const maxCount: number = Config.instrumentAutomationTargets[drumsetEnvelope.target].maxCount;
+                            if (maxCount > 1) {
+                                drumsetEnvelope.index = clamp(0, maxCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                            }
+                            drumsetEnvelope.envelope = clamp(0, Config.envelopes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                            const envelopeType: EnvelopeType = Config.envelopes[drumsetEnvelope.envelope].type;
+                            //pull out unique envelope setting values first, then general ones
+                            if (envelopeType == EnvelopeType.sequence) {
+                                drumsetEnvelope.waveform = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                            }
+                            if (envelopeType == EnvelopeType.lfo) {
+                                drumsetEnvelope.waveform = clamp(0, LFOEnvelopeTypes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                if (drumsetEnvelope.waveform == LFOEnvelopeTypes.steppedSaw || drumsetEnvelope.waveform == LFOEnvelopeTypes.steppedTri) {
+                                    drumsetEnvelope.steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                }
+                            } else if (envelopeType == EnvelopeType.pseudorandom) {
+                                drumsetEnvelope.steps = clamp(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                drumsetEnvelope.seed = clamp(1, Config.randomEnvelopeSeedMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                drumsetEnvelope.waveform = clamp(0, RandomEnvelopeTypes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]); //we use waveform for the random type as well
+                            }
+                            if (envelopeType == EnvelopeType.pitch) {
+                                drumsetEnvelope.pitchEnvelopeStart = clamp(0, Config.drumCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                drumsetEnvelope.pitchEnvelopeEnd = clamp(0, Config.drumCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                            }
+                            let checkboxValues: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                            drumsetEnvelope.discrete = (checkboxValues >> 1) == 1 ? true : false;
+                            drumsetEnvelope.inverse = (checkboxValues & 1) == 1 ? true : false;
+                            if (["pitch", "note size", "punch", "none"].indexOf(Config.envelopes[drumsetEnvelope.envelope].name) < 0) {
+                                drumsetEnvelope.perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
+                            }
+                            drumsetEnvelope.perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
+                            drumsetEnvelope.perEnvelopeUpperBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
+
+                            instrument.drumsetEnvelopes[i] = drumsetEnvelope;
+                        }
+                        //filters
                         for (let i: number = 0; i < Config.drumCount; i++) {
                             instrument.drumsetFilters[i] = new FilterSettings();
                             instrument.drumsetFilters[i].controlPointCount = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -5056,6 +5136,18 @@ export class Song {
                                 point.gain = clamp(0, Config.filterGainRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                                 instrument.drumsetFilters[i].controlPoints[j] = point;
                             }
+                        }
+                    } else {
+                        for (let i: number = 0; i < Config.drumCount; i++) {
+                            let aa: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                            if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox)) aa = pregoldToEnvelope[aa];
+                            if (!fromSlarmoosBox && aa >= 2) aa++; //2 for pitch
+                            instrument.drumsetEnvelopes[i].defaultToDrumset();
+                            let type: number = Config.envelopePresets[aa].type;
+                            if (type == EnvelopeType.tremolo2) instrument.drumsetEnvelopes[i].perEnvelopeLowerBound = 0.5;
+                            if (type >= EnvelopeType.tremolo2) type--;
+                            instrument.drumsetEnvelopes[i].perEnvelopeSpeed = Config.envelopePresets[aa].speed;
+                            instrument.drumsetEnvelopes[i].envelope = type;
                         }
                     }
                 }
@@ -5722,8 +5814,7 @@ export class Song {
                 // Check if limiter settings are used... if not, restore to default
                 if (nextValue == 0x3f) {
                     this.restoreLimiterDefaults();
-                }
-                else {
+                } else {
                     // Limiter is used, grab values
                     this.compressionRatio = (nextValue < 10 ? nextValue / 10 : (1 + (nextValue - 10) / 60));
                     nextValue = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -5985,7 +6076,7 @@ export class Song {
                                 envelopeDiscrete = (checkboxValues >> 1) == 1 ? true : false;
                             }
                             envelopeInverse = (checkboxValues & 1) == 1 ? true : false;
-                            if (Config.envelopes[envelope].name != "pitch" && Config.envelopes[envelope].name != "note size" && Config.envelopes[envelope].name != "punch" && Config.envelopes[envelope].name != "none") {
+                            if (["pitch", "note size", "punch", "none"].indexOf(Config.envelopes[envelope].name) < 0) {
                                 perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
                             }
                             perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
@@ -7555,7 +7646,8 @@ export class Song {
                         instrument.harmonicsWave.markCustomWaveDirty();
                         break;
                     case InstrumentSettings.drumsetEnvelopes:
-                        instrument.drumsetEnvelopes[settingIndex!] = numberData;
+                        if (!instrument.envelopes[settingIndex!]) instrument.drumsetEnvelopes[settingIndex!] = new EnvelopeSettings(true);
+                        instrument.drumsetEnvelopes[settingIndex!].fromJsonObject(data, "slarmoosbox");
                         break;
                     case InstrumentSettings.drumsetSpectrumWaves:
                         instrument.drumsetSpectrumWaves[settingIndex!].spectrum = data as number[];
