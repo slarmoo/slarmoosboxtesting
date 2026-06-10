@@ -12110,9 +12110,16 @@ var EnvelopeComputer = class _EnvelopeComputer {
         envelope = Config.envelopes[envelopeSettings.envelope];
         inverse = envelopeSettings.inverse;
         isDiscrete = envelopeSettings.discrete;
-        perEnvelopeSpeed = envelopeSettings.perEnvelopeSpeed;
-        globalEnvelopeSpeed = Math.pow(instrument.envelopeSpeed, 2) / 144;
-        envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed * instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
+        perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
+        if (synth2.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
+          perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed;
+        }
+        let unratioedEnvelopeSpeed = instrument.envelopeSpeed;
+        if (synth2.isModActive(Config.modulators.dictionary["envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
+          unratioedEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, synth2.getModValue(Config.modulators.dictionary["envelope speed"].index, channelIndex, instrumentIndex, false)));
+        }
+        globalEnvelopeSpeed = Math.pow(unratioedEnvelopeSpeed, 2) / 144;
+        envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed;
         perEnvelopeLowerBound = envelopeSettings.perEnvelopeLowerBound;
         perEnvelopeUpperBound = envelopeSettings.perEnvelopeUpperBound;
         if (synth2.isModActive(Config.modulators.dictionary["individual envelope lower bound"].index, channelIndex, instrumentIndex) && envelopeSettings.tempEnvelopeLowerBound != null) {
@@ -13506,7 +13513,7 @@ var InstrumentState = class _InstrumentState {
     if (instrument.type == 0 /* chip */) {
       const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
       this.waveL = this.aliases ? Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samples;
-      this.waveR = this.aliases ? Config.rawChipWaves[instrument.chipWave].samplesR || Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samplesR || Config.chipWaves[instrument.chipWave].samples;
+      this.waveR = this.aliases ? Config.rawChipWaves[chipwaveIndex].samplesR || Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samplesR || Config.chipWaves[chipwaveIndex].samples;
       this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
       this.chipWaveLoopStart = instrument.chipWaveLoopStart;
       this.chipWaveLoopEnd = instrument.chipWaveLoopEnd;
@@ -15158,7 +15165,7 @@ var Synth = class _Synth extends SynthTemplate {
       }
     }
     tone.freshlyAllocated = false;
-    for (let i = 0; i < Config.maxPitchOrOperatorCount; i++) {
+    for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
       tone.phaseDeltas[i] = 0;
       tone.phaseDeltaScales[i] = 0;
       tone.operatorExpressions[i] = 0;
@@ -17872,33 +17879,33 @@ var Synth = class _Synth extends SynthTemplate {
     return (synth2, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => pulseFunction(synth2, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
   }
   static supersawSynth(instrument) {
-    const voiceCount = Config.supersawVoiceCount | 0;
-    const unisonsVoices = instrument.unisonVoices;
-    let supersawFunction = _Synth.supersawFunctionCache[unisonsVoices];
+    const supersawVoiceCount = Config.supersawVoiceCount | 0;
+    const unisonVoiceCount = instrument.unisonVoices;
+    let supersawFunction = _Synth.supersawFunctionCache[unisonVoiceCount];
     if (supersawFunction == void 0) {
       let supersawSource = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempInstrumentSampleBufferL;
-
+        
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
 
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
 
         `;
-      for (let i = 0; i < voiceCount; i++) {
-        for (let j = 0; j < unisonsVoices; j++) {
+      for (let i = 0; i < supersawVoiceCount; i++) {
+        for (let j = 0; j < unisonVoiceCount; j++) {
           supersawSource += `
                     let phase#@ = tone.phases[$];
-                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", j * voiceCount + i + "");
+                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", j * supersawVoiceCount + i + "");
         }
       }
-      for (let j = 0; j < unisonsVoices; j++) {
+      for (let j = 0; j < unisonVoiceCount; j++) {
         supersawSource += `
                 let phaseDelta# = tone.phaseDeltas[#];
                 const phaseDeltaScale# = +tone.phaseDeltaScales[#];
                 `.replaceAll("#", j + "");
       }
-      for (let i = 0; i < voiceCount; i++) {
+      for (let i = 0; i < supersawVoiceCount; i++) {
         supersawSource += `
                 const unisonDetune# = tone.supersawUnisonDetunes[#];
                 `.replaceAll("#", i + "");
@@ -17927,28 +17934,29 @@ var Synth = class _Synth extends SynthTemplate {
             // the delta before first sample to get a nonzero value.
             let supersawSample = 0;
             `;
-      for (let j = 0; j < unisonsVoices; j++) {
+      for (let j = 0; j < unisonVoiceCount; j++) {
         supersawSource += `
             phase0# = (phase0# + phaseDelta#) - ((phase0# + phaseDelta#) | 0);
-            supersawSample += phase0# - 0.5 * (1.0 + (${voiceCount} - 1.0) * dynamism);
+            let bphase0# = phase0# - 0.5 * (1.0 + (${supersawVoiceCount} - 1.0) * dynamism);
             // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
             if (!instrumentState.aliases) {
                 if (phase0# < phaseDelta#) {
                     var t = phase0# / phaseDelta#;
-                    supersawSample -= (t + t - t * t - 1) * 0.5;
+                    bphase0# -= (t + t - t * t - 1) * 0.5;
                 } else if (phase0# > 1.0 - phaseDelta#) {
                     var t = (phase0# - 1.0) / phaseDelta#;
-                    supersawSample -= (t + t + t * t + 1) * 0.5;
+                    bphase0# -= (t + t + t * t + 1) * 0.5;
                 }
             }
+            supersawSample += bphase0#${j > 0 ? " * unisonSign" : ""};
                 `.replaceAll("#", j + "");
       }
       supersawSource += `
 
             if (!instrumentState.aliases) {
             `;
-      for (let i = 1; i < voiceCount; i++) {
-        for (let j = 0; j < unisonsVoices; j++) {
+      for (let i = 1; i < supersawVoiceCount; i++) {
+        for (let j = 0; j < unisonVoiceCount; j++) {
           supersawSource += `
                 const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
@@ -17964,7 +17972,7 @@ var Synth = class _Synth extends SynthTemplate {
                     const t = (aphase#@ - 1.0) / detunedPhaseDelta#@;
                     bphase#@ -= (t + t + t * t + 1) * 0.5 * dynamism;
                 }
-                supersawSample += bphase#@ * unisonSign;
+                supersawSample += bphase#@${j > 0 ? " * unisonSign" : ""};
                 phase#@ = aphase#@;
                 `.replaceAll("#", i + "").replaceAll("@", j + "");
         }
@@ -17972,14 +17980,14 @@ var Synth = class _Synth extends SynthTemplate {
       supersawSource += `
             } else {
              `;
-      for (let i = 1; i < voiceCount; i++) {
-        for (let j = 0; j < unisonsVoices; j++) {
+      for (let i = 1; i < supersawVoiceCount; i++) {
+        for (let j = 0; j < unisonVoiceCount; j++) {
           supersawSource += `
                 const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
                 phase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
-                supersawSample += phase#@ * dynamism * unisonSign;
+                supersawSample += phase#@ * dynamism${j > 0 ? " * unisonSign" : ""};
                 `.replaceAll("#", i + "").replaceAll("@", j + "");
         }
       }
@@ -18000,7 +18008,7 @@ var Synth = class _Synth extends SynthTemplate {
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
             `;
-      for (let j = 0; j < unisonsVoices; j++) {
+      for (let j = 0; j < unisonVoiceCount; j++) {
         supersawSource += `
                 phaseDelta# *= phaseDeltaScale#;
                 `.replaceAll("#", j + "");
@@ -18015,14 +18023,14 @@ var Synth = class _Synth extends SynthTemplate {
 
             data[sampleIndex] += output;
         }`;
-      for (let i = 0; i < voiceCount; i++) {
-        for (let j = 0; j < unisonsVoices; j++) {
+      for (let i = 0; i < supersawVoiceCount; i++) {
+        for (let j = 0; j < unisonVoiceCount; j++) {
           supersawSource += `
                 tone.phases[$] = phase#@;
-                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", j * voiceCount + i + "");
+                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", j * supersawVoiceCount + i + "");
         }
       }
-      for (let j = 0; j < unisonsVoices; j++) {
+      for (let j = 0; j < unisonVoiceCount; j++) {
         supersawSource += `
             tone.phaseDeltas[#] = phaseDelta#;
             `.replaceAll("#", j + "");
@@ -18041,7 +18049,7 @@ var Synth = class _Synth extends SynthTemplate {
         tone.initialNoteFilterInputL2 = initialFilterInput2;
         }`;
       supersawFunction = new Function("Config", "Synth", supersawSource)(Config, _Synth);
-      _Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
+      _Synth.supersawFunctionCache[unisonVoiceCount] = supersawFunction;
     }
     return (synth2, bufferIndex, runLength, tone, instrumentState) => supersawFunction(synth2, bufferIndex, runLength, tone, instrumentState);
   }

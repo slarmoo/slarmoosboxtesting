@@ -25,7 +25,7 @@ export class EnvelopeEditor {
 	public readonly extraRandomSettingsGroups: HTMLDivElement[] = [];
 	public readonly extraLFODropdownGroups: HTMLDivElement[] = [];
 	public readonly extraSequenceSettingsGroups: HTMLDivElement[] = [];
-	public readonly openExtraSettingsDropdowns: Boolean[] = [];
+	public readonly openExtraSettingsDropdowns: boolean[] = [];
 	public readonly perEnvelopeSpeedGroups: HTMLElement[] = [];
 
 	//pitch envelope sliders/boxes
@@ -610,7 +610,7 @@ export class EnvelopeEditor {
 			const copyPasteContainer: HTMLDivElement = HTML.div({ class: "editor-controls", style: "margin: 0.5em; display: flex; flex-direction:row; align-items:center;" }, envelopeCopyButton, envelopePasteButton);
 			
 			//general structure
-			const extraSettingsDropdown: HTMLButtonElement = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()]; this._extraSettingsDropdown(DropdownID.EnvelopeSettings, envelopeIndex, Config.envelopes[instrument.envelopes[envelopeIndex].envelope].name); } }, "▼");
+			const extraSettingsDropdown: HTMLButtonElement = HTML.button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; align-self: center; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { this._extraSettingsDropdown(DropdownID.EnvelopeSettings, envelopeIndex); } }, "▼");
 			extraSettingsDropdown.style.display = "inline";
 
 			const extraSettingsDropdownGroup: HTMLDivElement = HTML.div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, extraRandomSettingsGroup, extraLFOSettingsGroup, extraSequenceSettingsGroup, extraPitchSettingsGroup, perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);

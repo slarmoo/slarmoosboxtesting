@@ -59,10 +59,11 @@ export class CustomScalePrompt implements Prompt {
             key.setAttribute("height", String(height));
 
             const highlight: SVGRectElement = SVG.rect({ x: x, y: y + height - 3, width: width, height: 3, fill: ColorConfig.primaryText });
+            //SVG.polygon({ points: `${x},${y + height} ${x + width / 2},${y + height - 10} ${x + width},${y + height}`, fill: ColorConfig.primaryText });
             this._highlights.push(highlight);
 
             const wrappedKey: SVGGElement = SVG.g(
-                key, 
+                key,
                 //shadows
                 SVG.rect({ x: x, y: y, width: 1, height: height, rx: "0.6", fill: "rgba(255,255,255,0.4)" }),
                 SVG.path({ d: `M ${x + 3} ${y + height - 3} L ${x + width - 3} ${y + height - 3} L ${x + width - 3} 0 L ${x + width} -1 L ${x + width} ${y + height} L ${x} ${y + height} z`, fill: "rgba(0,0,0,0.7)" }),
@@ -75,7 +76,8 @@ export class CustomScalePrompt implements Prompt {
 
             this._keys.push(key);
 
-            wrappedKey.addEventListener("click", () => { this._flags[i] = !this._flags[i]; this._render(); });
+            //don't let users toggle the base key, since that apparently causes issues
+            if (i > 0) wrappedKey.addEventListener("click", () => { this._flags[i] = !this._flags[i]; this._render(); });
         }
         for (const blackKey of blackKeys) {
             sortedKeys.push(blackKey);
@@ -161,4 +163,3 @@ export class CustomScalePrompt implements Prompt {
         this._doc.record(new ChangeCustomScale(this._doc, this._flags));
     }
 }
-//}

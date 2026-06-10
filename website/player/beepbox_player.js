@@ -1230,7 +1230,6 @@ var beepbox = (function (exports) {
         static bitcrusherOctaveStep = 0.5;
         static bitcrusherQuantizationRange = 8;
         static maxEnvelopeCount = 16;
-        static defaultAutomationRange = 13;
         static instrumentAutomationTargets = toNameMap([
             { name: "none", computeIndex: null, displayName: "none", perNote: false, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
             { name: "noteVolume", computeIndex: 0, displayName: "note volume", perNote: true, interleave: false, isFilter: false, maxCount: 1, effect: null, compatibleInstruments: null },
@@ -9534,12 +9533,13 @@ var beepbox = (function (exports) {
         InstrumentSettings[InstrumentSettings["harmonicsWave"] = 93] = "harmonicsWave";
         InstrumentSettings[InstrumentSettings["drumsetEnvelopes"] = 94] = "drumsetEnvelopes";
         InstrumentSettings[InstrumentSettings["drumsetSpectrumWaves"] = 95] = "drumsetSpectrumWaves";
-        InstrumentSettings[InstrumentSettings["modChannels"] = 96] = "modChannels";
-        InstrumentSettings[InstrumentSettings["modInstruments"] = 97] = "modInstruments";
-        InstrumentSettings[InstrumentSettings["modulators"] = 98] = "modulators";
-        InstrumentSettings[InstrumentSettings["modFilterTypes"] = 99] = "modFilterTypes";
-        InstrumentSettings[InstrumentSettings["modEnvelopeNumbers"] = 100] = "modEnvelopeNumbers";
-        InstrumentSettings[InstrumentSettings["invalidModulators"] = 101] = "invalidModulators";
+        InstrumentSettings[InstrumentSettings["drumsetFilters"] = 96] = "drumsetFilters";
+        InstrumentSettings[InstrumentSettings["modChannels"] = 97] = "modChannels";
+        InstrumentSettings[InstrumentSettings["modInstruments"] = 98] = "modInstruments";
+        InstrumentSettings[InstrumentSettings["modulators"] = 99] = "modulators";
+        InstrumentSettings[InstrumentSettings["modFilterTypes"] = 100] = "modFilterTypes";
+        InstrumentSettings[InstrumentSettings["modEnvelopeNumbers"] = 101] = "modEnvelopeNumbers";
+        InstrumentSettings[InstrumentSettings["invalidModulators"] = 102] = "invalidModulators";
     })(InstrumentSettings || (InstrumentSettings = {}));
     const defaultBlockSize = 512;
 
@@ -10635,6 +10635,12 @@ var beepbox = (function (exports) {
             this.waveform = 0;
             this.discrete = false;
         }
+        defaultToDrumset() {
+            this.reset();
+            this.envelope = Config.envelopePresets.dictionary["twang 2"].type;
+            this.perEnvelopeSpeed = Config.envelopePresets.dictionary["twang 2"].speed;
+            this.target = 0;
+        }
         toJsonObject(sequenceSettings) {
             const envelopeObject = {
                 "target": Config.instrumentAutomationTargets[this.target].name,
@@ -10889,6 +10895,7 @@ var beepbox = (function (exports) {
         harmonicsWave = new HarmonicsWave();
         drumsetEnvelopes = [];
         drumsetSpectrumWaves = [];
+        drumsetFilters = [];
         modChannels = [];
         modInstruments = [];
         modulators = [];
@@ -10908,10 +10915,14 @@ var beepbox = (function (exports) {
             for (let i = 0; i < Config.operatorCount + 2; i++) {
                 this.operators[i] = new Operator(i);
             }
-            for (let i = 0; i < Config.drumCount; i++) {
-                this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
-                this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
-            }
+            if (isNoiseChannel)
+                for (let i = 0; i < Config.drumCount; i++) {
+                    this.drumsetEnvelopes[i] = new EnvelopeSettings(true);
+                    this.drumsetEnvelopes[i].defaultToDrumset();
+                    this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
+                    this.drumsetFilters[i] = new FilterSettings();
+                    this.drumsetFilters[i].addPoint(0, FilterControlPoint.getRoundedSettingValueFromHz(8000.0), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50));
+                }
             for (let i = 0; i < 64; i++) {
                 this.customChipWave[i] = 24 - Math.floor(i * (48 / 64));
             }
@@ -10973,6 +10984,7 @@ var beepbox = (function (exports) {
             this.vibrato = 0;
             this.unison = 0;
             this.unisonBuzzes = false;
+            this.unisonAntiPhased = (type == 3 || type == 4);
             this.stringSustain = 10;
             this.stringSustainType = Config.enableAcousticSustain ? 1 : 0;
             this.clicklessTransition = false;
@@ -11056,11 +11068,13 @@ var beepbox = (function (exports) {
                 case 4:
                     this.chord = Config.chords.dictionary["simultaneous"].index;
                     for (let i = 0; i < Config.drumCount; i++) {
-                        this.drumsetEnvelopes[i] = Config.envelopePresets.dictionary["twang 2"].index;
+                        this.drumsetEnvelopes[i].defaultToDrumset();
                         if (this.drumsetSpectrumWaves[i] == undefined) {
                             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
                         }
                         this.drumsetSpectrumWaves[i].reset(isNoiseChannel);
+                        this.drumsetFilters[i] = new FilterSettings();
+                        this.drumsetFilters[i].addPoint(0, FilterControlPoint.getRoundedSettingValueFromHz(8000.0), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50));
                     }
                     break;
                 case 5:
@@ -11353,8 +11367,9 @@ var beepbox = (function (exports) {
                         spectrum[i] = Math.round(100 * this.drumsetSpectrumWaves[j].spectrum[i] / Config.spectrumMax);
                     }
                     instrumentObject["drums"][j] = {
-                        "filterEnvelope": this.getDrumsetEnvelope(j).name,
+                        "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(),
                         "spectrum": spectrum,
+                        "filter": this.drumsetFilters[j].toJsonObject()
                     };
                 }
             }
@@ -11814,16 +11829,34 @@ var beepbox = (function (exports) {
                         const drum = instrumentObject["drums"][j];
                         if (drum == undefined)
                             continue;
-                        this.drumsetEnvelopes[j] = Config.envelopePresets.dictionary["twang 2"].index;
+                        this.drumsetEnvelopes[j].defaultToDrumset();
                         if (drum["filterEnvelope"] != undefined) {
                             const envelope = getEnvelope(drum["filterEnvelope"]);
-                            if (envelope != undefined)
-                                this.drumsetEnvelopes[j] = envelope.index;
+                            if (envelope != undefined) {
+                                let type = Config.envelopePresets[envelope.index].type;
+                                this.drumsetEnvelopes[j].perEnvelopeSpeed = Config.envelopePresets[envelope.index].speed;
+                                if (type == 9)
+                                    this.drumsetEnvelopes[j].perEnvelopeLowerBound = 0.5;
+                                if (type >= 9)
+                                    type--;
+                                this.drumsetEnvelopes[j].envelope = type;
+                            }
+                        }
+                        else if (drum["drumEnvelope"]) {
+                            const envelopeSettings = new EnvelopeSettings(true);
+                            envelopeSettings.fromJsonObject(drum["drumEnvelope"], format);
                         }
                         if (drum["spectrum"] != undefined) {
                             for (let i = 0; i < Config.spectrumControlPoints; i++) {
                                 this.drumsetSpectrumWaves[j].spectrum[i] = Math.max(0, Math.min(Config.spectrumMax, Math.round(Config.spectrumMax * (+drum["spectrum"][i]) / 100)));
                             }
+                        }
+                        this.drumsetFilters[j] = new FilterSettings();
+                        if (drum["filter"] != undefined) {
+                            this.drumsetFilters[j].fromJsonObject(drum["filter"]);
+                        }
+                        else {
+                            this.drumsetFilters[j].addPoint(0, FilterControlPoint.getRoundedSettingValueFromHz(8000.0), FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50));
                         }
                         this.drumsetSpectrumWaves[j].markCustomWaveDirty();
                     }
@@ -12289,7 +12322,7 @@ var beepbox = (function (exports) {
                 return effectsIncludeTransition(this.effects) && this.getTransition().slides;
             }
             if ((automationTarget.computeIndex || 0) >= 59 && (automationTarget.computeIndex || 0) <= 74) {
-                if (index >= envelopeIndex)
+                if (index >= envelopeIndex || index >= this.envelopeCount)
                     return false;
                 const envelope = this.envelopes[index];
                 if ([0, 1, 4, 2].indexOf(envelope.envelope) >= 0)
@@ -12343,11 +12376,6 @@ var beepbox = (function (exports) {
         }
         getChord() {
             return effectsIncludeChord(this.effects) ? Config.chords[this.chord] : Config.chords.dictionary["simultaneous"];
-        }
-        getDrumsetEnvelope(pitch) {
-            if (this.type != 4)
-                throw new Error("Can't getDrumsetEnvelope() for non-drumset.");
-            return Config.envelopePresets[this.drumsetEnvelopes[pitch]];
         }
     }
     class Channel {
@@ -13036,8 +13064,46 @@ var beepbox = (function (exports) {
                     }
                     else if (instrument.type == 4) {
                         buffer.push(122);
+                        for (let envelopeIndex = 0; envelopeIndex < Config.drumCount; envelopeIndex++) {
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].target]);
+                            if (Config.instrumentAutomationTargets[instrument.drumsetEnvelopes[envelopeIndex].target].maxCount > 1) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].index]);
+                            }
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].envelope]);
+                            if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 2) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeStart]);
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeEnd]);
+                            }
+                            else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 3) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].seed]);
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                            }
+                            else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 8) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                                if (instrument.drumsetEnvelopes[envelopeIndex].waveform == 5 || instrument.drumsetEnvelopes[envelopeIndex].waveform == 6) {
+                                    buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+                                }
+                            }
+                            else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 16) {
+                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                            }
+                            let checkboxValues = +instrument.drumsetEnvelopes[envelopeIndex].discrete;
+                            checkboxValues = checkboxValues << 1;
+                            checkboxValues += +instrument.drumsetEnvelopes[envelopeIndex].inverse;
+                            buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
+                            if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].name) < 0) {
+                                buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeSpeed]]);
+                            }
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
+                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeUpperBound * 10]);
+                        }
                         for (let j = 0; j < Config.drumCount; j++) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[j]]);
+                            buffer.push(base64IntToCharCode[instrument.drumsetFilters[j].controlPointCount]);
+                            for (let k = 0; k < instrument.drumsetFilters[j].controlPointCount; k++) {
+                                const point = instrument.drumsetFilters[j].controlPoints[k];
+                                buffer.push(base64IntToCharCode[point.type], base64IntToCharCode[Math.round(point.freq)], base64IntToCharCode[Math.round(point.gain)]);
+                            }
                         }
                         buffer.push(83);
                         const spectrumBits = new BitFieldWriter();
@@ -14070,7 +14136,9 @@ var beepbox = (function (exports) {
                                         let aa = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                         if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox))
                                             aa = pregoldToEnvelope[aa];
-                                        instrument.drumsetEnvelopes[i] = Song._envelopeFromLegacyIndex(aa).index;
+                                        instrument.drumsetEnvelopes[i].defaultToDrumset();
+                                        instrument.drumsetEnvelopes[i].envelope = Config.envelopePresets[aa].type;
+                                        instrument.drumsetEnvelopes[i].perEnvelopeSpeed = Config.envelopePresets[aa].speed;
                                     }
                                 }
                                 else {
@@ -14083,13 +14151,72 @@ var beepbox = (function (exports) {
                                 }
                             }
                             else {
-                                for (let i = 0; i < Config.drumCount; i++) {
-                                    let aa = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
-                                    if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox))
-                                        aa = pregoldToEnvelope[aa];
-                                    if (!fromSlarmoosBox && aa >= 2)
-                                        aa++;
-                                    instrument.drumsetEnvelopes[i] = clamp$1(0, Config.envelopePresets.length, aa);
+                                if (fromSlarmoosBox && !beforeSix) {
+                                    for (let i = 0; i < Config.drumCount; i++) {
+                                        const drumsetEnvelope = new EnvelopeSettings(true);
+                                        drumsetEnvelope.target = clamp$1(0, Config.instrumentAutomationTargets.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        const maxCount = Config.instrumentAutomationTargets[drumsetEnvelope.target].maxCount;
+                                        if (maxCount > 1) {
+                                            drumsetEnvelope.index = clamp$1(0, maxCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        }
+                                        drumsetEnvelope.envelope = clamp$1(0, Config.envelopes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        const envelopeType = Config.envelopes[drumsetEnvelope.envelope].type;
+                                        if (envelopeType == 16) {
+                                            drumsetEnvelope.waveform = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                        }
+                                        if (envelopeType == 8) {
+                                            drumsetEnvelope.waveform = clamp$1(0, 7, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            if (drumsetEnvelope.waveform == 5 || drumsetEnvelope.waveform == 6) {
+                                                drumsetEnvelope.steps = clamp$1(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            }
+                                        }
+                                        else if (envelopeType == 3) {
+                                            drumsetEnvelope.steps = clamp$1(1, Config.randomEnvelopeStepsMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            drumsetEnvelope.seed = clamp$1(1, Config.randomEnvelopeSeedMax + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            drumsetEnvelope.waveform = clamp$1(0, 4, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        }
+                                        if (envelopeType == 2) {
+                                            drumsetEnvelope.pitchEnvelopeStart = clamp$1(0, Config.drumCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            drumsetEnvelope.pitchEnvelopeEnd = clamp$1(0, Config.drumCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                        }
+                                        let checkboxValues = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                        drumsetEnvelope.discrete = (checkboxValues >> 1) == 1 ? true : false;
+                                        drumsetEnvelope.inverse = (checkboxValues & 1) == 1 ? true : false;
+                                        if (["pitch", "note size", "punch", "none"].indexOf(Config.envelopes[drumsetEnvelope.envelope].name) < 0) {
+                                            drumsetEnvelope.perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
+                                        }
+                                        drumsetEnvelope.perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
+                                        drumsetEnvelope.perEnvelopeUpperBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
+                                        instrument.drumsetEnvelopes[i] = drumsetEnvelope;
+                                    }
+                                    for (let i = 0; i < Config.drumCount; i++) {
+                                        instrument.drumsetFilters[i] = new FilterSettings();
+                                        instrument.drumsetFilters[i].controlPointCount = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                        for (let j = 0; j < instrument.drumsetFilters[i].controlPointCount; j++) {
+                                            const point = new FilterControlPoint();
+                                            point.type = clamp$1(0, 3, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            point.freq = clamp$1(0, Config.filterFreqRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            point.gain = clamp$1(0, Config.filterGainRange, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                                            instrument.drumsetFilters[i].controlPoints[j] = point;
+                                        }
+                                    }
+                                }
+                                else {
+                                    for (let i = 0; i < Config.drumCount; i++) {
+                                        let aa = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+                                        if ((beforeTwo && fromGoldBox) || (!fromGoldBox && !fromUltraBox && !fromSlarmoosBox))
+                                            aa = pregoldToEnvelope[aa];
+                                        if (!fromSlarmoosBox && aa >= 2)
+                                            aa++;
+                                        instrument.drumsetEnvelopes[i].defaultToDrumset();
+                                        let type = Config.envelopePresets[aa].type;
+                                        if (type == 9)
+                                            instrument.drumsetEnvelopes[i].perEnvelopeLowerBound = 0.5;
+                                        if (type >= 9)
+                                            type--;
+                                        instrument.drumsetEnvelopes[i].perEnvelopeSpeed = Config.envelopePresets[aa].speed;
+                                        instrument.drumsetEnvelopes[i].envelope = type;
+                                    }
                                 }
                             }
                         }
@@ -14999,7 +15126,7 @@ var beepbox = (function (exports) {
                                             envelopeDiscrete = (checkboxValues >> 1) == 1 ? true : false;
                                         }
                                         envelopeInverse = (checkboxValues & 1) == 1 ? true : false;
-                                        if (Config.envelopes[envelope].name != "pitch" && Config.envelopes[envelope].name != "note size" && Config.envelopes[envelope].name != "punch" && Config.envelopes[envelope].name != "none") {
+                                        if (["pitch", "note size", "punch", "none"].indexOf(Config.envelopes[envelope].name) < 0) {
                                             perEnvelopeSpeed = Config.perEnvelopeSpeedIndices[base64CharCodeToInt[compressed.charCodeAt(charIndex++)]];
                                         }
                                         perEnvelopeLowerBound = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] / 10;
@@ -16178,6 +16305,7 @@ var beepbox = (function (exports) {
                             instrument.eqFilter.fromJsonObject(data);
                             instrument.tmpEqFilterStart = instrument.eqFilter;
                             instrument.tmpEqFilterEnd = null;
+                            instrument.clearInvalidEnvelopeTargets();
                             break;
                         case InstrumentSettings.eqFilterType:
                             instrument.eqFilterType = numberData == 1;
@@ -16201,6 +16329,7 @@ var beepbox = (function (exports) {
                             instrument.noteFilter.fromJsonObject(data);
                             instrument.tmpNoteFilterStart = instrument.noteFilter;
                             instrument.tmpNoteFilterEnd = null;
+                            instrument.clearInvalidEnvelopeTargets();
                             break;
                         case InstrumentSettings.noteFilterType:
                             instrument.noteFilterType = numberData == 1;
@@ -16492,11 +16621,16 @@ var beepbox = (function (exports) {
                             instrument.harmonicsWave.markCustomWaveDirty();
                             break;
                         case InstrumentSettings.drumsetEnvelopes:
-                            instrument.drumsetEnvelopes[settingIndex] = numberData;
+                            if (!instrument.envelopes[settingIndex])
+                                instrument.drumsetEnvelopes[settingIndex] = new EnvelopeSettings(true);
+                            instrument.drumsetEnvelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
                             break;
                         case InstrumentSettings.drumsetSpectrumWaves:
                             instrument.drumsetSpectrumWaves[settingIndex].spectrum = data;
                             instrument.drumsetSpectrumWaves[settingIndex].markCustomWaveDirty();
+                            break;
+                        case InstrumentSettings.drumsetFilters:
+                            instrument.drumsetFilters[settingIndex].fromJsonObject(data);
                             break;
                         case InstrumentSettings.modChannels:
                             instrument.modChannels = data;
@@ -18625,6 +18759,7 @@ var beepbox = (function (exports) {
                 let automationTarget;
                 let targetIndex;
                 let envelope;
+                let pitch = 0;
                 let inverse = false;
                 let isDiscrete = false;
                 let perEnvelopeSpeed = 1;
@@ -18654,33 +18789,39 @@ var beepbox = (function (exports) {
                     automationTarget = Config.instrumentAutomationTargets[envelopeSettings.target];
                     targetIndex = envelopeSettings.index;
                     envelope = Config.envelopes[envelopeSettings.envelope];
-                    inverse = instrument.envelopes[envelopeIndex].inverse;
-                    isDiscrete = instrument.envelopes[envelopeIndex].discrete;
+                    inverse = envelopeSettings.inverse;
+                    isDiscrete = envelopeSettings.discrete;
                     perEnvelopeSpeed = instrument.envelopes[envelopeIndex].perEnvelopeSpeed;
-                    globalEnvelopeSpeed = Math.pow(instrument.envelopeSpeed, 2) / 144;
-                    envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed * instrumentState.envelopeSpeedEnvelopes[envelopeIndex];
-                    perEnvelopeLowerBound = instrument.envelopes[envelopeIndex].perEnvelopeLowerBound;
-                    perEnvelopeUpperBound = instrument.envelopes[envelopeIndex].perEnvelopeUpperBound;
-                    if (synth.isModActive(Config.modulators.dictionary["individual envelope lower bound"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeLowerBound != null) {
-                        perEnvelopeLowerBound = instrument.envelopes[envelopeIndex].tempEnvelopeLowerBound;
+                    if (synth.isModActive(Config.modulators.dictionary["individual envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
+                        perEnvelopeSpeed = instrument.envelopes[envelopeIndex].tempEnvelopeSpeed;
                     }
-                    if (synth.isModActive(Config.modulators.dictionary["individual envelope upper bound"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeUpperBound != null) {
-                        perEnvelopeUpperBound = instrument.envelopes[envelopeIndex].tempEnvelopeUpperBound;
+                    let unratioedEnvelopeSpeed = instrument.envelopeSpeed;
+                    if (synth.isModActive(Config.modulators.dictionary["envelope speed"].index, channelIndex, instrumentIndex) && instrument.envelopes[envelopeIndex].tempEnvelopeSpeed != null) {
+                        unratioedEnvelopeSpeed = Math.max(0, Math.min(Config.arpSpeedScale.length - 1, synth.getModValue(Config.modulators.dictionary["envelope speed"].index, channelIndex, instrumentIndex, false)));
+                    }
+                    globalEnvelopeSpeed = Math.pow(unratioedEnvelopeSpeed, 2) / 144;
+                    envelopeSpeed = perEnvelopeSpeed * globalEnvelopeSpeed;
+                    perEnvelopeLowerBound = envelopeSettings.perEnvelopeLowerBound;
+                    perEnvelopeUpperBound = envelopeSettings.perEnvelopeUpperBound;
+                    if (synth.isModActive(Config.modulators.dictionary["individual envelope lower bound"].index, channelIndex, instrumentIndex) && envelopeSettings.tempEnvelopeLowerBound != null) {
+                        perEnvelopeLowerBound = envelopeSettings.tempEnvelopeLowerBound;
+                    }
+                    if (synth.isModActive(Config.modulators.dictionary["individual envelope upper bound"].index, channelIndex, instrumentIndex) && envelopeSettings.tempEnvelopeUpperBound != null) {
+                        perEnvelopeUpperBound = envelopeSettings.tempEnvelopeUpperBound;
                     }
                     if (!(perEnvelopeLowerBound <= perEnvelopeUpperBound)) {
                         perEnvelopeLowerBound = 0;
                         perEnvelopeUpperBound = 1;
                     }
                     timeSinceStart = synth.computeTicksSinceStart();
-                    steps = instrument.envelopes[envelopeIndex].steps;
-                    seed = instrument.envelopes[envelopeIndex].seed;
-                    if (instrument.envelopes[envelopeIndex].waveform >= (envelope.name == "lfo" ? 7 : 4)) {
-                        instrument.envelopes[envelopeIndex].waveform = 0;
+                    steps = envelopeSettings.steps;
+                    seed = envelopeSettings.seed;
+                    if (envelopeSettings.waveform >= (envelope.name == "lfo" ? 7 : 4)) {
+                        envelopeSettings.waveform = 0;
                     }
-                    waveform = instrument.envelopes[envelopeIndex].waveform;
-                    if (envelope.type == 16) {
+                    waveform = envelopeSettings.waveform;
+                    if (envelope.type == 16)
                         sequence = synth.song?.sequences[waveform] || null;
-                    }
                     if (!timeScale[envelopeIndex])
                         timeScale[envelopeIndex] = 0;
                     const secondsPerTickScaled = secondsPerTick * timeScale[envelopeIndex];
@@ -18695,28 +18836,29 @@ var beepbox = (function (exports) {
                     beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
                     if (envelope.type == 1)
                         usedNoteSize = true;
+                    if (envelope.type == 2)
+                        pitch = this.computePitchEnvelope(envelopeSettings.pitchEnvelopeStart, envelopeSettings.pitchEnvelopeEnd, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, instrument.isNoiseInstrument, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true)));
                 }
-                const pitch = (envelope.type == 2) ? this.computePitchEnvelope(instrument, envelopeIndex, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true))) : 0;
                 if (automationTarget.computeIndex != null && automationTarget.perNote == perNote) {
                     const computeIndex = automationTarget.computeIndex + targetIndex;
-                    let envelopeStart = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, this.noteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                    let envelopeStart = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsStartUnscaled, this.noteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, noteSizeStart, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                     if (prevSlideStart) {
-                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, this.prevNoteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsStartUnscaled, this.prevNoteSecondsStart[envelopeIndex], beatTimeStart, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         envelopeStart += (other - envelopeStart) * prevSlideRatioStart;
                     }
                     if (nextSlideStart) {
-                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeStart, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeStart, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         envelopeStart += (other - envelopeStart) * nextSlideRatioStart;
                     }
                     let envelopeEnd = envelopeStart;
                     if (isDiscrete == false) {
-                        envelopeEnd = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, this.noteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                        envelopeEnd = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, noteSecondsEndUnscaled, this.noteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, noteSizeEnd, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                         if (prevSlideEnd) {
-                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, this.prevNoteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, prevNoteSecondsEndUnscaled, this.prevNoteSecondsEnd[envelopeIndex], beatTimeEnd, timeSinceStart, prevNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                             envelopeEnd += (other - envelopeEnd) * prevSlideRatioEnd;
                         }
                         if (nextSlideEnd) {
-                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeEnd, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, false, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
+                            const other = EnvelopeComputer.computeEnvelope(envelope, envelopeSpeed, globalEnvelopeSpeed, 0.0, 0.0, beatTimeEnd, timeSinceStart, nextNoteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, startPinTickAbsolute, sequence);
                             envelopeEnd += (other - envelopeEnd) * nextSlideRatioEnd;
                         }
                     }
@@ -18762,8 +18904,7 @@ var beepbox = (function (exports) {
             this._modifiedEnvelopeCount = 0;
         }
         static unitarraybuffer = new Uint8Array(1);
-        static computeEnvelope(envelope, perEnvelopeSpeed, globalEnvelopeSpeed, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, isDrumset = false, steps, seed, waveform, defaultPitch, notePinStart, sequence) {
-            const envelopeSpeed = isDrumset ? envelope.speed : 1;
+        static computeEnvelope(envelope, perEnvelopeSpeed, globalEnvelopeSpeed, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, defaultPitch, notePinStart, sequence) {
             const boundAdjust = (perEnvelopeUpperBound - perEnvelopeLowerBound);
             switch (envelope.type) {
                 case 0: return perEnvelopeUpperBound;
@@ -18827,61 +18968,61 @@ var beepbox = (function (exports) {
                     }
                 case 6:
                     if (inverse) {
-                        return perEnvelopeUpperBound - boundAdjust * (1.0 / (1.0 + time * envelopeSpeed));
+                        return perEnvelopeUpperBound - boundAdjust * (1.0 / (1.0 + time));
                     }
                     else {
-                        return boundAdjust / (1.0 + time * envelopeSpeed) + perEnvelopeLowerBound;
+                        return boundAdjust / (1.0 + time) + perEnvelopeLowerBound;
                     }
                 case 7:
                     if (inverse) {
-                        return boundAdjust / (1.0 + time * envelopeSpeed) + perEnvelopeLowerBound;
+                        return boundAdjust / (1.0 + time) + perEnvelopeLowerBound;
                     }
                     else {
-                        return perEnvelopeUpperBound - boundAdjust / (1.0 + time * envelopeSpeed);
+                        return perEnvelopeUpperBound - boundAdjust / (1.0 + time);
                     }
                 case 8:
                     switch (waveform) {
                         case 0:
                             if (inverse) {
-                                return (perEnvelopeUpperBound / 2) + boundAdjust * Math.cos(beats * 2.0 * Math.PI * envelopeSpeed) * 0.5 + (perEnvelopeLowerBound / 2);
+                                return (perEnvelopeUpperBound / 2) + boundAdjust * Math.cos(beats * 2.0 * Math.PI) * 0.5 + (perEnvelopeLowerBound / 2);
                             }
                             else {
-                                return (perEnvelopeUpperBound / 2) - boundAdjust * Math.cos(beats * 2.0 * Math.PI * envelopeSpeed) * 0.5 + (perEnvelopeLowerBound / 2);
+                                return (perEnvelopeUpperBound / 2) - boundAdjust * Math.cos(beats * 2.0 * Math.PI) * 0.5 + (perEnvelopeLowerBound / 2);
                             }
                         case 1:
                             if (inverse) {
-                                return (Math.cos(beats * 2.0 * Math.PI * envelopeSpeed + 3 * Math.PI / 2) < 0) ? perEnvelopeUpperBound : perEnvelopeLowerBound;
+                                return (Math.cos(beats * 2.0 * Math.PI + 3 * Math.PI / 2) < 0) ? perEnvelopeUpperBound : perEnvelopeLowerBound;
                             }
                             else {
-                                return (Math.cos(beats * 2.0 * Math.PI * envelopeSpeed + 3 * Math.PI / 2) < 0) ? perEnvelopeLowerBound : perEnvelopeUpperBound;
+                                return (Math.cos(beats * 2.0 * Math.PI + 3 * Math.PI / 2) < 0) ? perEnvelopeLowerBound : perEnvelopeUpperBound;
                             }
                         case 2:
                             if (inverse) {
-                                return (perEnvelopeUpperBound / 2) - (boundAdjust / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0 * envelopeSpeed)) + (perEnvelopeLowerBound / 2);
+                                return (perEnvelopeUpperBound / 2) - (boundAdjust / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0)) + (perEnvelopeLowerBound / 2);
                             }
                             else {
-                                return (perEnvelopeUpperBound / 2) + (boundAdjust / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0 * envelopeSpeed)) + (perEnvelopeLowerBound / 2);
+                                return (perEnvelopeUpperBound / 2) + (boundAdjust / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0)) + (perEnvelopeLowerBound / 2);
                             }
                         case 3:
                             if (inverse) {
-                                return perEnvelopeUpperBound - (beats * envelopeSpeed) % 1 * boundAdjust;
+                                return perEnvelopeUpperBound - (beats) % 1 * boundAdjust;
                             }
                             else {
-                                return (beats * envelopeSpeed) % 1 * boundAdjust + perEnvelopeLowerBound;
+                                return (beats) % 1 * boundAdjust + perEnvelopeLowerBound;
                             }
                         case 4:
                             let trap = 0;
                             if (inverse) {
-                                trap = (perEnvelopeUpperBound / 2) - (boundAdjust * 2 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0 * envelopeSpeed)) + (perEnvelopeLowerBound / 2);
+                                trap = (perEnvelopeUpperBound / 2) - (boundAdjust * 2 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0)) + (perEnvelopeLowerBound / 2);
                             }
                             else {
-                                trap = (perEnvelopeUpperBound / 2) + (boundAdjust * 2 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0 * envelopeSpeed)) + (perEnvelopeLowerBound / 2);
+                                trap = (perEnvelopeUpperBound / 2) + (boundAdjust * 2 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0)) + (perEnvelopeLowerBound / 2);
                             }
                             return Math.max(perEnvelopeLowerBound, Math.min(perEnvelopeUpperBound, trap));
                         case 5:
                             if (steps <= 1)
                                 return 1;
-                            let saw = (beats * envelopeSpeed) % 1;
+                            let saw = beats % 1;
                             if (inverse) {
                                 return perEnvelopeUpperBound - Math.floor(saw * steps) * boundAdjust / (steps - 1);
                             }
@@ -18891,16 +19032,16 @@ var beepbox = (function (exports) {
                         case 6:
                             if (steps <= 1)
                                 return 1;
-                            let tri = 0.5 + (inverse ? -1 : 1) * (1 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0 * envelopeSpeed));
+                            let tri = 0.5 + (inverse ? -1 : 1) * (1 / Math.PI) * Math.asin(Math.sin((Math.PI / 2) + beats * Math.PI * 2.0));
                             return Math.round(tri * (steps - 1)) * boundAdjust / (steps - 1) + perEnvelopeLowerBound;
                         default: throw new Error("Unrecognized operator envelope waveform type: " + waveform);
                     }
                 case 9:
                     if (inverse) {
-                        return (perEnvelopeUpperBound / 4) + boundAdjust * Math.cos(beats * 2.0 * Math.PI * envelopeSpeed) * 0.25 + (perEnvelopeLowerBound / 4);
+                        return (perEnvelopeUpperBound / 4) + boundAdjust * Math.cos(beats * 2.0 * Math.PI) * 0.25 + (perEnvelopeLowerBound / 4);
                     }
                     else {
-                        return 0.5 + (perEnvelopeUpperBound / 4) - boundAdjust * Math.cos(beats * 2.0 * Math.PI * envelopeSpeed) * 0.25 - (perEnvelopeLowerBound / 4);
+                        return 0.5 + (perEnvelopeUpperBound / 4) - boundAdjust * Math.cos(beats * 2.0 * Math.PI) * 0.25 - (perEnvelopeLowerBound / 4);
                     }
                 case 4:
                     if (inverse) {
@@ -18910,30 +19051,30 @@ var beepbox = (function (exports) {
                         return Math.max(1.0 + perEnvelopeLowerBound, 1.0 + perEnvelopeUpperBound - unspedTime * globalEnvelopeSpeed * 10.0);
                     }
                 case 5:
-                    const attack = 0.25 / Math.sqrt(envelopeSpeed * perEnvelopeSpeed);
+                    const attack = 0.25 / Math.sqrt(globalEnvelopeSpeed * perEnvelopeSpeed);
                     if (inverse) {
-                        return perEnvelopeUpperBound - boundAdjust * (unspedTime < attack ? unspedTime / attack : 1.0 / (1.0 + (unspedTime - attack) * envelopeSpeed * perEnvelopeSpeed));
+                        return perEnvelopeUpperBound - boundAdjust * (unspedTime < attack ? unspedTime / attack : 1.0 / (1.0 + (unspedTime - attack) * globalEnvelopeSpeed * perEnvelopeSpeed));
                     }
                     else {
-                        return boundAdjust * (unspedTime < attack ? unspedTime / attack : 1.0 / (1.0 + (unspedTime - attack) * envelopeSpeed * perEnvelopeSpeed)) + perEnvelopeLowerBound;
+                        return boundAdjust * (unspedTime < attack ? unspedTime / attack : 1.0 / (1.0 + (unspedTime - attack) * globalEnvelopeSpeed * perEnvelopeSpeed)) + perEnvelopeLowerBound;
                     }
                 case 10:
                     if (inverse) {
-                        return perEnvelopeUpperBound - boundAdjust * Math.pow(2, -envelopeSpeed * time);
+                        return perEnvelopeUpperBound - boundAdjust * Math.pow(2, -time);
                     }
                     else {
-                        return boundAdjust * Math.pow(2, -envelopeSpeed * time) + perEnvelopeLowerBound;
+                        return boundAdjust * Math.pow(2, -time) + perEnvelopeLowerBound;
                     }
                 case 14:
                     if (inverse) {
-                        return perEnvelopeUpperBound - boundAdjust * +(unspedTime < (0.25 / Math.sqrt(envelopeSpeed * perEnvelopeSpeed)));
+                        return perEnvelopeUpperBound - boundAdjust * +(unspedTime < (0.25 / Math.sqrt(globalEnvelopeSpeed * perEnvelopeSpeed)));
                     }
                     else {
-                        return boundAdjust * +(unspedTime < (0.25 / Math.sqrt(envelopeSpeed * perEnvelopeSpeed))) + perEnvelopeLowerBound;
+                        return boundAdjust * +(unspedTime < (0.25 / Math.sqrt(globalEnvelopeSpeed * perEnvelopeSpeed))) + perEnvelopeLowerBound;
                     }
                 case 11:
-                    let temp = 0.5 - Math.cos(beats * envelopeSpeed) * 0.5;
-                    temp = 1.0 / (1.0 + time * (envelopeSpeed - (temp / (1.5 / envelopeSpeed))));
+                    let temp = 0.5 - Math.cos(beats) * 0.5;
+                    temp = 1.0 / (1.0 + time * (temp / (1.5)));
                     temp = temp > 0.0 ? temp : 0.0;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * temp;
@@ -18942,7 +19083,7 @@ var beepbox = (function (exports) {
                         return boundAdjust * temp + perEnvelopeLowerBound;
                     }
                 case 12: {
-                    let lin = (1.0 - (time / (16 / envelopeSpeed)));
+                    let lin = (1.0 - (time / 16));
                     lin = lin > 0.0 ? lin : 0.0;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * lin;
@@ -18952,7 +19093,7 @@ var beepbox = (function (exports) {
                     }
                 }
                 case 13: {
-                    let lin = (time / (16 / envelopeSpeed));
+                    let lin = (time / 16);
                     lin = lin < 1.0 ? lin : 1.0;
                     if (inverse) {
                         return perEnvelopeUpperBound - boundAdjust * lin;
@@ -18963,18 +19104,18 @@ var beepbox = (function (exports) {
                 }
                 case 15: {
                     if (inverse) {
-                        return Math.min(Math.max(perEnvelopeLowerBound, perEnvelopeUpperBound - boundAdjust * Math.sqrt(Math.max(1.0 - envelopeSpeed * time / 2, 0))), perEnvelopeUpperBound);
+                        return Math.min(Math.max(perEnvelopeLowerBound, perEnvelopeUpperBound - boundAdjust * Math.sqrt(Math.max(1.0 - time / 2, 0))), perEnvelopeUpperBound);
                     }
                     else {
-                        return Math.max(perEnvelopeLowerBound, boundAdjust * Math.sqrt(Math.max(1.0 - envelopeSpeed * time / 2, 0)) + perEnvelopeLowerBound);
+                        return Math.max(perEnvelopeLowerBound, boundAdjust * Math.sqrt(Math.max(1.0 - time / 2, 0)) + perEnvelopeLowerBound);
                     }
                 }
                 case 16: {
                     if (sequence == null)
                         return 0;
                     const t = sequence.looped ? beats : time;
-                    const beat = Math.floor(envelopeSpeed * t);
-                    const frac = envelopeSpeed * t - beat;
+                    const beat = Math.floor(t);
+                    const frac = t - beat;
                     if (!sequence.looped && beat + 1 > sequence.length - 1) {
                         const unloopVal = sequence.values[sequence.length - 1] / sequence.height;
                         if (inverse) {
@@ -19013,25 +19154,10 @@ var beepbox = (function (exports) {
             }
             return 0;
         }
-        computePitchEnvelope(instrument, index, pitch = 0) {
-            let startNote = 0;
-            let endNote = Config.maxPitch;
-            let inverse = false;
-            let envelopeLowerBound = 0;
-            let envelopeUpperBound = 1;
-            if (instrument.isNoiseInstrument) {
-                endNote = Config.drumCount - 1;
-            }
-            if (index < instrument.envelopeCount && index !== -2) {
-                startNote = instrument.envelopes[index].pitchEnvelopeStart;
-                endNote = instrument.envelopes[index].pitchEnvelopeEnd;
-                inverse = instrument.envelopes[index].inverse;
-                envelopeLowerBound = instrument.envelopes[index].perEnvelopeLowerBound;
-                envelopeUpperBound = instrument.envelopes[index].perEnvelopeUpperBound;
-            }
+        computePitchEnvelope(startNote, endNote, inverse, envelopeLowerBound, envelopeUpperBound, isNoise, pitch = 0) {
             if (startNote > endNote) {
                 startNote = 0;
-                endNote = instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch;
+                endNote = isNoise ? Config.drumCount - 1 : Config.maxPitch;
             }
             const range = endNote - startNote;
             if (!inverse) {
@@ -19064,14 +19190,13 @@ var beepbox = (function (exports) {
                 return 1.0 + 0.02 * perEnvelopeSpeed;
             return 1.0;
         }
-        computeDrumsetEnvelopes(instrument, drumsetFilterEnvelope, beatsPerPart, partTimeStart, partTimeEnd) {
-            const pitch = 1;
-            function computeDrumsetEnvelope(unspedTime, time, beats, noteSize) {
-                return EnvelopeComputer.computeEnvelope(drumsetFilterEnvelope, 1, 1, unspedTime, time, beats, 0, noteSize, pitch, false, 0, 1, true, 2, 2, 0, pitch, 0, null);
-            }
-            let drumsetFilterEnvelopeStart = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.noteSecondsStartUnscaled, beatsPerPart * partTimeStart, this.noteSizeStart);
+        computeDrumsetEnvelopes(drumsetFilterEnvelope, perEnvelopeSpeed, beatsPerPart, partTimeStart, partTimeEnd, pitch, inverse, discrete, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, drumsetPitch, timeSinceStart, sequenceSettings) {
+            const computeDrumsetEnvelope = (unspedTime, time, beats, noteSize) => {
+                return EnvelopeComputer.computeEnvelope(drumsetFilterEnvelope, perEnvelopeSpeed, 1, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, drumsetPitch, this.startPinTickAbsolute || 0, sequenceSettings);
+            };
+            let drumsetFilterEnvelopeStart = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.noteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.noteSizeStart);
             if (this.prevSlideStart) {
-                const other = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.prevNoteSecondsStartUnscaled, beatsPerPart * partTimeStart, this.prevNoteSize);
+                const other = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.prevNoteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.prevNoteSize);
                 drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.prevSlideRatioStart;
             }
             if (this.nextSlideStart) {
@@ -19079,14 +19204,16 @@ var beepbox = (function (exports) {
                 drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.nextSlideRatioStart;
             }
             let drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeStart;
-            drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.noteSecondsEndUnscaled, beatsPerPart * partTimeEnd, this.noteSizeEnd);
-            if (this.prevSlideEnd) {
-                const other = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.prevNoteSecondsEndUnscaled, beatsPerPart * partTimeEnd, this.prevNoteSize);
-                drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.prevSlideRatioEnd;
-            }
-            if (this.nextSlideEnd) {
-                const other = computeDrumsetEnvelope(0.0, 0.0, beatsPerPart * partTimeEnd, this.nextNoteSize);
-                drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.nextSlideRatioEnd;
+            if (!discrete) {
+                drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.noteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.noteSizeEnd);
+                if (this.prevSlideEnd) {
+                    const other = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.prevNoteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.prevNoteSize);
+                    drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.prevSlideRatioEnd;
+                }
+                if (this.nextSlideEnd) {
+                    const other = computeDrumsetEnvelope(0.0, 0.0, beatsPerPart * partTimeEnd, this.nextNoteSize);
+                    drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.nextSlideRatioEnd;
+                }
             }
             this.drumsetFilterEnvelopeStart = drumsetFilterEnvelopeStart;
             this.drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeEnd;
@@ -20100,7 +20227,7 @@ var beepbox = (function (exports) {
             if (instrument.type == 0) {
                 const chipwaveIndex = Math.min(instrument.chipWave, Config.chipWaves.length - 1);
                 this.waveL = (this.aliases) ? Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samples;
-                this.waveR = (this.aliases) ? Config.rawChipWaves[instrument.chipWave].samplesR || Config.rawChipWaves[instrument.chipWave].samples : Config.chipWaves[instrument.chipWave].samplesR || Config.chipWaves[instrument.chipWave].samples;
+                this.waveR = (this.aliases) ? Config.rawChipWaves[chipwaveIndex].samplesR || Config.rawChipWaves[chipwaveIndex].samples : Config.chipWaves[chipwaveIndex].samplesR || Config.chipWaves[chipwaveIndex].samples;
                 this.isUsingAdvancedLoopControls = instrument.isUsingAdvancedLoopControls;
                 this.chipWaveLoopStart = instrument.chipWaveLoopStart;
                 this.chipWaveLoopEnd = instrument.chipWaveLoopEnd;
@@ -20399,7 +20526,6 @@ var beepbox = (function (exports) {
         tickSampleCountdown = 0;
         static tempFilterStartCoefficients = new FilterCoefficients();
         static tempFilterEndCoefficients = new FilterCoefficients();
-        tempDrumSetControlPoint = new FilterControlPoint();
         tempFrequencyResponse = new FrequencyResponse();
         loopBarStart = -1;
         loopBarEnd = -1;
@@ -21582,7 +21708,6 @@ var beepbox = (function (exports) {
                                 let passedEndOfNote = false;
                                 if (noteStartPart > currentPart) {
                                     if (toneList.count() > i && (transition.isSeamless || forceContinueAtStart) && prevNoteForThisTone != null) {
-                                        console.log("here");
                                         nextNoteForThisTone = noteForThisTone;
                                         noteForThisTone = prevNoteForThisTone;
                                         pitchesForThisTone = noteForThisTone.pitches;
@@ -21846,7 +21971,7 @@ var beepbox = (function (exports) {
                 }
             }
             tone.freshlyAllocated = false;
-            for (let i = 0; i < Config.maxPitchOrOperatorCount; i++) {
+            for (let i = 0; i < Config.maxPitchOrOperatorCount * Config.unisonVoicesMax; i++) {
                 tone.phaseDeltas[i] = 0.0;
                 tone.phaseDeltaScales[i] = 0.0;
                 tone.operatorExpressions[i] = 0.0;
@@ -22158,24 +22283,28 @@ var beepbox = (function (exports) {
             }
             if (instrument.type == 4) {
                 const drumsetEnvelopeComputer = tone.envelopeComputer;
-                const drumsetFilterEnvelope = instrument.getDrumsetEnvelope(tone.drumsetPitch);
-                noteFilterExpression *= EnvelopeComputer.getLowpassCutoffDecayVolumeCompensation(drumsetFilterEnvelope);
-                drumsetEnvelopeComputer.computeDrumsetEnvelopes(instrument, drumsetFilterEnvelope, beatsPerPart, partTimeStart, partTimeEnd);
-                const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart;
-                const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd;
-                const point = this.tempDrumSetControlPoint;
-                point.type = 0;
-                point.gain = FilterControlPoint.getRoundedSettingValueFromLinearGain(0.50);
-                point.freq = FilterControlPoint.getRoundedSettingValueFromHz(8000.0);
-                point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeStart * (1.0 + drumsetFilterEnvelopeStart), 1.0);
-                point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, drumsetFilterEnvelopeEnd * (1.0 + drumsetFilterEnvelopeEnd), 1.0);
-                if (tone.noteFiltersL.length == tone.noteFilterCount)
-                    tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
-                if (tone.noteFiltersR.length == tone.noteFilterCount)
-                    tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
-                tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
-                tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
-                tone.noteFilterCount++;
+                const drumsetFilterEnvelope = instrument.drumsetEnvelopes[tone.drumsetPitch];
+                const envelopeTarget = drumsetFilterEnvelope.target;
+                noteFilterExpression *= EnvelopeComputer.getLowpassCutoffDecayVolumeCompensation(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed);
+                const pitch = Config.envelopes[drumsetFilterEnvelope.envelope].type == 2 ? envelopeComputer.computePitchEnvelope(drumsetFilterEnvelope.pitchEnvelopeStart, drumsetFilterEnvelope.pitchEnvelopeEnd, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, true, envelopeComputer.getPitchValue(instrument, tone, instrumentState, true)) : 0;
+                const sequenceSettings = Config.envelopes[drumsetFilterEnvelope.envelope].type == 16 ? song.sequences[drumsetFilterEnvelope.waveform] : null;
+                drumsetEnvelopeComputer.computeDrumsetEnvelopes(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed, beatsPerPart, partTimeStart, partTimeEnd, pitch, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.discrete, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, drumsetFilterEnvelope.steps, drumsetFilterEnvelope.seed, drumsetFilterEnvelope.waveform, tone.drumsetPitch, this.computeTicksSinceStart(), sequenceSettings);
+                const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart * (1.0 + drumsetEnvelopeComputer.drumsetFilterEnvelopeStart);
+                const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd * (1.0 + drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd);
+                const drumsetFilter = instrument.drumsetFilters[tone.drumsetPitch];
+                for (let i = 0; i < drumsetFilter.controlPointCount; i++) {
+                    const point = drumsetFilter.controlPoints[i];
+                    const usesEnvelope = envelopeTarget == 0 || envelopeTarget == i + 1 || (envelopeTarget - Config.filterMaxPoints >= 1 && i <= envelopeTarget - Config.filterMaxPoints);
+                    point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeStart : 1.0, 1.0);
+                    point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeEnd : 1.0, 1.0);
+                    if (tone.noteFiltersL.length == tone.noteFilterCount)
+                        tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
+                    if (tone.noteFiltersR.length == tone.noteFilterCount)
+                        tone.noteFiltersR[tone.noteFilterCount] = new DynamicBiquadFilter();
+                    tone.noteFiltersL[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+                    tone.noteFiltersR[tone.noteFilterCount].loadCoefficientsWithGradient(Synth.tempFilterStartCoefficients, Synth.tempFilterEndCoefficients, 1.0 / roundedSamplesPerTick, true);
+                    tone.noteFilterCount++;
+                }
             }
             noteFilterExpression = Math.min(3.0, noteFilterExpression);
             if (instrument.type == 1 || instrument.type == 11) {
@@ -24646,33 +24775,33 @@ var beepbox = (function (exports) {
             return (synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState) => pulseFunction(synth, bufferIndex, roundedSamplesPerTick, tone, instrumentState);
         }
         static supersawSynth(instrument) {
-            const voiceCount = Config.supersawVoiceCount | 0;
-            const unisonsVoices = instrument.unisonVoices;
-            let supersawFunction = Synth.supersawFunctionCache[unisonsVoices];
+            const supersawVoiceCount = Config.supersawVoiceCount | 0;
+            const unisonVoiceCount = instrument.unisonVoices;
+            let supersawFunction = Synth.supersawFunctionCache[unisonVoiceCount];
             if (supersawFunction == undefined) {
                 let supersawSource = `return (synth, bufferIndex, runLength, tone, instrumentState) => {
         const data = synth.tempInstrumentSampleBufferL;
-
+        
         let expression = +tone.expression;
         const expressionDelta = +tone.expressionDelta;
 
         const unisonSign = tone.specialIntervalExpressionMult * instrumentState.unisonSign;
 
         `;
-                for (let i = 0; i < voiceCount; i++) {
-                    for (let j = 0; j < unisonsVoices; j++) {
+                for (let i = 0; i < supersawVoiceCount; i++) {
+                    for (let j = 0; j < unisonVoiceCount; j++) {
                         supersawSource += `
                     let phase#@ = tone.phases[$];
-                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+                    `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * supersawVoiceCount + i) + "");
                     }
                 }
-                for (let j = 0; j < unisonsVoices; j++) {
+                for (let j = 0; j < unisonVoiceCount; j++) {
                     supersawSource += `
                 let phaseDelta# = tone.phaseDeltas[#];
                 const phaseDeltaScale# = +tone.phaseDeltaScales[#];
                 `.replaceAll("#", j + "");
                 }
-                for (let i = 0; i < voiceCount; i++) {
+                for (let i = 0; i < supersawVoiceCount; i++) {
                     supersawSource += `
                 const unisonDetune# = tone.supersawUnisonDetunes[#];
                 `.replaceAll("#", i + "");
@@ -24701,28 +24830,29 @@ var beepbox = (function (exports) {
             // the delta before first sample to get a nonzero value.
             let supersawSample = 0;
             `;
-                for (let j = 0; j < unisonsVoices; j++) {
+                for (let j = 0; j < unisonVoiceCount; j++) {
                     supersawSource += `
             phase0# = (phase0# + phaseDelta#) - ((phase0# + phaseDelta#) | 0);
-            supersawSample += phase0# - 0.5 * (1.0 + (${voiceCount} - 1.0) * dynamism);
+            let bphase0# = phase0# - 0.5 * (1.0 + (${supersawVoiceCount} - 1.0) * dynamism);
             // This is a PolyBLEP, which smooths out discontinuities at any frequency to reduce aliasing. 
             if (!instrumentState.aliases) {
                 if (phase0# < phaseDelta#) {
                     var t = phase0# / phaseDelta#;
-                    supersawSample -= (t + t - t * t - 1) * 0.5;
+                    bphase0# -= (t + t - t * t - 1) * 0.5;
                 } else if (phase0# > 1.0 - phaseDelta#) {
                     var t = (phase0# - 1.0) / phaseDelta#;
-                    supersawSample -= (t + t + t * t + 1) * 0.5;
+                    bphase0# -= (t + t + t * t + 1) * 0.5;
                 }
             }
+            supersawSample += bphase0#${j > 0 ? " * unisonSign" : ""};
                 `.replaceAll("#", j + "");
                 }
                 supersawSource += `
 
             if (!instrumentState.aliases) {
             `;
-                for (let i = 1; i < voiceCount; i++) {
-                    for (let j = 0; j < unisonsVoices; j++) {
+                for (let i = 1; i < supersawVoiceCount; i++) {
+                    for (let j = 0; j < unisonVoiceCount; j++) {
                         supersawSource += `
                 const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
@@ -24738,7 +24868,7 @@ var beepbox = (function (exports) {
                     const t = (aphase#@ - 1.0) / detunedPhaseDelta#@;
                     bphase#@ -= (t + t + t * t + 1) * 0.5 * dynamism;
                 }
-                supersawSample += bphase#@ * unisonSign;
+                supersawSample += bphase#@${j > 0 ? " * unisonSign" : ""};
                 phase#@ = aphase#@;
                 `.replaceAll("#", i + "").replaceAll("@", j + "");
                     }
@@ -24746,14 +24876,14 @@ var beepbox = (function (exports) {
                 supersawSource += `
             } else {
              `;
-                for (let i = 1; i < voiceCount; i++) {
-                    for (let j = 0; j < unisonsVoices; j++) {
+                for (let i = 1; i < supersawVoiceCount; i++) {
+                    for (let j = 0; j < unisonVoiceCount; j++) {
                         supersawSource += `
                 const detunedPhaseDelta#@ = phaseDelta@ * unisonDetune#;
                 // The phase initially starts at a zero crossing so apply
                 // the delta before first sample to get a nonzero value.
                 phase#@ = (phase#@ + detunedPhaseDelta#@) - ((phase#@ + detunedPhaseDelta#@) | 0);
-                supersawSample += phase#@ * dynamism * unisonSign;
+                supersawSample += phase#@ * dynamism${j > 0 ? " * unisonSign" : ""};
                 `.replaceAll("#", i + "").replaceAll("@", j + "");
                     }
                 }
@@ -24774,7 +24904,7 @@ var beepbox = (function (exports) {
             initialFilterInput2 = initialFilterInput1;
             initialFilterInput1 = inputSample;
             `;
-                for (let j = 0; j < unisonsVoices; j++) {
+                for (let j = 0; j < unisonVoiceCount; j++) {
                     supersawSource += `
                 phaseDelta# *= phaseDeltaScale#;
                 `.replaceAll("#", j + "");
@@ -24789,14 +24919,14 @@ var beepbox = (function (exports) {
 
             data[sampleIndex] += output;
         }`;
-                for (let i = 0; i < voiceCount; i++) {
-                    for (let j = 0; j < unisonsVoices; j++) {
+                for (let i = 0; i < supersawVoiceCount; i++) {
+                    for (let j = 0; j < unisonVoiceCount; j++) {
                         supersawSource += `
                 tone.phases[$] = phase#@;
-                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * voiceCount + i) + "");
+                `.replaceAll("#", i + "").replaceAll("@", j + "").replaceAll("$", (j * supersawVoiceCount + i) + "");
                     }
                 }
-                for (let j = 0; j < unisonsVoices; j++) {
+                for (let j = 0; j < unisonVoiceCount; j++) {
                     supersawSource += `
             tone.phaseDeltas[#] = phaseDelta#;
             `.replaceAll("#", j + "");
@@ -24815,7 +24945,7 @@ var beepbox = (function (exports) {
         tone.initialNoteFilterInputL2 = initialFilterInput2;
         }`;
                 supersawFunction = new Function("Config", "Synth", supersawSource)(Config, Synth);
-                Synth.supersawFunctionCache[unisonsVoices] = supersawFunction;
+                Synth.supersawFunctionCache[unisonVoiceCount] = supersawFunction;
             }
             return (synth, bufferIndex, runLength, tone, instrumentState) => supersawFunction(synth, bufferIndex, runLength, tone, instrumentState);
         }
