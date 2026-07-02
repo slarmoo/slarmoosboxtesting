@@ -3004,14 +3004,13 @@ export class ChangeRemoveSequence extends Change {
 export class ChangeSequenceLength extends Change {
     constructor(doc: SongDocument, sequenceIndex: number, value: number) {
         super();
+        value = clamp(1, Config.envelopeSequenceLengthMax + 1, value);
         const oldValue = doc.song.sequences[sequenceIndex].length;
         if (oldValue != value) {
             doc.song.sequences[sequenceIndex].length = value;
-            if (value < oldValue) {
-                doc.song.sequences[sequenceIndex].values.splice(value);
-            } else {
-                doc.song.sequences[sequenceIndex].values.concat(Array(value - oldValue).fill(0));
-            }
+            if (value > doc.song.sequences[sequenceIndex].values.length && value > oldValue) {
+                doc.song.sequences[sequenceIndex].values = doc.song.sequences[sequenceIndex].values.concat(Array(value - oldValue).fill(doc.song.sequences[sequenceIndex].values[oldValue - 1]));
+            } 
             doc.synth.updateSong(value, SongSettings.sequenceLength, sequenceIndex);
             this._didSomething();
         }
@@ -3022,6 +3021,7 @@ export class ChangeSequenceLength extends Change {
 export class ChangeSequenceHeight extends Change {
     constructor(doc: SongDocument, sequenceIndex: number, value: number) {
         super();
+        value = clamp(1, Config.envelopeSequenceHeightMax + 1, value);
         const oldValue = doc.song.sequences[sequenceIndex].height;
         if (oldValue != value) {
             doc.song.sequences[sequenceIndex].height = value;

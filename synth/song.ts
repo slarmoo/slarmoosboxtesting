@@ -7181,10 +7181,8 @@ export class Song {
                 //channelIndex hijacked for sequence index
                 const oldValue = this.sequences[channelIndex!].length;
                 this.sequences[channelIndex!].length = numberData;
-                if (numberData < oldValue) {
-                    this.sequences[channelIndex!].values.splice(numberData);
-                } else {
-                    this.sequences[channelIndex!].values.concat(Array(numberData - oldValue).fill(0));
+                if (numberData > this.sequences[channelIndex!].values.length && numberData > oldValue) {
+                    this.sequences[channelIndex!].values = this.sequences[channelIndex!].values.concat(Array(numberData - oldValue).fill(this.sequences[channelIndex!].values[oldValue - 1]));
                 }
                 break;
             } case SongSettings.sequenceHeight: {

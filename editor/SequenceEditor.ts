@@ -42,7 +42,7 @@ export class SequenceEditor {
             this.canvas.addEventListener("mousemove", this._onMouseMove);
             this.canvas.addEventListener("mousedown", this._onMouseDown);
             this.canvas.addEventListener("mouseup", this._whenCursorReleased);
-            // this.canvas.addEventListener("mouseleave", this._whenCursorReleased);
+            this.canvas.addEventListener("mouseleave", this._whenCursorReleased);
 
             this.canvas.addEventListener("touchstart", this._whenTouchPressed);
             this.canvas.addEventListener("touchmove", this._whenTouchMoved);
@@ -156,7 +156,9 @@ export class SequenceEditor {
             if (this._mouseY < 2) this._mouseY = 2;
             if (this._mouseY > this.canvasHeight - 2) this._mouseY = this.canvasHeight;
 
-            this.sequence.values[Math.floor(this._mouseX * this.sequence.length / this.canvasWidth)] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
+            const editSequenceIndex: number = this.sequence.interpolated ? Math.round(this._mouseX * this.sequence.length / this.canvasWidth) : Math.floor(this._mouseX * this.sequence.length / this.canvasWidth);
+
+            this.sequence.values[editSequenceIndex] = Math.round(this.sequence.height - this._mouseY * this.sequence.height / this.canvasHeight);
             new ChangeSequenceValues(this._doc, this.sequenceIndex, this.sequence.values);
 
             this.redrawCanvas();
@@ -164,6 +166,7 @@ export class SequenceEditor {
     }
 
     private _onMouseDown = (event: MouseEvent): void => {
+        event.preventDefault();
         this._mouseDown = true;
         this._mouseX = (event.clientX || event.pageX) - this.canvas.getBoundingClientRect().left;
         this._mouseY = Math.floor((event.clientY || event.pageY) - this.canvas.getBoundingClientRect().top);

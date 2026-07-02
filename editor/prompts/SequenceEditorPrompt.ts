@@ -97,12 +97,14 @@ export class SequenceEditorPrompt implements Prompt {
     private _updateHeight = (): void => {
         new ChangeSequenceHeight(this._doc, this.sequenceIndex, parseInt(this._sequenceHeight.value));
         this._sequenceEditor.sequence.height = parseInt(this._sequenceHeight.value);
+        this._sequenceEditor.sequence.values = this._doc.song.sequences[this.sequenceIndex].values.slice();
         this._sequenceEditor.redrawCanvas();
     }
 
     private _updateLength = (): void => {
         new ChangeSequenceLength(this._doc, this.sequenceIndex, parseInt(this._sequenceLength.value));
         this._sequenceEditor.sequence.length = parseInt(this._sequenceLength.value);
+        this._sequenceEditor.sequence.values = this._doc.song.sequences[this.sequenceIndex].values.slice();
         this._sequenceEditor.redrawCanvas();
     }
 

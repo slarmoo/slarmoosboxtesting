@@ -3278,7 +3278,11 @@ export class Synth extends SynthTemplate {
                     instrumentState.nextVibratoTime = (instrumentState.nextVibratoTime % (Config.vibratoTypes[instrument.vibratoType].period / (Config.ticksPerPart * samplesPerTick / this.samplesPerSecond)));
                     instrumentState.arpTime = (instrumentState.arpTime % (2520 * Config.ticksPerArpeggio)); // 2520 = LCM of 4, 5, 6, 7, 8, 9 (arp sizes)
                     for (let envelopeIndex: number = 0; envelopeIndex < instrument.envelopeCount; envelopeIndex++) {
-                        instrumentState.envelopeTime[envelopeIndex] = (instrumentState.envelopeTime[envelopeIndex] % (Config.partsPerBeat * Config.ticksPerPart * this.song.beatsPerBar));
+                        if (Config.envelopes[instrument.envelopes[envelopeIndex].envelope].type == EnvelopeType.sequence) {
+                            instrumentState.envelopeTime[envelopeIndex] %= Config.partsPerBeat * Config.ticksPerPart * this.song.beatsPerBar * Config.envelopeSequenceLengthMax;
+                        } else {
+                            instrumentState.envelopeTime[envelopeIndex] %= Config.partsPerBeat * Config.ticksPerPart * this.song.beatsPerBar;
+                        }
                     }
                 }
             }
