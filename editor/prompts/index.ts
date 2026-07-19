@@ -22,6 +22,7 @@ import { MultithreadingSetupPrompt } from "./MultithreadingSetupPrompt";
 import { PluginPrompt } from "./PluginPrompt";
 import { RecordingSetupPrompt } from "./RecordingSetupPrompt";
 import { SampleLoadingStatusPrompt } from "./SampleLoadingStatusPrompt";
+import { SelectiveRandomPastePrompt } from "./SelectiveRandomPastePrompt";
 import { SequenceEditorPrompt } from "./SequenceEditorPrompt";
 import { ShortenerConfigPrompt } from "./ShortenerConfigPrompt";
 import { SongDurationPrompt } from "./SongDurationPrompt";
@@ -36,6 +37,6 @@ export {
     AddSamplesPrompt, BeatsPerBarPrompt, ChannelSettingsPrompt, CustomChipPrompt, CustomFilterPrompt, CustomScalePrompt,
     CustomThemePrompt, EuclideanRhythmPrompt, ExportPrompt, HarmonicsEditorPrompt, ImportPrompt, InstrumentExportPrompt,
     InstrumentImportPrompt, LayoutPrompt, LimiterPrompt, MoveNotesSidewaysPrompt, MultithreadingSetupPrompt, PluginPrompt,
-    RecordingSetupPrompt, SampleLoadingStatusPrompt, SequenceEditorPrompt, ShortenerConfigPrompt, SongDurationPrompt,
+    RecordingSetupPrompt, SampleLoadingStatusPrompt, SelectiveRandomPastePrompt, SequenceEditorPrompt, ShortenerConfigPrompt, SongDurationPrompt,
     SongRecoveryPrompt, SpectrumEditorPrompt, SustainPrompt, ThemePrompt, TipPrompt, VisualLoopControlsPrompt
 }

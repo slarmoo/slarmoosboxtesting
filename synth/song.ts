@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex, DrumsetEnvelopeIndex } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex, DrumsetEnvelopeIndex, bundledSamplePacks } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
@@ -575,7 +575,7 @@ export class Pattern {
         }
 
         if (patternObject["notes"] && patternObject["notes"].length > 0) {
-            const maxNoteCount: number = Math.min(song.beatsPerBar * Config.partsPerBeat * (isModChannel ? Config.modCount : 1), patternObject["notes"].length >>> 0);
+            const maxNoteCount: number = Math.min(song.partsPerPattern * (isModChannel ? Config.modCount : 1), patternObject["notes"].length >>> 0);
 
             // TODO: Consider supporting notes specified in any timing order, sorting them and truncating as necessary.
             //let tickClock: number = 0;
@@ -627,7 +627,7 @@ export class Pattern {
                         size = ((pointObject["forMod"] | 0) > 0) ? Math.round(pointObject["volume"] | 0) : Math.max(0, Math.min(volumeCap, Math.round((pointObject["volume"] | 0) * volumeCap / 100)));
                     }
 
-                    if (time > song.beatsPerBar * Config.partsPerBeat) continue;
+                    if (time > song.partsPerPattern) continue;
                     if (note.pins.length == 0) {
                         //if (time < noteClock) continue;
                         note.start = time;
@@ -2018,9 +2018,11 @@ export class Instrument {
         }
         if (effectsIncludeChord(this.effects)) {
             instrumentObject["chord"] = this.getChord().name;
-            instrumentObject["fastTwoNoteArp"] = this.fastTwoNoteArp;
-            instrumentObject["arpeggioSpeed"] = this.arpeggioSpeed;
-            instrumentObject["monoChordTone"] = this.monoChordTone;
+            if (this.getChord().arpeggiates) {
+                instrumentObject["fastTwoNoteArp"] = this.fastTwoNoteArp;
+                instrumentObject["arpeggioSpeed"] = this.arpeggioSpeed;
+            }
+            if (this.getChord().name == "monophonic") instrumentObject["monoChordTone"] = this.monoChordTone;
             if (Config.chords[this.chord].strumParts > 0) instrumentObject["strumParts"] = this.strumParts;
         }
         if (effectsIncludePitchShift(this.effects)) {
@@ -2065,7 +2067,6 @@ export class Instrument {
             instrumentObject["ringModHz"] = Math.round(100 * this.ringModulationHz / (Config.ringModHzRange - 1));
             instrumentObject["ringModWaveformIndex"] = this.ringModWaveformIndex;
             instrumentObject["ringModPulseWidth"] = Math.round(100 * this.ringModPulseWidth / (Config.pulseWidthRange - 1));
-            instrumentObject["ringModHzOffset"] = Math.round(100 * this.ringModHzOffset / (Config.rmHzOffsetMax));
         }
         if (effectsIncludeDistortion(this.effects)) {
             instrumentObject["distortion"] = Math.round(100 * this.distortion / (Config.distortionRange - 1));
@@ -3201,6 +3202,7 @@ export class Song {
     private static readonly _variant = 0x73; //"s" ~ slarmoo's box
 
     public title: string;
+    public titleNotifier: Function[] = [];
     public scale: number;
     public scaleCustom: boolean[] = [];
     public key: number;
@@ -3243,6 +3245,10 @@ export class Song {
         } else {
             this.initToDefault(true);
         }
+    }
+
+    public get partsPerPattern() {
+        return this.beatsPerBar * Config.partsPerBeat;
     }
 
     // Returns the ideal new note volume when dragging (max volume for a normal note, a "neutral" value for mod notes based on how they work)
@@ -3461,6 +3467,16 @@ export class Song {
         return (channelIndex >= this.pitchChannelCount + this.noiseChannelCount);
     }
 
+    public getLargestSongEQControlPointCount() {
+        let largest: number;
+        largest = this.eqFilter.controlPointCount;
+        for (let i: number = 0; i < Config.filterMorphCount; i++) {
+            if (this.eqSubFilters[i] != null && this.eqSubFilters[i]!.controlPointCount > largest)
+                largest = this.eqSubFilters[i]!.controlPointCount;
+        }
+        return largest;
+    }
+
     public initToDefault(andResetChannels: boolean = true): void {
         this.scale = 0;
         this.scaleCustom = [true, false, true, true, false, true, false, true, true, false, false, true];
@@ -3485,7 +3501,7 @@ export class Song {
 
         //This is the tab's display name
         this.title = "Untitled";
-        document.title = this.title + " - " + EditorConfig.versionDisplayName;
+        this.titleNotifier.forEach(o => o());
 
         if (andResetChannels) {
             this.pitchChannelCount = 3;
@@ -4279,10 +4295,10 @@ export class Song {
                         curPart = note.end;
                     }
 
-                    if (curPart < this.beatsPerBar * Config.partsPerBeat + (+isModChannel)) {
+                    if (curPart < this.partsPerPattern + (+isModChannel)) {
                         bits.write(2, 0); // rest
                         if (isModChannel) bits.write(1, 0); // positive offset
-                        bits.writePartDuration(this.beatsPerBar * Config.partsPerBeat + (+isModChannel) - curPart);
+                        bits.writePartDuration(this.partsPerPattern + (+isModChannel) - curPart);
                     }
                 } else {
                     bits.write(1, 0);
@@ -4421,24 +4437,26 @@ export class Song {
                 sampleLoadingState.urlTable = {};
                 sampleLoadingState.totalSamples = 0;
                 sampleLoadingState.samplesLoaded = 0;
+                sampleLoadingState.samplesFailed = 0;
                 sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
                     sampleLoadingState.totalSamples,
-                    sampleLoadingState.samplesLoaded
+                    sampleLoadingState.samplesLoaded,
+                    sampleLoadingState.samplesFailed
                 ));
                 for (const url of compressed_array) {
-                    if (url.toLowerCase() === "legacysamples") {
+                    if (url.toLowerCase() === bundledSamplePacks.legacy) {
                         if (!willLoadLegacySamples) {
                             willLoadLegacySamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(0);
                         }
-                    } else if (url.toLowerCase() === "nintariboxsamples") {
+                    } else if (url.toLowerCase() === bundledSamplePacks.nintaribox) {
                         if (!willLoadNintariboxSamples) {
                             willLoadNintariboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(1);
                         }
-                    } else if (url.toLowerCase() === "mariopaintboxsamples") {
+                    } else if (url.toLowerCase() === bundledSamplePacks.mariopaintbox) {
                         if (!willLoadMarioPaintboxSamples) {
                             willLoadMarioPaintboxSamples = true;
                             customSampleUrls.push(url);
@@ -4515,13 +4533,12 @@ export class Song {
         let command: number;
         let useSlowerArpSpeed: boolean = false;
         let useFastTwoNoteArp: boolean = false;
-        let lastCommand: string = "none";
         while (charIndex < compressed.length) switch (command = compressed.charCodeAt(charIndex++)) {
             case SongTagCode.songTitle: {
                 // Length of song name string
                 var songNameLength = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 this.title = decodeURIComponent(compressed.substring(charIndex, charIndex + songNameLength));
-                document.title = this.title + " - " + EditorConfig.versionDisplayName;
+                this.titleNotifier.forEach(o => o());
 
                 charIndex += songNameLength;
             } break;
@@ -5042,11 +5059,11 @@ export class Song {
                         // instrument.chipWaveReleaseMode = chipWaveReleaseMode;
                     }
                 } else if (fromGoldBox && !beforeFour && beforeSix) {
-                    if (document.URL.substring(document.URL.length - 13).toLowerCase() != "legacysamples") {
+                    if (document.URL.substring(document.URL.length - 13).toLowerCase() != bundledSamplePacks.legacy) {
                         if (!willLoadLegacySamplesForOldSongs) {
                             willLoadLegacySamplesForOldSongs = true;
                             Config.willReloadForCustomSamples = true;
-                            EditorConfig.customSamples = ["legacySamples"];
+                            EditorConfig.customSamples = [bundledSamplePacks.legacy];
                             loadBuiltInSamples(0);
                         }
                     }
@@ -5882,11 +5899,11 @@ export class Song {
                     //is it more useful to save base64 characters or url length?
                     const chipWaveForCompat = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                     if ((chipWaveForCompat + 62) > 85) {
-                        if (document.URL.substring(document.URL.length - 13).toLowerCase() != "legacysamples") {
+                        if (document.URL.substring(document.URL.length - 13).toLowerCase() != bundledSamplePacks.legacy) {
                             if (!willLoadLegacySamplesForOldSongs) {
                                 willLoadLegacySamplesForOldSongs = true;
                                 Config.willReloadForCustomSamples = true;
-                                EditorConfig.customSamples = ["legacySamples"];
+                                EditorConfig.customSamples = [bundledSamplePacks.legacy];
                                 loadBuiltInSamples(0);
                             }
                         }
@@ -6206,7 +6223,6 @@ export class Song {
             }
                 break;
             case SongTagCode.bars: {
-                lastCommand = "bars";
                 let subStringLength: number;
                 if (beforeThree && fromBeepBox) {
                     const channelIndex: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -6240,7 +6256,6 @@ export class Song {
                 charIndex += subStringLength;
             } break;
             case SongTagCode.patterns: {
-                lastCommand = "patterns";
                 let bitStringLength: number = 0;
                 let channelIndex: number;
                 let largerChords: boolean = !((beforeFour && fromJummBox) || fromBeepBox);
@@ -6433,8 +6448,7 @@ export class Song {
                         const newNotes: Note[] = newPattern.notes;
                         let noteCount: number = 0;
                         // Due to arbitrary note positioning, mod channels don't end the count until curPart actually exceeds the max
-                        while (curPart < this.beatsPerBar * Config.partsPerBeat + (+isModChannel)) {
-
+                        while (curPart < this.partsPerPattern + (+isModChannel)) {
                             const useOldShape: boolean = bits.read(1) == 1;
                             let newNote: boolean = false;
                             let shapeIndex: number = 0;
@@ -6619,7 +6633,7 @@ export class Song {
                                     }
                                 }
 
-                                curPart = validateRange(0, this.beatsPerBar * Config.partsPerBeat, note.end);
+                                curPart = validateRange(0, this.partsPerPattern, note.end);
                             }
                         }
                         newNotes.length = noteCount;
@@ -6685,7 +6699,7 @@ export class Song {
                 }
             } break;
             default: {
-                throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + lastCommand + " " + compressed.substring(/*charIndex - 2*/0, charIndex));
+                throw new Error("Unrecognized song tag code " + String.fromCharCode(command) + " at index " + (charIndex - 1) + " " + compressed.substring(/*charIndex - 2*/0, charIndex));
             } break;
         }
 
@@ -7052,9 +7066,11 @@ export class Song {
         sampleLoadingState.urlTable = {};
         sampleLoadingState.totalSamples = 0;
         sampleLoadingState.samplesLoaded = 0;
+        sampleLoadingState.samplesFailed = 0;
         sampleLoadEvents.dispatchEvent(new SampleLoadedEvent(
             sampleLoadingState.totalSamples,
-            sampleLoadingState.samplesLoaded
+            sampleLoadingState.samplesLoaded,
+            sampleLoadingState.samplesFailed
         ));
     }
 
@@ -7246,6 +7262,10 @@ export class Song {
                     case ChannelSettings.removeInstrunent: {
                         channel.instruments.splice(data, 1);
                         break;
+                    }
+                    case ChannelSettings.swapInstrument: {
+                        channel.instruments.splice(numberData, 2, channel.instruments[numberData + 1], channel.instruments[numberData]);
+                        break
                     }
                 }
                 break;
@@ -7814,19 +7834,19 @@ export class Song {
                 const customSampleUrls: string[] = [];
                 const customSamplePresets: Preset[] = [];
                 for (const url of customSamples) {
-                    if (url.toLowerCase() === "legacysamples") {
+                    if (url.toLowerCase() === bundledSamplePacks.legacy) {
                         if (!willLoadLegacySamples) {
                             willLoadLegacySamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(0);
                         }
-                    } else if (url.toLowerCase() === "nintariboxsamples") {
+                    } else if (url.toLowerCase() === bundledSamplePacks.nintaribox) {
                         if (!willLoadNintariboxSamples) {
                             willLoadNintariboxSamples = true;
                             customSampleUrls.push(url);
                             loadBuiltInSamples(1);
                         }
-                    } else if (url.toLowerCase() === "mariopaintboxsamples") {
+                    } else if (url.toLowerCase() === bundledSamplePacks.mariopaintbox) {
                         if (!willLoadMarioPaintboxSamples) {
                             willLoadMarioPaintboxSamples = true;
                             customSampleUrls.push(url);
@@ -8091,7 +8111,7 @@ export class Song {
                 Song._restoreChipWaveListToDefault();
 
                 loadBuiltInSamples(0);
-                EditorConfig.customSamples = ["legacySamples"];
+                EditorConfig.customSamples = [bundledSamplePacks.legacy];
             } else {
                 // We don't need to load the legacy samples, but we may have
                 // leftover samples in memory. If we do, clear them.

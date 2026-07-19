@@ -107,7 +107,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
             break;
         }
         case MessageFlag.sampleStartMessage: {
-            const name: string = event.data.string
+            const name: string = event.data.name
             const expression: number = event.data.expression;
             const isCustomSampled: boolean = event.data.isCustomSampled;
             const isPercussion: boolean = event.data.isPercussion;
@@ -158,6 +158,7 @@ async function receiveMessage(event: MessageEvent): Promise<void> {
             const integratedSamplesL = performIntegral(event.data.samplesL);
             const integratedSamplesR = performIntegral(event.data.samplesR);
             const index: number = event.data.index;
+            if(!Config.chipWaves[index]) throw new Error("samples tried to finish loading before starting to load") //todo: sample message queue
             Config.chipWaves[index].samples = integratedSamplesL;
             Config.chipWaves[index].samplesR = integratedSamplesR;
             Config.rawChipWaves[index].samples = event.data.samplesL;

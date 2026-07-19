@@ -25,7 +25,8 @@
 		"build-offline-html": "bash ./scripts/compile_beepbox_offline_html.sh",
 		"deploy-files": "bash ./scripts/deploy_files.sh",
 		"start": "electron ./to_deploy",
-		"package": "electron-packager ./to_deploy --platform=darwin,linux,win32 --arch=ia32,x64 --asar --overwrite && npm run build-offline-html",
+		"package": "electron-packager ./to_deploy --platform=darwin,linux,win32 --arch=ia32,x64,arm64 --asar --overwrite && npm run build-offline-html",
+		"package-macos": "electron-packager ./to_deploy --platform=darwin --arch=arm64 --asar --overwrite && npm run build-offline-html",
 		"package-host": "electron-packager ./to_deploy slarmoosbox --asar --overwrite && npm run build-offline-html",
 		"live_editor": "bash ./scripts/live_editor.sh",
 		"live_editor_typeless": "bash ./scripts/live_editor_typeless.sh",
@@ -36,7 +37,7 @@
 		"url": "git+https://github.com/slarmoo/slarmoosbox.git"
 	},
 	"devDependencies": {
-		"@electron/packager": "^18.0.0",
+		"@electron/packager": "^18.3.5",
 		"@rollup/plugin-commonjs": "^29.0.2",
 		"@rollup/plugin-node-resolve": "^15.1.0",
 		"electron": "^41.2.0",

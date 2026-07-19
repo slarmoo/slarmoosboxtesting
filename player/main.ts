@@ -4,9 +4,10 @@ import { Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, 
 import { ColorConfig } from "../editor/ColorConfig";
 import { NotePin, Note, Pattern, Instrument, Channel } from "../synth/song";
 import { SynthMessenger } from "../synth/Messenger";
+import { EditorConfig } from "../editor/EditorConfig";
 import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
-import { SynthVolumeMessage, MessageFlag } from "../synth/synthMessages";
+import { SynthVolumeMessage, MessageFlag, ResetEffectsMessage } from "../synth/synthMessages";
 
 const {a, button, div, h1, input, canvas} = HTML;
 const {svg, circle, rect, path} = SVG;
@@ -216,20 +217,20 @@ const stop2: SVGStopElement = SVG.stop({ "stop-color": "orange", offset: "90%" }
 const stop3: SVGStopElement = SVG.stop({ "stop-color": "red", offset: "100%" });
 const gradient: SVGGradientElement = SVG.linearGradient({ id: "volumeGrad2", gradientUnits: "userSpaceOnUse" }, stop1, stop2, stop3);
 const defs: SVGDefsElement = SVG.defs({}, gradient);
-const volumeBarContainer: SVGSVGElement = SVG.svg({ style: `touch-action: none; overflow: hidden; margin: auto;`, width: "160px", height: "10px", preserveAspectRatio: "none" },
+const volumeBarContainer: SVGSVGElement = SVG.svg({ style: `touch-action: none; overflow: hidden; margin: auto; width: 100%;`, width: "160px", height: "10px", preserveAspectRatio: "none" },
 	defs,
 	outVolumeBarBg,
 	outVolumeBar,
 	outVolumeCap,
 );
-const sampleLoadingBar: HTMLDivElement = div({ style: `width: 0%; height: 100%; background-color: ${ColorConfig.indicatorPrimary};` });
-// const sampleFailedBar: HTMLDivElement = div({ style: `width: 0%; height: 100%; background-color: ${ColorConfig.sampleFailed};` });
-const sampleLoadingBarContainer: HTMLDivElement = div({ class: `sampleLoadingContainer`, style: `overflow: hidden; margin: auto; width: 90%; height: 50%; background-color: var(--empty-sample-bar, ${ColorConfig.indicatorSecondary});`, preserveAspectRatio: "none" }, sampleLoadingBar, /*sampleFailedBar*/);
-const sampleLoadingStatusContainer: HTMLDivElement = div({},
-	div({ class: "selectRow", style: "overflow: hidden; margin: auto; width: 160px; height: 10px; " },
-		sampleLoadingBarContainer,
-	));
-const volumeBarContainerDiv: HTMLDivElement = div({ class: `volBarContainer`, style: "display:flex; flex-direction:column; touch-action: none; overflow: hidden; margin: auto" }, volumeBarContainer, sampleLoadingStatusContainer);
+
+const sampleLoadingBar: HTMLDivElement = div({ style: `width: 0%; height: 100%; background-color: ${ColorConfig.sampleLoaded};` });
+const sampleFailedBar: HTMLDivElement = div({ style: `width: 0%; height: 100%; background-color: ${ColorConfig.sampleFailed};` });
+const sampleLoadingBarContainer: HTMLDivElement = div({ style: `overflow: hidden; margin: auto; width: 90%; height: 5px; display: flex; background-color: ${ColorConfig.indicatorSecondary};` },
+	sampleLoadingBar,
+	sampleFailedBar,
+);
+
 document.body.appendChild(visualizationContainer);
 document.body.appendChild(
 	div({style: `flex-shrink: 0; height: 20vh; min-height: 22px; max-height: 70px; display: flex; align-items: center;`},
@@ -238,7 +239,10 @@ document.body.appendChild(
 		volumeIcon,
 		volumeSlider,
 		zoomButton,
-		volumeBarContainerDiv,
+		div({ style: "display: flex; flex-direction: column; overflow: hidden; margin: auto" },
+			volumeBarContainer,
+			sampleLoadingBarContainer,
+		),
 		oscilloscope.canvas, //make it auto remove itself later
 		titleText,
 		editLink,
@@ -327,6 +331,7 @@ function hashUpdatedExternally(): void {
 				case "song":
 					loadSong(value, true);
 					if (synth.song) {
+						document.title = synth.song.title + " - " + EditorConfig.versionDisplayName;
 						titleText.textContent = synth.song.title;
 					}
 					break;
@@ -404,6 +409,12 @@ function volumeUpdate(): void {
 function animateVolume(useOutVolumeCap: number, historicOutCap: number): void {
 	outVolumeBar.setAttribute("width", "" + Math.min(144, useOutVolumeCap * 144));
 	outVolumeCap.setAttribute("x", "" + (8 + Math.min(144, historicOutCap * 144)));
+}
+
+function updateSampleLoadingBar(e: SampleLoadedEvent): void {
+	sampleLoadingBar.style.width = `${e.computeSamplesLoadedPercentage()}%`;
+	sampleFailedBar.style.width = `${e.computeSamplesFailedPercentage()}%`;
+	sampleLoadingBarContainer.title = `Out of ${e.totalSamples} samples, ${e.samplesLoaded} loaded, and ${e.samplesFailed} did not load`;
 }
 
 function onTogglePlay(): void {
@@ -499,7 +510,7 @@ function renderPlayhead(): void {
 		if (notesFlashWhenPlayed) {
 			const playheadBar: number = Math.floor(synth.playhead);
 			const modPlayhead: number = synth.playhead - playheadBar;
-			const partsPerBar: number = synth.song.beatsPerBar * Config.partsPerBeat;
+			const partsPerBar: number = synth.song.partsPerPattern;
 			const noteFlashElementsForThisBar: SVGPathElement[] = noteFlashElementsPerBar[playheadBar];
 
 			if (noteFlashElementsForThisBar != null && playheadBar !== currentNoteFlashBar) {
@@ -568,7 +579,7 @@ function renderTimeline(): void {
 	timeline.style.height = timelineHeight + "px";
 		
 	const barWidth: number = timelineWidth / synth.song.barCount;
-	const partWidth: number = barWidth / (synth.song.beatsPerBar * Config.partsPerBeat);
+	const partWidth: number = barWidth / (synth.song.partsPerPattern);
 
 		const wavePitchHeight: number = (timelineHeight-1) / windowPitchCount;
 		const drumPitchHeight: number =  (timelineHeight-1) / Config.drumCount;
@@ -688,9 +699,13 @@ function renderZoomIcon(): void {
 }
 
 function onKeyPressed(event: KeyboardEvent): void {
+	const resetEffects: ResetEffectsMessage = {
+		flag: MessageFlag.resetEffects
+	}
 	switch (event.keyCode) {
 		case 70: // first bar
 			synth.playhead = 0;
+			synth.sendMessage(resetEffects)
 			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
@@ -702,12 +717,14 @@ function onKeyPressed(event: KeyboardEvent): void {
 			break;
 		case 219: // left brace
 			synth.goToPrevBar();
+			synth.sendMessage(resetEffects)
 			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
 			break;
 		case 221: // right brace
 			synth.goToNextBar();
+			synth.sendMessage(resetEffects)
 			synth.computeLatestModValues();
 			renderPlayhead();
 			event.preventDefault();
@@ -734,13 +751,13 @@ function onKeyPressed(event: KeyboardEvent): void {
 			onToggleLoop();
 			break;
 		case 83: // s
-			if (event.ctrlKey) {
+			if (event.ctrlKey || event.metaKey) {
 				shortenUrl();
 				event.preventDefault();
 			}
 			break;
 		case 67: // c
-			onCopyClicked();
+			if (!event.ctrlKey && !event.metaKey) onCopyClicked();
 			break;
 	}
 }
@@ -780,31 +797,7 @@ function onShareClicked(): void {
 	(<any>navigator).share({ url: location.href });
 }
 
-function updateSampleLoadingBar(_e: Event): void {
-	// @TODO: Avoid this cast and type EventTarget/Event properly.
-	const e: SampleLoadedEvent = <SampleLoadedEvent>_e;
-	const percent: number = (
-		e.totalSamples === 0
-			? 0
-			: Math.floor((e.samplesLoaded / e.totalSamples) * 100)
-	);
-	// const failedPercent: number = (
-	// 	e.totalSamples === 0
-	// 		? 0
-	// 		: Math.floor((e.samplesFailed / e.totalSamples) * 100)
-	// );
-	// sampleNum = Boolean(percent > 0 && failedPercent > 0);
-	sampleLoadingBarContainer.title = "Total Samples: " + String(e.totalSamples) + "; Loaded Samples: " + String(e.samplesLoaded) + "; ";//Samples Failed: " + String(e.samplesFailed) + ";";
-	sampleLoadingBar.style.width = `${percent}%`;
-	// sampleFailedBar.style.width = `${failedPercent + Number(sampleNum)}%`;
-	if (e.totalSamples != 0) {
-		sampleLoadingBarContainer.style.backgroundColor = "var(--indicator-secondary)";
-	} else {
-		sampleLoadingBarContainer.style.backgroundColor = "var(--empty-sample-bar, var(--indicator-secondary))";
-	}
-}
-
-	if ( top !== self ) {
+if ( top !== self ) {
 	// In an iframe.
 	copyLink.style.display = "none";
 	shareLink.style.display = "none";
@@ -851,7 +844,7 @@ zoomButton.addEventListener("click", onToggleZoom);
 copyLink.addEventListener("click", onCopyClicked);
 shareLink.addEventListener("click", onShareClicked);
 window.addEventListener("hashchange", hashUpdatedExternally);
-sampleLoadEvents.addEventListener("sampleloaded", updateSampleLoadingBar.bind(this));
+sampleLoadEvents.addEventListener("sampleloaded", (event) => updateSampleLoadingBar(event));
 
 // When compiling synth.ts as a standalone module named "beepbox", expose these classes as members to JavaScript:
-	export {Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, Chord, Envelope, Config, NotePin, Note, Pattern, Instrument, Channel, SynthMessenger as Synth};
+export {Dictionary, DictionaryArray, EnvelopeType, InstrumentType, Transition, Chord, Envelope, Config, NotePin, Note, Pattern, Instrument, Channel, SynthMessenger as Synth};

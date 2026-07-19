@@ -181,6 +181,7 @@ export enum ChannelSettings {
     muted,
     newInstrument,
     removeInstrunent,
+    swapInstrument,
 }
 
 export enum InstrumentSettings {
