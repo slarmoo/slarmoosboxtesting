@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex, DrumsetEnvelopeIndex, bundledSamplePacks } from "./SynthConfig";
+import { startLoadingSample, sampleLoadingState, SampleLoadingState, sampleLoadEvents, SampleLoadedEvent, SampleLoadingStatus, loadBuiltInSamples, Dictionary, DictionaryArray, toNameMap, FilterType, SustainType, EnvelopeType, InstrumentType, EffectType, Transition, Unison, Chord, Vibrato, Envelope, AutomationTarget, Config, effectsIncludeTransition, effectsIncludeChord, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, /*effectsIncludeNoteRange,*/ effectsIncludeRingModulation, effectsIncludeGranular, LFOEnvelopeTypes, RandomEnvelopeTypes, effectsIncludePlugin, effectsIncludeNoteRange, EnvelopeComputeIndex, bundledSamplePacks } from "./SynthConfig";
 import { Preset, EditorConfig } from "../editor/EditorConfig";
 import { PluginConfig } from "../editor/PluginConfig";
 import { FilterCoefficients, FrequencyResponse } from "./filtering";
@@ -1348,12 +1348,12 @@ export class EnvelopeSettings {
         this.reset();
         this.envelope = Config.envelopePresets.dictionary["twang 2"].type;
         this.perEnvelopeSpeed = Config.envelopePresets.dictionary["twang 2"].speed;
-        this.target = DrumsetEnvelopeIndex.filterAll;
+        this.target = 0;
     }
 
-    public toJsonObject(sequenceSettings?: SequenceSettings): Object {
+    public toJsonObject(sequenceSettings?: SequenceSettings, isDrumset: boolean = false): Object {
         const envelopeObject: any = {
-            "target": Config.instrumentAutomationTargets[this.target].name,
+            "target": isDrumset ? this.target : Config.instrumentAutomationTargets[this.target].name,
             "envelope": Config.envelopes[this.envelope].name,
             "inverse": this.inverse,
             "perEnvelopeSpeed": this.perEnvelopeSpeed,
@@ -1361,7 +1361,7 @@ export class EnvelopeSettings {
             "perEnvelopeUpperBound": this.perEnvelopeUpperBound,
             "discrete": this.discrete,
         };
-        if (Config.instrumentAutomationTargets[this.target].maxCount > 1) {
+        if (!isDrumset && Config.instrumentAutomationTargets[this.target].maxCount > 1) {
             envelopeObject["index"] = this.index;
         }
         if (Config.envelopes[this.envelope].name == "pitch") {
@@ -2143,7 +2143,7 @@ export class Instrument {
                     spectrum[i] = Math.round(100 * this.drumsetSpectrumWaves[j].spectrum[i] / Config.spectrumMax);
                 }
                 instrumentObject["drums"][j] = {
-                    "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(),
+                    "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(undefined, true),
                     "spectrum": spectrum,
                     "filter": this.drumsetFilters[j].toJsonObject()
                 };
@@ -3967,41 +3967,39 @@ export class Song {
                 } else if (instrument.type == InstrumentType.drumset) {
                     buffer.push(SongTagCode.drumsetEnvelopes);
                     for (let envelopeIndex: number = 0; envelopeIndex < Config.drumCount; envelopeIndex++) {
-                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].target]);
-                        if (Config.instrumentAutomationTargets[instrument.drumsetEnvelopes[envelopeIndex].target].maxCount > 1) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].index]);
-                        }
-                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].envelope]);
+                        const drumsetEnvelope = instrument.drumsetEnvelopes[envelopeIndex];
+                        buffer.push(base64IntToCharCode[(drumsetEnvelope.target >> 6) & 63], base64IntToCharCode[drumsetEnvelope.target & 63]);
+                        buffer.push(base64IntToCharCode[drumsetEnvelope.envelope]);
                         //run pitch envelope handling
-                        if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.pitch) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeStart]);
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeEnd]);
+                        if (Config.envelopes[drumsetEnvelope.envelope].type == EnvelopeType.pitch) {
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.pitchEnvelopeStart]);
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.pitchEnvelopeEnd]);
                             //random
-                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.pseudorandom) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].seed]);
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                        } else if (Config.envelopes[drumsetEnvelope.envelope].type == EnvelopeType.pseudorandom) {
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.steps]);
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.seed]);
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
                             //lfo
-                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.lfo) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
-                            if (instrument.drumsetEnvelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedSaw || instrument.drumsetEnvelopes[envelopeIndex].waveform == LFOEnvelopeTypes.steppedTri) {
-                                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+                        } else if (Config.envelopes[drumsetEnvelope.envelope].type == EnvelopeType.lfo) {
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
+                            if (drumsetEnvelope.waveform == LFOEnvelopeTypes.steppedSaw || drumsetEnvelope.waveform == LFOEnvelopeTypes.steppedTri) {
+                                buffer.push(base64IntToCharCode[drumsetEnvelope.steps]);
                             }
                             //sequence
-                        } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == EnvelopeType.sequence) {
-                            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+                        } else if (Config.envelopes[drumsetEnvelope.envelope].type == EnvelopeType.sequence) {
+                            buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
                         }
                         //inverse + discrete
-                        let checkboxValues: number = +instrument.drumsetEnvelopes[envelopeIndex].discrete;
+                        let checkboxValues: number = +drumsetEnvelope.discrete;
                         checkboxValues = checkboxValues << 1;
-                        checkboxValues += +instrument.drumsetEnvelopes[envelopeIndex].inverse;
+                        checkboxValues += +drumsetEnvelope.inverse;
                         buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
                         //midbox envelope port
-                        if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].name) < 0) {
-                            buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeSpeed]]);
+                        if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[drumsetEnvelope.envelope].name) < 0) {
+                            buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[drumsetEnvelope.perEnvelopeSpeed]]);
                         }
-                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
-                        buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeUpperBound * 10]);
+                        buffer.push(base64IntToCharCode[drumsetEnvelope.perEnvelopeLowerBound * 10]);
+                        buffer.push(base64IntToCharCode[drumsetEnvelope.perEnvelopeUpperBound * 10]);
                     }
                     for (let j: number = 0; j < Config.drumCount; j++) {
                         buffer.push(base64IntToCharCode[instrument.drumsetFilters[j].controlPointCount]);
@@ -5106,11 +5104,8 @@ export class Song {
                         //envelopes first
                         for (let i: number = 0; i < Config.drumCount; i++) {
                             const drumsetEnvelope: EnvelopeSettings = new EnvelopeSettings(true);
-                            drumsetEnvelope.target = clamp(0, Config.instrumentAutomationTargets.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                            const maxCount: number = Config.instrumentAutomationTargets[drumsetEnvelope.target].maxCount;
-                            if (maxCount > 1) {
-                                drumsetEnvelope.index = clamp(0, maxCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                            }
+                            drumsetEnvelope.target = (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6) | base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
+
                             drumsetEnvelope.envelope = clamp(0, Config.envelopes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                             const envelopeType: EnvelopeType = Config.envelopes[drumsetEnvelope.envelope].type;
                             //pull out unique envelope setting values first, then general ones

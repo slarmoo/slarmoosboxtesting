@@ -24,7 +24,7 @@ export class EditorConfig {
     public static readonly version: string = "2.0"; // Currently using patch versions in display (unlike JB)
     public static readonly versionDisplayName: string = "Slarmoo's Box " + (TESTING ? "Testing " : "") + EditorConfig.version;
 
-    public static readonly releaseNotesURL: string = "./patch_notes.html";
+    public static readonly releaseNotesURL: string = "./patch_notes.html";    
 
     public static customSamples: string[] | null;
 

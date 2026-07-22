@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeNoteRange, effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeChord, effectsIncludeTransition, EffectType, DrumsetEnvelopeIndex } from "./SynthConfig";
+import { Dictionary, FilterType, SustainType, EnvelopeType, InstrumentType, EnvelopeComputeIndex, Transition, Unison, Chord, Envelope, AutomationTarget, Config, getDrumWave, drawNoiseSpectrum, getArpeggioPitchIndex, performIntegralOld, getPulseWidthRatio, effectsIncludePitchShift, effectsIncludeDetune, effectsIncludeVibrato, effectsIncludeNoteFilter, effectsIncludeDistortion, effectsIncludeBitcrusher, effectsIncludePanning, effectsIncludeChorus, effectsIncludeEcho, effectsIncludeReverb, effectsIncludeNoteRange, effectsIncludeRingModulation, effectsIncludeGranular, OperatorWave, LFOEnvelopeTypes, RandomEnvelopeTypes, GranularEnvelopeType, calculateRingModHertz, effectsIncludePlugin, effectsIncludeChord, effectsIncludeTransition, EffectType } from "./SynthConfig";
 import { NotePin, Note, Pattern, SpectrumWave, HarmonicsWave, EnvelopeSettings, FilterSettings, FilterControlPoint, Instrument, Channel, Song, SequenceSettings } from "./song"
 import { scaleElementsByFactor, inverseRealFourierTransform } from "./FFT";
 import { Deque } from "./Deque";
@@ -4535,7 +4535,7 @@ export class Synth extends SynthTemplate {
             const drumsetEnvelopeComputer: EnvelopeComputer = tone.envelopeComputer;
 
             const drumsetFilterEnvelope: EnvelopeSettings = instrument.drumsetEnvelopes[tone.drumsetPitch!];
-            const envelopeTarget: DrumsetEnvelopeIndex = drumsetFilterEnvelope.target;
+            const envelopeTarget: number = drumsetFilterEnvelope.target;
 
             // If the drumset lowpass cutoff decays, compensate by increasing expression.
             noteFilterExpression *= EnvelopeComputer.getLowpassCutoffDecayVolumeCompensation(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed);
@@ -4551,7 +4551,7 @@ export class Synth extends SynthTemplate {
             const drumsetFilter: FilterSettings = instrument.drumsetFilters[tone.drumsetPitch!];
             for (let i: number = 0; i < drumsetFilter.controlPointCount; i++) {
                 const point: FilterControlPoint = drumsetFilter.controlPoints[i];
-                const usesEnvelope: boolean = envelopeTarget == DrumsetEnvelopeIndex.filterAll || envelopeTarget == i + 1 || (envelopeTarget - Config.filterMaxPoints >= 1 && i <= envelopeTarget - Config.filterMaxPoints);
+                const usesEnvelope: boolean = envelopeTarget == 0 || ((envelopeTarget & (1 << i)) != 0);
                 point.toCoefficients(Synth.tempFilterStartCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeStart : 1.0, 1.0);
                 point.toCoefficients(Synth.tempFilterEndCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeEnd : 1.0, 1.0);
                 if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();

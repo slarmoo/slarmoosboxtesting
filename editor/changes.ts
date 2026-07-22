@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes, DrumsetEnvelopeIndex } from "../synth/SynthConfig";
+import { Algorithm, Dictionary, FilterType, SustainType, InstrumentType, EffectType, AutomationTarget, Config, effectsIncludeDistortion, LFOEnvelopeTypes, RandomEnvelopeTypes } from "../synth/SynthConfig";
 import { NotePin, Note, makeNotePin, Pattern, FilterSettings, FilterControlPoint, SpectrumWave, HarmonicsWave, Instrument, Channel, Song, clamp, SequenceSettings, EnvelopeSettings } from "../synth/song";
 import { SynthMessenger } from "../synth/Messenger";
 import { Preset, PresetCategory, EditorConfig } from "./EditorConfig";
@@ -2773,18 +2773,25 @@ export class ChangeDrumsetEnvelope extends Change {
     }
 }
 
-export class ChangeDrumsetEnvelopeTarget extends Change {
-    constructor(doc: SongDocument, drumIndex: number, newValue: DrumsetEnvelopeIndex) {
+export class ChangeToggleDrumsetEnvelopeTarget extends Change {
+    private readonly _bitmap: number;
+    constructor(doc: SongDocument, drumIndex: number, toggleIndex: number) {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         const oldValue: number = instrument.drumsetEnvelopes[drumIndex].target;
+        const newValue: number = toggleIndex ? oldValue ^ (1 << toggleIndex - 1) : 0;
+        this._bitmap = newValue;
         if (oldValue != newValue) {
             instrument.drumsetEnvelopes[drumIndex].target = newValue;
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
+    }
+
+    public get bitmap() {
+        return this._bitmap;
     }
 }
 

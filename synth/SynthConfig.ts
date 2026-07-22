@@ -169,17 +169,6 @@ export const enum EnvelopeComputeIndex {
     length,
 }
 
-export const enum DrumsetEnvelopeIndex {
-    //all points
-    filterAll,
-    //a specific point
-    filterPoint0, filterPoint1, filterPoint2, filterPoint3, filterPoint4, filterPoint5, filterPoint6, filterPoint7,
-    filterPoint8, filterPoint9, filterPoint10, filterPoint11, filterPoint12, filterPoint13, filterPoint14, filterPoint15,
-    //every point from 0 to that index
-    filterPointsTo1, filterPointsTo2, filterPointsTo3, filterPointsTo4, filterPointsTo5, filterPointsTo6, filterPointsTo7,
-    filterPointsTo8, filterPointsTo9, filterPointsTo10, filterPointsTo11, filterPointsTo12, filterPointsTo13, filterPointsTo14,
-}
-
 export const enum LFOEnvelopeTypes {
     sine,
     square,
