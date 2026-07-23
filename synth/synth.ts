@@ -454,6 +454,11 @@ class EnvelopeComputer {
     private _prevNoteSizeFinal: number = Config.noteSizeMax;
     public tickTimeEnd: number[] = [];
 
+    public drumsetNoteSecondsStart: number[] = [];
+    public drumsetNoteSecondsEnd: number[] = [];
+    public drumsetPrevNoteSecondsStart: number[] = [];
+    public drumsetPrevNoteSecondsEnd: number[] = [];
+
     public drumsetFilterEnvelopeStart: number = 0.0;
     public drumsetFilterEnvelopeEnd: number = 0.0;
 
@@ -668,7 +673,10 @@ class EnvelopeComputer {
                 timeSinceStart = synth.computeTicksSinceStart();
                 steps = envelopeSettings.steps;
                 seed = envelopeSettings.seed;
-                if (envelopeSettings.waveform >= (envelope.name == "lfo" ? LFOEnvelopeTypes.length : RandomEnvelopeTypes.length)) {
+                if (envelopeSettings.waveform >=
+                    (envelope.type == EnvelopeType.lfo ? LFOEnvelopeTypes.length :
+                    (envelope.type == EnvelopeType.pseudorandom ? RandomEnvelopeTypes.length : synth.song!.sequences.length))
+                ) {
                     envelopeSettings.waveform = 0; //make sure that waveform is a proper index
                 }
                 waveform = envelopeSettings.waveform;
@@ -1026,40 +1034,80 @@ class EnvelopeComputer {
         return 1.0;
     }
 
-    public computeDrumsetEnvelopes(drumsetFilterEnvelope: Envelope, perEnvelopeSpeed: number, beatsPerPart: number, partTimeStart: number, partTimeEnd: number, pitch: number, inverse: boolean, discrete: boolean, perEnvelopeLowerBound: number, perEnvelopeUpperBound: number, steps: number, seed: number, waveform: number, drumsetPitch: number, timeSinceStart: number, sequenceSettings: SequenceSettings | null) {
+    public computeDrumsetEnvelopes(drumsetFilterEnvelope: EnvelopeSettings, synth: Synth, instrument: Instrument, instrumentState: InstrumentState, tone: Tone, envelopeTime: number, secondsPerTick: number, pitch: number, drumsetPitch: number, timeSinceStart: number, sequenceSettings: SequenceSettings | null) {
 
+        const transition: Transition = instrument.getTransition();
+        if (tone != null && tone.atNoteStart && !transition.continues && !tone.forceContinueAtStart) {
+            this.prevNoteSecondsEndUnscaled = this.noteSecondsEndUnscaled;
+            this.prevNoteTicksEnd = this.noteTicksEnd;
+            this._prevNoteSizeFinal = this._noteSizeFinal;
+            this.noteSecondsEndUnscaled = 0.0;
+            this.noteTicksEnd = 0.0;
+            for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+                this.prevNoteSecondsEnd[envelopeIndex] = this.noteSecondsEnd[envelopeIndex];
+                this.noteSecondsEnd[envelopeIndex] = 0.0;
+            }
+        }
+
+        const beatsPerTick: number = 1.0 / (Config.ticksPerPart * Config.partsPerBeat);
+
+        let lowpassCutoffDecayVolumeCompensation: number = 1.0;
+
+        timeSinceStart = synth.computeTicksSinceStart();
+
+        const secondsPerTickScaled: number = secondsPerTick * drumsetFilterEnvelope.perEnvelopeSpeed;
+        const tickTimeEnd = envelopeTime + drumsetFilterEnvelope.perEnvelopeSpeed || drumsetFilterEnvelope.perEnvelopeSpeed;
+        this.drumsetNoteSecondsStart[drumsetPitch] = this.drumsetNoteSecondsEnd[drumsetPitch] || 0;
+        this.drumsetPrevNoteSecondsStart[drumsetPitch] = this.drumsetPrevNoteSecondsEnd[drumsetPitch] || 0;
+        this.drumsetNoteSecondsEnd[drumsetPitch] = this.drumsetNoteSecondsStart[drumsetPitch] + secondsPerTickScaled || secondsPerTickScaled;
+        this.drumsetPrevNoteSecondsEnd[drumsetPitch] = this.drumsetPrevNoteSecondsStart[drumsetPitch] + secondsPerTickScaled || secondsPerTickScaled;
+        const beatTimeStart = beatsPerTick * envelopeTime || beatsPerTick;
+        const beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
+
+        const envelope: Envelope = Config.envelopes[drumsetFilterEnvelope.envelope];
+        //only calculate pitch if needed
+        if (envelope.type == EnvelopeType.pitch) pitch = this.computePitchEnvelope(drumsetFilterEnvelope.pitchEnvelopeStart, drumsetFilterEnvelope.pitchEnvelopeEnd, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, instrument.isNoiseInstrument, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true)));
+        if (drumsetFilterEnvelope.waveform >=
+            (envelope.type == EnvelopeType.lfo ? LFOEnvelopeTypes.length :
+            (envelope.type == EnvelopeType.pseudorandom ? RandomEnvelopeTypes.length : synth.song!.sequences.length))
+        ) {
+            drumsetFilterEnvelope.waveform = 0; //make sure that waveform is a proper index
+        }
+            
         const computeDrumsetEnvelope = (unspedTime: number, time: number, beats: number, noteSize: number): number => {
-            return EnvelopeComputer.computeEnvelope(drumsetFilterEnvelope, perEnvelopeSpeed, 1, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, drumsetPitch, this.startPinTickAbsolute || 0, sequenceSettings);
+            return EnvelopeComputer.computeEnvelope(envelope, drumsetFilterEnvelope.perEnvelopeSpeed, 1, unspedTime, time, beats, timeSinceStart, noteSize, pitch, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, drumsetFilterEnvelope.steps, drumsetFilterEnvelope.seed, drumsetFilterEnvelope.waveform, drumsetPitch, this.startPinTickAbsolute || 0, sequenceSettings);
         }
 
         // Drumset filters use the same envelope timing as the rest of the envelopes, but do not include support for slide transitions.
-        let drumsetFilterEnvelopeStart: number = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.noteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.noteSizeStart);
+        let drumsetFilterEnvelopeStart: number = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.drumsetNoteSecondsStart[drumsetPitch], beatTimeStart, this.noteSizeStart);
 
         // Apply slide interpolation to drumset envelope.
         if (this.prevSlideStart) {
-            const other: number = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.prevNoteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.prevNoteSize);
+            const other: number = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.drumsetPrevNoteSecondsStart[drumsetPitch], beatTimeStart, this.prevNoteSize);
             drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.prevSlideRatioStart;
         }
         if (this.nextSlideStart) {
-            const other: number = computeDrumsetEnvelope(0.0, 0.0, beatsPerPart * partTimeStart, this.nextNoteSize);
+            const other: number = computeDrumsetEnvelope(0.0, 0.0, beatTimeStart, this.nextNoteSize);
             drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.nextSlideRatioStart;
         }
 
         let drumsetFilterEnvelopeEnd: number = drumsetFilterEnvelopeStart;
 
 
-        if (!discrete) {
-            drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.noteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.noteSizeEnd);
+        if (!drumsetFilterEnvelope.discrete) {
+            drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.drumsetNoteSecondsEnd[drumsetPitch], beatTimeEnd, this.noteSizeEnd);
 
             if (this.prevSlideEnd) {
-                const other: number = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.prevNoteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.prevNoteSize);
+                const other: number = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.drumsetPrevNoteSecondsEnd[drumsetPitch], beatTimeEnd, this.prevNoteSize);
                 drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.prevSlideRatioEnd;
             }
             if (this.nextSlideEnd) {
-                const other: number = computeDrumsetEnvelope(0.0, 0.0, beatsPerPart * partTimeEnd, this.nextNoteSize);
+                const other: number = computeDrumsetEnvelope(0.0, 0.0, beatTimeEnd, this.nextNoteSize);
                 drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.nextSlideRatioEnd;
             }
         }
+
+        this.lowpassCutoffDecayVolumeCompensation = lowpassCutoffDecayVolumeCompensation;
 
         this.drumsetFilterEnvelopeStart = drumsetFilterEnvelopeStart;
         this.drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeEnd;
@@ -1245,6 +1293,7 @@ class InstrumentState {
     public vibratoEnvelopeStart: number = 1;
     public envelopeTime: number[] = [];
     private envelopeSpeeds: number[] = [];
+    public drumsetEnvelopeTime: number[] = [];
     public readonly envelopeSpeedEnvelopes: number[] = [];
     public readonly envelopeComputer: EnvelopeComputer = new EnvelopeComputer();
     
@@ -1544,6 +1593,7 @@ class InstrumentState {
             this.envelopeTime[envelopeIndex] = 0;
             this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
         }
+        for (let drumsetIndex: number = 0; drumsetIndex < Config.drumCount; drumsetIndex++) this.drumsetEnvelopeTime[drumsetIndex] = 0;
         this.envelopeComputer.reset();
 
         if (this.chorusDelayLineDirty) {
@@ -2331,6 +2381,7 @@ export class Synth extends SynthTemplate {
                     instrumentState.vibratoTime = 0;
                     instrumentState.nextVibratoTime = 0;
                     for (let envelopeIndex: number = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) instrumentState.envelopeTime[envelopeIndex] = 0;
+                    for (let drumsetIndex: number = 0; drumsetIndex < Config.drumCount; drumsetIndex++) instrumentState.drumsetEnvelopeTime[drumsetIndex] = 0;
                     instrumentState.arpTime = 0;
                     instrumentState.updateWaves(instrument, this.samplesPerSecond);
                     instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick, this.samplesPerSecond);
@@ -3157,6 +3208,10 @@ export class Synth extends SynthTemplate {
                             } else {
                                 instrumentState.envelopeTime[envelopeIndex] += Config.arpSpeedScale[useEnvelopeSpeed] * perEnvelopeSpeed;
                             }
+                        }
+
+                        if (instrument.type == InstrumentType.drumset) {
+                            for (let drumIndex: number = 0; drumIndex < Config.drumCount; drumIndex++) instrumentState.drumsetEnvelopeTime[drumIndex] += instrument.drumsetEnvelopes[drumIndex].perEnvelopeSpeed;
                         }
 
                         // Update arpeggio time, which is used to calculate arpeggio position
@@ -4072,10 +4127,8 @@ export class Synth extends SynthTemplate {
         const intervalScale: number = isNoiseChannel ? Config.noiseInterval : 1;
         const secondsPerPart: number = Config.ticksPerPart * samplesPerTick / this.samplesPerSecond;
         const sampleTime: number = 1.0 / this.samplesPerSecond;
-        const beatsPerPart: number = 1.0 / Config.partsPerBeat;
         const ticksIntoBar: number = this.getTicksIntoBar();
         const partTimeStart: number = (ticksIntoBar) / Config.ticksPerPart;
-        const partTimeEnd: number = (ticksIntoBar + 1.0) / Config.ticksPerPart;
         const currentPart: number = this.getCurrentPart();
 
         let specialIntervalMult: number = 1.0;
@@ -4534,7 +4587,8 @@ export class Synth extends SynthTemplate {
         if (instrument.type == InstrumentType.drumset) {
             const drumsetEnvelopeComputer: EnvelopeComputer = tone.envelopeComputer;
 
-            const drumsetFilterEnvelope: EnvelopeSettings = instrument.drumsetEnvelopes[tone.drumsetPitch!];
+            const drumIndex: number = tone.drumsetPitch!;
+            const drumsetFilterEnvelope: EnvelopeSettings = instrument.drumsetEnvelopes[drumIndex];
             const envelopeTarget: number = drumsetFilterEnvelope.target;
 
             // If the drumset lowpass cutoff decays, compensate by increasing expression.
@@ -4543,7 +4597,7 @@ export class Synth extends SynthTemplate {
             const pitch: number = Config.envelopes[drumsetFilterEnvelope.envelope].type == EnvelopeType.pitch ? envelopeComputer.computePitchEnvelope(drumsetFilterEnvelope.pitchEnvelopeStart, drumsetFilterEnvelope.pitchEnvelopeEnd, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, true, envelopeComputer.getPitchValue(instrument, tone, instrumentState, true)) : 0;
             const sequenceSettings: SequenceSettings | null = Config.envelopes[drumsetFilterEnvelope.envelope].type == EnvelopeType.sequence ? song.sequences[drumsetFilterEnvelope.waveform] : null
 
-            drumsetEnvelopeComputer.computeDrumsetEnvelopes(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed, beatsPerPart, partTimeStart, partTimeEnd, pitch, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.discrete, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, drumsetFilterEnvelope.steps, drumsetFilterEnvelope.seed, drumsetFilterEnvelope.waveform, tone.drumsetPitch!, this.computeTicksSinceStart(), sequenceSettings);
+            drumsetEnvelopeComputer.computeDrumsetEnvelopes(drumsetFilterEnvelope, this, instrument, instrumentState, tone, instrumentState.drumsetEnvelopeTime[drumIndex], samplesPerTick / this.samplesPerSecond, pitch, drumIndex, this.computeTicksSinceStart(), sequenceSettings);
 
             // Drumset envelopes are warped to better imitate the legacy simplified 2nd order lowpass at ~48000Hz that I used to use.
             const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart * (1.0 + drumsetEnvelopeComputer.drumsetFilterEnvelopeStart);

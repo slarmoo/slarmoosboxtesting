@@ -3,7 +3,7 @@ import { Prompt } from "./Prompt";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { SongDocument } from "../SongDocument"
 import { ChangeGroup } from "../Change";
-import { ChangeAddNewSequence, ChangeSequenceBooleans, ChangeSequenceHeight, ChangeSequenceLength, ChangeSequenceValues, ChangeSetEnvelopeWaveform, ChangeUpdateSequence } from "../changes";
+import { ChangeAddNewSequence, ChangeSequenceBooleans, ChangeSequenceHeight, ChangeSequenceLength, ChangeSequenceValues, ChangeSetDrumsetEnvelopeWaveform, ChangeSetEnvelopeWaveform, ChangeUpdateSequence } from "../changes";
 import { SongEditor } from "../SongEditor";
 import { SequenceEditor } from "../SequenceEditor";
 
@@ -42,7 +42,7 @@ export class SequenceEditorPrompt implements Prompt {
 
     private readonly _oldWaveform: number;
 
-    constructor(private _doc: SongDocument, private _editor: SongEditor, private sequenceIndex: number, private forEnvelope: number) {
+    constructor(private _doc: SongDocument, private _editor: SongEditor, private sequenceIndex: number, private forEnvelope: number, private _forDrumset: boolean) {
         if (!this.sequenceIndex) this.sequenceIndex = 0;
 
         this._sequenceEditor = new SequenceEditor(this._doc, this.sequenceIndex, true);
@@ -76,8 +76,13 @@ export class SequenceEditorPrompt implements Prompt {
         );
 
         const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-        this._oldWaveform = instrument.envelopes[this.forEnvelope].waveform;
-        new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
+        if (_forDrumset) {
+            this._oldWaveform = instrument.drumsetEnvelopes[this.forEnvelope].waveform;
+            new ChangeSetDrumsetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
+        } else {
+            this._oldWaveform = instrument.envelopes[this.forEnvelope].waveform;
+            new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope);
+        }
         this._sequenceInterpolates.checked = this._sequenceEditor.sequence.interpolated;
         this._sequenceLoops.checked = this._sequenceEditor.sequence.looped;
         this._okayButton.addEventListener("click", this._saveChanges);
@@ -137,7 +142,11 @@ export class SequenceEditorPrompt implements Prompt {
     private _close = (): void => {
         this._doc.prompt = null;
         this._doc.undo();
-        new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
+        if (this._forDrumset) {
+            new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
+        } else {
+            new ChangeSetEnvelopeWaveform(this._doc, this._oldWaveform, this.forEnvelope);
+        }
         this._sequenceEditor.sequence = this._sequenceEditor.originalSequence;
         new ChangeUpdateSequence(this._doc, this.sequenceIndex, this._sequenceEditor.sequence);
     }
@@ -197,7 +206,11 @@ export class SequenceEditorPrompt implements Prompt {
         group.append(new ChangeSequenceBooleans(this._doc, this.sequenceIndex, this._sequenceInterpolates.checked, this._sequenceLoops.checked));
         // const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
         // instrument.envelopes[this.forEnvelope].waveform = -1;
-        if (this.forEnvelope !== undefined) group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+        if (this.forEnvelope !== undefined) if (this._forDrumset) {
+            group.append(new ChangeSetDrumsetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+        } else {
+            group.append(new ChangeSetEnvelopeWaveform(this._doc, this.sequenceIndex, this.forEnvelope));
+        }
         this._doc.record(group, true);
         this._editor.envelopeEditor.rerenderExtraSettings();
         this._doc.prompt = null;

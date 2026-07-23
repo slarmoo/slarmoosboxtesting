@@ -25,7 +25,7 @@ export class SequenceEditor {
 
 
 
-    constructor(private _doc: SongDocument, private sequenceIndex: number, interactable: boolean, scale: number = 3) {
+    constructor(private _doc: SongDocument, private sequenceIndex: number, private _interactable: boolean, scale: number = 3) {
         this.canvasHeight = 52 * scale;
         this.canvasWidth = 128 * scale;
         this.canvas = canvas({ width: this.canvasWidth, height: this.canvasHeight, style: "border:2px solid " + ColorConfig.uiWidgetBackground, id: "customSequenceDrawCanvas" });
@@ -37,8 +37,7 @@ export class SequenceEditor {
             this.sequence = this._doc.song.sequences[this.sequenceIndex].copy();
         }
         this.originalSequence = this.sequence.copy();
-
-        if (interactable) {
+        if (_interactable) {
             this.canvas.addEventListener("mousemove", this._onMouseMove);
             this.canvas.addEventListener("mousedown", this._onMouseDown);
             this.canvas.addEventListener("mouseup", this._whenCursorReleased);
@@ -100,13 +99,13 @@ export class SequenceEditor {
         if (renderColor != this.renderedColor) {
             needsRedraw = true;
         } else {
-            needsRedraw = this.sequence.isSame(sequenceData)
+            needsRedraw = !this.sequence.isSame(sequenceData)
         }
         if (!needsRedraw) {
             return;
         }
 
-        this.storeChange();
+        if(this._interactable) this.storeChange();
 
         var ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 

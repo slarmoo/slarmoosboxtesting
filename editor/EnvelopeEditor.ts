@@ -130,7 +130,6 @@ export class EnvelopeEditor {
 			this._doc.record(new ChangeEnvelopeInverse(this._doc, this._inverters[inverterIndex].checked, inverterIndex));
 		} else if (discreterIndex != -1) {
 			this._doc.record(new ChangeDiscreteEnvelope(this._doc, this._discreters[discreterIndex].checked, discreterIndex));
-
 		} else if (startBoxIndex != -1 || endBoxIndex != -1 || startSliderIndex != -1 || endSliderIndex != -1 ||
 			lowerBoundBoxIndex != -1 || upperBoundBoxIndex != -1 || randomStepsBoxIndex != -1 || randomSeedBoxIndex != -1 ||
 			randomStepsSliderIndex != -1 || randomSeedSliderIndex != -1 || LFOStepsBoxIndex != -1 || LFOStepsSliderIndex != -1) {
@@ -311,11 +310,12 @@ export class EnvelopeEditor {
 				this.extraLFODropdownGroups[i].style.display = "none";
 				this.extraPitchSettingsGroups[i].style.display = "none";
 				this.updateSpeedDisplay(i);
+				const envelope = instrument.envelopes[i];
 
-				if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.pitch) {
+				if (Config.envelopes[envelope.envelope].type == EnvelopeType.pitch) {
 					//update values
-					this.pitchStartBoxes[i].value = instrument.envelopes[i].pitchEnvelopeStart.toString();
-					this.pitchEndBoxes[i].value = instrument.envelopes[i].pitchEnvelopeEnd.toString();
+					this.pitchStartBoxes[i].value = envelope.pitchEnvelopeStart.toString();
+					this.pitchEndBoxes[i].value = envelope.pitchEnvelopeEnd.toString();
 					//reset bounds between noise and pitch channels
 					this._pitchStartSliders[i].max = (instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch).toString();
 					this.pitchStartBoxes[i].max = (instrument.isNoiseInstrument ? Config.drumCount - 1 : Config.maxPitch).toString();
@@ -333,32 +333,34 @@ export class EnvelopeEditor {
 					//show pitch, hide others
 					this.extraPitchSettingsGroups[i].style.display = "flex";
 
-				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.pseudorandom) {
+				} else if (Config.envelopes[envelope.envelope].type == EnvelopeType.pseudorandom) {
 					
 					//update values
-					const isRandomTime: boolean = instrument.envelopes[i].waveform == RandomEnvelopeTypes.time || instrument.envelopes[i].waveform == RandomEnvelopeTypes.timeSmooth;
-					this.randomStepsBoxes[i].value = instrument.envelopes[i].steps.toString();
-					this.randomSeedBoxes[i].value = instrument.envelopes[i].seed.toString();
-					this._randomStepsSliders[i].value = instrument.envelopes[i].steps.toString();
-					this._randomSeedSliders[i].value = instrument.envelopes[i].seed.toString();
-					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
-					if (instrument.envelopes[i].waveform > RandomEnvelopeTypes.length) instrument.envelopes[i].waveform = 0;
-					this._randomStepsWrappers[i].style.display = instrument.envelopes[i].waveform == RandomEnvelopeTypes.time || instrument.envelopes[i].waveform == RandomEnvelopeTypes.note ? "flex" : "none";
-					this._randomEnvelopeTypeSelects[i].selectedIndex = instrument.envelopes[i].waveform;
+					const isRandomTime: boolean = envelope.waveform == RandomEnvelopeTypes.time || envelope.waveform == RandomEnvelopeTypes.timeSmooth;
+					this.randomStepsBoxes[i].value = envelope.steps.toString();
+					this.randomSeedBoxes[i].value = envelope.seed.toString();
+					this._randomStepsSliders[i].value = envelope.steps.toString();
+					this._randomSeedSliders[i].value = envelope.seed.toString();
+					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(envelope.perEnvelopeSpeed, "index"));
+					if (envelope.waveform > RandomEnvelopeTypes.length) envelope.waveform = 0;
+					this._randomStepsWrappers[i].style.display = envelope.waveform == RandomEnvelopeTypes.time || envelope.waveform == RandomEnvelopeTypes.note ? "flex" : "none";
+					this._randomEnvelopeTypeSelects[i].selectedIndex = envelope.waveform;
 					
 					//show perEnvelopeSpeed if needed
 					this.perEnvelopeSpeedGroups[i].style.display = isRandomTime ? "" : "none";
 					this.extraRandomSettingsGroups[i].style.display = "";
 
-				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.lfo) {
+				} else if (Config.envelopes[envelope.envelope].type == EnvelopeType.lfo) {
 
 					//update values
-					this._waveformSelects[i].value = instrument.envelopes[i].waveform.toString();
-					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
+					this._waveformSelects[i].value = envelope.waveform.toString();
+					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(envelope.perEnvelopeSpeed, "index"));
 
 					//show / hide steps based on waveform
-					if (instrument.envelopes[i].waveform == LFOEnvelopeTypes.steppedSaw || instrument.envelopes[i].waveform == LFOEnvelopeTypes.steppedTri) {
+					if (envelope.waveform == LFOEnvelopeTypes.steppedSaw || envelope.waveform == LFOEnvelopeTypes.steppedTri) {
 						this._LFOStepsWrappers[i].style.display = "flex";
+						this.LFOStepsBoxes[i].value = envelope.steps.toString();
+						this._LFOStepsSliders[i].value = envelope.steps.toString();
 					} else {
 						this._LFOStepsWrappers[i].style.display = "none";
 					}
@@ -366,7 +368,7 @@ export class EnvelopeEditor {
 					//show lfo settings and speed
 					this.extraLFODropdownGroups[i].style.display = "";
 					this.perEnvelopeSpeedGroups[i].style.display = "flex"
-				} else if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.sequence) {
+				} else if (Config.envelopes[envelope.envelope].type == EnvelopeType.sequence) {
 					//make sure the sequence select has the right amount of options
 					this._sequenceSelects[i].innerHTML = ""
 					for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
@@ -378,8 +380,8 @@ export class EnvelopeEditor {
 					this._sequenceSelects[i].appendChild(HTML.option({ value: -1 }, "remove sequence"));
 
 					//update values
-					this._sequenceSelects[i].value = instrument.envelopes[i].waveform.toString();
-					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
+					this._sequenceSelects[i].value = envelope.waveform.toString();
+					this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(envelope.perEnvelopeSpeed, "index"));
 
 					//show sequence settings and speed
 					this.perEnvelopeSpeedGroups[i].style.display = "flex"
@@ -387,26 +389,26 @@ export class EnvelopeEditor {
 
 					//rerender sequence view
 					if (this._sequenceViews[i]) {
-						this._sequenceViews[i].sequence = this._doc.song.sequences[instrument.envelopes[i].waveform];
+						this._sequenceViews[i].sequence = this._doc.song.sequences[envelope.waveform];
 						this._sequenceViews[i].redrawCanvas();
 					}
 				} else {
 					this.extraRandomSettingsGroups[i].style.display = "none";
-					if (Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.punch || Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.none || Config.envelopes[instrument.envelopes[i].envelope].type == EnvelopeType.noteSize) {
+					if (Config.envelopes[envelope.envelope].type == EnvelopeType.punch || Config.envelopes[envelope.envelope].type == EnvelopeType.none || Config.envelopes[envelope.envelope].type == EnvelopeType.noteSize) {
 						this.perEnvelopeSpeedGroups[i].style.display = "none"
 					} else {
 						//perEnvelopeSpeed
 						this.perEnvelopeSpeedGroups[i].style.display = "flex"
-						this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(instrument.envelopes[i].perEnvelopeSpeed, "index"));
+						this.perEnvelopeSpeedSliders[i].updateValue(EnvelopeEditor.convertIndexSpeed(envelope.perEnvelopeSpeed, "index"));
 					}
 				}
-				this._inverters[i].checked = instrument.envelopes[i].inverse;
-				this._discreters[i].checked = instrument.envelopes[i].discrete;
+				this._inverters[i].checked = envelope.inverse;
+				this._discreters[i].checked = envelope.discrete;
 
-				this.perEnvelopeLowerBoundBoxes[i].value = instrument.envelopes[i].perEnvelopeLowerBound.toString();
-				this.perEnvelopeUpperBoundBoxes[i].value = instrument.envelopes[i].perEnvelopeUpperBound.toString();
-				this.perEnvelopeLowerBoundSliders[i].updateValue(instrument.envelopes[i].perEnvelopeLowerBound);
-				this.perEnvelopeUpperBoundSliders[i].updateValue(instrument.envelopes[i].perEnvelopeUpperBound);
+				this.perEnvelopeLowerBoundBoxes[i].value = envelope.perEnvelopeLowerBound.toString();
+				this.perEnvelopeUpperBoundBoxes[i].value = envelope.perEnvelopeUpperBound.toString();
+				this.perEnvelopeLowerBoundSliders[i].updateValue(envelope.perEnvelopeLowerBound);
+				this.perEnvelopeUpperBoundSliders[i].updateValue(envelope.perEnvelopeUpperBound);
 			} else if (this.openExtraSettingsDropdowns[i] == false) {
 				this.extraSettingsDropdownGroups[i].style.display = "none";
 				this.extraPitchSettingsGroups[i].style.display = "none";
@@ -449,7 +451,7 @@ export class EnvelopeEditor {
 	}
 
 	private updateSpeedDisplay(envelopeIndex: number) {
-		this._perEnvelopeSpeedDisplays[envelopeIndex].textContent = "Spd: x" + prettyNumber(this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].envelopes[envelopeIndex].perEnvelopeSpeed  /*this.convertIndexSpeed(this.perEnvelopeSpeedSliders[envelopeIndex].getValueBeforeProspectiveChange(), "speed")*/);
+		this._perEnvelopeSpeedDisplays[envelopeIndex].textContent = "Spd: x" + prettyNumber(this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].envelopes[envelopeIndex].perEnvelopeSpeed);
 	}
 
 	public render(): void {

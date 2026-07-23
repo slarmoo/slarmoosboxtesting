@@ -7069,7 +7069,19 @@ export class Song {
         ));
     }
 
-    public parseUpdateCommand(data: any, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings | ChannelSettings, settingIndex?: number) {
+    /**
+     * On the synth thread, this takes update commands and changes the corresponding value of the song
+     * @param data The actual data that needs to be changed
+     * @param songSetting The part of the song that needs to be changed
+     * @param channelIndex If the songSetting that needs to be changed needs to be indexed into (usually channels, but can also refer to stuff like
+     * eq filers), then this is the index for that
+     * @param instrumentIndex If the channel setting needs to be indexed into (usually for instruments, but can also refer to stuff like
+     * bars or patterns), then this is the index for that
+     * @param instrumentSetting The part of the instrument (or channel) that needs to be changed
+     * @param settingIndex If another index is required (like for envelopes or instrument eq filters) then this is the index for that
+     * @returns void
+     */
+    public parseUpdateCommand(data: any, songSetting: SongSettings, channelIndex?: number, instrumentIndex?: number, instrumentSetting?: InstrumentSettings | ChannelSettings, settingIndex?: number): void {
         const numberData: number = data as number;
         switch (songSetting) {
             case SongSettings.title:
