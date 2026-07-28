@@ -1091,7 +1091,7 @@ export class ChangeRandomGeneratedInstrument extends Change {
                 ])].index;
                 /* randomly generated unisons don't work correctly - instead of trying to fix them, just ignore it
 
-            if (instrument.unison == Config.unisons.length) {
+            if (instrument.unison == Config.unisons.dictionary["custom"].index) {
                 instrument.unisonVoices = 2;
                 instrument.unisonSpread = Math.floor(Math.random() * 12000 - 6000) / 1000;
                 instrument.unisonOffset = Math.floor(Math.random() * 12000 - 6000) / 1000;
@@ -2415,9 +2415,9 @@ export class ChangeUnisonVoices extends Change {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         let prevUnison: number = instrument.unison;
-        if (oldValue != newValue || prevUnison != Config.unisons.length) {
+        if (oldValue != newValue || prevUnison != Config.unisons.dictionary["custom"].index) {
             instrument.unisonVoices = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonVoices, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonVoices);
             doc.notifier.changed();
@@ -2431,9 +2431,9 @@ export class ChangeUnisonSpread extends Change {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         let prevUnison: number = instrument.unison;
-        if (oldValue != newValue || prevUnison != Config.unisons.length) {
+        if (oldValue != newValue || prevUnison != Config.unisons.dictionary["custom"].index) {
             instrument.unisonSpread = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonSpread, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonSpread);
             doc.notifier.changed();
@@ -2447,9 +2447,9 @@ export class ChangeUnisonOffset extends Change {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         let prevUnison: number = instrument.unison;
-        if (oldValue != newValue || prevUnison != Config.unisons.length) {
+        if (oldValue != newValue || prevUnison != Config.unisons.dictionary["custom"].index) {
             instrument.unisonOffset = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonOffset, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonOffset);
             doc.notifier.changed();
@@ -2463,9 +2463,9 @@ export class ChangeUnisonExpression extends Change {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         let prevUnison: number = instrument.unison;
-        if (oldValue != newValue || prevUnison != Config.unisons.length) {
+        if (oldValue != newValue || prevUnison != Config.unisons.dictionary["custom"].index) {
             instrument.unisonExpression = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonExpression, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonExpression);
             doc.notifier.changed();
@@ -2479,9 +2479,9 @@ export class ChangeUnisonSign extends Change {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
         let prevUnison: number = instrument.unison;
-        if (oldValue != newValue || prevUnison != Config.unisons.length) {
+        if (oldValue != newValue || prevUnison != Config.unisons.dictionary["custom"].index) {
             instrument.unisonSign = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonSign, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonSign);
             doc.notifier.changed();
@@ -2499,7 +2499,7 @@ export class ChangeUnisonAntiPhased extends Change {
         doc.notifier.changed();
         if (oldValue != newValue) {
             instrument.unisonAntiPhased = newValue;
-            instrument.unison = Config.unisons.length; // Custom
+            instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonAntiPhased, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonAntiPhased);
             doc.notifier.changed();
@@ -2517,7 +2517,7 @@ export class ChangeUnisonBuzzing extends Change {
         doc.notifier.changed();
         if (oldValue != newValue) {
             instrument.unisonBuzzes = newValue;
-            // instrument.unison = Config.unisons.length; // Custom
+            // instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
             instrument.preset = instrument.type;
             doc.synth.updateSong(instrument.unisonBuzzes, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.unisonBuzzes);
             doc.notifier.changed();
@@ -4315,7 +4315,7 @@ export class ChangePasteInstrumentEditSelective extends ChangeGroup {
             }
             if (selectivePaste.fade) this.append(new ChangeFadeInOut(doc, instrumentPaste.fadeIn, instrumentPaste.fadeOut));
             if (selectivePaste.unison) {
-                if (instrumentPaste.unison != Config.unisons.length) this.append(new ChangeUnison(doc, instrumentPaste.unison));
+                if (instrumentPaste.unison != Config.unisons.dictionary["custom"].index) this.append(new ChangeUnison(doc, instrumentPaste.unison));
                 else {
                     instrument.unison = instrumentPaste.unison;
                     instrument.unisonVoices = instrumentPaste.unisonVoices;

@@ -148,13 +148,16 @@
             </ul>   
             <li> Ported stereo samples from Theepbox </li>
             <li> Added a unison option for randomizing the start of each unison voice to reduce phasing </li>
+            <li> Added two new unison presets (double octave being ported from JukeBox) </li>
             <li> Added the white noise and metallic noise waveforms to FM and ring mod </li>
             <li> Vibrato speed and other envelopes' speeds are now envelopeable </li>
+            <li> If a pitch envelope is bound to none, the instrument that uses it will no longer keytrack for pitch (similar to binding note size to none) </li>
             <li> Added a random option to the theme select prompt </li>
             <li> All prompts that support undoing have had shift + z added as an alternative keybind </li>
             <li> Fixed the metallic kick preset, tuned the ascension preset, moved the vinyl preset into noise channels,
                 updated the supersaw bass and jungle bass presets, and removed the spectrum wind preset. </li>
             <li> Added 13 new presets </li>
+            <li> Fixed an issue where if an fm algorithm used an operator as a carrier and modulator simultaneously, only the carrier functionality would be computed (old songs have had their algorithms reduced so that songs that used bugged algorithms will remain the same) </li>
             <li> Randomizing an instrument now sets unassigned values to their defaults (ie, a pitch shift will not carry over into a new instrument) </li>
             <li> If an empty mod slot does not exist during mod recording, the change will now be treated as if it weren't a mod recording </li>
         </ul>
@@ -165,7 +168,7 @@
         <ul>
             <li> Pitch envelope bounds are now calculated correctly (see <a href="https://github.com/slarmoo/slarmoosbox/issues/9">this</a> github issue)</li>
             <li> Song detune is no longer affected by detune envelopes </li>
-            <li> Pitch shift envelopes and mods will now correctly follow just intonation tuning </li>
+            <li> Pitch shift envelopes and mods will now follow just intonation tuning </li>
         </ul>
     </h3>
     <p>x/xx/2026</p>

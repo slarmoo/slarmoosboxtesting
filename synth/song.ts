@@ -2112,9 +2112,9 @@ export class Instrument {
         }
 
         if (this.type != InstrumentType.mod) {
-            instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
+            instrumentObject["unison"] = Config.unisons[this.unison].name;
             // these don't need to be pushed if custom unisons aren't being used
-            if (this.unison == Config.unisons.length) {
+            if (this.unison == Config.unisons.dictionary["custom"].index) {
                 instrumentObject["unisonVoices"] = this.unisonVoices;
                 instrumentObject["unisonSpread"] = this.unisonSpread;
                 instrumentObject["unisonOffset"] = this.unisonOffset;
@@ -2247,7 +2247,7 @@ export class Instrument {
     }
 
 
-    public fromJsonObject(instrumentObject: any, isNoiseChannel: boolean, isModChannel: boolean, useSlowerRhythm: boolean, useFastTwoNoteArp: boolean, songSequences: SequenceSettings[], legacyGlobalReverb: number = 0, jsonFormat: string = Config.jsonFormat): void {
+    public fromJsonObject(instrumentObject: any, isNoiseChannel: boolean, isModChannel: boolean, useSlowerRhythm: boolean, useFastTwoNoteArp: boolean, songSequences: SequenceSettings[], legacyGlobalReverb: number = 0, jsonFormat: string = Config.jsonFormat, jsonVersion: number = Song.latestVersion): void {
         if (instrumentObject == undefined) instrumentObject = {};
 
         const format: string = jsonFormat.toLowerCase();
@@ -2371,7 +2371,7 @@ export class Instrument {
             const legacyChorusNames: Dictionary<string> = { "union": "none", "fifths": "fifth", "octaves": "octave", "error": "voiced" };
             const unison: Unison | undefined = Config.unisons.dictionary[legacyChorusNames[unisonProperty]] || Config.unisons.dictionary[unisonProperty];
             if (unison != undefined) this.unison = unison.index;
-            if (unisonProperty == "custom") this.unison = Config.unisons.length;
+            if (unisonProperty == "custom") this.unison = Config.unisons.dictionary["custom"].index;
         }
         //clamp these???
         this.unisonVoices = (instrumentObject["unisonVoices"] == undefined) ? Config.unisons[this.unison].voices : instrumentObject["unisonVoices"];
@@ -2690,13 +2690,31 @@ export class Instrument {
             if (this.type == InstrumentType.fm) {
                 this.algorithm = Config.algorithms.findIndex(algorithm => algorithm.name == instrumentObject["algorithm"]);
                 if (this.algorithm == -1) this.algorithm = 0;
+                //before url version 6, these fm algorithms had identical behavior to other algorithms due to a bug,
+                //and thus should be replaced by their counterparts
+                if (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox")) {
+                    if (this.algorithm == 14) this.algorithm = 11;
+                    if (this.algorithm == 13) this.algorithm = 5;
+                }
                 this.feedbackType = Config.feedbacks.findIndex(feedback => feedback.name == instrumentObject["feedbackType"]);
                 if (this.feedbackType == -1) this.feedbackType = 0;
             } else {
                 this.algorithm6Op = Config.algorithms6Op.findIndex(algorithm6Op => algorithm6Op.name == instrumentObject["algorithm"]);
                 if (this.algorithm6Op == -1) this.algorithm6Op = 1;
+                //before url version 6, these fm algorithms had identical behavior to other algorithms due to a bug,
+                //and thus should be replaced by their counterparts
+                if (!(jsonVersion > 5) || !(jsonFormat=="slarmoosbox")) {
+                    if (this.algorithm6Op == 30) this.algorithm6Op = 27;
+                    if (this.algorithm6Op == 32 || this.algorithm6Op == 33) this.algorithm6Op = 4;
+                }
                 if (this.algorithm6Op == 0) {
                     this.customAlgorithm.set(instrumentObject["customAlgorithm"]["carrierCount"], instrumentObject["customAlgorithm"]["mods"]);
+                    if (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox")) { 
+                        for (let i = 0; i < this.customAlgorithm.modulatedBy.length; i++) {
+                            const modulatedBy = this.customAlgorithm.modulatedBy[i];
+                            this.customAlgorithm.modulatedBy[i] = modulatedBy.filter((value) => value > this.customAlgorithm.carrierCount);
+                        }
+                    }
                 } else {
                     this.customAlgorithm.fromPreset(this.algorithm6Op);
                 }
@@ -2969,6 +2987,10 @@ export class Instrument {
                     if (this.envelopeCount >= Config.maxEnvelopeCount) break;
                     const tempEnvelope: EnvelopeSettings = new EnvelopeSettings(this.isNoiseInstrument);
                     tempEnvelope.fromJsonObject(envelopeArray[i], format);
+                    //remove pitch -> none envelopes from before sb 2.0
+                    if (tempEnvelope.target == 0 && Config.envelopes[tempEnvelope.envelope].type == EnvelopeType.pitch && (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox"))) {
+                        continue;
+                    }
                     //old pitch envelope detection
                     let pitchEnvelopeStart: number;
                     if (instrumentObject["pitchEnvelopeStart"] != undefined && instrumentObject["pitchEnvelopeStart"] != null) { //make sure is not null bc for some reason it can be
@@ -3197,6 +3219,7 @@ export class Song {
     private static readonly _latestUltraBoxVersion: number = 5;
     private static readonly _oldestSlarmoosBoxVersion: number = 1;
     private static readonly _latestSlarmoosBoxVersion: number = 6;
+    public static readonly latestVersion: number = Song._latestSlarmoosBoxVersion;
     // One-character variant detection at the start of URL to distinguish variants such as JummBox, Or Goldbox. "j" and "g" respectively
     //also "u" is ultrabox lol
     private static readonly _variant = 0x73; //"s" ~ slarmoo's box
@@ -3844,7 +3867,7 @@ export class Song {
 
                 if (instrument.type != InstrumentType.mod) {
                     buffer.push(SongTagCode.unison, base64IntToCharCode[instrument.unison]);
-                    if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
+                    if (instrument.unison == Config.unisons.dictionary["custom"].index) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
                 }
 
                 if (instrument.type == InstrumentType.chip) {
@@ -5461,11 +5484,10 @@ export class Song {
                     instrument.unisonSign = Config.unisons[instrument.unison].sign;
                 } else {
                     const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-                    instrument.unison = clamp(0, Config.unisons.length + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                    const unisonLength = (beforeFive || !fromSlarmoosBox) ? 27 : Config.unisons.length; //27 was the old length before I added >2 voice presets
-                    if (((fromUltraBox && !beforeFive) || fromSlarmoosBox) && (instrument.unison == unisonLength)) {
-                        // if (instrument.unison == Config.unisons.length) {
-                        instrument.unison = Config.unisons.length;
+                    instrument.unison = clamp(0, Config.unisons.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                    const customUnisonIndex = (beforeFive || !fromSlarmoosBox) ? 27 : Config.unisons.dictionary["custom"].index; //27 was the old length before I added >2 voice presets
+                    if (((fromUltraBox && !beforeFive) || fromSlarmoosBox) && (instrument.unison == customUnisonIndex)) {
+                        instrument.unison = Config.unisons.dictionary["custom"].index;
                         instrument.unisonVoices = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
 
                         const unisonSpreadNegative = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -5855,9 +5877,18 @@ export class Song {
                 const instrument: Instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
                 if (instrument.type == InstrumentType.fm) {
                     instrument.algorithm = clamp(0, Config.algorithms.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                }
-                else {
+                    //before url version 6, these fm algorithms had identical behavior to other algorithms due to a bug,
+                    //and thus should be replaced by their counterparts
+                    if (beforeSix || !fromSlarmoosBox) {
+                        if (instrument.algorithm == 14) instrument.algorithm = 11;
+                        if (instrument.algorithm == 13) instrument.algorithm = 5;
+                    }
+                } else {
                     instrument.algorithm6Op = clamp(0, Config.algorithms6Op.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+                    if (beforeSix || !fromSlarmoosBox) {
+                        if (instrument.algorithm6Op == 30) instrument.algorithm6Op = 27;
+                        if (instrument.algorithm6Op == 32 || instrument.algorithm6Op == 33) instrument.algorithm6Op = 4;
+                    }
                     instrument.customAlgorithm.fromPreset(instrument.algorithm6Op);
                     if (compressed.charCodeAt(charIndex) == SongTagCode.chord) {
                         let carrierCountTemp = clamp(1, Config.operatorCount + 2 + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex + 1)]);
@@ -5879,6 +5910,12 @@ export class Song {
                                 charIndex++
                             }
                             instrument.customAlgorithm.set(carrierCountTemp, tempModArray);
+                            if (beforeSix || !fromSlarmoosBox) {
+                                for (let i = 0; i < instrument.customAlgorithm.modulatedBy.length; i++) {
+                                    const modulatedBy = instrument.customAlgorithm.modulatedBy[i];
+                                    instrument.customAlgorithm.modulatedBy[i] = modulatedBy.filter((value) => value > instrument.customAlgorithm.carrierCount);
+                                }
+                            }
                             charIndex++; //????
                         }
                     }
@@ -6053,6 +6090,7 @@ export class Song {
                         let steps: number = 2;
                         let seed: number = 2;
                         let waveform: number = LFOEnvelopeTypes.sine;
+                        let dontAdd: boolean = false;
                         //pull out unique envelope setting values first, then general ones
                         if (fromSlarmoosBox && !beforeFive) {
                             if (Config.envelopes[envelope].type == EnvelopeType.sequence) {
@@ -6073,6 +6111,7 @@ export class Song {
                         }
                         if (fromSlarmoosBox && !beforeThree) {
                             if (Config.envelopes[envelope].type == EnvelopeType.pitch) {
+                                if (beforeSix && target == 0) dontAdd = true;
                                 if (!instrument.isNoiseInstrument) {
                                     let pitchEnvelopeCompact: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                                     pitchEnvelopeStart = clamp(0, Config.maxPitch + 1, pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
@@ -6107,7 +6146,7 @@ export class Song {
                             }
                         }
 
-                        instrument.addEnvelope(target, index, envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, perEnvelopeSpeed, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, envelopeDiscrete);
+                        if(!dontAdd) instrument.addEnvelope(target, index, envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, perEnvelopeSpeed, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, envelopeDiscrete);
                         if (fromSlarmoosBox && beforeThree && !beforeTwo) {
                             let pitchEnvelopeCompact: number = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                             instrument.envelopes[i].pitchEnvelopeStart = pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -7465,31 +7504,31 @@ export class Song {
 
                         break;
                     case InstrumentSettings.unisonVoices:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonVoices = numberData;
                         break;
                     case InstrumentSettings.unisonSpread:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonSpread = numberData;
                         break;
                     case InstrumentSettings.unisonOffset:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonOffset = numberData;
                         break;
                     case InstrumentSettings.unisonExpression:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonExpression = numberData;
                         break;
                     case InstrumentSettings.unisonSign:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonSign = numberData;
                         break;
                     case InstrumentSettings.unisonAntiPhased:
-                        instrument.unison = Config.unisons.length; // Custom
+                        instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonAntiPhased = numberData == 1;
                         break;
                     case InstrumentSettings.unisonBuzzes:
-                        // instrument.unison = Config.unisons.length; // Custom
+                        // instrument.unison = Config.unisons.dictionary["custom"].index; // Custom
                         instrument.unisonBuzzes = numberData == 1;
                         break;
                     case InstrumentSettings.effects:
@@ -7814,6 +7853,7 @@ export class Song {
         }
 
         const format: string = (jsonFormat == "auto" ? jsonObject["format"] : jsonFormat).toLowerCase();
+        const version: number = jsonObject["version"] || 0;
 
         if (jsonObject["name"] != undefined) {
             this.title = jsonObject["name"];
@@ -8346,7 +8386,7 @@ export class Song {
                         if (i >= this.getMaxInstrumentsPerChannel()) break;
                         const instrument: Instrument = new Instrument(isNoiseChannel, isModChannel);
                         channel.instruments[i] = instrument;
-                        instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format);
+                        instrument.fromJsonObject(instrumentObjects[i], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format, version);
                     }
                 }
 

@@ -458,7 +458,7 @@ export class SongEditor {
 
     private readonly _unisonDropdown: HTMLButtonElement = button({ style: "margin-left:0em; height:1.5em; width: 10px; padding: 0px; font-size: 8px;", onclick: () => this._toggleDropdownMenu(DropdownID.Unison) }, "▼");
 
-    private readonly _unisonSelect: HTMLSelectElement = buildOptions(select(), Config.unisons.map(unison => unison.name));
+    private readonly _unisonSelect: HTMLSelectElement = select(...Config.unisons.map((unison) => option({ value: unison.index, hidden: (unison.name == "custom") }, unison.name)));
     private readonly _unisonSelectRow: HTMLElement = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("unison") }, "Unison:"), this._unisonDropdown, div({ class: "selectContainer", style: "width: 61.5%;" }, this._unisonSelect));
 
     private readonly _unisonVoicesInputBox: HTMLInputElement = input({ style: "width: 150%; height: 1.5em; font-size: 80%; margin-left: 0.4em; vertical-align: middle;", id: "unisonVoicesInputBox", type: "number", step: "1", min: Config.unisonVoicesMin, max: Config.unisonVoicesMax, value: 1 });
@@ -966,10 +966,6 @@ export class SongEditor {
         ));
 
         this._vibratoSelect.appendChild(option({ hidden: true, value: 5 }, "custom"));
-
-        //this._unisonSelect.appendChild(option({ hidden: true, value: 28 }, "custom"));
-
-        this._unisonSelect.appendChild(option({ hidden: true, value: Config.unisons.length }, "custom"));
 
         this._showModSliders = new Array<boolean[]>(Config.modulators.length);
         this._modSliderValues = new Array<number[]>(Config.modulators.length);

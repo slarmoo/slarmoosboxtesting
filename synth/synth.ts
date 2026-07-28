@@ -497,6 +497,10 @@ class EnvelopeComputer {
             this.noteSecondsEnd[envelopeIndex] = 0.0;
             this.prevNoteSecondsEnd[envelopeIndex] = 0.0;
         }
+        for (let drumIndex: number = 0; drumIndex < Config.drumCount; drumIndex++) {
+            this.drumsetNoteSecondsEnd[drumIndex] = 0.0;
+            this.drumsetPrevNoteSecondsEnd[drumIndex] = 0.0;
+        }
         this.noteSecondsEndUnscaled = 0.0;
         this.noteTicksEnd = 0.0;
         this._noteSizeFinal = Config.noteSizeMax;
@@ -697,7 +701,15 @@ class EnvelopeComputer {
 
                 if (envelope.type == EnvelopeType.noteSize) usedNoteSize = true;
                 //only calculate pitch if needed
-                if (envelope.type == EnvelopeType.pitch) pitch = this.computePitchEnvelope(envelopeSettings.pitchEnvelopeStart, envelopeSettings.pitchEnvelopeEnd, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, instrument.isNoiseInstrument, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true)));
+                if (envelope.type == EnvelopeType.pitch) {
+                    pitch = this.computePitchEnvelope(envelopeSettings.pitchEnvelopeStart, envelopeSettings.pitchEnvelopeEnd, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, instrument.isNoiseInstrument, (this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true)));
+                    //also, if pitch is bound to none the instrument shouldn't tune based on pitch
+                    if (envelopeSettings.target == 0 && !perNote) {
+                        instrumentState.usesPitch = false;
+                        instrumentState.pitchMult *= perEnvelopeUpperBound;
+                        continue;
+                    }
+                }
             }
 
             //calculate envelope values if target isn't null or part of the other envelope computer's job
@@ -1283,6 +1295,8 @@ class InstrumentState {
     public effects: number = 0;
     
     public volumeScale: number = 0;
+    public usesPitch: boolean = true;
+    public pitchMult: number = 4;
     public aliases: boolean = false;
     public arpTime: number = 0;
     public arpEnvelopeStart: number = 1;
@@ -1304,7 +1318,6 @@ class InstrumentState {
     public delayInputMult: number = 0.0;
     public delayInputMultDelta: number = 0.0;
 
-    //TODO: Stereo Granular
     public granularMix: number = 1.0;
     public granularMixDelta: number = 0.0;
     public granularDelayLineL: Float32Array | null = null;
@@ -1672,6 +1685,8 @@ class InstrumentState {
             }
             this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed * this.envelopeSpeedEnvelopes[envelopeIndex];
         }
+        this.usesPitch = true;
+        this.pitchMult = 4;
         this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, this.envelopeSpeeds, this, synth, channelIndex, instrumentIndex, false);
         const envelopeStarts: number[] = this.envelopeComputer.envelopeStarts;
         const envelopeEnds: number[] = this.envelopeComputer.envelopeEnds;
@@ -4289,8 +4304,10 @@ export class Synth extends SynthTemplate {
             const pinRatioEnd: number = Math.min(1.0, (tickTimeEnd - pinStart) / (pinEnd - pinStart));
             fadeExpressionStart = 1.0;
             fadeExpressionEnd = 1.0;
-            intervalStart = startPin.interval + (endPin.interval - startPin.interval) * pinRatioStart;
-            intervalEnd = startPin.interval + (endPin.interval - startPin.interval) * pinRatioEnd;
+            if (instrumentState.usesPitch) {
+                intervalStart = startPin.interval + (endPin.interval - startPin.interval) * pinRatioStart;
+                intervalEnd = startPin.interval + (endPin.interval - startPin.interval) * pinRatioEnd;
+            }
             tone.lastInterval = intervalEnd;
 
             if ((!transition.isSeamless && !tone.forceContinueAtEnd) || nextNote == null) {
@@ -4381,7 +4398,7 @@ export class Synth extends SynthTemplate {
             instrumentState.envelopeComputer.reset();
         }
 
-        if (tone.note != null && transition.slides) {
+        if (tone.note != null && transition.slides && instrumentState.usesPitch) {
             // Slide interval and chordExpression at the start and/or end of the note if necessary.
             const prevNote: Note | null = tone.prevNote;
             const nextNote: Note | null = tone.nextNote;
@@ -4637,7 +4654,7 @@ export class Synth extends SynthTemplate {
             for (let i: number = 0; i < (instrument.type == InstrumentType.fm6op ? 6 : Config.operatorCount); i++) {
 
                 const associatedCarrierIndex: number = (instrument.type == InstrumentType.fm6op ? instrument.customAlgorithm.associatedCarrier[i] - 1 : Config.algorithms[instrument.algorithm].associatedCarrier[i] - 1);
-                const pitch: number = tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : ((i < tone.pitchCount) ? i : ((associatedCarrierIndex < tone.pitchCount) ? associatedCarrierIndex : 0))];
+                const pitch: number = instrumentState.usesPitch ? tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : ((i < tone.pitchCount) ? i : ((associatedCarrierIndex < tone.pitchCount) ? associatedCarrierIndex : 0))] : Config.pitchesPerOctave * instrumentState.pitchMult;
                 const freqMult = Config.operatorFrequencies[instrument.operators[i].frequency].mult;
                 const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval; //make conditional
                 // const interval = arpeggioInterval;
@@ -4888,6 +4905,7 @@ export class Synth extends SynthTemplate {
                     pitch = tone.pitches[instrument.monoChordTone];
                 }
             }
+            if (!instrumentState.usesPitch) pitch = Config.pitchesPerOctave * instrumentState.pitchMult;
 
             const startPitch: number = basePitch + (pitch + intervalStart) * intervalScale;
             const endPitch: number = basePitch + (pitch + intervalEnd) * intervalScale;
@@ -5406,6 +5424,7 @@ export class Synth extends SynthTemplate {
                                         let modulators = "";
                                         for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
                                             modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice; //use the corresponding fm modulator unison value
+                                            if (modulatorNumber <= Config.algorithms[instrument.algorithm].carrierCount) modulators += " * " + Config.sineWaveLength * 1.5; //amplify if the carrier is being used as a modulator
                                         }
 
                                         const feedbackIndices: ReadonlyArray<number> = Config.feedbacks[instrument.feedbackType].indices[j];
@@ -5488,6 +5507,7 @@ export class Synth extends SynthTemplate {
                                         let modulators = "";
                                         for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
                                             modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice; //use the corresponding fm modulator unison value
+                                            if (modulatorNumber <= instrument.customAlgorithm.carrierCount) modulators += " * " + Config.sineWaveLength * 1.5; //amplify if the carrier is being used as a modulator
                                         }
 
                                         const feedbackIndices: ReadonlyArray<number> = instrument.customFeedbackType.indices[j];

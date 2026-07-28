@@ -1219,7 +1219,10 @@ export class Config {
         { name: "chorus", voices: 9, spread: 0.22, offset: 0, expression: 0.15, sign: 1.0 },
         { name: "block", voices: 9, spread: 6, offset: 6, expression: 0.15, sign: 0.8 },
         { name: "extraterrestrial", voices: 6, spread: 15.2, offset: -6, expression: 0.35, sign: 0.7 },
-        { name: "bow", voices: 9, spread: 0.006, offset: 0, expression: 0.15, sign: 0.5 }
+        { name: "bow", voices: 9, spread: 0.006, offset: 0, expression: 0.15, sign: 0.5 },
+        { name: "custom", voices: 1, spread: 0.0, offset: 0.0, expression: 1.4, sign: 1.0 }, //placeholder. Add unisons below this
+        { name: "dissonant 2", voices: 3, spread: 0.2, offset: 0.0, expression: 0.7, sign: 1.0 },
+        { name: "double octave", voices: 3, spread: 12, offset: 0, expression: 0.63, sign: 1.0 },
 		
         //for modbox; voices = riffapp, spread = intervals, offset = offsets, expression = volume, and sign = signs
     ]);
