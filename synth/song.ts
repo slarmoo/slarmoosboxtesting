@@ -1360,6 +1360,7 @@ export class EnvelopeSettings {
             "perEnvelopeLowerBound": this.perEnvelopeLowerBound,
             "perEnvelopeUpperBound": this.perEnvelopeUpperBound,
             "discrete": this.discrete,
+            "isDrumset": isDrumset
         };
         if (!isDrumset && Config.instrumentAutomationTargets[this.target].maxCount > 1) {
             envelopeObject["index"] = this.index;
@@ -1381,12 +1382,15 @@ export class EnvelopeSettings {
         return envelopeObject;
     }
 
-    public fromJsonObject(envelopeObject: any, format: string): void {
+    public fromJsonObject(envelopeObject: any, format: string, isDrumset: boolean): void {
         this.reset();
+
+        const envelopeDrumset: boolean = envelopeObject["isDrumset"] ?? false;
 
         let target: AutomationTarget = Config.instrumentAutomationTargets.dictionary[envelopeObject["target"]];
         if (target == null) target = Config.instrumentAutomationTargets.dictionary["noteVolume"];
-        this.target = target.index;
+        //only update the target if both envelopes are of the same type (otherwise the target field won't make sense)
+        if(isDrumset == envelopeDrumset) this.target = target.index;
 
         let envelope: Envelope = Config.envelopePresets.dictionary["none"];
         let isTremolo2: Boolean = false;
@@ -1830,6 +1834,7 @@ export class Instrument {
             case InstrumentType.drumset:
                 this.chord = Config.chords.dictionary["simultaneous"].index;
                 for (let i: number = 0; i < Config.drumCount; i++) {
+                    if (this.drumsetEnvelopes[i] == undefined) this.drumsetEnvelopes[i] = new EnvelopeSettings(true);
                     this.drumsetEnvelopes[i].defaultToDrumset();
                     if (this.drumsetSpectrumWaves[i] == undefined) {
                         this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
@@ -2635,7 +2640,7 @@ export class Instrument {
                         }
                     } else if (drum["drumEnvelope"]) {
                         const envelopeSettings: EnvelopeSettings = new EnvelopeSettings(true);
-                        envelopeSettings.fromJsonObject(drum["drumEnvelope"], format);
+                        envelopeSettings.fromJsonObject(drum["drumEnvelope"], format, true);
                     }
                     if (drum["spectrum"] != undefined) {
                         for (let i: number = 0; i < Config.spectrumControlPoints; i++) {
@@ -2986,7 +2991,7 @@ export class Instrument {
                 for (let i = 0; i < envelopeArray.length; i++) {
                     if (this.envelopeCount >= Config.maxEnvelopeCount) break;
                     const tempEnvelope: EnvelopeSettings = new EnvelopeSettings(this.isNoiseInstrument);
-                    tempEnvelope.fromJsonObject(envelopeArray[i], format);
+                    tempEnvelope.fromJsonObject(envelopeArray[i], format, false);
                     //remove pitch -> none envelopes from before sb 2.0
                     if (tempEnvelope.target == 0 && Config.envelopes[tempEnvelope.envelope].type == EnvelopeType.pitch && (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox"))) {
                         continue;
@@ -7439,7 +7444,7 @@ export class Song {
                         //hmm... I guess I could send over the whole envelope...
                         //I probably shouldn't though
                         if (!instrument.envelopes[settingIndex!]) instrument.envelopes[settingIndex!] = new EnvelopeSettings(instrument.isNoiseInstrument);
-                        instrument.envelopes[settingIndex!].fromJsonObject(data, "slarmoosbox");
+                        instrument.envelopes[settingIndex!].fromJsonObject(data, "slarmoosbox", false);
                         break;
                     case InstrumentSettings.fadeIn:
                         instrument.fadeIn = numberData;
@@ -7711,7 +7716,7 @@ export class Song {
                         break;
                     case InstrumentSettings.drumsetEnvelopes:
                         if (!instrument.envelopes[settingIndex!]) instrument.drumsetEnvelopes[settingIndex!] = new EnvelopeSettings(true);
-                        instrument.drumsetEnvelopes[settingIndex!].fromJsonObject(data, "slarmoosbox");
+                        instrument.drumsetEnvelopes[settingIndex!].fromJsonObject(data, "slarmoosbox", true);
                         break;
                     case InstrumentSettings.drumsetSpectrumWaves:
                         instrument.drumsetSpectrumWaves[settingIndex!].spectrum = data as number[];

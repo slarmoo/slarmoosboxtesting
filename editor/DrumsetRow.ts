@@ -94,7 +94,7 @@ export class DrumsetRow {
     
     private _lastChange: Change | null = null;
 
-    constructor(private _doc: SongDocument, private _drumIndex: number, private _extraSettingsDropdown: Function, private _openPrompt: Function) {
+    constructor(private _doc: SongDocument, private _drumIndex: number, private _isForPrompt: boolean, private _extraSettingsDropdown?: Function, private _openPrompt?: Function) {
         this.drumsetSpectrumEditor = new SpectrumEditor(this._doc, _drumIndex);
 
         this.drumsetFilterEditor = new FilterEditor(this._doc, FilterEditorTypes.Drumset, false, _drumIndex);
@@ -109,8 +109,8 @@ export class DrumsetRow {
         this._pitchEndSlider = input({ value: Config.drumCount - 1, style: "width: 113px; margin-left: 0px;", type: "range", min: "0", max: Config.drumCount - 1, step: "1" });
         this._pitchEndBox = input({ value: Config.drumCount - 1, style: "width: 4em; font-size: 80%; ", id: "endNoteBox", type: "number", step: "1", min: "0", max: Config.drumCount - 1 });
 
-        this._startNoteDisplay = span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "Start " + ": ");
-        this._endNoteDisplay = span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("pitchRange") }, "End " + ": ");
+        this._startNoteDisplay = this.createTipLabel("Start: ", "pitchRange", `width:68px; flex:1; height:1em; font-size: smaller;`);
+        this._endNoteDisplay = this.createTipLabel("End: ", "pitchRange", `width:68px; flex:1; height:1em; font-size: smaller;`);
 
         const pitchStartBoxWrapper = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this._startNoteDisplay, this._pitchStartBox);
         const pitchEndBoxWrapper = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this._endNoteDisplay, this._pitchEndBox);
@@ -128,8 +128,8 @@ export class DrumsetRow {
         this._randomSeedBox = input({ type: "number", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 4em; font-size: 80%; " });
         this._randomSeedSlider = input({ type: "range", min: 1, max: Config.randomEnvelopeSeedMax, step: 1, style: "width: 113px; margin-left: 0px;" });
 
-        const randomStepsBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), this._randomStepsBox);
-        const randomSeedBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSeed") }, "Seed: "), this._randomSeedBox);
+        const randomStepsBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this.createTipLabel("Steps: ", "randomSteps", "width:68px; flex:1; height:1em; font-size: smaller;"), this._randomStepsBox);
+        const randomSeedBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this.createTipLabel("Seed: ", "randomSeed", "width:68px; flex:1; height:1em; font-size: smaller;"), this._randomSeedBox);
 
         this._randomStepsWrapper = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomStepsBoxWrapper, this._randomStepsSlider);
         const randomSeedWrapper: HTMLDivElement = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, randomSeedBoxWrapper, this._randomSeedSlider);
@@ -139,7 +139,7 @@ export class DrumsetRow {
         for (let waveform: number = 0; waveform < RandomEnvelopeTypes.length; waveform++) {
             this._randomTypeSelect.appendChild(option({ value: waveform }, randomNames[waveform]));
         }
-        const randomTypeSelectWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, span({ style: "font-size: smaller; margin-right: 35px;", class: "tip", onclick: () => this._openPrompt("randomEnvelopeType") }, "Type: "), this._randomTypeSelect);
+        const randomTypeSelectWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, this.createTipLabel("Type: ", "randomEnvelopeType", "font-size: smaller; margin-right: 35px;"), this._randomTypeSelect);
 
         this._extraRandomSettingsGroup = div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, randomTypeSelectWrapper, this._randomStepsWrapper, randomSeedWrapper);
         this._extraRandomSettingsGroup.style.display = "none";
@@ -149,7 +149,7 @@ export class DrumsetRow {
         this._LFOStepsBox = input({ type: "number", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 4em; font-size: 80%; " });
         this._LFOStepsSlider = input({ type: "range", min: 1, max: Config.randomEnvelopeStepsMax, step: 1, style: "width: 113px; margin-left: 0px;" });
 
-        const LFOStepsBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("randomSteps") }, "Steps: "), this._LFOStepsBox);
+        const LFOStepsBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this.createTipLabel("Steps: ", "randomSteps", `width:68px; flex:1; height:1em; font-size: smaller;`), this._LFOStepsBox);
 
         this._LFOStepsWrapper = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, LFOStepsBoxWrapper, this._LFOStepsSlider);
         const wavenames: string[] = ["sine", "square", "triangle", "sawtooth", "trapezoid", "stepped saw", "stepped tri"];
@@ -157,7 +157,7 @@ export class DrumsetRow {
             this._waveformSelect.appendChild(option({ value: waveform }, wavenames[waveform]));
         }
 
-        const waveformWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("lfoEnvelopeWaveform") }, "Waveform: "), this._waveformSelect);
+        const waveformWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, this.createTipLabel("Waveform: ", "lfoEnvelopeWaveform", "font-size: smaller; margin-right: 10px;"), this._waveformSelect);
         this._extraLFOSettingsGroup = div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:right;" }, waveformWrapper, this._LFOStepsWrapper);
         this._extraLFOSettingsGroup.style.display = "none";
 
@@ -166,20 +166,20 @@ export class DrumsetRow {
         for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
             this._sequenceSelect.appendChild(option({ value: sequence }, "sequence " + (sequence + 1)));
         }
-        if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+        if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount && !this._isForPrompt) {
             this._sequenceSelect.appendChild(option({ value: this._doc.song.sequences.length }, "new sequence"));
         }
-        this._sequenceSelect.appendChild(option({ value: -1 }, "remove sequence"));
-        this._editSequenceButton = button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt("sequenceSettings", { "sequenceIndex": this._sequenceSelect.value, "envelopeIndex": _drumIndex, "isDrum": true }) }, "Edit");
-        const SequenceWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, span({ style: "font-size: smaller; margin-right: 10px;", class: "tip", onclick: () => this._openPrompt("sequenceEnvelope") }, "Sequence: "), this._sequenceSelect);
-        const SequenceRow: HTMLDivElement = div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, this._editSequenceButton);
+        if (!this._isForPrompt) this._sequenceSelect.appendChild(option({ value: -1 }, "remove sequence"));
+        this._editSequenceButton = button({ style: "margin-top: 3px; margin-left: 3px; height: 26px; font-size: smaller;", class: "button", title: "Edit Sequence", onclick: () => this._openPrompt!("sequenceSettings", { "sequenceIndex": this._sequenceSelect.value, "envelopeIndex": _drumIndex, "isDrum": true }) }, "Edit");
+        const SequenceWrapper: HTMLDivElement = div({ class: "editor-controls selectContainer", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, this.createTipLabel("Sequence: ", "sequenceEnvelope", "font-size: smaller; margin-right: 10px;"), this._sequenceSelect);
+        const SequenceRow: HTMLDivElement = div({ class: "editor-controls", style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, SequenceWrapper, this._isForPrompt ? "" : this._editSequenceButton);
         this._sequenceView = new SequenceEditor(this._doc, 0, false, 1);
         this._extraSequenceSettingsGroup = div({ class: "editor-controls", id: "extraSequenceSettingsGroup", style: "margin-top: 3px; flex:1; display:flex; flex-direction: column; align-items:center; justify-content:center;" }, div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 60px" }, this._sequenceView.canvas), SequenceRow);
         this._extraSequenceSettingsGroup.style.display = "none";
 
         //speed settings
         this._perEnvelopeSpeedSlider = new Slider(input({ oninput: () => this.updateSpeedDisplay(), style: "margin: 0; width: 113px", type: "range", min: 0, max: Config.perEnvelopeSpeedIndices.length - 1, step: "1" }), this._doc, (oldSpeed: number, newSpeed: number) => new ChangeDrumsetEnvelopeSpeed(this._doc, DrumsetRow.convertIndexSpeed(oldSpeed, "speed"), DrumsetRow.convertIndexSpeed(newSpeed, "speed"), _drumIndex), false);
-        this._perEnvelopeSpeedDisplay = span({ class: "tip", style: `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`, onclick: () => this._openPrompt("perEnvelopeSpeed") }, "Spd: x" + prettyNumber(DrumsetRow.convertIndexSpeed(this._perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")));
+        this._perEnvelopeSpeedDisplay = this.createTipLabel("Spd: x" + prettyNumber(DrumsetRow.convertIndexSpeed(this._perEnvelopeSpeedSlider.getValueBeforeProspectiveChange(), "speed")), "perEnvelopeSpeed", `width:58px; flex:1; height:1em; font-size: smaller; margin-left: 10px;`);
         const perEnvelopeSpeedWrapper: HTMLDivElement = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, this._perEnvelopeSpeedDisplay, this._perEnvelopeSpeedSlider.container);
         this._perEnvelopeSpeedGroup = div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, perEnvelopeSpeedWrapper);
 
@@ -190,15 +190,15 @@ export class DrumsetRow {
         this._upperBoundBox = input({ type: "number", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 4em; font-size: 80%; " });
         this._upperBoundSlider = new Slider(input({ type: "range", min: Config.perEnvelopeBoundMin, max: Config.perEnvelopeBoundMax, step: 0.1, style: "width: 113px; margin-left: 0px;" }), this._doc, (oldBound: number, newBound: number) => new ChangeDrumsetEnvelopeUpperBound(this._doc, oldBound, newBound, _drumIndex), false);
 
-        const lowerBoundBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Lwr bnd: "), this._lowerBoundBox);
-        const upperBoundBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, span({ class: "tip", style: `width:68px; flex:1; height:1em; font-size: smaller;`, onclick: () => this._openPrompt("envelopeRange") }, "Upr bnd: "), this._upperBoundBox);
+        const lowerBoundBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this.createTipLabel("Lwr bnd: ", "envelopeRange", "width:68px; flex:1; height:1em; font-size: smaller;"), this._lowerBoundBox);
+        const upperBoundBoxWrapper: HTMLDivElement = div({ style: "flex: 1; display: flex; flex-direction: column; align-items: center;" }, this.createTipLabel("Upr bnd: ", "envelopeRange", "width:68px; flex:1; height:1em; font-size: smaller;"), this._upperBoundBox);
 
         const lowerBoundWrapper: HTMLDivElement = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, lowerBoundBoxWrapper, this._lowerBoundSlider.container);
         const upperBoundWrapper: HTMLDivElement = div({ style: "margin-top: 3px; flex:1; display:flex; flex-direction: row; align-items:center; justify-content:right;" }, upperBoundBoxWrapper, this._upperBoundSlider.container);
 
         this._invertBox = input({ "checked": false, type: "checkbox", style: "width: 1em; padding: 0.5em;", id: "invertBox" });
         this._discreteBox = input({ "checked": false, type: "checkbox", style: "width: 1em; padding: 0.5em;" });
-        const checkboxWrapper: HTMLDivElement = div({ style: "margin: 0.1em; align-items:center; justify-content:right;" }, span({ class: "tip", onclick: () => this._openPrompt("envelopeInvert") }, "‣ Invert: "), this._invertBox, span({ class: "tip", style: "margin-left:4px;", onclick: () => this._openPrompt("discreteEnvelope") }, "‣ Discrete:"), this._discreteBox);
+        const checkboxWrapper: HTMLDivElement = div({ style: "margin: 0.1em; align-items:center; justify-content:right;" }, this.createTipLabel("‣ Invert: ", "envelopeInvert", ""), this._invertBox, this.createTipLabel("‣ Discrete:", "discreteEnvelope", "margin-left:4px;"), this._discreteBox);
 
 
         //copy paste buttons
@@ -221,11 +221,11 @@ export class DrumsetRow {
         const copyPasteContainer: HTMLDivElement = div({ class: "editor-controls", style: "margin: 0.5em; display: flex; flex-direction:row; align-items:center;" }, envelopeCopyButton, envelopePasteButton);
 
         //general structure
-        this.extraSettingsDropdown = button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; align-self: center; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { this._extraSettingsDropdown(DropdownID.DrumsetEnvelopeSettings, _drumIndex); } }, "▼");
+        this.extraSettingsDropdown = button({ style: "margin-left:0em; margin-right: 0.3em; height:1.5em; align-self: center; width: 10px; padding: 0px; font-size: 8px;", onclick: () => { this._extraSettingsDropdown!(DropdownID.DrumsetEnvelopeSettings, _drumIndex); } }, "▼");
         this.extraSettingsDropdown.style.display = "inline";
 
-        this.extraSettingsDropdownGroup = div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, this._extraRandomSettingsGroup, this._extraLFOSettingsGroup, this._extraSequenceSettingsGroup, this._extraPitchSettingsGroup, this._perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, copyPasteContainer);
-        this.extraSettingsDropdownGroup.style.display = "none";
+        this.extraSettingsDropdownGroup = div({ class: "editor-controls", style: "flex-direction:column; align-items:center;" }, this._extraRandomSettingsGroup, this._extraLFOSettingsGroup, this._extraSequenceSettingsGroup, this._extraPitchSettingsGroup, this._perEnvelopeSpeedGroup, lowerBoundWrapper, upperBoundWrapper, checkboxWrapper, _isForPrompt ? "" : copyPasteContainer);
+        this.extraSettingsDropdownGroup.style.display = this._isForPrompt ? "flex" : "none";
 
         //event listeners
         this._drumsetEnvelopeSelect.addEventListener("change", () => {
@@ -246,39 +246,10 @@ export class DrumsetRow {
         envelopeCopyButton.addEventListener("click", () => {
             const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             const envelope: EnvelopeSettings = instrument.drumsetEnvelopes[this._drumIndex];
-            window.localStorage.setItem("envelopeCopy", JSON.stringify(envelope.toJsonObject(Config.envelopes[envelope.envelope].type == EnvelopeType.sequence ? this._doc.song.sequences[envelope.waveform] : undefined)));
+            window.localStorage.setItem("envelopeCopy", JSON.stringify(envelope.toJsonObject(Config.envelopes[envelope.envelope].type == EnvelopeType.sequence ? this._doc.song.sequences[envelope.waveform] : undefined, true)));
         })
 
-        envelopePasteButton.addEventListener("click", () => {
-            const envelopeCopy: any = window.localStorage.getItem("envelopeCopy");
-            const envelopeObject: any = JSON.parse(String(envelopeCopy));
-            this._doc.record(new PasteDrumsetEnvelope(this._doc, envelopeObject, _drumIndex));
-            const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
-            const envelope: EnvelopeSettings = instrument.drumsetEnvelopes[_drumIndex];
-            if (Config.envelopes[envelope.envelope].type == EnvelopeType.sequence) { //also paste the sequence
-                const potentialSequence: SequenceSettings = new SequenceSettings();
-                potentialSequence.fromJsonObject(envelopeObject["sequenceSettings"], Config.jsonFormat);
-                //does the sequence already exist?
-                let found: number = -1;
-                for (let seq: number = 0; seq < this._doc.song.sequences.length; seq++) {
-                    const sequence: SequenceSettings = this._doc.song.sequences[seq];
-                    if (sequence.isSame(potentialSequence)) {
-                        found = seq;
-                        break;
-                    }
-                }
-                if (found > -1) {
-                    new ChangeSetDrumsetEnvelopeWaveform(this._doc, found, _drumIndex);
-                } else {
-                    //do we have room to add a sequence? If not, we can't paste it
-                    if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
-                        new ChangeAddNewSequence(this._doc, this._doc.song.sequences.length);
-                        new ChangeUpdateSequence(this._doc, this._doc.song.sequences.length - 1, potentialSequence);
-                        new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._doc.song.sequences.length - 1, _drumIndex);
-                    }
-                }
-            }
-        })
+        envelopePasteButton.addEventListener("click", () => this.pasteEnvelope());
 
         this._pitchStartBox.addEventListener("input", () => this._lastChange = new ChangeDrumsetEnvelopePitchStart(this._doc, parseInt(this._pitchStartBox.value), _drumIndex));
         this._pitchEndBox.addEventListener("input", () => this._lastChange = new ChangeDrumsetEnvelopePitchEnd(this._doc, parseInt(this._pitchEndBox.value), _drumIndex));
@@ -316,24 +287,23 @@ export class DrumsetRow {
         this._randomTypeSelect.addEventListener("change", () => this._doc.record(new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._randomTypeSelect.value, _drumIndex)));
         this._sequenceSelect.addEventListener("change", () => {
             if (this._sequenceSelect.value == this._doc.song.sequences.length + "") {
-                this._openPrompt("sequenceSettings", { "sequenceIndex": this._doc.song.sequences.length, "envelopeIndex": _drumIndex, "isDrum": true });
+                this._openPrompt!("sequenceSettings", { "sequenceIndex": this._doc.song.sequences.length, "envelopeIndex": _drumIndex, "isDrum": true });
             } else if (this._sequenceSelect.value == "-1") { 
                 new ChangeRemoveSequence(this._doc, this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].drumsetEnvelopes[_drumIndex].waveform);
                 this._doc.record(new ChangeSetDrumsetEnvelopeWaveform(this._doc, Math.min(this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].drumsetEnvelopes[_drumIndex].waveform, this._doc.song.sequences.length - 1), _drumIndex));
             } else {
+                console.log(this._sequenceSelect.value)
                 this._doc.record(new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._sequenceSelect.value, _drumIndex));
             }
-            this._doc.record(new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._waveformSelect.value, _drumIndex))
         });
         this._invertBox.addEventListener("change", () => this._doc.record(new ChangeDrumsetEnvelopeInverse(this._doc, this._invertBox.checked, _drumIndex)));
         this._discreteBox.addEventListener("change", () => this._doc.record(new ChangeDrumsetDiscreteEnvelope(this._doc, this._discreteBox.checked, _drumIndex)));
 
         this._drumsetEnvelopeTargetWrapper = div({ class: "selectContainer", style: "width: 115.26px;" }, this._drumsetEnvelopeTarget);
 
-
-        this.container = div(
-            div({ class: "selectRow" },
-                this.extraSettingsDropdown,
+        this.container = div( {style: _isForPrompt ? "width: 192px" : ""},
+            div({ class: "selectRow", style: "" },
+                _isForPrompt ? "" : this.extraSettingsDropdown,
                 div({ class: "selectContainer", style: "width: 5em; margin-right: .3em;" }, this._drumsetEnvelopeSelect),
                 this.drumsetSpectrumEditor.container,
                 this.drumsetFilterEditor.container,
@@ -342,7 +312,50 @@ export class DrumsetRow {
             this.extraSettingsDropdownGroup,
         );
 
+        if (_isForPrompt) {
+            //hijack extraSettingsDropdown function for prompt undo system
+            this.container.addEventListener("change", () => { this._extraSettingsDropdown!(); this.render();});
+            this.container.addEventListener("input", () => this.render);
+
+        }
+
         this.render();
+    }
+
+    private createTipLabel(text: string, openPrompt: string, style: string) {
+        return this._isForPrompt ? span({ style: style }, text) :
+            span({ class: "tip", style: style, onclick: () => this._openPrompt!(openPrompt) }, text);
+    }
+
+    public pasteEnvelope() {
+        const envelopeCopy: any = window.localStorage.getItem("envelopeCopy");
+        const envelopeObject: any = JSON.parse(String(envelopeCopy));
+        this._doc.record(new PasteDrumsetEnvelope(this._doc, envelopeObject, this._drumIndex));
+        const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+        const envelope: EnvelopeSettings = instrument.drumsetEnvelopes[this._drumIndex];
+        if (Config.envelopes[envelope.envelope].type == EnvelopeType.sequence) { //also paste the sequence
+            const potentialSequence: SequenceSettings = new SequenceSettings();
+            potentialSequence.fromJsonObject(envelopeObject["sequenceSettings"], Config.jsonFormat);
+            //does the sequence already exist?
+            let found: number = -1;
+            for (let seq: number = 0; seq < this._doc.song.sequences.length; seq++) {
+                const sequence: SequenceSettings = this._doc.song.sequences[seq];
+                if (sequence.isSame(potentialSequence)) {
+                    found = seq;
+                    break;
+                }
+            }
+            if (found > -1) {
+                new ChangeSetDrumsetEnvelopeWaveform(this._doc, found, this._drumIndex);
+            } else {
+                //do we have room to add a sequence? If not, we can't paste it
+                if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+                    new ChangeAddNewSequence(this._doc, this._doc.song.sequences.length);
+                    new ChangeUpdateSequence(this._doc, this._doc.song.sequences.length - 1, potentialSequence);
+                    new ChangeSetDrumsetEnvelopeWaveform(this._doc, this._doc.song.sequences.length - 1, this._drumIndex);
+                }
+            }
+        }
     }
 
     private _updateChange = (event: Event): void => {
@@ -422,6 +435,10 @@ export class DrumsetRow {
         this._perEnvelopeSpeedDisplay.textContent = "Spd: x" + prettyNumber(this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()].drumsetEnvelopes[this._drumIndex].perEnvelopeSpeed);
     }
 
+    private shouldRenderEnvelopeExtraSettings(): boolean {
+        return this._isForPrompt || (this.openExtraSettingsDropdown && this._view == DrumsetView.envelope);
+    }
+
     public render() {
         const instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
         if (!instrument.isNoiseInstrument) {
@@ -442,7 +459,7 @@ export class DrumsetRow {
         }
         this._updateTargetOptionVisibility(this._drumsetEnvelopeTarget);
         this._sequenceView?.redrawCanvas();
-        if (this.openExtraSettingsDropdown && this._view == DrumsetView.envelope) {
+        if (this.shouldRenderEnvelopeExtraSettings()) {
             this.extraSettingsDropdownGroup.style.display = "flex";
             this.extraSettingsDropdown.style.display = "inline";
             this._extraSequenceSettingsGroup.style.display = "none";
@@ -509,10 +526,10 @@ export class DrumsetRow {
                 for (let sequence: number = 0; sequence < this._doc.song.sequences.length; sequence++) {
                     this._sequenceSelect.appendChild(HTML.option({ value: sequence }, "sequence " + (sequence + 1)));
                 }
-                if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount) {
+                if (this._doc.song.sequences.length < Config.maxEnvelopeSequenceCount && !this._isForPrompt) {
                     this._sequenceSelect.appendChild(HTML.option({ value: this._doc.song.sequences.length }, "new sequence"));
                 }
-                this._sequenceSelect.appendChild(HTML.option({ value: -1 }, "remove sequence"));
+                if (!this._isForPrompt) this._sequenceSelect.appendChild(HTML.option({ value: -1 }, "remove sequence"));
 
                 //update values
                 this._sequenceSelect.value = drumsetEnvelope.waveform.toString();

@@ -985,7 +985,11 @@ var Config = class _Config {
     { name: "chorus", voices: 9, spread: 0.22, offset: 0, expression: 0.15, sign: 1 },
     { name: "block", voices: 9, spread: 6, offset: 6, expression: 0.15, sign: 0.8 },
     { name: "extraterrestrial", voices: 6, spread: 15.2, offset: -6, expression: 0.35, sign: 0.7 },
-    { name: "bow", voices: 9, spread: 6e-3, offset: 0, expression: 0.15, sign: 0.5 }
+    { name: "bow", voices: 9, spread: 6e-3, offset: 0, expression: 0.15, sign: 0.5 },
+    { name: "custom", voices: 1, spread: 0, offset: 0, expression: 1.4, sign: 1 },
+    //placeholder. Add unisons below this
+    { name: "dissonant 2", voices: 3, spread: 0.2, offset: 0, expression: 0.7, sign: 1 },
+    { name: "double octave", voices: 3, spread: 12, offset: 0, expression: 0.63, sign: 1 }
     //for modbox; voices = riffapp, spread = intervals, offset = offsets, expression = volume, and sign = signs
   ]);
   static effectNames = ["reverb", "chorus", "panning", "distortion", "bitcrusher", "note filter", "echo", "pitch shift", "detune", "vibrato", "transition type", "chord type", "note range", "ring mod", "granular", "plugin"];
@@ -3022,7 +3026,7 @@ var EditorConfig = class _EditorConfig {
         { name: "ascension", generalMidi: false, isNoise: false, settings: { "type": "spectrum", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 4756.83, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 420.45, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 4756.83, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 420.45, "linearGain": 0.25 }], "eqSubFilters1": [], "effects": ["panning", "detune", "granular", "chorus", "reverb"], "detuneCents": 12, "granular": 7, "grainSize": 44, "grainAmounts": 9, "grainRange": 37, "pan": 0, "panDelay": 0, "chorus": 71, "reverb": 19, "fadeInSeconds": 0, "fadeOutTicks": 24, "spectrum": [43, 0, 0, 57, 0, 0, 14, 100, 29, 0, 0, 100, 29, 0, 100, 0, 57, 29, 86, 14, 14, 100, 14, 0, 14, 14, 0, 0, 43, 0], "unison": "custom", "unisonVoices": 2, "unisonSpread": 9.5, "unisonOffset": 9.5, "unisonExpression": 1, "unisonSign": 1, "envelopes": [{ "target": "noteVolume", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 0.7, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "panning", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 0.3, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 2, "steps": 2 }], "isDrum": false } },
         { name: "liminal", generalMidi: false, isNoise: false, settings: { "type": "supersaw", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 6727.17, "linearGain": 1.4142 }, { "type": "high-pass", "cutoffHz": 840.9, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 6727.17, "linearGain": 1.4142 }, { "type": "high-pass", "cutoffHz": 840.9, "linearGain": 0.25 }], "effects": ["detune", "vibrato", "note filter", "granular", "distortion", "bitcrusher", "chorus", "reverb"], "detuneCents": 8, "vibrato": "custom", "vibratoDepth": 0.48, "vibratoDelay": 0, "vibratoSpeed": 10, "vibratoType": 0, "noteFilterType": true, "noteSimpleCut": 6, "noteSimplePeak": 2, "noteFilter": [{ "type": "low-pass", "cutoffHz": 2196.8, "linearGain": 1 }], "noteSubFilters1": [{ "type": "low-pass", "cutoffHz": 2196.8, "linearGain": 1 }], "granular": 6, "grainSize": 49, "grainAmounts": 10, "grainRange": 40, "distortion": 57, "aliases": false, "bitcrusherOctave": 5, "bitcrusherQuantization": 0, "chorus": 29, "reverb": 48, "fadeInSeconds": 0, "fadeOutTicks": 72, "pulseWidth": 30, "decimalOffset": 0, "dynamism": 17, "spread": 83, "shape": 67, "envelopes": [{ "target": "noteVolume", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 17, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "pulseWidth", "envelope": "twang", "inverse": false, "perEnvelopeSpeed": 1.3333, "perEnvelopeLowerBound": 0.1, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "distortion", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0.2, "perEnvelopeUpperBound": 1, "discrete": true, "steps": 8, "seed": 2, "waveform": 2 }, { "target": "panning", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 0.3333, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "waveform": 2, "steps": 2 }, { "target": "noteVolume", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 18, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteVolume", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "granular", "envelope": "note size", "inverse": false, "perEnvelopeSpeed": 0, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }], "isDrum": false } },
         //1.4.13 presets
-        { name: "dissonant tone", generalMidi: false, isNoise: false, settings: { "type": "harmonics", "eqFilter": [{ "type": "high-pass", "cutoffHz": 2e3, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }, { "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.1768 }, { "type": "peak", "cutoffHz": 9513.66, "linearGain": 2.8284 }, { "type": "peak", "cutoffHz": 3363.59, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 4 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 2e3, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }, { "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.1768 }, { "type": "peak", "cutoffHz": 9513.66, "linearGain": 2.8284 }, { "type": "peak", "cutoffHz": 3363.59, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 4 }], "eqSubFilters1": [], "effects": ["echo", "reverb"], "panDelay": 0, "echoSustain": 71, "echoDelayBeats": 1, "reverb": 29, "fadeInSeconds": 0, "fadeOutTicks": 96, "harmonics": [100, 0, 86, 71, 43, 29, 14, 86, 0, 0, 0, 0, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0], "unison": "custom", "unisonVoices": 3, "unisonSpread": 0.2, "unisonOffset": 0, "unisonExpression": 0.7, "unisonSign": 1, "envelopes": [{ "target": "noteVolume", "envelope": "wibble", "inverse": false, "perEnvelopeSpeed": 17, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteVolume", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 256, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }] } },
+        { name: "dissonant tone", generalMidi: false, isNoise: false, settings: { "type": "harmonics", "eqFilter": [{ "type": "high-pass", "cutoffHz": 2e3, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }, { "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.1768 }, { "type": "peak", "cutoffHz": 9513.66, "linearGain": 2.8284 }, { "type": "peak", "cutoffHz": 3363.59, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 4 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 2e3, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 6727.17, "linearGain": 2.8284 }, { "type": "low-pass", "cutoffHz": 13454.34, "linearGain": 0.1768 }, { "type": "peak", "cutoffHz": 9513.66, "linearGain": 2.8284 }, { "type": "peak", "cutoffHz": 3363.59, "linearGain": 0.5 }, { "type": "peak", "cutoffHz": 5656.85, "linearGain": 0.3536 }, { "type": "peak", "cutoffHz": 4756.83, "linearGain": 4 }], "eqSubFilters1": [], "effects": ["echo", "reverb"], "panDelay": 0, "echoSustain": 71, "echoDelayBeats": 1, "reverb": 29, "fadeInSeconds": 0, "fadeOutTicks": 96, "harmonics": [100, 0, 86, 71, 43, 29, 14, 86, 0, 0, 0, 0, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0], "unison": "dissonant 2", "envelopes": [{ "target": "noteVolume", "envelope": "wibble", "inverse": false, "perEnvelopeSpeed": 17, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "noteVolume", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 256, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }] } },
         { name: "reverse arps", generalMidi: false, isNoise: false, settings: { "type": "harmonics", "eqFilter": [{ "type": "high-pass", "cutoffHz": 1e3, "linearGain": 1 }, { "type": "peak", "cutoffHz": 16e3, "linearGain": 0.25 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "high-pass", "cutoffHz": 1e3, "linearGain": 1 }, { "type": "peak", "cutoffHz": 16e3, "linearGain": 0.25 }], "effects": ["transition type", "pitch shift", "detune", "chorus", "echo", "reverb", "ring mod"], "transition": "interrupt", "clicklessTransition": false, "pitchShiftSemitones": 12, "detuneCents": 0, "ringMod": 29, "ringModHz": 95, "ringModWaveformIndex": 0, "ringModPulseWidth": 10, "ringModHzOffset": 50, "panDelay": 0, "chorus": 29, "echoSustain": 57, "echoDelayBeats": 1, "reverb": 19, "fadeInSeconds": 0, "fadeOutTicks": -6, "harmonics": [100, 86, 0, 71, 0, 0, 0, 14, 0, 0, 0, 29, 100, 0, 0, 86, 43, 0, 71, 0, 86, 0, 0, 0, 0, 0, 0, 0], "unison": "none", "envelopes": [{ "target": "noteVolume", "envelope": "swell", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false }, { "target": "ringModulationHz", "envelope": "lfo", "inverse": false, "perEnvelopeSpeed": 0.04, "perEnvelopeLowerBound": 0.8, "perEnvelopeUpperBound": 1.1, "discrete": false, "waveform": 0, "steps": 2 }] } },
         { name: "icicle", generalMidi: false, settings: { "type": "spectrum", "eqFilter": [{ "type": "low-pass", "cutoffHz": 11313.71, "linearGain": 0.5 }], "eqFilterType": false, "eqSimpleCut": 7, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters1": [], "effects": ["granular", "bitcrusher", "echo", "reverb"], "granular": 10, "grainSize": 49, "grainAmounts": 6, "grainRange": 40, "bitcrusherOctave": 3.5, "bitcrusherQuantization": 43, "panDelay": 0, "echoSustain": 71, "echoDelayBeats": 1, "reverb": 74, "fadeInSeconds": 0.0575, "fadeOutTicks": -1, "spectrum": [86, 0, 43, 0, 14, 29, 0, 57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "unison": "none", "envelopes": [] } },
         //2.0 presets
@@ -4424,19 +4428,20 @@ var EnvelopeSettings = class {
     this.reset();
     this.envelope = Config.envelopePresets.dictionary["twang 2"].type;
     this.perEnvelopeSpeed = Config.envelopePresets.dictionary["twang 2"].speed;
-    this.target = 0 /* filterAll */;
+    this.target = 0;
   }
-  toJsonObject(sequenceSettings) {
+  toJsonObject(sequenceSettings, isDrumset = false) {
     const envelopeObject = {
-      "target": Config.instrumentAutomationTargets[this.target].name,
+      "target": isDrumset ? this.target : Config.instrumentAutomationTargets[this.target].name,
       "envelope": Config.envelopes[this.envelope].name,
       "inverse": this.inverse,
       "perEnvelopeSpeed": this.perEnvelopeSpeed,
       "perEnvelopeLowerBound": this.perEnvelopeLowerBound,
       "perEnvelopeUpperBound": this.perEnvelopeUpperBound,
-      "discrete": this.discrete
+      "discrete": this.discrete,
+      "isDrumset": isDrumset
     };
-    if (Config.instrumentAutomationTargets[this.target].maxCount > 1) {
+    if (!isDrumset && Config.instrumentAutomationTargets[this.target].maxCount > 1) {
       envelopeObject["index"] = this.index;
     }
     if (Config.envelopes[this.envelope].name == "pitch") {
@@ -4455,11 +4460,12 @@ var EnvelopeSettings = class {
     }
     return envelopeObject;
   }
-  fromJsonObject(envelopeObject, format) {
+  fromJsonObject(envelopeObject, format, isDrumset) {
     this.reset();
+    const envelopeDrumset = envelopeObject["isDrumset"] ?? false;
     let target = Config.instrumentAutomationTargets.dictionary[envelopeObject["target"]];
     if (target == null) target = Config.instrumentAutomationTargets.dictionary["noteVolume"];
-    this.target = target.index;
+    if (isDrumset == envelopeDrumset) this.target = target.index;
     let envelope = Config.envelopePresets.dictionary["none"];
     let isTremolo2 = false;
     if (format == "slarmoosbox") {
@@ -4836,6 +4842,7 @@ var Instrument = class {
       case 4 /* drumset */:
         this.chord = Config.chords.dictionary["simultaneous"].index;
         for (let i = 0; i < Config.drumCount; i++) {
+          if (this.drumsetEnvelopes[i] == void 0) this.drumsetEnvelopes[i] = new EnvelopeSettings(true);
           this.drumsetEnvelopes[i].defaultToDrumset();
           if (this.drumsetSpectrumWaves[i] == void 0) {
             this.drumsetSpectrumWaves[i] = new SpectrumWave(true);
@@ -5090,8 +5097,8 @@ var Instrument = class {
       }
     }
     if (this.type != 10 /* mod */) {
-      instrumentObject["unison"] = this.unison == Config.unisons.length ? "custom" : Config.unisons[this.unison].name;
-      if (this.unison == Config.unisons.length) {
+      instrumentObject["unison"] = Config.unisons[this.unison].name;
+      if (this.unison == Config.unisons.dictionary["custom"].index) {
         instrumentObject["unisonVoices"] = this.unisonVoices;
         instrumentObject["unisonSpread"] = this.unisonSpread;
         instrumentObject["unisonOffset"] = this.unisonOffset;
@@ -5119,7 +5126,7 @@ var Instrument = class {
           spectrum[i] = Math.round(100 * this.drumsetSpectrumWaves[j].spectrum[i] / Config.spectrumMax);
         }
         instrumentObject["drums"][j] = {
-          "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(),
+          "drumEnvelope": this.drumsetEnvelopes[j].toJsonObject(void 0, true),
           "spectrum": spectrum,
           "filter": this.drumsetFilters[j].toJsonObject()
         };
@@ -5217,7 +5224,7 @@ var Instrument = class {
     instrumentObject["envelopes"] = envelopes;
     return instrumentObject;
   }
-  fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, songSequences, legacyGlobalReverb = 0, jsonFormat = Config.jsonFormat) {
+  fromJsonObject(instrumentObject, isNoiseChannel, isModChannel, useSlowerRhythm, useFastTwoNoteArp, songSequences, legacyGlobalReverb = 0, jsonFormat = Config.jsonFormat, jsonVersion = Song.latestVersion) {
     if (instrumentObject == void 0) instrumentObject = {};
     const format = jsonFormat.toLowerCase();
     let type = Config.instrumentTypeNames.indexOf(instrumentObject["type"]);
@@ -5319,7 +5326,7 @@ var Instrument = class {
       const legacyChorusNames = { "union": "none", "fifths": "fifth", "octaves": "octave", "error": "voiced" };
       const unison = Config.unisons.dictionary[legacyChorusNames[unisonProperty]] || Config.unisons.dictionary[unisonProperty];
       if (unison != void 0) this.unison = unison.index;
-      if (unisonProperty == "custom") this.unison = Config.unisons.length;
+      if (unisonProperty == "custom") this.unison = Config.unisons.dictionary["custom"].index;
     }
     this.unisonVoices = instrumentObject["unisonVoices"] == void 0 ? Config.unisons[this.unison].voices : instrumentObject["unisonVoices"];
     this.unisonSpread = instrumentObject["unisonSpread"] == void 0 ? Config.unisons[this.unison].spread : instrumentObject["unisonSpread"];
@@ -5544,7 +5551,7 @@ var Instrument = class {
             }
           } else if (drum["drumEnvelope"]) {
             const envelopeSettings = new EnvelopeSettings(true);
-            envelopeSettings.fromJsonObject(drum["drumEnvelope"], format);
+            envelopeSettings.fromJsonObject(drum["drumEnvelope"], format, true);
           }
           if (drum["spectrum"] != void 0) {
             for (let i = 0; i < Config.spectrumControlPoints; i++) {
@@ -5593,13 +5600,27 @@ var Instrument = class {
       if (this.type == 1 /* fm */) {
         this.algorithm = Config.algorithms.findIndex((algorithm) => algorithm.name == instrumentObject["algorithm"]);
         if (this.algorithm == -1) this.algorithm = 0;
+        if (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox")) {
+          if (this.algorithm == 14) this.algorithm = 11;
+          if (this.algorithm == 13) this.algorithm = 5;
+        }
         this.feedbackType = Config.feedbacks.findIndex((feedback) => feedback.name == instrumentObject["feedbackType"]);
         if (this.feedbackType == -1) this.feedbackType = 0;
       } else {
         this.algorithm6Op = Config.algorithms6Op.findIndex((algorithm6Op) => algorithm6Op.name == instrumentObject["algorithm"]);
         if (this.algorithm6Op == -1) this.algorithm6Op = 1;
+        if (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox")) {
+          if (this.algorithm6Op == 30) this.algorithm6Op = 27;
+          if (this.algorithm6Op == 32 || this.algorithm6Op == 33) this.algorithm6Op = 4;
+        }
         if (this.algorithm6Op == 0) {
           this.customAlgorithm.set(instrumentObject["customAlgorithm"]["carrierCount"], instrumentObject["customAlgorithm"]["mods"]);
+          if (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox")) {
+            for (let i = 0; i < this.customAlgorithm.modulatedBy.length; i++) {
+              const modulatedBy = this.customAlgorithm.modulatedBy[i];
+              this.customAlgorithm.modulatedBy[i] = modulatedBy.filter((value) => value > this.customAlgorithm.carrierCount);
+            }
+          }
         } else {
           this.customAlgorithm.fromPreset(this.algorithm6Op);
         }
@@ -5835,7 +5856,10 @@ var Instrument = class {
         for (let i = 0; i < envelopeArray.length; i++) {
           if (this.envelopeCount >= Config.maxEnvelopeCount) break;
           const tempEnvelope = new EnvelopeSettings(this.isNoiseInstrument);
-          tempEnvelope.fromJsonObject(envelopeArray[i], format);
+          tempEnvelope.fromJsonObject(envelopeArray[i], format, false);
+          if (tempEnvelope.target == 0 && Config.envelopes[tempEnvelope.envelope].type == 2 /* pitch */ && (!(jsonVersion > 5) || !(jsonFormat == "slarmoosbox"))) {
+            continue;
+          }
           let pitchEnvelopeStart;
           if (instrumentObject["pitchEnvelopeStart"] != void 0 && instrumentObject["pitchEnvelopeStart"] != null) {
             pitchEnvelopeStart = instrumentObject["pitchEnvelopeStart"];
@@ -6050,6 +6074,7 @@ var Song = class _Song {
   static _latestUltraBoxVersion = 5;
   static _oldestSlarmoosBoxVersion = 1;
   static _latestSlarmoosBoxVersion = 6;
+  static latestVersion = _Song._latestSlarmoosBoxVersion;
   // One-character variant detection at the start of URL to distinguish variants such as JummBox, Or Goldbox. "j" and "g" respectively
   //also "u" is ultrabox lol
   static _variant = 115;
@@ -6607,7 +6632,7 @@ var Song = class _Song {
         }
         if (instrument.type != 10 /* mod */) {
           buffer.push(104 /* unison */, base64IntToCharCode[instrument.unison]);
-          if (instrument.unison == Config.unisons.length) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
+          if (instrument.unison == Config.unisons.dictionary["custom"].index) encodeUnisonSettings(buffer, instrument.unisonVoices, instrument.unisonSpread, instrument.unisonOffset, instrument.unisonExpression, instrument.unisonSign, instrument.unisonAntiPhased, instrument.unisonBuzzes);
         }
         if (instrument.type == 0 /* chip */) {
           if (instrument.chipWave > 186) {
@@ -6706,35 +6731,33 @@ var Song = class _Song {
         } else if (instrument.type == 4 /* drumset */) {
           buffer.push(122 /* drumsetEnvelopes */);
           for (let envelopeIndex = 0; envelopeIndex < Config.drumCount; envelopeIndex++) {
-            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].target]);
-            if (Config.instrumentAutomationTargets[instrument.drumsetEnvelopes[envelopeIndex].target].maxCount > 1) {
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].index]);
-            }
-            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].envelope]);
-            if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 2 /* pitch */) {
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeStart]);
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].pitchEnvelopeEnd]);
-            } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 3 /* pseudorandom */) {
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].seed]);
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
-            } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 8 /* lfo */) {
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
-              if (instrument.drumsetEnvelopes[envelopeIndex].waveform == 5 /* steppedSaw */ || instrument.drumsetEnvelopes[envelopeIndex].waveform == 6 /* steppedTri */) {
-                buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].steps]);
+            const drumsetEnvelope = instrument.drumsetEnvelopes[envelopeIndex];
+            buffer.push(base64IntToCharCode[drumsetEnvelope.target >> 6 & 63], base64IntToCharCode[drumsetEnvelope.target & 63]);
+            buffer.push(base64IntToCharCode[drumsetEnvelope.envelope]);
+            if (Config.envelopes[drumsetEnvelope.envelope].type == 2 /* pitch */) {
+              buffer.push(base64IntToCharCode[drumsetEnvelope.pitchEnvelopeStart]);
+              buffer.push(base64IntToCharCode[drumsetEnvelope.pitchEnvelopeEnd]);
+            } else if (Config.envelopes[drumsetEnvelope.envelope].type == 3 /* pseudorandom */) {
+              buffer.push(base64IntToCharCode[drumsetEnvelope.steps]);
+              buffer.push(base64IntToCharCode[drumsetEnvelope.seed]);
+              buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
+            } else if (Config.envelopes[drumsetEnvelope.envelope].type == 8 /* lfo */) {
+              buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
+              if (drumsetEnvelope.waveform == 5 /* steppedSaw */ || drumsetEnvelope.waveform == 6 /* steppedTri */) {
+                buffer.push(base64IntToCharCode[drumsetEnvelope.steps]);
               }
-            } else if (Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].type == 16 /* sequence */) {
-              buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].waveform]);
+            } else if (Config.envelopes[drumsetEnvelope.envelope].type == 16 /* sequence */) {
+              buffer.push(base64IntToCharCode[drumsetEnvelope.waveform]);
             }
-            let checkboxValues = +instrument.drumsetEnvelopes[envelopeIndex].discrete;
+            let checkboxValues = +drumsetEnvelope.discrete;
             checkboxValues = checkboxValues << 1;
-            checkboxValues += +instrument.drumsetEnvelopes[envelopeIndex].inverse;
+            checkboxValues += +drumsetEnvelope.inverse;
             buffer.push(base64IntToCharCode[checkboxValues] ? base64IntToCharCode[checkboxValues] : base64IntToCharCode[0]);
-            if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[instrument.drumsetEnvelopes[envelopeIndex].envelope].name) < 0) {
-              buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeSpeed]]);
+            if (["pitch", "none", "note size", "punch"].indexOf(Config.envelopes[drumsetEnvelope.envelope].name) < 0) {
+              buffer.push(base64IntToCharCode[Config.perEnvelopeSpeedToIndices[drumsetEnvelope.perEnvelopeSpeed]]);
             }
-            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeLowerBound * 10]);
-            buffer.push(base64IntToCharCode[instrument.drumsetEnvelopes[envelopeIndex].perEnvelopeUpperBound * 10]);
+            buffer.push(base64IntToCharCode[drumsetEnvelope.perEnvelopeLowerBound * 10]);
+            buffer.push(base64IntToCharCode[drumsetEnvelope.perEnvelopeUpperBound * 10]);
           }
           for (let j = 0; j < Config.drumCount; j++) {
             buffer.push(base64IntToCharCode[instrument.drumsetFilters[j].controlPointCount]);
@@ -7699,11 +7722,7 @@ var Song = class _Song {
             if (fromSlarmoosBox && !beforeSix) {
               for (let i2 = 0; i2 < Config.drumCount; i2++) {
                 const drumsetEnvelope = new EnvelopeSettings(true);
-                drumsetEnvelope.target = clamp(0, Config.instrumentAutomationTargets.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                const maxCount = Config.instrumentAutomationTargets[drumsetEnvelope.target].maxCount;
-                if (maxCount > 1) {
-                  drumsetEnvelope.index = clamp(0, maxCount, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-                }
+                drumsetEnvelope.target = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] << 6 | base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 drumsetEnvelope.envelope = clamp(0, Config.envelopes.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
                 const envelopeType = Config.envelopes[drumsetEnvelope.envelope].type;
                 if (envelopeType == 16 /* sequence */) {
@@ -8032,10 +8051,10 @@ var Song = class _Song {
             instrument.unisonSign = Config.unisons[instrument.unison].sign;
           } else {
             const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
-            instrument.unison = clamp(0, Config.unisons.length + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
-            const unisonLength = beforeFive || !fromSlarmoosBox ? 27 : Config.unisons.length;
-            if ((fromUltraBox && !beforeFive || fromSlarmoosBox) && instrument.unison == unisonLength) {
-              instrument.unison = Config.unisons.length;
+            instrument.unison = clamp(0, Config.unisons.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+            const customUnisonIndex = beforeFive || !fromSlarmoosBox ? 27 : Config.unisons.dictionary["custom"].index;
+            if ((fromUltraBox && !beforeFive || fromSlarmoosBox) && instrument.unison == customUnisonIndex) {
+              instrument.unison = Config.unisons.dictionary["custom"].index;
               instrument.unisonVoices = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               const unisonSpreadNegative = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
               const unisonSpread = base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + (base64CharCodeToInt[compressed.charCodeAt(charIndex++)] + base64CharCodeToInt[compressed.charCodeAt(charIndex++)] * 63) * 63;
@@ -8381,8 +8400,16 @@ var Song = class _Song {
           const instrument = this.channels[instrumentChannelIterator].instruments[instrumentIndexIterator];
           if (instrument.type == 1 /* fm */) {
             instrument.algorithm = clamp(0, Config.algorithms.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+            if (beforeSix || !fromSlarmoosBox) {
+              if (instrument.algorithm == 14) instrument.algorithm = 11;
+              if (instrument.algorithm == 13) instrument.algorithm = 5;
+            }
           } else {
             instrument.algorithm6Op = clamp(0, Config.algorithms6Op.length, base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
+            if (beforeSix || !fromSlarmoosBox) {
+              if (instrument.algorithm6Op == 30) instrument.algorithm6Op = 27;
+              if (instrument.algorithm6Op == 32 || instrument.algorithm6Op == 33) instrument.algorithm6Op = 4;
+            }
             instrument.customAlgorithm.fromPreset(instrument.algorithm6Op);
             if (compressed.charCodeAt(charIndex) == 67 /* chord */) {
               let carrierCountTemp = clamp(1, Config.operatorCount + 2 + 1, base64CharCodeToInt[compressed.charCodeAt(charIndex + 1)]);
@@ -8404,6 +8431,12 @@ var Song = class _Song {
                   charIndex++;
                 }
                 instrument.customAlgorithm.set(carrierCountTemp, tempModArray);
+                if (beforeSix || !fromSlarmoosBox) {
+                  for (let i2 = 0; i2 < instrument.customAlgorithm.modulatedBy.length; i2++) {
+                    const modulatedBy = instrument.customAlgorithm.modulatedBy[i2];
+                    instrument.customAlgorithm.modulatedBy[i2] = modulatedBy.filter((value) => value > instrument.customAlgorithm.carrierCount);
+                  }
+                }
                 charIndex++;
               }
             }
@@ -8579,6 +8612,7 @@ var Song = class _Song {
               let steps = 2;
               let seed = 2;
               let waveform = 0 /* sine */;
+              let dontAdd = false;
               if (fromSlarmoosBox && !beforeFive) {
                 if (Config.envelopes[envelope].type == 16 /* sequence */) {
                   waveform = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -8598,6 +8632,7 @@ var Song = class _Song {
               }
               if (fromSlarmoosBox && !beforeThree) {
                 if (Config.envelopes[envelope].type == 2 /* pitch */) {
+                  if (beforeSix && target == 0) dontAdd = true;
                   if (!instrument.isNoiseInstrument) {
                     let pitchEnvelopeCompact = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                     pitchEnvelopeStart = clamp(0, Config.maxPitch + 1, pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)]);
@@ -8631,7 +8666,7 @@ var Song = class _Song {
                   }
                 }
               }
-              instrument.addEnvelope(target, index, envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, perEnvelopeSpeed, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, envelopeDiscrete);
+              if (!dontAdd) instrument.addEnvelope(target, index, envelope, true, pitchEnvelopeStart, pitchEnvelopeEnd, envelopeInverse, perEnvelopeSpeed, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, envelopeDiscrete);
               if (fromSlarmoosBox && beforeThree && !beforeTwo) {
                 let pitchEnvelopeCompact = base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
                 instrument.envelopes[i2].pitchEnvelopeStart = pitchEnvelopeCompact * 64 + base64CharCodeToInt[compressed.charCodeAt(charIndex++)];
@@ -9462,6 +9497,18 @@ var Song = class _Song {
       sampleLoadingState.samplesFailed
     ));
   }
+  /**
+   * On the synth thread, this takes update commands and changes the corresponding value of the song
+   * @param data The actual data that needs to be changed
+   * @param songSetting The part of the song that needs to be changed
+   * @param channelIndex If the songSetting that needs to be changed needs to be indexed into (usually channels, but can also refer to stuff like
+   * eq filers), then this is the index for that
+   * @param instrumentIndex If the channel setting needs to be indexed into (usually for instruments, but can also refer to stuff like
+   * bars or patterns), then this is the index for that
+   * @param instrumentSetting The part of the instrument (or channel) that needs to be changed
+   * @param settingIndex If another index is required (like for envelopes or instrument eq filters) then this is the index for that
+   * @returns void
+   */
   parseUpdateCommand(data, songSetting, channelIndex, instrumentIndex, instrumentSetting, settingIndex) {
     const numberData = data;
     switch (songSetting) {
@@ -9773,7 +9820,7 @@ var Song = class _Song {
             break;
           case 21 /* envelopes */:
             if (!instrument.envelopes[settingIndex]) instrument.envelopes[settingIndex] = new EnvelopeSettings(instrument.isNoiseInstrument);
-            instrument.envelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
+            instrument.envelopes[settingIndex].fromJsonObject(data, "slarmoosbox", false);
             break;
           case 22 /* fadeIn */:
             instrument.fadeIn = numberData;
@@ -9837,27 +9884,27 @@ var Song = class _Song {
             instrument.unisonSign = Config.unisons[instrument.unison].sign;
             break;
           case 37 /* unisonVoices */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonVoices = numberData;
             break;
           case 38 /* unisonSpread */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonSpread = numberData;
             break;
           case 39 /* unisonOffset */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonOffset = numberData;
             break;
           case 40 /* unisonExpression */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonExpression = numberData;
             break;
           case 41 /* unisonSign */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonSign = numberData;
             break;
           case 42 /* unisonAntiPhased */:
-            instrument.unison = Config.unisons.length;
+            instrument.unison = Config.unisons.dictionary["custom"].index;
             instrument.unisonAntiPhased = numberData == 1;
             break;
           case 43 /* unisonBuzzes */:
@@ -10043,7 +10090,7 @@ var Song = class _Song {
             break;
           case 94 /* drumsetEnvelopes */:
             if (!instrument.envelopes[settingIndex]) instrument.drumsetEnvelopes[settingIndex] = new EnvelopeSettings(true);
-            instrument.drumsetEnvelopes[settingIndex].fromJsonObject(data, "slarmoosbox");
+            instrument.drumsetEnvelopes[settingIndex].fromJsonObject(data, "slarmoosbox", true);
             break;
           case 95 /* drumsetSpectrumWaves */:
             instrument.drumsetSpectrumWaves[settingIndex].spectrum = data;
@@ -10162,6 +10209,7 @@ var Song = class _Song {
       }
     }
     const format = (jsonFormat == "auto" ? jsonObject["format"] : jsonFormat).toLowerCase();
+    const version = jsonObject["version"] || 0;
     if (jsonObject["name"] != void 0) {
       this.title = jsonObject["name"];
     }
@@ -10627,7 +10675,7 @@ var Song = class _Song {
             if (i2 >= this.getMaxInstrumentsPerChannel()) break;
             const instrument = new Instrument(isNoiseChannel, isModChannel);
             channel.instruments[i2] = instrument;
-            instrument.fromJsonObject(instrumentObjects[i2], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format);
+            instrument.fromJsonObject(instrumentObjects[i2], isNoiseChannel, isModChannel, false, false, this.sequences, legacyGlobalReverb, format, version);
           }
         }
         for (let i2 = 0; i2 < this.patternsPerChannel; i2++) {
@@ -11949,6 +11997,10 @@ var EnvelopeComputer = class _EnvelopeComputer {
   prevNoteTicksEnd = 0;
   _prevNoteSizeFinal = Config.noteSizeMax;
   tickTimeEnd = [];
+  drumsetNoteSecondsStart = [];
+  drumsetNoteSecondsEnd = [];
+  drumsetPrevNoteSecondsStart = [];
+  drumsetPrevNoteSecondsEnd = [];
   drumsetFilterEnvelopeStart = 0;
   drumsetFilterEnvelopeEnd = 0;
   prevSlideStart = false;
@@ -11979,6 +12031,10 @@ var EnvelopeComputer = class _EnvelopeComputer {
     for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
       this.noteSecondsEnd[envelopeIndex] = 0;
       this.prevNoteSecondsEnd[envelopeIndex] = 0;
+    }
+    for (let drumIndex = 0; drumIndex < Config.drumCount; drumIndex++) {
+      this.drumsetNoteSecondsEnd[drumIndex] = 0;
+      this.drumsetPrevNoteSecondsEnd[drumIndex] = 0;
     }
     this.noteSecondsEndUnscaled = 0;
     this.noteTicksEnd = 0;
@@ -12148,7 +12204,7 @@ var EnvelopeComputer = class _EnvelopeComputer {
         timeSinceStart = synth2.computeTicksSinceStart();
         steps = envelopeSettings.steps;
         seed = envelopeSettings.seed;
-        if (envelopeSettings.waveform >= (envelope.name == "lfo" ? 7 /* length */ : 4 /* length */)) {
+        if (envelopeSettings.waveform >= (envelope.type == 8 /* lfo */ ? 7 /* length */ : envelope.type == 3 /* pseudorandom */ ? 4 /* length */ : synth2.song.sequences.length)) {
           envelopeSettings.waveform = 0;
         }
         waveform = envelopeSettings.waveform;
@@ -12164,7 +12220,14 @@ var EnvelopeComputer = class _EnvelopeComputer {
         beatTimeStart = beatsPerTick * tickTimeStart[envelopeIndex] || beatsPerTick;
         beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
         if (envelope.type == 1 /* noteSize */) usedNoteSize = true;
-        if (envelope.type == 2 /* pitch */) pitch = this.computePitchEnvelope(envelopeSettings.pitchEnvelopeStart, envelopeSettings.pitchEnvelopeEnd, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, instrument.isNoiseInstrument, this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true));
+        if (envelope.type == 2 /* pitch */) {
+          pitch = this.computePitchEnvelope(envelopeSettings.pitchEnvelopeStart, envelopeSettings.pitchEnvelopeEnd, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, instrument.isNoiseInstrument, this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true));
+          if (envelopeSettings.target == 0 && !perNote) {
+            instrumentState.usesPitch = false;
+            instrumentState.pitchMult *= perEnvelopeUpperBound;
+            continue;
+          }
+        }
       }
       if (automationTarget.computeIndex != null && automationTarget.perNote == perNote) {
         const computeIndex = automationTarget.computeIndex + targetIndex;
@@ -12489,31 +12552,60 @@ var EnvelopeComputer = class _EnvelopeComputer {
     perEnvelopeSpeed;
     return 1;
   }
-  computeDrumsetEnvelopes(drumsetFilterEnvelope, perEnvelopeSpeed, beatsPerPart, partTimeStart, partTimeEnd, pitch, inverse, discrete, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, drumsetPitch, timeSinceStart, sequenceSettings) {
+  computeDrumsetEnvelopes(drumsetFilterEnvelope, synth2, instrument, instrumentState, tone, envelopeTime, secondsPerTick, pitch, drumsetPitch, timeSinceStart, sequenceSettings) {
+    const transition = instrument.getTransition();
+    if (tone != null && tone.atNoteStart && !transition.continues && !tone.forceContinueAtStart) {
+      this.prevNoteSecondsEndUnscaled = this.noteSecondsEndUnscaled;
+      this.prevNoteTicksEnd = this.noteTicksEnd;
+      this._prevNoteSizeFinal = this._noteSizeFinal;
+      this.noteSecondsEndUnscaled = 0;
+      this.noteTicksEnd = 0;
+      for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) {
+        this.prevNoteSecondsEnd[envelopeIndex] = this.noteSecondsEnd[envelopeIndex];
+        this.noteSecondsEnd[envelopeIndex] = 0;
+      }
+    }
+    const beatsPerTick = 1 / (Config.ticksPerPart * Config.partsPerBeat);
+    let lowpassCutoffDecayVolumeCompensation = 1;
+    timeSinceStart = synth2.computeTicksSinceStart();
+    const secondsPerTickScaled = secondsPerTick * drumsetFilterEnvelope.perEnvelopeSpeed;
+    const tickTimeEnd = envelopeTime + drumsetFilterEnvelope.perEnvelopeSpeed || drumsetFilterEnvelope.perEnvelopeSpeed;
+    this.drumsetNoteSecondsStart[drumsetPitch] = this.drumsetNoteSecondsEnd[drumsetPitch] || 0;
+    this.drumsetPrevNoteSecondsStart[drumsetPitch] = this.drumsetPrevNoteSecondsEnd[drumsetPitch] || 0;
+    this.drumsetNoteSecondsEnd[drumsetPitch] = this.drumsetNoteSecondsStart[drumsetPitch] + secondsPerTickScaled || secondsPerTickScaled;
+    this.drumsetPrevNoteSecondsEnd[drumsetPitch] = this.drumsetPrevNoteSecondsStart[drumsetPitch] + secondsPerTickScaled || secondsPerTickScaled;
+    const beatTimeStart = beatsPerTick * envelopeTime || beatsPerTick;
+    const beatTimeEnd = beatsPerTick * tickTimeEnd || beatsPerTick;
+    const envelope = Config.envelopes[drumsetFilterEnvelope.envelope];
+    if (envelope.type == 2 /* pitch */) pitch = this.computePitchEnvelope(drumsetFilterEnvelope.pitchEnvelopeStart, drumsetFilterEnvelope.pitchEnvelopeEnd, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, instrument.isNoiseInstrument, this.startPinTickPitch || this.getPitchValue(instrument, tone, instrumentState, true));
+    if (drumsetFilterEnvelope.waveform >= (envelope.type == 8 /* lfo */ ? 7 /* length */ : envelope.type == 3 /* pseudorandom */ ? 4 /* length */ : synth2.song.sequences.length)) {
+      drumsetFilterEnvelope.waveform = 0;
+    }
     const computeDrumsetEnvelope = /* @__PURE__ */ __name((unspedTime, time, beats, noteSize) => {
-      return _EnvelopeComputer.computeEnvelope(drumsetFilterEnvelope, perEnvelopeSpeed, 1, unspedTime, time, beats, timeSinceStart, noteSize, pitch, inverse, perEnvelopeLowerBound, perEnvelopeUpperBound, steps, seed, waveform, drumsetPitch, this.startPinTickAbsolute || 0, sequenceSettings);
+      return _EnvelopeComputer.computeEnvelope(envelope, drumsetFilterEnvelope.perEnvelopeSpeed, 1, unspedTime, time, beats, timeSinceStart, noteSize, pitch, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, drumsetFilterEnvelope.steps, drumsetFilterEnvelope.seed, drumsetFilterEnvelope.waveform, drumsetPitch, this.startPinTickAbsolute || 0, sequenceSettings);
     }, "computeDrumsetEnvelope");
-    let drumsetFilterEnvelopeStart = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.noteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.noteSizeStart);
+    let drumsetFilterEnvelopeStart = computeDrumsetEnvelope(this.noteSecondsStartUnscaled, this.drumsetNoteSecondsStart[drumsetPitch], beatTimeStart, this.noteSizeStart);
     if (this.prevSlideStart) {
-      const other = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.prevNoteSecondsStartUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeStart, this.prevNoteSize);
+      const other = computeDrumsetEnvelope(this.prevNoteSecondsStartUnscaled, this.drumsetPrevNoteSecondsStart[drumsetPitch], beatTimeStart, this.prevNoteSize);
       drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.prevSlideRatioStart;
     }
     if (this.nextSlideStart) {
-      const other = computeDrumsetEnvelope(0, 0, beatsPerPart * partTimeStart, this.nextNoteSize);
+      const other = computeDrumsetEnvelope(0, 0, beatTimeStart, this.nextNoteSize);
       drumsetFilterEnvelopeStart += (other - drumsetFilterEnvelopeStart) * this.nextSlideRatioStart;
     }
     let drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeStart;
-    if (!discrete) {
-      drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.noteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.noteSizeEnd);
+    if (!drumsetFilterEnvelope.discrete) {
+      drumsetFilterEnvelopeEnd = computeDrumsetEnvelope(this.noteSecondsEndUnscaled, this.drumsetNoteSecondsEnd[drumsetPitch], beatTimeEnd, this.noteSizeEnd);
       if (this.prevSlideEnd) {
-        const other = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.prevNoteSecondsEndUnscaled * perEnvelopeSpeed, beatsPerPart * partTimeEnd, this.prevNoteSize);
+        const other = computeDrumsetEnvelope(this.prevNoteSecondsEndUnscaled, this.drumsetPrevNoteSecondsEnd[drumsetPitch], beatTimeEnd, this.prevNoteSize);
         drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.prevSlideRatioEnd;
       }
       if (this.nextSlideEnd) {
-        const other = computeDrumsetEnvelope(0, 0, beatsPerPart * partTimeEnd, this.nextNoteSize);
+        const other = computeDrumsetEnvelope(0, 0, beatTimeEnd, this.nextNoteSize);
         drumsetFilterEnvelopeEnd += (other - drumsetFilterEnvelopeEnd) * this.nextSlideRatioEnd;
       }
     }
+    this.lowpassCutoffDecayVolumeCompensation = lowpassCutoffDecayVolumeCompensation;
     this.drumsetFilterEnvelopeStart = drumsetFilterEnvelopeStart;
     this.drumsetFilterEnvelopeEnd = drumsetFilterEnvelopeEnd;
   }
@@ -12696,6 +12788,8 @@ var InstrumentState = class _InstrumentState {
   chord = null;
   effects = 0;
   volumeScale = 0;
+  usesPitch = true;
+  pitchMult = 4;
   aliases = false;
   arpTime = 0;
   arpEnvelopeStart = 1;
@@ -12706,6 +12800,7 @@ var InstrumentState = class _InstrumentState {
   vibratoEnvelopeStart = 1;
   envelopeTime = [];
   envelopeSpeeds = [];
+  drumsetEnvelopeTime = [];
   envelopeSpeedEnvelopes = [];
   envelopeComputer = new EnvelopeComputer();
   eqFilterVolume = 1;
@@ -12714,7 +12809,6 @@ var InstrumentState = class _InstrumentState {
   mixVolumeDelta = 0;
   delayInputMult = 0;
   delayInputMultDelta = 0;
-  //TODO: Stereo Granular
   granularMix = 1;
   granularMixDelta = 0;
   granularDelayLineL = null;
@@ -12974,6 +13068,7 @@ var InstrumentState = class _InstrumentState {
       this.envelopeTime[envelopeIndex] = 0;
       this.envelopeSpeedEnvelopes[envelopeIndex] = 1;
     }
+    for (let drumsetIndex = 0; drumsetIndex < Config.drumCount; drumsetIndex++) this.drumsetEnvelopeTime[drumsetIndex] = 0;
     this.envelopeComputer.reset();
     if (this.chorusDelayLineDirty) {
       for (let i = 0; i < this.chorusDelayLineL.length; i++) this.chorusDelayLineL[i] = 0;
@@ -13033,6 +13128,8 @@ var InstrumentState = class _InstrumentState {
       }
       this.envelopeSpeeds[envelopeIndex] = useEnvelopeSpeed * perEnvelopeSpeed * this.envelopeSpeedEnvelopes[envelopeIndex];
     }
+    this.usesPitch = true;
+    this.pitchMult = 4;
     this.envelopeComputer.computeEnvelopes(instrument, currentPart, this.envelopeTime, tickTimeStart, secondsPerTick, tone, this.envelopeSpeeds, this, synth2, channelIndex, instrumentIndex, false);
     const envelopeStarts = this.envelopeComputer.envelopeStarts;
     const envelopeEnds = this.envelopeComputer.envelopeEnds;
@@ -13623,6 +13720,7 @@ var Synth = class _Synth extends SynthTemplate {
           instrumentState.vibratoTime = 0;
           instrumentState.nextVibratoTime = 0;
           for (let envelopeIndex = 0; envelopeIndex < Config.maxEnvelopeCount + 1; envelopeIndex++) instrumentState.envelopeTime[envelopeIndex] = 0;
+          for (let drumsetIndex = 0; drumsetIndex < Config.drumCount; drumsetIndex++) instrumentState.drumsetEnvelopeTime[drumsetIndex] = 0;
           instrumentState.arpTime = 0;
           instrumentState.updateWaves(instrument, this.samplesPerSecond);
           instrumentState.allocateNecessaryBuffers(this, instrument, samplesPerTick, this.samplesPerSecond);
@@ -14310,6 +14408,9 @@ var Synth = class _Synth extends SynthTemplate {
               } else {
                 instrumentState.envelopeTime[envelopeIndex] += Config.arpSpeedScale[useEnvelopeSpeed] * perEnvelopeSpeed;
               }
+            }
+            if (instrument.type == 4 /* drumset */) {
+              for (let drumIndex = 0; drumIndex < Config.drumCount; drumIndex++) instrumentState.drumsetEnvelopeTime[drumIndex] += instrument.drumsetEnvelopes[drumIndex].perEnvelopeSpeed;
             }
             const arpEnvelopeStart = instrumentState.arpEnvelopeStart;
             let useArpeggioSpeed = instrument.arpeggioSpeed;
@@ -15091,10 +15192,8 @@ var Synth = class _Synth extends SynthTemplate {
     const intervalScale = isNoiseChannel ? Config.noiseInterval : 1;
     const secondsPerPart = Config.ticksPerPart * samplesPerTick / this.samplesPerSecond;
     const sampleTime = 1 / this.samplesPerSecond;
-    const beatsPerPart = 1 / Config.partsPerBeat;
     const ticksIntoBar = this.getTicksIntoBar();
     const partTimeStart = ticksIntoBar / Config.ticksPerPart;
-    const partTimeEnd = (ticksIntoBar + 1) / Config.ticksPerPart;
     const currentPart = this.getCurrentPart();
     let specialIntervalMult = 1;
     tone.specialIntervalExpressionMult = 1;
@@ -15230,8 +15329,10 @@ var Synth = class _Synth extends SynthTemplate {
       const pinRatioEnd = Math.min(1, (tickTimeEnd - pinStart) / (pinEnd - pinStart));
       fadeExpressionStart = 1;
       fadeExpressionEnd = 1;
-      intervalStart = startPin.interval + (endPin.interval - startPin.interval) * pinRatioStart;
-      intervalEnd = startPin.interval + (endPin.interval - startPin.interval) * pinRatioEnd;
+      if (instrumentState.usesPitch) {
+        intervalStart = startPin.interval + (endPin.interval - startPin.interval) * pinRatioStart;
+        intervalEnd = startPin.interval + (endPin.interval - startPin.interval) * pinRatioEnd;
+      }
       tone.lastInterval = intervalEnd;
       if (!transition.isSeamless && !tone.forceContinueAtEnd || nextNote == null) {
         const fadeOutTicks = -instrument.getFadeOutTicks();
@@ -15303,7 +15404,7 @@ var Synth = class _Synth extends SynthTemplate {
     if (transition.continues && (tone.prevNote == null || tone.note == null)) {
       instrumentState.envelopeComputer.reset();
     }
-    if (tone.note != null && transition.slides) {
+    if (tone.note != null && transition.slides && instrumentState.usesPitch) {
       const prevNote = tone.prevNote;
       const nextNote = tone.nextNote;
       if (prevNote != null) {
@@ -15472,18 +15573,19 @@ var Synth = class _Synth extends SynthTemplate {
     }
     if (instrument.type == 4 /* drumset */) {
       const drumsetEnvelopeComputer = tone.envelopeComputer;
-      const drumsetFilterEnvelope = instrument.drumsetEnvelopes[tone.drumsetPitch];
+      const drumIndex = tone.drumsetPitch;
+      const drumsetFilterEnvelope = instrument.drumsetEnvelopes[drumIndex];
       const envelopeTarget = drumsetFilterEnvelope.target;
       noteFilterExpression *= EnvelopeComputer.getLowpassCutoffDecayVolumeCompensation(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed);
       const pitch = Config.envelopes[drumsetFilterEnvelope.envelope].type == 2 /* pitch */ ? envelopeComputer.computePitchEnvelope(drumsetFilterEnvelope.pitchEnvelopeStart, drumsetFilterEnvelope.pitchEnvelopeEnd, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, true, envelopeComputer.getPitchValue(instrument, tone, instrumentState, true)) : 0;
       const sequenceSettings = Config.envelopes[drumsetFilterEnvelope.envelope].type == 16 /* sequence */ ? song.sequences[drumsetFilterEnvelope.waveform] : null;
-      drumsetEnvelopeComputer.computeDrumsetEnvelopes(Config.envelopes[drumsetFilterEnvelope.envelope], drumsetFilterEnvelope.perEnvelopeSpeed, beatsPerPart, partTimeStart, partTimeEnd, pitch, drumsetFilterEnvelope.inverse, drumsetFilterEnvelope.discrete, drumsetFilterEnvelope.perEnvelopeLowerBound, drumsetFilterEnvelope.perEnvelopeUpperBound, drumsetFilterEnvelope.steps, drumsetFilterEnvelope.seed, drumsetFilterEnvelope.waveform, tone.drumsetPitch, this.computeTicksSinceStart(), sequenceSettings);
+      drumsetEnvelopeComputer.computeDrumsetEnvelopes(drumsetFilterEnvelope, this, instrument, instrumentState, tone, instrumentState.drumsetEnvelopeTime[drumIndex], samplesPerTick / this.samplesPerSecond, pitch, drumIndex, this.computeTicksSinceStart(), sequenceSettings);
       const drumsetFilterEnvelopeStart = drumsetEnvelopeComputer.drumsetFilterEnvelopeStart * (1 + drumsetEnvelopeComputer.drumsetFilterEnvelopeStart);
       const drumsetFilterEnvelopeEnd = drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd * (1 + drumsetEnvelopeComputer.drumsetFilterEnvelopeEnd);
       const drumsetFilter = instrument.drumsetFilters[tone.drumsetPitch];
       for (let i = 0; i < drumsetFilter.controlPointCount; i++) {
         const point = drumsetFilter.controlPoints[i];
-        const usesEnvelope = envelopeTarget == 0 /* filterAll */ || envelopeTarget == i + 1 || envelopeTarget - Config.filterMaxPoints >= 1 && i <= envelopeTarget - Config.filterMaxPoints;
+        const usesEnvelope = envelopeTarget == 0 || (envelopeTarget & 1 << i) != 0;
         point.toCoefficients(_Synth.tempFilterStartCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeStart : 1, 1);
         point.toCoefficients(_Synth.tempFilterEndCoefficients, this.samplesPerSecond, usesEnvelope ? drumsetFilterEnvelopeEnd : 1, 1);
         if (tone.noteFiltersL.length == tone.noteFilterCount) tone.noteFiltersL[tone.noteFilterCount] = new DynamicBiquadFilter();
@@ -15507,7 +15609,7 @@ var Synth = class _Synth extends SynthTemplate {
       const carrierCount = instrument.type == 11 /* fm6op */ ? instrument.customAlgorithm.carrierCount : Config.algorithms[instrument.algorithm].carrierCount;
       for (let i = 0; i < (instrument.type == 11 /* fm6op */ ? 6 : Config.operatorCount); i++) {
         const associatedCarrierIndex = instrument.type == 11 /* fm6op */ ? instrument.customAlgorithm.associatedCarrier[i] - 1 : Config.algorithms[instrument.algorithm].associatedCarrier[i] - 1;
-        const pitch = tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : i < tone.pitchCount ? i : associatedCarrierIndex < tone.pitchCount ? associatedCarrierIndex : 0];
+        const pitch = instrumentState.usesPitch ? tone.pitches[arpeggiates ? 0 : isMono ? instrument.monoChordTone : i < tone.pitchCount ? i : associatedCarrierIndex < tone.pitchCount ? associatedCarrierIndex : 0] : Config.pitchesPerOctave * instrumentState.pitchMult;
         const freqMult = Config.operatorFrequencies[instrument.operators[i].frequency].mult;
         const interval = Config.operatorCarrierInterval[associatedCarrierIndex] + arpeggioInterval;
         const pitchStart = basePitch + (pitch + intervalStart) * intervalScale + interval;
@@ -15700,6 +15802,7 @@ var Synth = class _Synth extends SynthTemplate {
           pitch = tone.pitches[instrument.monoChordTone];
         }
       }
+      if (!instrumentState.usesPitch) pitch = Config.pitchesPerOctave * instrumentState.pitchMult;
       const startPitch = basePitch + (pitch + intervalStart) * intervalScale;
       const endPitch = basePitch + (pitch + intervalEnd) * intervalScale;
       let pitchExpressionStart;
@@ -16096,6 +16199,7 @@ var Synth = class _Synth extends SynthTemplate {
                     let modulators = "";
                     for (const modulatorNumber of Config.algorithms[instrument.algorithm].modulatedBy[j]) {
                       modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice;
+                      if (modulatorNumber <= Config.algorithms[instrument.algorithm].carrierCount) modulators += " * " + Config.sineWaveLength * 1.5;
                     }
                     const feedbackIndices = Config.feedbacks[instrument.feedbackType].indices[j];
                     if (feedbackIndices.length > 0) {
@@ -16173,6 +16277,7 @@ var Synth = class _Synth extends SynthTemplate {
                     let modulators = "";
                     for (const modulatorNumber of instrument.customAlgorithm.modulatedBy[j]) {
                       modulators += " + operator" + (modulatorNumber - 1) + "Scaled" + voice;
+                      if (modulatorNumber <= instrument.customAlgorithm.carrierCount) modulators += " * " + Config.sineWaveLength * 1.5;
                     }
                     const feedbackIndices = instrument.customFeedbackType.indices[j];
                     if (feedbackIndices.length > 0) {

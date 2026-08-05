@@ -2773,7 +2773,7 @@ export class ChangeDrumsetEnvelope extends Change {
             ) {
                 envelope.waveform = 0; //make sure that waveform is a proper index
             }
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -4370,7 +4370,7 @@ export class ChangePasteInstrumentEditSelective extends ChangeGroup {
                 instrument.envelopeCount = instrumentPaste.envelopeCount;
                 for (let i: number = 0; i < instrument.envelopeCount; i++) {
                     if (!instrument.envelopes[i]) instrument.envelopes[i] = new EnvelopeSettings(instrumentCopy["isDrum"]);
-                    instrument.envelopes[i].fromJsonObject(instrumentPaste.envelopes[i].toJsonObject(), Config.jsonFormat);
+                    instrument.envelopes[i].fromJsonObject(instrumentPaste.envelopes[i].toJsonObject(), Config.jsonFormat, false);
                 }
             }
             instrument.clearInvalidEnvelopeTargets();
@@ -6398,7 +6398,7 @@ export class PasteEnvelope extends Change {
     constructor(doc: SongDocument, envelope: any, index: number) {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
-        instrument.envelopes[index].fromJsonObject(envelope, "slarmoosbox");
+        instrument.envelopes[index].fromJsonObject(envelope, "slarmoosbox", false);
         instrument.preset = instrument.type;
         doc.synth.updateSong(envelope, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.envelopes, index);
         doc.notifier.changed();
@@ -6431,7 +6431,7 @@ export class ChangeDrumsetEnvelopePitchStart extends Change {
         instrument.drumsetEnvelopes[drumIndex].pitchEnvelopeStart = startNote;
         if (oldStartNote != startNote) {
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -6446,7 +6446,7 @@ export class ChangeDrumsetEnvelopePitchEnd extends Change {
         instrument.drumsetEnvelopes[drumIndex].pitchEnvelopeEnd = endNote;
         if (oldEndNote != endNote) {
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -6461,7 +6461,7 @@ export class ChangeDrumsetEnvelopeInverse extends Change {
         instrument.drumsetEnvelopes[drumIndex].inverse = value;
         if (oldValue != value) {
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -6477,7 +6477,7 @@ export class ChangeDrumsetDiscreteEnvelope extends Change {
         doc.notifier.changed();
         if (oldValue != newValue) {
             instrument.drumsetEnvelopes[drumIndex].discrete = newValue;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             instrument.preset = instrument.type;
             this._didSomething();
         }
@@ -6489,7 +6489,7 @@ export class ChangeDrumsetEnvelopeSpeed extends IndexableChange {
         super(drumIndex, doc);
         this._instrument.drumsetEnvelopes[drumIndex].perEnvelopeSpeed = speed;
         // doc.synth.unsetMod(Config.modulators.dictionary["individual envelope speed"].index, doc.channel, doc.getCurrentInstrument());
-        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
         doc.notifier.changed();
         if (oldSpeed != speed) this._didSomething();
     }
@@ -6501,7 +6501,7 @@ export class ChangeDrumsetEnvelopeLowerBound extends IndexableChange {
         bound = bound > Config.perEnvelopeBoundMax ? Config.perEnvelopeBoundMax : bound < Config.perEnvelopeBoundMin ? Config.perEnvelopeBoundMin : Math.round(bound * 10) != bound * 10 ? Config.perEnvelopeBoundMin : bound;
         this._instrument.drumsetEnvelopes[drumIndex].perEnvelopeLowerBound = bound;
         // doc.synth.unsetMod(Config.modulators.dictionary["individual envelope lower bound"].index, doc.channel, doc.getCurrentInstrument());
-        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
         doc.notifier.changed();
         if (oldBound != bound) this._didSomething();
     }
@@ -6513,7 +6513,7 @@ export class ChangeDrumsetEnvelopeUpperBound extends IndexableChange {
         bound = bound > Config.perEnvelopeBoundMax ? Config.perEnvelopeBoundMax : bound < Config.perEnvelopeBoundMin ? Config.perEnvelopeBoundMin : Math.round(bound * 10) != bound * 10 ? Config.perEnvelopeBoundMin : bound;
         this._instrument.drumsetEnvelopes[drumIndex].perEnvelopeUpperBound = bound;
         // doc.synth.unsetMod(Config.modulators.dictionary["individual envelope upper bound"].index, doc.channel, doc.getCurrentInstrument());
-        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+        doc.synth.updateSong(this._instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
         doc.notifier.changed();
         if (oldBound != bound) this._didSomething();
     }
@@ -6528,7 +6528,7 @@ export class ChangeDrumsetRandomEnvelopeSteps extends Change {
         instrument.drumsetEnvelopes[drumIndex].steps = steps;
         if (oldSteps != steps) {
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -6544,7 +6544,7 @@ export class ChangeDrumsetRandomEnvelopeSeed extends Change {
         instrument.drumsetEnvelopes[drumIndex].seed = seed;
         if (oldSeed != seed) {
             //changing the seed does not change the preset
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }
@@ -6555,7 +6555,7 @@ export class PasteDrumsetEnvelope extends Change {
     constructor(doc: SongDocument, envelope: any, drumIndex: number) {
         super();
         const instrument: Instrument = doc.song.channels[doc.channel].instruments[doc.getCurrentInstrument()];
-        instrument.drumsetEnvelopes[drumIndex].fromJsonObject(envelope, "slarmoosbox");
+        instrument.drumsetEnvelopes[drumIndex].fromJsonObject(envelope, "slarmoosbox", true);
         instrument.preset = instrument.type;
         doc.synth.updateSong(envelope, SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
         doc.notifier.changed();
@@ -6572,7 +6572,7 @@ export class ChangeSetDrumsetEnvelopeWaveform extends Change {
         instrument.drumsetEnvelopes[drumIndex].waveform = waveform;
         if (oldWaveform != waveform) {
             instrument.preset = instrument.type;
-            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
+            doc.synth.updateSong(instrument.drumsetEnvelopes[drumIndex].toJsonObject(undefined, true), SongSettings.updateInstrument, doc.channel, doc.getCurrentInstrument(), InstrumentSettings.drumsetEnvelopes, drumIndex);
             doc.notifier.changed();
             this._didSomething();
         }

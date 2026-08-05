@@ -1,13 +1,13 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { Config } from "../../synth/SynthConfig";
-import { FilterSettings, Instrument, SpectrumWave } from "../../synth/song";
+import { Config, EnvelopeType } from "../../synth/SynthConfig";
+import { EnvelopeSettings, FilterSettings, Instrument, SpectrumWave } from "../../synth/song";
 import { SongDocument } from "../SongDocument";
 import { HTML, SVG } from "imperative-html/dist/esm/elements-strict";
 import { ColorConfig } from "../ColorConfig";
 import { Prompt } from "./Prompt";
 import { SongEditor } from "../SongEditor";
-import { DrumsetView } from "../DrumsetRow";
+import { DrumsetRow, DrumsetView } from "../DrumsetRow";
 import { ChangeGroup } from "../Change";
 import { SpectrumEditor } from "../SpectrumEditor";
 import { FilterEditor, FilterEditorTypes } from "../FilterEditor";
@@ -56,19 +56,22 @@ class SpectrumUpdateCommand extends DrumsetCommand<null> {
 class FilterUpdateCommand extends DrumsetCommand<null> {
     constructor(drumsetPrompt: SpectrumEditorPrompt) {
         super(drumsetPrompt, null);
+        this._drumsetPrompt.envelopeEditors[this._drumsetPrompt.drumsetIndex].render();
     }
 
     public do(): void {
         this._drumsetPrompt.filterEditors[this._drumsetPrompt.drumsetIndex].redo();
+        this._drumsetPrompt.envelopeEditors[this._drumsetPrompt.drumsetIndex].render();
     }
 
     public undo(): void {
         this._drumsetPrompt.filterEditors[this._drumsetPrompt.drumsetIndex].undo();
+        this._drumsetPrompt.envelopeEditors[this._drumsetPrompt.drumsetIndex].render();
     }
 }
 
-class DrumsetViewUpdateCommand extends DrumsetCommand<DrumsetView> {
-    constructor(drumsetPrompt: SpectrumEditorPrompt, view: DrumsetView) {
+class DrumsetViewUpdateCommand extends DrumsetCommand<DrumsetPromptView> {
+    constructor(drumsetPrompt: SpectrumEditorPrompt, view: DrumsetPromptView) {
         super(drumsetPrompt, view);
         this._oldValue = this._drumsetPrompt.drumsetView;
     }
@@ -84,15 +87,22 @@ class DrumsetViewUpdateCommand extends DrumsetCommand<DrumsetView> {
 
 type DrumsetCommandUnion = SwitchDrumsetIndexCommand | SpectrumUpdateCommand | FilterUpdateCommand | DrumsetViewUpdateCommand;
 
+const enum DrumsetPromptView {
+    spectrum = DrumsetView.spectrum,
+    filter = DrumsetView.filter,
+    envelope = DrumsetView.envelope,
+    all
+}
+
 export class SpectrumEditorPrompt implements Prompt {
 
     public spectrumEditor: SpectrumEditor;
     private readonly spectrumEditors: SpectrumEditor[] = [];
 
     //for drumsets
-    private readonly _filterEditorContainer: HTMLElement = div();
+    private readonly _filterEditorContainer: HTMLElement = div({ style: "width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center;" });
     public readonly filterEditors: FilterEditor[] = [];
-    // private envelopeEditor: EnvelopeEditor;
+    public readonly envelopeEditors: DrumsetRow[] = [];
 
 
     private _drumsetIndex: number = 0;
@@ -115,10 +125,11 @@ export class SpectrumEditorPrompt implements Prompt {
     private readonly _drumsetButtons: HTMLButtonElement[] = [];
     private readonly _drumsetButtonContainer: HTMLDivElement = div({ class: "instrument-bar", style: "justify-content: center;" });
 
-    private readonly _drumsetSpectrumButton: HTMLButtonElement = button({ style: "width: 50%;", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetView.spectrum) }, "spectrum");
-    private readonly _drumsetFilterButton: HTMLButtonElement = button({ style: "width: 50%;", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetView.filter) }, "filter");
-    private readonly _drumsetEnvelopeButton: HTMLButtonElement = button({ style: "width: 50%;", class: "last-button no-underline", onclick: () => this.switchDrumsetView(DrumsetView.envelope) }, "envelope");
-    private readonly _drumsetSwitchContainer: HTMLDivElement = div({ style: "width: 50%; align-self: center;", class: "instrument-bar" }, this._drumsetSpectrumButton, this._drumsetFilterButton, this._drumsetEnvelopeButton);
+    private readonly _drumsetSpectrumButton: HTMLButtonElement = button({ style: "width: 60%;", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetPromptView.spectrum) }, "spectrum");
+    private readonly _drumsetFilterButton: HTMLButtonElement = button({ style: "width: 60%;", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetPromptView.filter) }, "filter");
+    private readonly _drumsetEnvelopeButton: HTMLButtonElement = button({ style: "width: 60%;", class: "no-underline", onclick: () => this.switchDrumsetView(DrumsetPromptView.envelope) }, "envelope");
+    private readonly _drumsetAllButton: HTMLButtonElement = button({ style: "width: 60%;", class: "last-button no-underline", onclick: () => this.switchDrumsetView(DrumsetPromptView.all) }, "all");
+    private readonly _drumsetSwitchContainer: HTMLDivElement = div({ style: "width: 60%; align-self: center;", class: "instrument-bar" }, this._drumsetSpectrumButton, this._drumsetFilterButton, this._drumsetEnvelopeButton, this._drumsetAllButton);
 
     private readonly _cancelButton: HTMLButtonElement = button({ class: "cancelButton" });
     private readonly _okayButton: HTMLButtonElement = button({ class: "okayButton", style: "width:45%;" }, "Okay");
@@ -141,8 +152,10 @@ export class SpectrumEditorPrompt implements Prompt {
     private readonly _copyPasteContainer: HTMLDivElement = div({ style: "width: 185px;" }, this._copyButton, this._pasteButton);
     public readonly container: HTMLDivElement;
 
-    constructor(private _doc: SongDocument, private _songEditor: SongEditor, private _isDrumset: boolean, initialView: DrumsetView) {
+    constructor(private _doc: SongDocument, private _songEditor: SongEditor, private _isDrumset: boolean) {
         this.spectrumEditor = new SpectrumEditor(this._doc, null, true, () => this._pushCommand(new SpectrumUpdateCommand(this)));
+
+        if (this._isDrumset) for (let i: number = 0; i < Config.drumCount; i++) this.envelopeEditors[i] = new DrumsetRow(this._doc, i, true, () => {}); //TODO: Add envelope stuff to the prompt undo system
 
         this.container = div({ class: "prompt noSelection", style: "width: 500px;" },
             h2(`Edit ${this._isDrumset ? "Drumset" : "Spectrum"} Instrument`),
@@ -151,11 +164,12 @@ export class SpectrumEditorPrompt implements Prompt {
             ),
             this._drumsetButtonContainer,
             this._drumsetSwitchContainer,
-            div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 80%" },
-                this.spectrumEditor.container,
-                this._filterEditorContainer,
-            ),
-            div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; width: 80%" },
+            div({ style: "display: flex; flex-direction: row; align-items: center; justify-content: center; height: 80%; width: 100%" },
+                div({
+                    style: "display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%" },
+                    this.spectrumEditor.container,
+                    this._filterEditorContainer,
+                ), ...this.envelopeEditors.map((e) => e.container)
             ),
             div({ style: "display: flex; flex-direction: row-reverse; justify-content: space-between;" },
                 this._okayButton,
@@ -201,6 +215,7 @@ export class SpectrumEditorPrompt implements Prompt {
                     this._pushCommand(new SwitchDrumsetIndexCommand(this, i));
                     this.setDrumSpectrum(i);
                 });
+                this.envelopeEditors[i].switchToView(DrumsetView.envelope);
             }
             this._drumsetButtons[Config.drumCount - 1].classList.add("last-button");
             this._drumsetButtons[0].classList.add("selected-instrument");
@@ -220,7 +235,7 @@ export class SpectrumEditorPrompt implements Prompt {
             this.drumsetIndex = 0;
             const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
             this.filterEditors[this._drumsetIndex].swapToSettings(instrument.drumsetFilters[Config.drumCount - 1 - this._drumsetIndex], false);
-            this.switchDrumsetView(initialView, false);
+            this.switchDrumsetView(DrumsetPromptView.all, false);
 
         } else {
             this._drumsetButtonContainer.style.display = "none";
@@ -244,33 +259,52 @@ export class SpectrumEditorPrompt implements Prompt {
         this.spectrumEditor.setSpectrumWave(this.spectrumEditors[this._drumsetIndex].getSpectrumWave().spectrum);
         this.spectrumEditor.render();
         this.filterEditors[this._drumsetIndex].render();
+
+        if (this.drumsetView == DrumsetPromptView.envelope) {
+            for (const editor of this.envelopeEditors) editor.container.style.display = "none";
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].container.style.display = "";
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].render();
+        }
     }
 
-    public get drumsetView(): DrumsetView {
+    public get drumsetView(): DrumsetPromptView {
         if (this._drumsetSpectrumButton.classList.contains("deactivated") &&
-            this._drumsetFilterButton.classList.contains("deactivated")) return DrumsetView.envelope;
-        if (this._drumsetFilterButton.classList.contains("deactivated")) return DrumsetView.spectrum;
-        return DrumsetView.filter;
+            this._drumsetFilterButton.classList.contains("deactivated")) return DrumsetPromptView.envelope;
+        if (this._drumsetFilterButton.classList.contains("deactivated")) return DrumsetPromptView.spectrum;
+        return DrumsetPromptView.filter;
     }
 
-    public switchDrumsetView(view: DrumsetView, saveHistory: boolean = true): void {
+    public switchDrumsetView(view: DrumsetPromptView, saveHistory: boolean = true): void {
         if(saveHistory) this._pushCommand(new DrumsetViewUpdateCommand(this, view));
         this._drumsetSpectrumButton.classList.add("deactivated");
         this._drumsetFilterButton.classList.add("deactivated");
         this._drumsetEnvelopeButton.classList.add("deactivated");
-        this._songEditor.switchDrumsetView(view);
-        if (view == DrumsetView.spectrum) {
+        this._drumsetAllButton.classList.add("deactivated");
+        this.spectrumEditor.container.style.display = "none";
+        this._filterEditorContainer.style.display = "none";
+        for (const editor of this.envelopeEditors) editor.container.style.display = "none";
+        this._copyPasteContainer.style.display = "";
+        this._filterEditorContainer.parentElement!.style.width = "100%";
+
+        if (view != DrumsetPromptView.all) this._songEditor.switchDrumsetView(view as unknown as DrumsetView);
+        if (view == DrumsetPromptView.spectrum) {
             this._drumsetSpectrumButton.classList.remove("deactivated");
             this.spectrumEditor.container.style.display = "";
-            this._filterEditorContainer.style.display = "none";
-        } else if (view == DrumsetView.filter) {
+        } else if (view == DrumsetPromptView.filter) {
             this._drumsetFilterButton.classList.remove("deactivated");
-            this.spectrumEditor.container.style.display = "none";
             this._filterEditorContainer.style.display = "";
-        } else if (view == DrumsetView.envelope) {
+            this.filterEditors[this.drumsetIndex].container.style.width = "100%"
+        } else if (view == DrumsetPromptView.envelope) {
             this._drumsetEnvelopeButton.classList.remove("deactivated");
-            this.spectrumEditor.container.style.display = "none";
-            this._filterEditorContainer.style.display = "none";
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].container.style.display = "";
+            this._filterEditorContainer.parentElement!.style.width = "0%"; //centers envelope stuff
+        } else if (view == DrumsetPromptView.all) {
+            this._drumsetAllButton.classList.remove("deactivated");
+            this.spectrumEditor.container.style.display = "";
+            this._filterEditorContainer.style.display = "";
+            this.filterEditors[this.drumsetIndex].container.style.width = "85%"
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].container.style.display = "";
+            this._copyPasteContainer.style.display = "none";
         }
     }
 
@@ -315,28 +349,35 @@ export class SpectrumEditorPrompt implements Prompt {
     }
 
     private _copySettings = (): void => {
-        if (this.drumsetView == DrumsetView.spectrum) {
+        if (this.drumsetView == DrumsetPromptView.spectrum) {
             const spectrumCopy: SpectrumWave = this.spectrumEditor.getSpectrumWave();
             window.localStorage.setItem("spectrumCopy", JSON.stringify(spectrumCopy.spectrum));
-        } else if (this.drumsetView == DrumsetView.filter) {
+        } else if (this.drumsetView == DrumsetPromptView.filter) {
             const filterCopy: FilterSettings = this.filterEditors[this.drumsetIndex].filterSettings;
             window.localStorage.setItem("filterCopy", JSON.stringify(filterCopy.toJsonObject()));
+        } else if (this.drumsetView == DrumsetPromptView.envelope) {
+            const instrument: Instrument = this._doc.song.channels[this._doc.channel].instruments[this._doc.getCurrentInstrument()];
+            const envelope: EnvelopeSettings = instrument.drumsetEnvelopes[Config.drumCount - 1 - this._drumsetIndex];
+            window.localStorage.setItem("envelopeCopy", JSON.stringify(envelope.toJsonObject(Config.envelopes[envelope.envelope].type == EnvelopeType.sequence ? this._doc.song.sequences[envelope.waveform] : undefined, true)));
         }
     }
 
     private _pasteSettings = (): void => {
-        if (this.drumsetView == DrumsetView.spectrum) {
+        if (this.drumsetView == DrumsetPromptView.spectrum) {
             const storedSpectrumWave: any = JSON.parse(String(window.localStorage.getItem("spectrumCopy")));
             this.spectrumEditor.setSpectrumWave(storedSpectrumWave);
             this.spectrumEditor.storeChange();
             this._pushCommand(new SpectrumUpdateCommand(this));
-        } else if (this.drumsetView == DrumsetView.filter) {
+        } else if (this.drumsetView == DrumsetPromptView.filter) {
             const filterCopy: FilterSettings = new FilterSettings();
             filterCopy.fromJsonObject(JSON.parse(String(window.localStorage.getItem("filterCopy"))));
             if (filterCopy != null) {
                 this.filterEditors[this.drumsetIndex].swapToSettings(filterCopy, true);
             }
             this._pushCommand(new FilterUpdateCommand(this));
+        } else if (this.drumsetView == DrumsetPromptView.envelope) {
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].pasteEnvelope();
+            this.envelopeEditors[Config.drumCount - 1 - this._drumsetIndex].render();
         }
     }
 

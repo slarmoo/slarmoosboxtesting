@@ -1032,7 +1032,7 @@ export class SongEditor {
         );
 
         for (let drumIndex: number = Config.drumCount - 1; drumIndex >= 0; drumIndex--) {
-            const drumsetRow: DrumsetRow = new DrumsetRow(this.doc, drumIndex, (id: number, submenu: number) => this._toggleDropdownMenu(id, submenu), (name: string, extraSettings: any) => this._openPrompt(name, extraSettings));
+            const drumsetRow: DrumsetRow = new DrumsetRow(this.doc, drumIndex, false, (id: number, submenu: number) => this._toggleDropdownMenu(id, submenu), (name: string, extraSettings: any) => this._openPrompt(name, extraSettings));
             drumsetRow.drumsetSpectrumEditor.container.addEventListener("mousedown", this.refocusStage);
             this.drumsetSpectrumEditors[drumIndex] = drumsetRow.drumsetSpectrumEditor;
 
@@ -1737,10 +1737,10 @@ export class SongEditor {
                     this.prompt = new Prompts.HarmonicsEditorPrompt(this.doc, this);
                     break;
                 case "spectrumSettings":
-                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, false, DrumsetView.spectrum);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, false);
                     break;
                 case "drumsetSettings":
-                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, true, this.drumsetView);
+                    this.prompt = new Prompts.SpectrumEditorPrompt(this.doc, this, true);
                     break;
                 case "sequenceSettings":
                     this.prompt = new Prompts.SequenceEditorPrompt(this.doc, this, extraSettings["sequenceIndex"], extraSettings["envelopeIndex"], extraSettings["isDrum"] || false);
