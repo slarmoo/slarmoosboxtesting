@@ -8590,7 +8590,7 @@ export abstract class SynthTemplate {
         return (this.songPosition[1] * Config.partsPerBeat + this.songPosition[2]);
     }
 
-    protected findPartsInBar(bar: number): number {
+    public findPartsInBar(bar: number): number {
         if (this.song == null) return 0;
         let partsInBar: number = Config.partsPerBeat * this.song.beatsPerBar;
         for (let channel: number = this.song.pitchChannelCount + this.song.noiseChannelCount; channel < this.song.getChannelCount(); channel++) {
