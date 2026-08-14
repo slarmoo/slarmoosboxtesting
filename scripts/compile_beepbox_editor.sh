@@ -11,7 +11,8 @@ npx rollup build/editor/main.js \
 	--output.name beepbox \
 	--context exports \
 	--sourcemap \
-	--plugin @rollup/plugin-node-resolve
+	--plugin @rollup/plugin-node-resolve \
+	--plugin @rollup/plugin-commonjs
 
 # Minify website/beepbox_editor.js into website/beepbox_editor.min.js
 npx terser \
@@ -21,4 +22,4 @@ npx terser \
 	--compress \
 	--define OFFLINE=false \
 	--mangle \
-	--mangle-props regex="/^_.+/;"
+	--mangle-props regex="/^_(?!_*FLAC).+/;" #don't mangle stuff from the flac module, as that breaks wasm indexing stuff
