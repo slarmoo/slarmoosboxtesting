@@ -7135,7 +7135,7 @@ var Song = class _Song {
               loadBuiltInSamples(2);
             }
           } else {
-            const parseOldSyntax = beforeThree;
+            const parseOldSyntax = beforeThree && fromUltraBox;
             if (define_document_default.URL) {
               const ok = _Song._parseAndConfigureCustomSample(url, customSampleUrls, customSamplePresets, sampleLoadingState, parseOldSyntax);
               if (!ok) {

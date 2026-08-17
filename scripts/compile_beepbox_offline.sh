@@ -13,7 +13,8 @@ npx rollup build/editor/main.js \
 	--output.name beepbox \
 	--context exports \
 	--plugin rollup-plugin-sourcemaps \
-	--plugin @rollup/plugin-node-resolve
+	--plugin @rollup/plugin-node-resolve \
+	--plugin @rollup/plugin-commonjs
 
 # Minify to_deploy/beepbox_editor.min.js into to_deploy/beepbox_editor.min.js
 npx terser \
@@ -24,7 +25,7 @@ npx terser \
 	--define TESTING=false \
 	--define ISPLAYER=false \
 	--mangle \
-	--mangle-props regex="/^_.+/;"
+	--mangle-props regex="/^_(?!_*FLAC).+/;" #don't mangle stuff from the flac module, as that breaks wasm indexing stuff
 
 # Compile player/main.ts into build/player/main.js and dependencies
 npx tsc -p tsconfig_player.json

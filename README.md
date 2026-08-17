@@ -96,8 +96,6 @@ Most of the dependencies are listed in [package.json](package.json), although
 [jsdelivr](https://www.jsdelivr.com/) for exporting .mp3 files. If the user
 attempts to export an .mp3 file, Slarmoo's Box will direct the browser to download
 that dependency on demand. 
-Additionally, random envelopes rely on [js-xxhash](https://npmjs.com/package/js-xxhash) for fast hashing. 
-
 
 ## Offline version
 
