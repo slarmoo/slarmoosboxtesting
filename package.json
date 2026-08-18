@@ -49,7 +49,7 @@
 	"dependencies": {
 		"@types/jquery": "^3.5.30",
 		"@types/select2": "^4.0.63",
-		"beepboxplugin": "^0.2.4",
+		"beepboxplugin": "^0.2.8",
 		"electron-packager": "^17.1.2",
 		"esbuild": "^0.25.5",
 		"express": "^4.21.2",

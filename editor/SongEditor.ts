@@ -37,7 +37,7 @@ import { oscilloscopeCanvas } from "../global/Oscilloscope";
 import { CustomChipCanvas } from "./CustomChipCanvas";
 import { CustomAlgorithmCanvas } from "./CustomAlgorithmCanvas";
 import { events, EventType } from "../global/Events";
-import { PluginElementType, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown } from "beepboxplugin";
+import { PluginElementType, PluginElement, PluginSlider, PluginCheckbox, PluginDropdown, PluginCustomUI } from "beepboxplugin";
 
 const { button, div, input, select, span, optgroup, option, canvas } = HTML;
 
@@ -325,7 +325,7 @@ export class SongEditor {
         this._grainRangeSliderRow
     );
     private _pluginurl: string | null = null;
-    private readonly _pluginElements: (Slider | HTMLInputElement | HTMLSelectElement)[] = [];
+    private readonly _pluginElements: (Slider | HTMLInputElement | HTMLSelectElement | PluginCustomUI)[] = [];
     private readonly _pluginRows: HTMLDivElement[] = [];
     private readonly _pluginContainerRow: HTMLDivElement = div({ class: "", style: "display:flex; flex-direction:column;" });
     private readonly _echoSustainSlider: Slider = new Slider(input({ style: "margin: 0;", type: "range", min: "0", max: Config.echoSustainRange - 1, value: "0", step: "1" }), this.doc, (oldValue: number, newValue: number) => new ChangeEchoSustain(this.doc, oldValue, newValue), false);
@@ -3170,14 +3170,11 @@ export class SongEditor {
                         this._modEnvelopeBoxes[mod].insertBefore(option({ value: useName, style: "color: red;" }, useName), this._modEnvelopeBoxes[mod].children[0]);
                         this._modEnvelopeBoxes[mod].selectedIndex = 0;
 
-                    }
-                    else {
+                    }  else {
                         this._modEnvelopeBoxes[mod].classList.remove("invalidSetting");
                         instrument.invalidModulators[mod] = false;
                         this._modEnvelopeBoxes[mod].selectedIndex = instrument.modEnvelopeNumbers[mod];
                     }
-
-
 
                 } else {
                     $("#modEnvelopeText" + mod).get(0)!.style.display = "none";
@@ -3282,6 +3279,50 @@ export class SongEditor {
     private _updatePlugin = () => {
         const instrument = this.doc.song.channels[this.doc.channel].instruments[this.doc.getCurrentInstrument()];
         this._pluginurl = this.doc.song.pluginurl;
+
+        const pluginPresets: PresetCategory = EditorConfig.presetCategories.dictionary["Plugin Presets"];
+        const initialPresetLength = pluginPresets.presets.length;
+        pluginPresets.presets.length = 0;
+        for (const preset of PluginConfig.pluginPresets) pluginPresets.presets.push(preset);
+        if (initialPresetLength > 0 || pluginPresets.presets.length > 0) {
+            //remove stale plugin presets
+            if (this._pitchedPresetSelect.lastChild && (this._pitchedPresetSelect.lastChild as HTMLOptGroupElement).label == "Plugin Presets ▾") {
+                this._pitchedPresetSelect.removeChild(this._pitchedPresetSelect.lastChild);
+            }
+            if (this._drumPresetSelect.lastChild && (this._drumPresetSelect.lastChild as HTMLOptGroupElement).label == "Plugin Presets ▾") {
+                this._drumPresetSelect.removeChild(this._drumPresetSelect.lastChild);
+            }
+
+            const pitchGroup: HTMLElement = optgroup({ label: pluginPresets.name + " ▾" });
+            let foundAny: boolean = false;
+            for (let presetIndex: number = 0; presetIndex < pluginPresets.presets.length; presetIndex++) {
+                const preset: Preset = pluginPresets.presets[presetIndex];
+                if (!preset.isNoise) {
+                    pitchGroup.appendChild(option({ value: (pluginPresets.index << 6) + presetIndex }, preset.name));
+                    foundAny = true;
+                }
+            }
+
+            if(foundAny) this._pitchedPresetSelect.appendChild(pitchGroup);
+
+            const noiseGroup: HTMLElement = optgroup({ label: pluginPresets.name + " ▾" });
+            foundAny = false;
+            for (let presetIndex: number = 0; presetIndex < pluginPresets.presets.length; presetIndex++) {
+                const preset: Preset = pluginPresets.presets[presetIndex];
+                if (preset.isNoise) {
+                    noiseGroup.appendChild(option({ value: (pluginPresets.index << 6) + presetIndex }, preset.name));
+                    foundAny = true;
+                }
+            }
+
+            if(foundAny) this._drumPresetSelect.appendChild(noiseGroup);
+
+            if (initialPresetLength == 0) {
+                setSelectedValue(instrument.isNoiseInstrument ? this._drumPresetSelect : this._pitchedPresetSelect, instrument.preset, true);
+            }
+    
+        }
+        
         for (let i: number = 0; i < PluginConfig.pluginUIElements.length; i++) {
             const pluginElement: PluginElement = PluginConfig.pluginUIElements[i];
 
@@ -3304,6 +3345,15 @@ export class SongEditor {
                     (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
                     this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
                     break;
+                }
+                case PluginElementType.custom: {
+                    this._pluginElements[i] = pluginElement as PluginCustomUI;
+                    (pluginElement as PluginCustomUI).initialize((pluginValueIndex: number, value: number) => this.doc.record(new ChangePluginValue(this.doc, instrument.pluginValues[i], value, pluginValueIndex)));
+                    this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCustomUI).name + ":"), (this._pluginElements[i] as PluginCustomUI).container);
+                    break;
+                }
+                default: {
+                    throw new Error("Unsupported plugin ui type");
                 }
             }
         }

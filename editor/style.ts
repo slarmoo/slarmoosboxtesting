@@ -865,7 +865,7 @@ html {
 }
 @media (min-width: 711px) {
 	.select2 {
-	  max-width: calc(var(--settings-area-width) * 0.625) !important;
+	  	max-width: calc(var(--settings-area-width) * 0.625) !important;
 	}
 }
 

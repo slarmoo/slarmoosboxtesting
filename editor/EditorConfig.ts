@@ -422,6 +422,9 @@ export class EditorConfig {
                 { name: "alien radio chatter", generalMidi: false, isNoise: false, settings: { "type": "FM", "eqFilter": [{ "type": "low-pass", "cutoffHz": 707.11, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "effects": ["chord type", "note filter", "granular", "distortion", "reverb"], "chord": "strum", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 1, "noteFilterType": true, "noteSimpleCut": 4, "noteSimplePeak": 1, "noteFilter": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "noteSubFilters1": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "granular": 4, "grainSize": 9, "grainAmounts": 9, "grainRange": 11, "distortion": 86, "aliases": false, "panDelay": 0, "reverb": 10, "fadeInSeconds": 0.0413, "fadeOutTicks": -12, "algorithm": "1←3 2←4", "feedbackType": "2→4", "feedbackAmplitude": 1, "operators": [{ "frequency": "0.5×", "amplitude": 12, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "18×", "amplitude": 15, "waveform": "pulse width", "pulseWidth": 4 }, { "frequency": "7×", "amplitude": 11, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "1×", "amplitude": 0, "waveform": "triangle", "pulseWidth": 5 }], "envelopes": [{ "target": "grainFreq", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 0.3, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "steps": 3, "seed": 29, "waveform": 1 }] } },
 
             ])
+        },
+        {
+            name: "Plugin Presets", presets: <DictionaryArray<Preset>>toNameMap([])
         }
     ]);
 

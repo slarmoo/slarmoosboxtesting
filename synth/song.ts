@@ -6763,6 +6763,8 @@ export class Song {
             PluginConfig.pluginUIElements = plugin.elements || [];
             PluginConfig.pluginName = plugin.pluginName || "plugin";
             PluginConfig.pluginAbout = plugin.about;
+            PluginConfig.pluginPresets = [];
+            if (plugin.presets) for (const preset of plugin.presets) PluginConfig.pluginPresets.push(preset as Preset);
 
             const pluginMessage: PluginMessage = {
                 flag: MessageFlag.pluginMessage,

@@ -2192,7 +2192,7 @@ class InstrumentState {
             }
             this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
 
-            if (!this.pluginR && this.stereoChannels >= 2 && this.plugin?.effectIsBeforePanning(EffectType.plugin)) this.pluginR = new Synth.PluginClass();
+            if (!this.pluginR && this.stereoChannels >= 2 && this.plugin?.effectIsBeforePanning(EffectType.plugin, 5, 9)) this.pluginR = new Synth.PluginClass();
             this.pluginR?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
         }
 
@@ -6303,14 +6303,14 @@ export class Synth extends SynthTemplate {
     
             if (usesPlugin && instrumentState.plugin) { //plugins can rearrange effect order, so we need to check if panning is before or after each effect
                 //first verify that the plugin-given effect order is valid
-                instrumentState.plugin.verifyEffectOrderIndex();
+                instrumentState.plugin.verifyEffectOrderIndex(9);
 
                 //TODO: don't hardcode the effect order index that is passed in
-                monoGranular &&= instrumentState.plugin.effectIsBeforePanning(0);
-                monoDistortion &&= instrumentState.plugin.effectIsBeforePanning(1);
-                monoBitcrush &&= instrumentState.plugin.effectIsBeforePanning(2);
-                monoRingMod &&= instrumentState.plugin.effectIsBeforePanning(3);
-                monoEqFilter &&= instrumentState.plugin.effectIsBeforePanning(4);
+                monoGranular &&= instrumentState.plugin.effectIsBeforePanning(0, 5, 9);
+                monoDistortion &&= instrumentState.plugin.effectIsBeforePanning(1, 5, 9);
+                monoBitcrush &&= instrumentState.plugin.effectIsBeforePanning(2, 5, 9);
+                monoRingMod &&= instrumentState.plugin.effectIsBeforePanning(3, 5, 9);
+                monoEqFilter &&= instrumentState.plugin.effectIsBeforePanning(4, 5, 9);
 
             }
 
@@ -7034,7 +7034,7 @@ export class Synth extends SynthTemplate {
 
             if (usesPlugin && instrumentState.plugin) {
                 let pluginSource = ""
-                if (!instrumentState.plugin.effectIsBeforePanning(9)) pluginSource = "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);";
+                if (!instrumentState.plugin.effectIsBeforePanning(9, 5, 9)) pluginSource = "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);";
                 else {
                     if (stereoChannels < 2) pluginSource = "sample = plugin.synthFunction(sample, runLength);";
                     else pluginSource = "sampleL = plugin.synthFunction(sampleL, runLength); sampleR = plugin?.synthFunction(sampleR, runLength);";
