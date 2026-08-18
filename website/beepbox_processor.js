@@ -335,6 +335,7 @@ var SynthProcessor = class extends AudioWorkletProcessor {
   sabR;
   samplesL;
   samplesR;
+  silence = false;
   constructor() {
     super();
     this.port.onmessage = (event) => this.receiveMessage(event);
@@ -367,9 +368,15 @@ var SynthProcessor = class extends AudioWorkletProcessor {
         this.samplesR = new RingBuffer(this.sabR, Float32Array);
         break;
       }
+      case 2 /* deactivate */: {
+        this.receiveMessage = () => {
+        };
+        this.silence = true;
+      }
     }
   }
   process(_, outputs) {
+    if (this.silence) return false;
     const outputDataL = outputs[0][0];
     const outputDataR = outputs[0][1];
     if (this.browserAutomaticallyClearsAudioBuffer && (outputDataL[0] != 0 || outputDataR[0] != 0 || outputDataL[outputDataL.length - 1] != 0 || outputDataR[outputDataL.length - 1] != 0)) {

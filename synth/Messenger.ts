@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2022 John Nesky and contributing authors, distributed under the MIT license, see accompanying the LICENSE.md file.
 
-import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage, defaultBlockSize } from "./synthMessages";
+import { MessageFlag, Message, PlayMessage, LoadSongMessage, ResetEffectsMessage, ComputeModsMessage, SetPrevBarMessage, SendSharedArrayBuffers, SongSettings, InstrumentSettings, ChannelSettings, UpdateSongMessage, IsRecordingMessage, PluginMessage, SampleStartMessage, SampleFinishMessage, LoopRepeatCountMessage, LoopBarMessage, defaultBlockSize, DeactivateMessage } from "./synthMessages";
 import { RingBuffer } from "ringbuf.js";
 import { Synth } from "./synth";
 import { events, EventType } from "../global/Events";
@@ -206,7 +206,7 @@ export class SynthMessenger extends SynthTemplate {
             }
 
             case MessageFlag.uiRender: {
-                if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.deactivateAudio();
+                if (!this.isPlayingSong && performance.now() >= this.liveInputEndTime) this.softerDeactivate();
                 if (this.oscEnabled) {
                     if (this.oscRefreshEventTimer <= 0) {
                         this.analyserNodeLeft!.getFloatTimeDomainData(this.leftData);
@@ -293,7 +293,16 @@ export class SynthMessenger extends SynthTemplate {
         }
     }
 
+    private activatingAudio: Promise<void> | null = null;
     private async activateAudio(): Promise<void> {
+        if (this.activatingAudio) return await this.activatingAudio;
+        this.activatingAudio = this._activateAudio();
+
+        return await this.activatingAudio;
+    }
+
+
+    private async _activateAudio(): Promise<void> {
         if (this.audioContext == null || this.workletNode == null || this.synthNode == null) {
             if (this.workletNode != null || this.synthNode != null) this.deactivateAudio();
             if (this.audioContext && this.audioContext.state == "suspended") this.audioContext.resume();
@@ -325,31 +334,34 @@ export class SynthMessenger extends SynthTemplate {
             this.workletNode.port.postMessage({
                 flag: MessageFlag.sabsProcessor,
                 bufferL: this.bufferL,
-                bufferR: this.bufferR
+                bufferR: this.bufferR,
             });
             if (!this.synthNode) {
                 this.synthNode = new Worker(ISPLAYER ? "../beepbox_synth_processor.js" : "beepbox_synth_processor.js");
                 this.sendMessage(sabMessage);
             }
             if (!this.splitterNode) this.splitterNode = new ChannelSplitterNode(this.audioContext!, { numberOfOutputs: 2 });
-            if (!this.analyserNodeLeft) this.analyserNodeLeft = new AnalyserNode(this.audioContext!, {
-                channelCount: 2,
-                channelInterpretation: "speakers",
-                channelCountMode: "explicit",
-                fftSize: 1024
-            });
-            if (!this.analyserNodeRight) this.analyserNodeRight = new AnalyserNode(this.audioContext!, {
-                channelCount: 2,
-                channelInterpretation: "speakers",
-                channelCountMode: "explicit",
-                fftSize: 1024
-            });
-
+            if (!this.analyserNodeLeft) {
+                this.analyserNodeLeft = new AnalyserNode(this.audioContext!, {
+                    channelCount: 2,
+                    channelInterpretation: "speakers",
+                    channelCountMode: "explicit",
+                    fftSize: 1024
+                });
+                this.splitterNode.connect(this.analyserNodeLeft, 0);
+            }
+            if (!this.analyserNodeRight) {
+                this.analyserNodeRight = new AnalyserNode(this.audioContext!, {
+                    channelCount: 2,
+                    channelInterpretation: "speakers",
+                    channelCountMode: "explicit",
+                    fftSize: 1024
+                });
+                this.splitterNode.connect(this.analyserNodeRight, 1);
+            }
 
             this.workletNode.connect(this.audioContext!.destination);
             this.workletNode.connect(this.splitterNode);
-            this.splitterNode.connect(this.analyserNodeLeft, 0);
-            this.splitterNode.connect(this.analyserNodeRight, 1);
             this.synthNode.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.updateWorkletSong();
@@ -371,13 +383,29 @@ export class SynthMessenger extends SynthTemplate {
     }
 
     private deactivateAudio(): void {
-        if (this.audioContext != null && this.workletNode != null) {
-            this.audioContext.suspend();
+        if (this.workletNode != null) {
+            this.workletNode.disconnect();
+            this.workletNode.port.onmessage = null;
+            this.workletNode = null;
         }
+        if (this.synthNode != null) {
+            const deactivateMessage: DeactivateMessage = {
+                flag: MessageFlag.deactivate
+            }
+            this.synthNode.postMessage(deactivateMessage);
+            this.synthNode.onmessage = null;
+            this.synthNode.terminate();
+            this.synthNode = null;
+        }
+        if (this.audioContext != null) this.audioContext.suspend();
     }
 
-    public maintainLiveInput(): void {
-        this.activateAudio();
+    private softerDeactivate(): void {
+
+    }
+
+    public async maintainLiveInput(): Promise<void> {
+        await this.activateAudio();
         this.liveInputEndTime = performance.now() + 10000.0;
     }
 
@@ -440,15 +468,16 @@ export class SynthMessenger extends SynthTemplate {
 
     public play = () => {
         if (this.isPlayingSong) return;
-        this.activateAudio();
-        this.isPlayingSong = true;
-        const playMessage: PlayMessage = {
-            flag: MessageFlag.togglePlay,
-            play: this.isPlayingSong,
-        }
-        this.initModFilters(this.song);
-        this.sendMessage(playMessage);
-        this.workletNode?.port.postMessage(playMessage);
+        this.activateAudio().then(() => {
+            this.isPlayingSong = true;
+            const playMessage: PlayMessage = {
+                flag: MessageFlag.togglePlay,
+                play: this.isPlayingSong,
+            }
+            this.initModFilters(this.song);
+            this.sendMessage(playMessage);
+            this.workletNode?.port.postMessage(playMessage);
+        })
     }
 
     public pause(communicate: boolean = true): void {

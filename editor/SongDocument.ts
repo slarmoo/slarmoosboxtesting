@@ -99,6 +99,7 @@ export class SongDocument {
 			updateDocumentTitle();
         } catch (error) {
             errorAlert(error);
+            if (!this.song) location.reload(); //shared array buffer likely isn't properly defined
         }
         songString = this.song.toBase64String();
         const synthVolumeMessage: SynthVolumeMessage = {

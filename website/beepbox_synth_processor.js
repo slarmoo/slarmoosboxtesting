@@ -36,19 +36,114 @@ var init_define_document = __esm({
   }
 });
 
+// node_modules/beepboxplugin/dist/helpers.js
+var require_helpers = __commonJS({
+  "node_modules/beepboxplugin/dist/helpers.js"(exports) {
+    "use strict";
+    init_define_document();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.DelayLine = void 0;
+    var epsilon2 = 1e-20;
+    var DelayLine = class {
+      static {
+        __name(this, "DelayLine");
+      }
+      samples;
+      index = 0;
+      _length;
+      _hasBeenEmptied = true;
+      constructor(delayLineSize) {
+        this.samples = new Float32Array(delayLineSize);
+        this._length = delayLineSize;
+        this.index = 0;
+      }
+      /**
+       * How long the delay line is
+       */
+      get length() {
+        return this._length;
+      }
+      /**
+       * Resets the delay line
+       */
+      empty() {
+        if (this._hasBeenEmptied)
+          return;
+        this.index = 0;
+        for (let i = 0; i < this._length; i++)
+          this.samples[i] = 0;
+        this._hasBeenEmptied = true;
+        this.oldLength = 0;
+      }
+      /**
+       * Read a sample from the delay line.
+       * @returns a sample
+       */
+      read() {
+        return this.samples[this.index] || 0;
+      }
+      /**
+       * Write a sample to the delay line and increment the sample pointer
+       * @param sample the sample to write
+       */
+      write(sample) {
+        if (this.oldLength > 0 && this.newSamples)
+          this.newSamples[this.index] = this.sanitize(sample);
+        else
+          this.samples[this.index] = this.sanitize(sample);
+        this.index++;
+        if (this.index >= this.samples.length)
+          this.index = 0;
+        this._hasBeenEmptied = false;
+        if (this.newSamples && this.oldLength <= 0) {
+          this.samples = this.newSamples;
+          this.newSamples = null;
+        } else {
+          this.oldLength--;
+        }
+      }
+      newSamples = null;
+      oldLength = 0;
+      /**
+       * Update how big the delay line is
+       * @param delayLineSize the new delay line length
+       */
+      resizeDelayLine(delayLineSize) {
+        if (this._hasBeenEmptied || delayLineSize < this._length) {
+          this.samples = new Float32Array(delayLineSize);
+          this._length = delayLineSize;
+          this.index = 0;
+        } else {
+          this.oldLength = this._length;
+          this.newSamples = new Float32Array(delayLineSize);
+          this._length = delayLineSize;
+        }
+      }
+      sanitize(sample) {
+        if (Number.isFinite(sample) && Math.abs(sample) >= epsilon2)
+          return sample;
+        return 0;
+      }
+    };
+    exports.DelayLine = DelayLine;
+  }
+});
+
 // node_modules/beepboxplugin/dist/index.js
 var require_dist = __commonJS({
   "node_modules/beepboxplugin/dist/index.js"(exports) {
     "use strict";
     init_define_document();
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.PluginElementType = exports.BeepBoxEffectPlugin = void 0;
-    var PANNING_INDEX = 5;
-    var PLUGIN_INDEX = 9;
+    exports.DelayLine = exports.PluginCustomUI = exports.PluginElementType = exports.BeepBoxEffectPlugin = void 0;
     var BeepBoxEffectPlugin2 = class {
       static {
         __name(this, "BeepBoxEffectPlugin");
       }
+      /**
+       * If your plugin has any presets, you may list the names/jsons here
+       */
+      presets = [];
       /**
        * If your plugin uses delay lines and you would like your sound to sustain past the note, change this value to your sustain length
        */
@@ -56,29 +151,31 @@ var require_dist = __commonJS({
       /**
        *
        * @param effect The default effect number (See effectOrderIndex)
+       * @param panningIndex The default effect number for panning
+       * @param panningIndex The default effect number for plugins
        * @returns Whether or not the effect happens before panning
        */
-      effectIsBeforePanning(effect) {
+      effectIsBeforePanning(effect, panningIndex, defaultPluginIndex) {
         if (typeof this.effectOrderIndex == "number") {
-          if (effect == PLUGIN_INDEX) {
-            return this.effectOrderIndex < PANNING_INDEX;
+          if (effect == defaultPluginIndex) {
+            return this.effectOrderIndex < panningIndex;
           } else {
-            return effect < 5 + +this.effectIsBeforePanning(PLUGIN_INDEX);
+            return effect < panningIndex + +this.effectIsBeforePanning(defaultPluginIndex, panningIndex, defaultPluginIndex);
           }
         } else {
-          const panningIndex = this.effectOrderIndex.indexOf(PANNING_INDEX);
+          const truePanningIndex = this.effectOrderIndex.indexOf(panningIndex);
           const otherIndex = this.effectOrderIndex.indexOf(effect);
           if (otherIndex < 0)
             throw RangeError(`Effect #${effect} is not in effects list`);
-          return otherIndex < panningIndex;
+          return otherIndex < truePanningIndex;
         }
       }
       /**
        * Verifies that effectOrderIndex is valid
        */
-      verifyEffectOrderIndex() {
+      verifyEffectOrderIndex(defaultPluginIndex) {
         if (typeof this.effectOrderIndex == "number") {
-          if (this.effectOrderIndex < 0 || this.effectOrderIndex > PLUGIN_INDEX)
+          if (this.effectOrderIndex < 0 || this.effectOrderIndex > defaultPluginIndex)
             throw RangeError(`Index ${this.effectOrderIndex} is not a valid index value`);
         } else {
           const s = new Set(this.effectOrderIndex);
@@ -87,7 +184,7 @@ var require_dist = __commonJS({
           if (s.size > this.effectOrderIndex.length)
             throw RangeError(`Too many effect indices`);
           this.effectOrderIndex.forEach((v, i) => {
-            if (v < 0 || v > PLUGIN_INDEX)
+            if (v < 0 || v > defaultPluginIndex)
               throw RangeError(`Index ${v} is not a valid index value at position ${i}`);
           });
         }
@@ -105,7 +202,48 @@ var require_dist = __commonJS({
       PluginElementType3[PluginElementType3["slider"] = 0] = "slider";
       PluginElementType3[PluginElementType3["checkbox"] = 1] = "checkbox";
       PluginElementType3[PluginElementType3["dropdown"] = 2] = "dropdown";
+      PluginElementType3[PluginElementType3["custom"] = 3] = "custom";
     })(PluginElementType2 || (exports.PluginElementType = PluginElementType2 = {}));
+    var PluginCustomUI = class {
+      static {
+        __name(this, "PluginCustomUI");
+      }
+      type = PluginElementType2.custom;
+      initialValue = 0;
+      //initial value has no meaning here
+      /**
+       * Update the instrument with the value of the plugin.
+       * @param pluginValueIndex corresponds to the same index that you'll draw the value out of in your instrumentStateFunction
+       *
+       * For example, if you have an x/y grid and you can plot two points, and have a checkbox and a dropdown that happen before this, then
+       *
+       * checkbox -> 0
+       *
+       * dropdown -> 1
+       *
+       * x1 -> 2
+       *
+       * y1 -> 3
+       *
+       * x2 -> 4
+       *
+       * y2 -> 5
+       */
+      updateSynth;
+      /**
+       * This function will be called by the synth to initalize the updateSynth function
+       * @param updateSynth
+       */
+      initialize = /* @__PURE__ */ __name((updateSynth) => {
+        this.updateSynth = updateSynth;
+        this.addEventListeners();
+      }, "initialize");
+    };
+    exports.PluginCustomUI = PluginCustomUI;
+    var helpers_1 = require_helpers();
+    Object.defineProperty(exports, "DelayLine", { enumerable: true, get: /* @__PURE__ */ __name(function() {
+      return helpers_1.DelayLine;
+    }, "get") });
   }
 });
 
@@ -3080,6 +3218,10 @@ var EditorConfig = class _EditorConfig {
         { name: "crackle", generalMidi: false, isNoise: true, settings: { "type": "noise", "volume": 0, "eqFilter": [{ "type": "low-pass", "cutoffHz": 16e3, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "eqSubFilters0": [{ "type": "low-pass", "cutoffHz": 16e3, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters1": [{ "type": "low-pass", "cutoffHz": 16e3, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters2": [{ "type": "low-pass", "cutoffHz": 8e3, "linearGain": 0.3536 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "eqSubFilters3": [{ "type": "low-pass", "cutoffHz": 8e3, "linearGain": 0.1768 }, { "type": "high-pass", "cutoffHz": 4756.83, "linearGain": 0.1768 }], "effects": ["panning", "granular", "reverb"], "granular": 10, "grainSize": 1, "grainAmounts": 0, "grainRange": 0, "pan": -100, "panDelay": 0, "reverb": 6, "fadeInSeconds": 0, "fadeOutTicks": -3, "wave": "white", "unison": "none", "envelopes": [{ "target": "grainFreq", "envelope": "none", "inverse": false, "perEnvelopeSpeed": 1, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 0.1, "discrete": false }, { "target": "panning", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 32, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": true, "steps": 32, "seed": 2, "waveform": 0 }], "isDrum": true } },
         { name: "alien radio chatter", generalMidi: false, isNoise: false, settings: { "type": "FM", "eqFilter": [{ "type": "low-pass", "cutoffHz": 707.11, "linearGain": 2 }], "eqFilterType": false, "eqSimpleCut": 10, "eqSimplePeak": 0, "envelopeSpeed": 12, "effects": ["chord type", "note filter", "granular", "distortion", "reverb"], "chord": "strum", "fastTwoNoteArp": false, "arpeggioSpeed": 12, "monoChordTone": 1, "noteFilterType": true, "noteSimpleCut": 4, "noteSimplePeak": 1, "noteFilter": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "noteSubFilters1": [{ "type": "low-pass", "cutoffHz": 1189.21, "linearGain": 0.5 }], "granular": 4, "grainSize": 9, "grainAmounts": 9, "grainRange": 11, "distortion": 86, "aliases": false, "panDelay": 0, "reverb": 10, "fadeInSeconds": 0.0413, "fadeOutTicks": -12, "algorithm": "1\u21903\u20032\u21904", "feedbackType": "2\u21924", "feedbackAmplitude": 1, "operators": [{ "frequency": "0.5\xD7", "amplitude": 12, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "18\xD7", "amplitude": 15, "waveform": "pulse width", "pulseWidth": 4 }, { "frequency": "7\xD7", "amplitude": 11, "waveform": "trapezoid", "pulseWidth": 5 }, { "frequency": "1\xD7", "amplitude": 0, "waveform": "triangle", "pulseWidth": 5 }], "envelopes": [{ "target": "grainFreq", "envelope": "random", "inverse": false, "perEnvelopeSpeed": 0.3, "perEnvelopeLowerBound": 0, "perEnvelopeUpperBound": 1, "discrete": false, "steps": 3, "seed": 29, "waveform": 1 }] } }
       ])
+    },
+    {
+      name: "Plugin Presets",
+      presets: toNameMap([])
     }
   ]);
   static valueToPreset(presetValue) {
@@ -3121,6 +3263,7 @@ var PluginConfig = class {
   static pluginName = "";
   static pluginUIElements = [];
   static pluginAbout = "";
+  static pluginPresets = [];
 };
 
 // synth/filtering.ts
@@ -9196,6 +9339,8 @@ var Song = class _Song {
       PluginConfig.pluginUIElements = plugin.elements || [];
       PluginConfig.pluginName = plugin.pluginName || "plugin";
       PluginConfig.pluginAbout = plugin.about;
+      PluginConfig.pluginPresets = [];
+      if (plugin.presets) for (const preset of plugin.presets) PluginConfig.pluginPresets.push(preset);
       const pluginMessage = {
         flag: 14 /* pluginMessage */,
         url,
@@ -13533,7 +13678,7 @@ var InstrumentState = class _InstrumentState {
         this.pluginEnds[i] = envelopeEnds[75 /* plugin */ + i] * instrument.pluginValues[i];
       }
       this.plugin?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
-      if (!this.pluginR && this.stereoChannels >= 2 && this.plugin?.effectIsBeforePanning(15 /* plugin */)) this.pluginR = new Synth.PluginClass();
+      if (!this.pluginR && this.stereoChannels >= 2 && this.plugin?.effectIsBeforePanning(15 /* plugin */, 5, 9)) this.pluginR = new Synth.PluginClass();
       this.pluginR?.instrumentStateFunction(this.pluginStarts, this.pluginEnds, samplesPerTick);
     }
     if (this.tonesAddedInThisTick) {
@@ -17035,12 +17180,12 @@ var Synth = class _Synth extends SynthTemplate {
       let monoRingMod = stereoChannels < 2;
       let monoEqFilter = stereoChannels < 2;
       if (usesPlugin && instrumentState.plugin) {
-        instrumentState.plugin.verifyEffectOrderIndex();
-        monoGranular &&= instrumentState.plugin.effectIsBeforePanning(0);
-        monoDistortion &&= instrumentState.plugin.effectIsBeforePanning(1);
-        monoBitcrush &&= instrumentState.plugin.effectIsBeforePanning(2);
-        monoRingMod &&= instrumentState.plugin.effectIsBeforePanning(3);
-        monoEqFilter &&= instrumentState.plugin.effectIsBeforePanning(4);
+        instrumentState.plugin.verifyEffectOrderIndex(9);
+        monoGranular &&= instrumentState.plugin.effectIsBeforePanning(0, 5, 9);
+        monoDistortion &&= instrumentState.plugin.effectIsBeforePanning(1, 5, 9);
+        monoBitcrush &&= instrumentState.plugin.effectIsBeforePanning(2, 5, 9);
+        monoRingMod &&= instrumentState.plugin.effectIsBeforePanning(3, 5, 9);
+        monoEqFilter &&= instrumentState.plugin.effectIsBeforePanning(4, 5, 9);
       }
       let effectsSource = "return (synth, outputDataL, outputDataR, bufferIndex, runLength, instrumentState) => {";
       const usesDelays = usesChorus || usesReverb || usesEcho || usesGranular || usesPlugin;
@@ -17713,7 +17858,7 @@ var Synth = class _Synth extends SynthTemplate {
       }
       if (usesPlugin && instrumentState.plugin) {
         let pluginSource = "";
-        if (!instrumentState.plugin.effectIsBeforePanning(9)) pluginSource = "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);";
+        if (!instrumentState.plugin.effectIsBeforePanning(9, 5, 9)) pluginSource = "[sampleL, sampleR] = plugin.synthFunction([sampleL, sampleR], runLength);";
         else {
           if (stereoChannels < 2) pluginSource = "sample = plugin.synthFunction(sample, runLength);";
           else pluginSource = "sampleL = plugin.synthFunction(sampleL, runLength); sampleR = plugin?.synthFunction(sampleR, runLength);";

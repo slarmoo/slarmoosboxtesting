@@ -13,6 +13,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
     private sabR: SharedArrayBuffer;
     private samplesL: RingBuffer;
     private samplesR: RingBuffer;
+    private silence: boolean = false;
 
     constructor() {
         super();
@@ -46,12 +47,16 @@ export class SynthProcessor extends AudioWorkletProcessor {
                 this.samplesL = new RingBuffer(this.sabL, Float32Array);
                 this.samplesR = new RingBuffer(this.sabR, Float32Array);
                 break;
+            } case MessageFlag.deactivate: {
+                this.receiveMessage = () => { };
+                this.silence = true;
             }
         }
         
     }
 
     process(_: Float32Array[][], outputs: Float32Array[][]) {
+        if (this.silence) return false;
         const outputDataL: Float32Array = outputs[0][0];
         const outputDataR: Float32Array = outputs[0][1];
 
@@ -96,6 +101,7 @@ export class SynthProcessor extends AudioWorkletProcessor {
             flag: MessageFlag.uiRender,
         }
         this.sendMessage(uiRenderMessage);
+        // console.log(this.id)
 
         return true;
     }
