@@ -23631,7 +23631,7 @@ var beepbox = (function (exports) {
                 const outputR = sampleR * expression;
                 expression += expressionDelta;
                 dataL[sampleIndex] += outputL;
-                dataR[sampleIndex] += outputR;
+                if(stereoChannels >= 2) dataR[sampleIndex] += outputR;
                 phaseDelta# *= phaseDeltaScale#;
                 `;
                 chipSource += `
@@ -23784,7 +23784,7 @@ var beepbox = (function (exports) {
             const outputR = sampleR * expression;
             expression += expressionDelta;
             dataL[sampleIndex] += outputL;
-            dataR[sampleIndex] += outputR;
+            if(stereoChannels >= 2) dataR[sampleIndex] += outputR;
         }
         tone.phases[#] = phase# / waveLength;
         tone.phaseDeltas[#] = phaseDelta# / waveLength;
@@ -24418,14 +24418,14 @@ var beepbox = (function (exports) {
 					const distortionReverse = 1.0 - distortion;
 					const distortionNextInputL = sample * distortionDrive;
 					sample = distortionNextOutputL;
-					distortionNextOutput = distortionNextInputL / (distortionReverse * Math.abs(distortionNextInputL) + distortion);
-					distortionFractionalInput1 = distortionFractionalDelayG1 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG1 * distortionFractionalInputL1;
-					distortionFractionalInput2 = distortionFractionalDelayG2 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG2 * distortionFractionalInputL2;
-					distortionFractionalInput3 = distortionFractionalDelayG3 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG3 * distortionFractionalInputL3;
-					const distortionOutput1 = distortionFractionalInput1 / (distortionReverse * Math.abs(distortionFractionalInput1) + distortion);
-					const distortionOutput2 = distortionFractionalInput2 / (distortionReverse * Math.abs(distortionFractionalInput2) + distortion);
-					const distortionOutput3 = distortionFractionalInput3 / (distortionReverse * Math.abs(distortionFractionalInput3) + distortion);
-					distortionNextOutput += distortionOutput1 * distortionNextOutputWeight1 + distortionOutput2 * distortionNextOutputWeight2 + distortionOutput3 * distortionNextOutputWeight3;
+					distortionNextOutputL = distortionNextInputL / (distortionReverse * Math.abs(distortionNextInputL) + distortion);
+					distortionFractionalInputL1 = distortionFractionalDelayG1 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG1 * distortionFractionalInputL1;
+					distortionFractionalInputL2 = distortionFractionalDelayG2 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG2 * distortionFractionalInputL2;
+					distortionFractionalInputL3 = distortionFractionalDelayG3 * distortionNextInputL + distortionPrevInputL - distortionFractionalDelayG3 * distortionFractionalInputL3;
+					const distortionOutput1 = distortionFractionalInputL1 / (distortionReverse * Math.abs(distortionFractionalInputL1) + distortion);
+					const distortionOutput2 = distortionFractionalInputL2 / (distortionReverse * Math.abs(distortionFractionalInputL2) + distortion);
+					const distortionOutput3 = distortionFractionalInputL3 / (distortionReverse * Math.abs(distortionFractionalInputL3) + distortion);
+					distortionNextOutputL += distortionOutput1 * distortionNextOutputWeight1 + distortionOutput2 * distortionNextOutputWeight2 + distortionOutput3 * distortionNextOutputWeight3;
 					sample += distortionOutput1 * distortionPrevOutputWeight1 + distortionOutput2 * distortionPrevOutputWeight2 + distortionOutput3 * distortionPrevOutputWeight3;
 					sample *= distortionOversampleCompensation;
 					distortionPrevInputL = distortionNextInputL;
@@ -26105,7 +26105,10 @@ var beepbox = (function (exports) {
             }
         }
         activatingAudio = null;
+        _audioActivated = false;
         async activateAudio() {
+            if (this._audioActivated)
+                return;
             if (this.activatingAudio)
                 return await this.activatingAudio;
             this.activatingAudio = this._activateAudio();
@@ -26174,6 +26177,7 @@ var beepbox = (function (exports) {
                 this.workletNode.port.onmessage = (event) => this.receiveMessage(event);
                 this.updateWorkletSong();
             }
+            this._audioActivated = true;
             this.audioContext.resume();
         }
         updateWorkletSong(song) {
@@ -26189,6 +26193,7 @@ var beepbox = (function (exports) {
             }
         }
         deactivateAudio() {
+            this._audioActivated = false;
             if (this.workletNode != null) {
                 this.workletNode.disconnect();
                 this.workletNode.port.onmessage = null;
@@ -26264,16 +26269,15 @@ var beepbox = (function (exports) {
         play = () => {
             if (this.isPlayingSong)
                 return;
-            this.activateAudio().then(() => {
-                this.isPlayingSong = true;
-                const playMessage = {
-                    flag: MessageFlag.togglePlay,
-                    play: this.isPlayingSong,
-                };
-                this.initModFilters(this.song);
-                this.sendMessage(playMessage);
-                this.workletNode?.port.postMessage(playMessage);
-            });
+            this.activateAudio();
+            this.isPlayingSong = true;
+            const playMessage = {
+                flag: MessageFlag.togglePlay,
+                play: this.isPlayingSong,
+            };
+            this.initModFilters(this.song);
+            this.sendMessage(playMessage);
+            this.workletNode?.port.postMessage(playMessage);
         };
         pause(communicate = true) {
             if (!this.isPlayingSong)

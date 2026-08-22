@@ -294,7 +294,9 @@ export class SynthMessenger extends SynthTemplate {
     }
 
     private activatingAudio: Promise<void> | null = null;
+    private _audioActivated: boolean = false;
     private async activateAudio(): Promise<void> {
+        if (this._audioActivated) return;
         if (this.activatingAudio) return await this.activatingAudio;
         this.activatingAudio = this._activateAudio();
 
@@ -366,6 +368,7 @@ export class SynthMessenger extends SynthTemplate {
             this.workletNode.port.onmessage = (event: MessageEvent) => this.receiveMessage(event);
             this.updateWorkletSong();
         }
+        this._audioActivated = true;
         this.audioContext!.resume();
     }
 
@@ -383,6 +386,7 @@ export class SynthMessenger extends SynthTemplate {
     }
 
     private deactivateAudio(): void {
+        this._audioActivated = false;
         if (this.workletNode != null) {
             this.workletNode.disconnect();
             this.workletNode.port.onmessage = null;
@@ -468,16 +472,15 @@ export class SynthMessenger extends SynthTemplate {
 
     public play = () => {
         if (this.isPlayingSong) return;
-        this.activateAudio().then(() => {
-            this.isPlayingSong = true;
-            const playMessage: PlayMessage = {
-                flag: MessageFlag.togglePlay,
-                play: this.isPlayingSong,
-            }
-            this.initModFilters(this.song);
-            this.sendMessage(playMessage);
-            this.workletNode?.port.postMessage(playMessage);
-        })
+        this.activateAudio();
+        this.isPlayingSong = true;
+        const playMessage: PlayMessage = {
+            flag: MessageFlag.togglePlay,
+            play: this.isPlayingSong,
+        }
+        this.initModFilters(this.song);
+        this.sendMessage(playMessage);
+        this.workletNode?.port.postMessage(playMessage);
     }
 
     public pause(communicate: boolean = true): void {

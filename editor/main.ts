@@ -161,8 +161,13 @@ if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
 editor.updatePlayButton();
 
+let testingflag = false;
+let githubflag = false
+if (window.location.href && window.location.href.includes("slarmoosboxtesting")) testingflag = true;
+if (window.location.href && window.location.href.includes("slarmoosbox")) githubflag = true;
+
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("../service_worker.js", { updateViaCache: "all", scope: "/" }).catch(() => { });
+    navigator.serviceWorker.register("../service_worker.js", { updateViaCache: "all", scope: testingflag ? "/slarmoosboxtesting" : (githubflag ? "/slarmoosbox" : "/") }).catch(() => { });
 }
 
 // When compiling synth.ts as a standalone module named "beepbox", expose these classes as members to JavaScript:
