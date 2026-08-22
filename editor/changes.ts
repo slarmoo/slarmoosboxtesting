@@ -2045,10 +2045,11 @@ export class ChangeDeleteBars extends Change {
     constructor(doc: SongDocument, start: number, count: number) {
         super();
 
-        for (const channel of doc.song.channels) {
+        for (let index: number = 0; index < doc.song.channels.length; index++) {
+            const channel = doc.song.channels[index]
             channel.bars.splice(start, count);
             if (channel.bars.length == 0) channel.bars.push(0);
-            doc.synth.updateSong(doc.song.channels[doc.channel].bars, SongSettings.updateChannel, doc.channel, 0, ChannelSettings.bars);
+            doc.synth.updateSong(channel.bars, SongSettings.updateChannel, index, 0, ChannelSettings.bars);
         }
         doc.song.barCount = Math.max(1, doc.song.barCount - count);
 
