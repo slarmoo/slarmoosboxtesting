@@ -3341,8 +3341,8 @@ export class SongEditor {
                 }
                 case PluginElementType.dropdown: {
                     const value: number = Math.min(instrument.pluginValues[i], (pluginElement as PluginDropdown).options.length - 1);
-                    this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
-                    (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
+                    this._pluginElements[i] = buildOptions(select({ value: value, style: "margin: 0; width: 115px;" }), (pluginElement as PluginDropdown).options);
+                    (this._pluginElements[i] as HTMLSelectElement).addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, instrument.pluginValues[i], parseInt((this._pluginElements[i] as HTMLSelectElement).value), i)))
                     this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, (pluginElement as PluginCheckbox).name + ":"), (this._pluginElements[i] as HTMLInputElement));
                     break;
                 }

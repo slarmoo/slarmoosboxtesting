@@ -89577,8 +89577,8 @@ You should be redirected to the song at:<br /><br />
                     }
                     case distExports.PluginElementType.dropdown: {
                         const value = Math.min(instrument.pluginValues[i], pluginElement.options.length - 1);
-                        this._pluginElements[i] = buildOptions(select({ value: instrument.pluginValues[i], style: "margin: 0; width: 115px;" }), pluginElement.options);
-                        this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, value, parseInt(this._pluginElements[i].value), i)));
+                        this._pluginElements[i] = buildOptions(select({ value: value, style: "margin: 0; width: 115px;" }), pluginElement.options);
+                        this._pluginElements[i].addEventListener("change", () => this.doc.record(new ChangePluginValue(this.doc, instrument.pluginValues[i], parseInt(this._pluginElements[i].value), i)));
                         this._pluginRows[i] = div({ class: "selectRow" }, span({ class: "tip", onclick: () => this._openPrompt("plugin", i) }, pluginElement.name + ":"), this._pluginElements[i]);
                         break;
                     }
